@@ -17,6 +17,7 @@ muvofiqlashtirilgan holda ishlaydi.
 | **Foyda emas, to'g'ri qaror** | Maqsad "ko'proq signal" emas. Asosiy savol: *"Hozir signal berish to'g'rimi?"* Javob "yo'q" bo'lsa — signal berilmaydi, **bu normal holat**. |
 | **Fail-safe** | Noaniqlik yoki xatolikda tizim signal **BERMASLIKKA** moyil bo'ladi, xato signal berishga emas. |
 | **S/R birinchi** | Tahlil Support/Resistance zonalaridan boshlanadi. Indikatorlar — tasdiqlovchi, mustaqil signal manbai emas. |
+| **Ko'p timeframe** | `15m → 30m → 1h → 4h → 1d`. Pastki TF yuqorisiga zid bo'lmasligi kerak. |
 | **Halollik — brend negizi** | Faqat halol coinlar. Shubhali (mashbooh) ham harom kabi chetlab o'tiladi. |
 
 ---
@@ -91,6 +92,8 @@ signal berish paytida emas.
   to'xtaydi; mavjud signallar kuzatuvi davom etadi
 - **Pozitsiya hajmi (5.1/5.1.1/5.2)** — pog'onali xavf, kunlik byudjetni
   taqsimlash, agregat foydalanuvchi sig'imi
+- **Kirish buyurtmasi (5.1.0)** — narx zonaga yetmagan bo'lsa LIMIT, allaqachon
+  zonada bo'lsa MARKET; chiqish har doim OCO. Signal-kartochka shabloni tayyor
 - **DB sxemasi** — 15 jadval, SQLite → PostgreSQL ko'chishga tayyor
 
 ---

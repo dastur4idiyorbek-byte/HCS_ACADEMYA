@@ -72,11 +72,35 @@ class IndicatorConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class EntryOrderConfig:
+    """5.1.0-band: kirish buyurtmasi turi avtomatik tanlanadi.
+
+    - Narx hali Entry zonasiga yetib bormagan  -> LIMIT
+    - Narx allaqachon Entry zonasida           -> MARKET
+    """
+
+    market_threshold_pct: float = 0.15
+    zone_broken_threshold_pct: float = 0.30
+
+
+@dataclass(frozen=True, slots=True)
 class AnalysisConfig:
-    timeframes: list[str] = field(default_factory=lambda: ["1h", "4h", "1d", "1w", "1M"])
-    entry_timeframe: str = "1h"
-    htf_confirmation: list[str] = field(default_factory=lambda: ["4h", "1d", "1w", "1M"])
+    """3.2-band: asosiy klassik strategiya uchun standart timeframe to'plami."""
+
+    timeframes: list[str] = field(
+        default_factory=lambda: ["15m", "30m", "1h", "4h", "1d"]
+    )
+    entry_timeframe: str = "15m"
+    htf_confirmation: list[str] = field(
+        default_factory=lambda: ["30m", "1h", "4h", "1d"]
+    )
     candles_lookback: int = 500
+    #: Kelajakdagi pozitsion strategiya uchun zaxira — asosiy strategiya
+    #: ishlatmaydi (u o'z timeframelarini `required_timeframes()` da e'lon qiladi).
+    positional_timeframes: list[str] = field(
+        default_factory=lambda: ["1d", "1w", "1M"]
+    )
+    entry_order: EntryOrderConfig = field(default_factory=EntryOrderConfig)
     support_resistance: SupportResistanceConfig = field(default_factory=SupportResistanceConfig)
     indicators: IndicatorConfig = field(default_factory=IndicatorConfig)
 

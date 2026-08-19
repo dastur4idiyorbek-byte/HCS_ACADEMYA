@@ -229,6 +229,15 @@ class SignalRecord(Base, TimestampMixin):
     tp1: Mapped[float] = mapped_column(Float, nullable=False)
     tp2: Mapped[float] = mapped_column(Float, nullable=False)
 
+    # 5.1.0-band: kirish buyurtmasi turi (limit|market) — signal shakllanganda
+    # narx va Entry orasidagi masofaga qarab avtomatik tanlanadi.
+    entry_order_type: Mapped[str] = mapped_column(String(8), default="limit", nullable=False)
+    # Signal shakllangan paytdagi bozor narxi — postmortem (3.8) uchun: kirish
+    # nuqtasi zaif bo'lganmi degan savolga javob shu maydondan chiqadi.
+    price_at_signal: Mapped[float | None] = mapped_column(Float)
+    # Chiqish har doim OCO (TP + Stop birgalikda) — kelajakda o'zgarsa shu yerda.
+    exit_order_type: Mapped[str] = mapped_column(String(8), default="oco", nullable=False)
+
     score: Mapped[float | None] = mapped_column(Float)
     # 3.6-band: "Nega bu signal?" — ball tafsiloti JSON matn sifatida
     score_breakdown: Mapped[str | None] = mapped_column(Text)

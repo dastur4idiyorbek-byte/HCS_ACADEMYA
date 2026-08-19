@@ -40,6 +40,34 @@ _STATUS_EMOJI: dict[SignalStatus, str] = {
 }
 
 
+class OrderType(str, Enum):
+    """5.1.0-band: kirish buyurtmasi turi — avtomatik tanlanadi.
+
+    LIMIT  — narx hali kutilgan Entry zonasiga yetib bormagan; buyurtma
+             narx zonaga kelganda avtomatik bajariladi.
+    MARKET — narx allaqachon Entry zonasida, signal aynan shu daqiqada
+             shakllanmoqda; kutish shart emas.
+    """
+
+    LIMIT = "limit"
+    MARKET = "market"
+
+    @property
+    def emoji(self) -> str:
+        return "🎯" if self is OrderType.LIMIT else "⚡"
+
+    @property
+    def label_uz(self) -> str:
+        return "Limit" if self is OrderType.LIMIT else "Market"
+
+
+class ExitOrderType(str, Enum):
+    """Chiqish har doim OCO: TP va Stop birgalikda, biri bajarilsa
+    ikkinchisi avtomatik bekor bo'ladi."""
+
+    OCO = "oco"
+
+
 class SignalSource(str, Enum):
     """Signal qayerdan keldi."""
 

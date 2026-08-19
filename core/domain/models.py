@@ -12,8 +12,10 @@ from datetime import datetime
 
 from core.domain.enums import (
     BlockReason,
+    ExitOrderType,
     HalalStatus,
     HealthBand,
+    OrderType,
     SignalSource,
     SignalStatus,
     TrendDirection,
@@ -252,6 +254,23 @@ class SignalLevels:
         return (self.tp2 - self.entry) / (self.entry - self.stop)
 
 
+@dataclass(frozen=True, slots=True)
+class EntryPlan:
+    """5.1.0-band: kirish rejasi — buyurtma turi va uning sababi.
+
+    Chiqish har doim OCO (TP + Stop birgalikda), shuning uchun u yerda
+    tanlov yo'q — `exit_order_type` doim `OCO`.
+    """
+
+    order_type: OrderType
+    entry_price: float
+    current_price: float
+    distance_pct: float
+    reason: str
+    is_valid: bool = True
+    exit_order_type: ExitOrderType = ExitOrderType.OCO
+
+
 @dataclass(slots=True)
 class Signal:
     """Yaratilgan yoki kuzatilayotgan signal."""
@@ -259,6 +278,7 @@ class Signal:
     symbol: str
     levels: SignalLevels
     source: SignalSource
+    entry_plan: EntryPlan | None = None
     status: SignalStatus = SignalStatus.PENDING
     score: float | None = None
     breakdown: ScoreBreakdown | None = None
@@ -283,6 +303,7 @@ class SignalCandidate:
     source: SignalSource
     breakdown: ScoreBreakdown
     halal_verdict: HalalVerdict
+    entry_plan: EntryPlan | None = None
 
     @property
     def score(self) -> float:

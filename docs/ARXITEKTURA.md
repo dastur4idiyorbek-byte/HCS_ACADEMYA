@@ -161,7 +161,59 @@ Interfeys saqlanadi, shuning uchun kelajakda kutubxonaga o'tish oson.
 
 ---
 
-## 10. Bosqichlar holati
+## 10. Timeframe to'plami (3.2-band, tuzatilgan)
+
+Dastlabki to'plam `1h → 4h → 1d → 1w → 1M` edi. U haddan tashqari katta —
+haftalik va oylik shamlar bir xil trendni ko'rsatishini kutish signal
+chastotasini deyarli nolga tushirardi.
+
+Amaldagi standart to'plam:
+
+```
+15m → 30m → 1h → 4h → 1d
+     ↑                  ↑
+  kirish TF        tasdiqlovchi TF'lar
+ (S/R + indikator)  (trend zid bo'lmasligi kerak)
+```
+
+Qat'iy qoida o'zgarmadi: signal faqat **barcha** yuqori timeframelar bir xil
+trendni ko'rsatganda **va** eng pastki timeframeda S/R + indikatorlar
+tasdiqlanganda beriladi.
+
+Yuqori timeframelar (`1w`, `1M`) `analysis.positional_timeframes` da zaxirada
+qoldirildi. Kelajakda pozitsion strategiya qo'shilsa, u ularni
+`Strategy.required_timeframes()` orqali **o'zi e'lon qiladi** — plug-in
+arxitekturasi buni allaqachon qo'llab-quvvatlaydi, konfiguratsiya
+o'zgartirilmaydi.
+
+---
+
+## 11. Kirish buyurtmasi turi (5.1.0-band)
+
+`core/analysis/entry_order.py` narx va Entry orasidagi masofaga qarab
+avtomatik tanlaydi:
+
+| Masofa | Buyurtma | Nima uchun |
+|---|---|---|
+| Narx Entry'dan yuqorida (> 0.15%) | **LIMIT** | narx zonaga kelganda avtomatik bajariladi |
+| Narx zonada (±0.15%) | **MARKET** | kutish shart emas, signal shu daqiqada shakllanmoqda |
+| Narx Entry'dan pastda (0.15–0.30%) | **LIMIT** | zona hali buzilmagan, buyurtma Entry'da qoladi |
+| Narx Entry'dan pastda (> 0.30%) | **signal berilmaydi** | support zonasi ushlab tura olmadi |
+
+Oxirgi qator spetsifikatsiyada ko'rsatilmagan, lekin amalda uchraydi: narx
+kirish zonasini pastga kesib o'tgan bo'lsa, kirish asosi yo'qolgan. 0.3-band
+(fail-safe) bo'yicha bunday holatda signal berilmaydi — `EntryPlan.is_valid`
+`False` bo'ladi.
+
+Chiqish har doim **OCO** (TP + Stop birgalikda) — u yerda tanlov yo'q.
+
+Chegaralar `analysis.entry_order` da sozlanadi. Taqqoslashda `1e-9` epsilon
+ishlatiladi: usiz `100.15` narxi `0.15%` chegarasiga tushmay qolardi (suzuvchi
+nuqta `0.15000000000000568` beradi).
+
+---
+
+## 12. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

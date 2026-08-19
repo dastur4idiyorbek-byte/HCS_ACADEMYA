@@ -41,7 +41,12 @@
     "nega_halol": "🕌 Nega bu coin halol?",
     "men_kirdim": "✋ Men kirdim",
     "kirgan_miqdor": "Qancha miqdorda kirdingiz? (USD)",
-    "almashtirish": "📉 {from_symbol} signali zaiflashmoqda → 📈 {to_symbol} da yaxshi imkoniyat paydo bo'ldi. Almashtirish tavsiya etiladi."
+    "almashtirish": "📉 {from_symbol} signali zaiflashmoqda → 📈 {to_symbol} da yaxshi imkoniyat paydo bo'ldi. Almashtirish tavsiya etiladi.",
+    "kartochka": "🟢 SIGNAL: {symbol}/{quote}\n\n📥 KIRISH\n   Turi:     {order_emoji} {order_label}\n   Narx:     {entry}\n   Miqdor:   {amount}\n\n📤 CHIQISH (OCO)\n   🎯 TP1:   {tp1}   ({tp1_pct})\n   🎯 TP2:   {tp2}   ({tp2_pct})\n   🛑 Stop:  {stop}   ({stop_pct})\n\n📊 Risk/Reward: 1:{rr}",
+    "miqdor_hisoblanmagan": "balansingizni kiriting",
+    "buyurtma_limit": "🎯 Limit",
+    "buyurtma_market": "⚡ Market",
+    "kirish_sababi": "📥 Kirish turi: {reason}"
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",
