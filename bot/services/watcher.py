@@ -20,12 +20,15 @@ from aiogram import Bot
 from bot.i18n import DEFAULT_LANGUAGE, t
 from core.config.schema import AppConfig
 from core.domain.enums import SignalStatus, SubscriptionTier
+from core.domain.portfolio import PositionOutcome
 from core.market_data import PriceCache, PriceStream, SpikeDetector
+from core.services import compute_outcome
 from core.signals import SignalEvent, SignalTracker
 from core.storage import Database
 from core.storage.repositories import (
     SignalRepository,
     SubscriptionRepository,
+    UserPositionRepository,
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
@@ -166,6 +169,7 @@ class SignalWatcher:
             return
 
         await self._persist(hodisalar)
+        await self._close_positions(hodisalar)
         await self._notify(hodisalar)
         self._sync_subscription()
 
@@ -183,6 +187,101 @@ class SignalWatcher:
                     kind=hodisa.kind.value,
                     detail=hodisa.detail,
                 )
+
+    async def _close_positions(self, events: list[SignalEvent]) -> None:
+        """5.4-band: signal yopilganda foydalanuvchilar natijasini hisoblaydi.
+
+        TP1 ga yetilgan bo'lsa qismli yopish hisobga olinadi — ansiz
+        "TP1 oldi, keyin Stop" holati sof zarar ko'rinardi.
+        """
+        yopilganlar = [h for h in events if h.closes_signal and h.signal_id is not None]
+        if not yopilganlar:
+            return
+
+        for hodisa in yopilganlar:
+            signal = next(
+                (s for s in self._tracker._signals.values() if s.signal_id == hodisa.signal_id),
+                None,
+            )
+            tp1_narxi = (
+                signal.levels.tp1
+                if signal is not None and self._reached_tp1(signal)
+                else None
+            )
+
+            async with self._db.session() as session:
+                repo = UserPositionRepository(session)
+                pozitsiyalar = await repo.open_for_signal(hodisa.signal_id)
+                natijalar: list[tuple[int, PositionOutcome]] = []
+
+                for pozitsiya in pozitsiyalar:
+                    natija = compute_outcome(
+                        amount_usd=pozitsiya.amount_usd,
+                        entry_price=pozitsiya.entry_price,
+                        exit_price=hodisa.price,
+                        config=self._config.portfolio,
+                        tp1_price=tp1_narxi,
+                    )
+                    await repo.close(pozitsiya, hodisa.price, natija, hodisa.at)
+                    natijalar.append((pozitsiya.user_id, natija))
+
+                telegram_id_lar = {
+                    user_id: tg_id
+                    for user_id, tg_id in await self._telegram_ids(
+                        session, [uid for uid, _ in natijalar]
+                    )
+                }
+
+            await self._notify_results(hodisa, natijalar, telegram_id_lar, tp1_narxi)
+
+    @staticmethod
+    def _reached_tp1(signal) -> bool:  # noqa: ANN001
+        """Signal Stop yeyishdan oldin TP1 ga yetganmi."""
+        return signal.status in {SignalStatus.TP1_HIT, SignalStatus.TP2_HIT}
+
+    @staticmethod
+    async def _telegram_ids(session, user_ids: list[int]):  # noqa: ANN001, ANN205
+        if not user_ids:
+            return []
+        from sqlalchemy import select
+
+        from core.storage.models import User
+
+        stmt = select(User.id, User.telegram_id).where(User.id.in_(user_ids))
+        return list((await session.execute(stmt)).all())
+
+    async def _notify_results(
+        self,
+        event: SignalEvent,
+        results: list[tuple[int, PositionOutcome]],
+        telegram_ids: dict[int, int],
+        tp1_price: float | None,
+    ) -> None:
+        """Har bir ishtirokchiga SHAXSIY natijasini yuboradi."""
+        for user_id, natija in results:
+            telegram_id = telegram_ids.get(user_id)
+            if telegram_id is None:
+                continue
+
+            matn = t(
+                "signal.natija_xabari",
+                DEFAULT_LANGUAGE,
+                emoji="🟢" if natija.is_profit else "🔴",
+                symbol=event.symbol,
+                pnl_pct=f"{natija.pnl_pct:+.2f}%",
+                pnl_usd=f"${natija.pnl_usd:+,.2f}",
+            )
+            if natija.partial_close_pct:
+                matn += t(
+                    "signal.natija_qismli",
+                    DEFAULT_LANGUAGE,
+                    share=f"{natija.partial_close_pct:.0f}",
+                )
+
+            try:
+                await self._bot.send_message(telegram_id, matn, protect_content=True)
+            except Exception:  # noqa: BLE001
+                logger.warning("Natija yetkazilmadi: telegram_id=%s", telegram_id)
 
     async def _notify(self, events: list[SignalEvent]) -> None:
         """Obunachilarga holat o'zgarishini yetkazadi."""

@@ -34,15 +34,18 @@ from core.domain.models import (
     Signal,
     SignalLevels,
 )
+from core.domain.portfolio import PositionOutcome, PositionSnapshot, PublicStats
 from core.storage.models import (
     CoinRuling,
     Content,
+    DailyStat,
     MarketHealthLog,
     Payment,
     PriceConfig,
     SignalRecord,
     Subscription,
     User,
+    UserPosition,
     Violation,
 )
 from core.storage.models import (
@@ -622,6 +625,151 @@ class SignalRepository:
             closed_at=record.closed_at,
             signal_id=record.id,
         )
+
+
+class UserPositionRepository:
+    """5.4-band: "Men kirdim" orqali qayd etilgan pozitsiyalar."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def record_entry(
+        self,
+        user_id: int,
+        signal_id: int,
+        amount_usd: float,
+        entry_price: float,
+        risk_amount_usd: float | None = None,
+        trade_date: date | None = None,
+    ) -> UserPosition:
+        """Foydalanuvchi signalga kirganini qayd etadi."""
+        if amount_usd <= 0:
+            raise ValueError("Miqdor musbat bo'lishi kerak")
+        pozitsiya = UserPosition(
+            user_id=user_id,
+            signal_id=signal_id,
+            amount_usd=amount_usd,
+            entry_price=entry_price,
+            risk_amount_usd=risk_amount_usd,
+            trade_date=trade_date or utc_now().date(),
+        )
+        self._session.add(pozitsiya)
+        await self._session.flush()
+        return pozitsiya
+
+    async def get(self, user_id: int, signal_id: int) -> UserPosition | None:
+        stmt = select(UserPosition).where(
+            UserPosition.user_id == user_id, UserPosition.signal_id == signal_id
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def open_for_signal(self, signal_id: int) -> list[UserPosition]:
+        """Signal yopilganda barcha ochiq pozitsiyalarni topish uchun."""
+        stmt = select(UserPosition).where(
+            UserPosition.signal_id == signal_id, UserPosition.closed_at.is_(None)
+        )
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def close(
+        self,
+        position: UserPosition,
+        exit_price: float,
+        outcome: PositionOutcome,
+        closed_at: datetime | None = None,
+    ) -> None:
+        position.closed_at = closed_at or utc_now()
+        position.exit_price = exit_price
+        position.partial_exit_price = outcome.partial_exit_price
+        position.partial_close_pct = outcome.partial_close_pct
+        position.pnl_usd = outcome.pnl_usd
+        position.pnl_pct = outcome.pnl_pct
+
+    async def snapshots_for(self, user_id: int) -> list[PositionSnapshot]:
+        """Portfel hisobi uchun — DB modeliga bog'lanmagan ko'rinish."""
+        stmt = (
+            select(UserPosition, SignalRecord.symbol)
+            .join(SignalRecord, UserPosition.signal_id == SignalRecord.id)
+            .where(UserPosition.user_id == user_id)
+            .order_by(UserPosition.created_at.desc())
+        )
+        qatorlar = (await self._session.execute(stmt)).all()
+        return [
+            PositionSnapshot(
+                symbol=symbol,
+                amount_usd=pozitsiya.amount_usd,
+                entry_price=pozitsiya.entry_price,
+                trade_date=pozitsiya.trade_date,
+                closed_at=pozitsiya.closed_at,
+                pnl_usd=pozitsiya.pnl_usd,
+                pnl_pct=pozitsiya.pnl_pct,
+            )
+            for pozitsiya, symbol in qatorlar
+        ]
+
+    async def participant_count(self, signal_id: int) -> int:
+        stmt = (
+            select(func.count())
+            .select_from(UserPosition)
+            .where(UserPosition.signal_id == signal_id)
+        )
+        return (await self._session.execute(stmt)).scalar_one()
+
+
+class DailyStatsRepository:
+    """3.6 / 5.4-band: hammaga ochiq shaffoflik raqamlari."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def aggregate(self, since: date, label: str) -> PublicStats:
+        """Davr bo'yicha agregat. Shaxsiy ma'lumot oshkor qilinmaydi."""
+        signal_stmt = select(SignalRecord).where(
+            func.date(SignalRecord.created_at) >= since
+        )
+        signallar = list((await self._session.execute(signal_stmt)).scalars())
+
+        pozitsiya_stmt = (
+            select(
+                func.count(func.distinct(UserPosition.user_id)),
+                func.coalesce(func.sum(UserPosition.amount_usd), 0.0),
+            )
+            .where(UserPosition.trade_date >= since)
+        )
+        ishtirokchilar, hajm = (await self._session.execute(pozitsiya_stmt)).one()
+
+        ballar = [s.score for s in signallar if s.score is not None]
+        rr_lar = [
+            (s.tp2 - s.entry) / (s.entry - s.stop)
+            for s in signallar
+            if s.entry > s.stop
+        ]
+
+        return PublicStats(
+            period_label=label,
+            signals_created=len(signallar),
+            signals_activated=sum(1 for s in signallar if s.activated_at is not None),
+            tp1_count=sum(1 for s in signallar if s.status == SignalStatus.TP1_HIT.value),
+            tp2_count=sum(1 for s in signallar if s.status == SignalStatus.TP2_HIT.value),
+            stop_count=sum(1 for s in signallar if s.status == SignalStatus.STOPPED.value),
+            participants=int(ishtirokchilar or 0),
+            total_volume_usd=float(hajm or 0.0),
+            average_score=sum(ballar) / len(ballar) if ballar else None,
+            average_risk_reward=sum(rr_lar) / len(rr_lar) if rr_lar else None,
+        )
+
+    async def upsert_daily(self, stat_date: date, **values: object) -> DailyStat:
+        """Kunlik agregatni yozadi yoki yangilaydi."""
+        stmt = select(DailyStat).where(DailyStat.stat_date == stat_date)
+        mavjud = (await self._session.execute(stmt)).scalar_one_or_none()
+
+        if mavjud is None:
+            mavjud = DailyStat(stat_date=stat_date)
+            self._session.add(mavjud)
+
+        for kalit, qiymat in values.items():
+            setattr(mavjud, kalit, qiymat)
+        await self._session.flush()
+        return mavjud
 
 
 class MarketHealthRepository:

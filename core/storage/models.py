@@ -344,6 +344,10 @@ class UserPosition(Base, TimestampMixin):
 
     closed_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     exit_price: Mapped[float | None] = mapped_column(Float)
+    # TP1 ga yetilganda pozitsiyaning bir qismi shu narxda yopiladi.
+    # Ansiz "TP1 oldi, keyin Stop" holati sof zarar ko'rinardi.
+    partial_exit_price: Mapped[float | None] = mapped_column(Float)
+    partial_close_pct: Mapped[float | None] = mapped_column(Float)
     pnl_usd: Mapped[float | None] = mapped_column(Float)
     pnl_pct: Mapped[float | None] = mapped_column(Float)
 

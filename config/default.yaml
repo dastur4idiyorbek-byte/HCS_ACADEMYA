@@ -247,6 +247,18 @@ strategies:
       direction_clarity: 25
       risk_reward: 15
 
+# --- 5.4-band: Shaxsiy portfel ---
+portfolio:
+  # TP1 ga yetganda pozitsiyaning necha foizi yopiladi.
+  #
+  # Nima uchun kerak: TP1 olinib, keyin narx qaytib Stop'ga tushsa,
+  # bu holat foydali ham, zararli ham bo'lishi mumkin. Qismli yopishni
+  # hisobga olmasak, tizim uni sof zarar deb ko'rsatardi va foydalanuvchi
+  # raqamlarga ishonmay qolardi.
+  tp1_close_pct: 50.0
+  # Foydalanuvchi kiritishi mumkin bo'lgan minimal miqdor
+  min_position_usd: 1.0
+
 # --- 3.8-band: Signal Xotirasi (postmortem) ---
 postmortem:
   # Naqsh e'lon qilish uchun MINIMAL namuna. Bu — halollik chegarasi:

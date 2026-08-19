@@ -34,6 +34,12 @@ from core.domain.models import (
     SRZone,
     TimeframeTrend,
 )
+from core.domain.portfolio import (
+    PortfolioSummary,
+    PositionOutcome,
+    PositionSnapshot,
+    PublicStats,
+)
 
 __all__ = [
     "AllocationMethod",
@@ -49,7 +55,11 @@ __all__ = [
     "MarketRankEntry",
     "MultiTimeframeView",
     "PaymentStatus",
+    "PortfolioSummary",
+    "PositionOutcome",
+    "PositionSnapshot",
     "PositionSuggestion",
+    "PublicStats",
     "PriceTick",
     "RiskDecision",
     "SRZone",

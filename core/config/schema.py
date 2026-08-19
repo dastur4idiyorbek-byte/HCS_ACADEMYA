@@ -389,6 +389,20 @@ class StrategiesConfig:
 
 
 # --------------------------------------------------------------------------- #
+#  5.4 — Shaxsiy portfel
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class PortfolioConfig:
+    """5.4-band: "Men kirdim" va foyda/zarar hisobi."""
+
+    #: TP1 ga yetganda pozitsiyaning necha foizi yopiladi
+    tp1_close_pct: float = 50.0
+    min_position_usd: float = 1.0
+
+
+# --------------------------------------------------------------------------- #
 #  3.8 — Signal Xotirasi
 # --------------------------------------------------------------------------- #
 
@@ -472,6 +486,7 @@ class AppConfig:
     trade_rules: TradeRulesConfig = field(default_factory=TradeRulesConfig)
     risk_engine: RiskEngineConfig = field(default_factory=RiskEngineConfig)
     market_health: MarketHealthConfig = field(default_factory=MarketHealthConfig)
+    portfolio: PortfolioConfig = field(default_factory=PortfolioConfig)
     postmortem: PostmortemConfig = field(default_factory=PostmortemConfig)
     position_sizing: PositionSizingConfig = field(default_factory=PositionSizingConfig)
     strategies: StrategiesConfig = field(default_factory=StrategiesConfig)

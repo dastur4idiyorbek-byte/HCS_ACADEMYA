@@ -627,7 +627,50 @@ bo'lmagan va win-rate ni sun'iy buzardi.
 
 ---
 
-## 25. Bosqichlar holati
+## 25. Portfel: nima uchun qismli yopish kerak
+
+5.4-band foydalanuvchining **real** foyda/zararini hisoblashni talab qiladi.
+Muammo shundaki, signal TP1 ni olib, keyin narx Stop'ga qaytishi mumkin.
+
+Agar pozitsiya butunlay yakuniy narxda yopilgan deb hisoblansa:
+
+| Holat | Qismli yopishsiz | Qismli yopish bilan (50%) |
+|---|---|---|
+| TP1 (+3%) → Stop (−1%) | **−1.00%** | **+1.00%** |
+| TP1 (+3%) → TP2 (+5%) | +5.00% | +4.00% |
+
+Birinchi qator hal qiluvchi: foydalanuvchi TP1 da pozitsiyasining yarmini
+yopgan bo'lsa, uning natijasi **foyda**. Tizim uni zarar deb ko'rsatsa,
+foydalanuvchi raqamlarga ishonmay qolardi — va haqli ravishda.
+
+Ulush `portfolio.tp1_close_pct` da sozlanadi (standart 50%), va natija
+xabarida ochiq aytiladi: *"TP1 da pozitsiyaning 50% yopilgan edi."*
+
+Bu 3.8-banddagi `Outcome.TP1_THEN_STOP` ajratmasi bilan ham mos keladi —
+u yerda ham bu holat foyda deb hisoblanadi.
+
+### 25.1. Shaxsiy ma'lumot umumiy statistikada oshkor qilinmaydi
+
+Umumiy hisobot faqat agregat ko'rsatadi: nechta ishtirokchi, jami hajm.
+Kim qancha kiritgani hech qayerda ko'rinmaydi.
+
+### 25.2. Aylanma bog'liqlik va uning yechimi
+
+Portfel modellari dastlab `core/services/portfolio.py` da edi, lekin
+repository'lar ham ularni ishlatadi:
+
+```
+repository -> services -> repository   ❌ aylanma
+```
+
+Yechim: sof ma'lumot tiplari `core/domain/portfolio.py` ga ko'chirildi,
+hisob mantig'i esa `services` da qoldi. Bu — qatlamlar qoidasining tabiiy
+natijasi: **domain hech kimga bog'liq emas**, xizmatlar va repository'lar
+esa unga bog'lanadi.
+
+---
+
+## 26. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -644,7 +687,7 @@ bo'lmagan va win-rate ni sun'iy buzardi.
 | 11 | Pozitsiya hajmi + agregat balans | ✅ |
 | 12 | Opening range scalp | ✅ |
 | 13 | Postmortem (Signal Xotirasi) | ✅ |
-| 14 | Shaxsiy portfel | DB tayyor |
+| 14 | Shaxsiy portfel va statistika | ✅ |
 | 15 | Hammasini bog'lash | — |
 | 16 | Backtest (1-2 yillik) | — |
 | 17 | Test va sozlash | davomiy |

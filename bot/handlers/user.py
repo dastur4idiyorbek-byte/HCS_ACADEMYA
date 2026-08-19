@@ -195,7 +195,7 @@ async def receipt_wrong_type(message: Message, language: str, **_: object) -> No
 # --------------------------------------------------------------------------- #
 
 
-@router.callback_query(F.data == "menu:portfel")
+@router.callback_query(F.data.in_({"menu:portfel", "menu:portfel:back"}))
 async def show_portfolio(
     callback: CallbackQuery,
     database: Database,
@@ -216,7 +216,10 @@ async def show_portfolio(
     qatorlar += ["", t("portfel.ogohlantirish", language)]
 
     builder = InlineKeyboardBuilder()
-    builder.button(text=t("portfel.balans_ozgartirish", language), callback_data="portfel:balans")
+    builder.button(text=t("portfel.sarlavha", language), callback_data="portfel:pozitsiyalar")
+    builder.button(
+        text=t("portfel.balans_ozgartirish", language), callback_data="portfel:balans"
+    )
     builder.button(text=t("umumiy.orqaga", language), callback_data="menu:home")
     builder.adjust(1)
 

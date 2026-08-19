@@ -65,7 +65,13 @@
     "royxat_sarlavha": "📡 Faol signallar",
     "holat_tp1_hit": "🎯 TP1 olindi",
     "holat_tp2_hit": "🎯🎯 TP2 olindi — signal yopildi",
-    "holat_cancelled": "❌ Bekor qilindi — narx kirish nuqtasiga yetmadi"
+    "holat_cancelled": "❌ Bekor qilindi — narx kirish nuqtasiga yetmadi",
+    "kirdim_soralmoqda": "Qancha miqdorda kirdingiz? (USD)\n\nMasalan: 250",
+    "kirdim_qayd_etildi": "✅ Qayd etildi: {symbol} — ${amount}\n\nSignal yopilganda foyda/zararingizni avtomatik hisoblab beramiz.",
+    "kirdim_allaqachon": "Siz bu signalga allaqachon kirgansiz (${amount}).",
+    "kirdim_signal_yopiq": "Bu signal allaqachon yopilgan.",
+    "natija_xabari": "{emoji} {symbol} yopildi\n\nSizning natijangiz: {pnl_pct} ({pnl_usd})",
+    "natija_qismli": "\nTP1 da pozitsiyaning {share}% yopilgan edi."
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",
@@ -77,7 +83,11 @@
     "ogohlantirish": "⚠️ Bu moliyaviy maslahat emas. Bot pulni ushlab turmaydi va hech qachon \"shuncha oling\" demaydi — bu faqat hisob-kitob yordamchisi.",
     "balans_yoq": "Balansingiz kiritilmagan. Pozitsiya hajmi tavsiyasini olish uchun kiriting.",
     "balans_ozgartirish": "💵 Balansni o'zgartirish",
-    "hozirgi_balans": "Hozirgi balans: ${balance}"
+    "hozirgi_balans": "Hozirgi balans: ${balance}",
+    "bosh": "Sizda hali qayd etilgan pozitsiya yo'q.\n\nSignal ostidagi «✋ Men kirdim» tugmasini bosing — natijangizni avtomatik hisoblab boramiz.",
+    "umumiy": "📊 Mening portfelim\n\nJami pozitsiya: {total} ta (ochiq: {open})\nYopilgan: {closed} ta — foydali {win}, zararli {loss}\nWin-rate: {win_rate}\n\nQo'yilgan mablag': ${invested}\nNatija: {pnl_usd} ({pnl_pct})",
+    "eng_yaxshi": "\nEng yaxshi: {best}   Eng yomon: {worst}",
+    "ochiq_royxat": "\n\n⏳ Ochiq pozitsiyalar:\n{items}"
   },
   "admin": {
     "panel": "🛠 Admin panel",
@@ -150,5 +160,15 @@
     "sarlavha": "🎬 Kontent",
     "bosh": "Hozircha kontent qo'shilmagan.",
     "himoyalangan": "Bu material himoyalangan — tarqatish taqiqlanadi."
+  },
+  "statistika": {
+    "sarlavha": "📈 Statistika",
+    "davr_tanlang": "Qaysi davr uchun?",
+    "kunlik": "Bugun",
+    "haftalik": "7 kun",
+    "oylik": "30 kun",
+    "hisobot": "📈 Statistika — {period}\n\nSignallar: {created} ta (faollashgan: {activated})\n🎯🎯 TP2: {tp2}   🛑 Stop: {stop}\nWin-rate: {win_rate}\n\nIshtirokchilar: {participants} ta\nJami kiritilgan: ${volume}",
+    "qoshimcha": "\nO'rtacha ball: {score}/100   O'rtacha R/R: 1:{rr}",
+    "bosh": "Bu davr uchun hali ma'lumot yo'q."
   }
 }

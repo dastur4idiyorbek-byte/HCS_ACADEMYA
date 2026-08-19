@@ -127,6 +127,9 @@ signal berish paytida emas.
 - **Signal Xotirasi (3.8-band)** — yopilgan signallarda naqsh izlash va
   haftalik hisobot. Tavsiyalar **avtomatik qo'llanilmaydi** —
   `/panel` → 🧾 O'z-o'zini tekshirish hisoboti
+- **Shaxsiy portfel (5.4-band)** — «✋ Men kirdim» → miqdor → signal
+  yopilganda avtomatik foyda/zarar. TP1 da qismli yopish hisobga olinadi.
+  Umumiy statistika shaxsiy ma'lumotsiz
 
 ---
 

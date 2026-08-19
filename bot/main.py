@@ -17,6 +17,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.handlers import admin as admin_handlers
+from bot.handlers import portfolio as portfolio_handlers
 from bot.handlers import signals as signal_handlers
 from bot.handlers import user as user_handlers
 from bot.middlewares import UserContextMiddleware
@@ -46,6 +47,7 @@ def build_dispatcher(database: Database, settings: BotSettings, config: AppConfi
     dispatcher.include_router(signal_handlers.admin_router)
     dispatcher.include_router(admin_handlers.router)
     dispatcher.include_router(signal_handlers.user_router)
+    dispatcher.include_router(portfolio_handlers.router)
     dispatcher.include_router(user_handlers.router)
 
     # Konfiguratsiya barcha handlerlarga uzatiladi
