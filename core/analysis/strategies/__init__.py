@@ -3,8 +3,21 @@
 Mavjud:
   - `classic_ta`            — asosiy S/R + indikator strategiyasi (3.1-band)
   - `opening_range_scalp`   — kunlik sham ochilishi skalpingi (3.9-band)
+
+Yangi strategiya qo'shish uchun `registry.py` ga qarang: bitta fayl va
+bitta ro'yxat yozuvi kifoya.
 """
 
 from core.analysis.strategies.base import Strategy, StrategyInput
+from core.analysis.strategies.classic_ta import ClassicTaStrategy
+from core.analysis.strategies.opening_range_scalp import OpeningRangeScalpStrategy
+from core.analysis.strategies.registry import build_strategies, required_timeframes
 
-__all__ = ["Strategy", "StrategyInput"]
+__all__ = [
+    "ClassicTaStrategy",
+    "OpeningRangeScalpStrategy",
+    "Strategy",
+    "StrategyInput",
+    "build_strategies",
+    "required_timeframes",
+]

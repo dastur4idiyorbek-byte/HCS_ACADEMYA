@@ -221,3 +221,48 @@ def test_sigim_izohi_admin_uchun_oqiladi() -> None:
     budgets[0].allocate(budgets[0].total_usd)
     izoh = compute_aggregate_capacity(budgets, AggregateConfig()).describe()
     assert "3/4" in izoh
+
+
+# --------------------------------------------------------------------------- #
+#  3.9 — Strategiya byudjeti umumiy limit ichida
+# --------------------------------------------------------------------------- #
+
+
+def test_strategiya_byudjeti_oz_ulushidan_oshmaydi() -> None:
+    umumiy = DailyRiskBudget(balance=1000, daily_risk_pct=3.0)   # $30
+    skalp = umumiy.sub_budget(30.0)                              # $9
+
+    assert skalp.total_usd == pytest.approx(9.0)
+    assert skalp.allocate(20.0) == pytest.approx(9.0), "ulushdan oshmaydi"
+    assert skalp.is_exhausted
+
+
+def test_strategiya_byudjeti_umumiy_limitga_boysunadi() -> None:
+    """3.9-band: ikkalasi birga umumiy kunlik limitdan oshmasligi KERAK."""
+    umumiy = DailyRiskBudget(balance=1000, daily_risk_pct=3.0)   # $30
+    skalp = umumiy.sub_budget(30.0)                              # $9
+
+    umumiy.allocate(28.0)  # asosiy strategiya deyarli hammasini oldi
+    assert skalp.remaining_usd == pytest.approx(2.0), (
+        "o'z ulushi qolsa ham, umumiy qoldiqdan oshmaydi"
+    )
+    assert skalp.allocate(9.0) == pytest.approx(2.0)
+    assert umumiy.allocated <= umumiy.total_usd + 1e-9
+
+
+def test_strategiya_byudjeti_boshatiladi() -> None:
+    umumiy = DailyRiskBudget(balance=1000, daily_risk_pct=3.0)
+    skalp = umumiy.sub_budget(30.0)
+
+    berildi = skalp.allocate(5.0)
+    skalp.release(berildi)
+
+    assert skalp.allocated == 0
+    assert umumiy.allocated == 0, "umumiy byudjet ham bo'shashi kerak"
+
+
+@pytest.mark.parametrize("yomon", [0, -10, 150])
+def test_notogri_ulush_rad_etiladi(yomon: float) -> None:
+    umumiy = DailyRiskBudget(balance=1000, daily_risk_pct=3.0)
+    with pytest.raises(ValueError, match="Ulush"):
+        umumiy.sub_budget(yomon)

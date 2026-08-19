@@ -151,6 +151,21 @@ class DailyRiskBudget:
         self.allocations.append(granted)
         return granted
 
+    def sub_budget(self, share_pct: float) -> StrategyBudget:
+        """3.9-band: strategiyaga umumiy byudjetdan ulush ajratadi.
+
+        Qo'shimcha strategiya (masalan skalping) o'z byudjeti bilan ishlaydi,
+        lekin u umumiy kunlik limitning ICHIDA. Shu sababli `StrategyBudget`
+        mustaqil hisob yuritmaydi — u asosiy byudjetdan ajratadi va uning
+        cheklovlariga bo'ysunadi.
+
+        Args:
+            share_pct: umumiy kunlik byudjetdan ulush, foizda.
+        """
+        if not 0 < share_pct <= 100:
+            raise ValueError("Ulush (0, 100] oralig'ida bo'lishi kerak")
+        return StrategyBudget(parent=self, share_pct=share_pct)
+
     def release(self, amount: float) -> None:
         """5.2-band: signal TP'ga borsa, limit "bo'shaydi"."""
         if amount <= 0:
@@ -167,3 +182,53 @@ class DailyRiskBudget:
     def realized_loss_pct(self) -> float:
         """Bugungi realizatsiya qilingan zarar, balansdan foizda."""
         return 0.0 if self.balance <= 0 else self.realized_loss / self.balance * 100
+
+
+@dataclass(slots=True)
+class StrategyBudget:
+    """Bitta strategiyaga ajratilgan byudjet ulushi (3.9-band).
+
+    MUHIM: bu mustaqil byudjet EMAS. U asosiy `DailyRiskBudget` dan ajratadi,
+    shuning uchun ikki strategiya birgalikda ham kunlik limitdan oshmaydi —
+    spetsifikatsiyaning aniq talabi.
+    """
+
+    parent: DailyRiskBudget
+    share_pct: float
+    allocated: float = 0.0
+
+    @property
+    def total_usd(self) -> float:
+        """Shu strategiyaga ajratilgan yuqori chegara."""
+        return self.parent.total_usd * self.share_pct / 100
+
+    @property
+    def remaining_usd(self) -> float:
+        """Qolgan byudjet — strategiya ulushi VA umumiy qoldiqning kichigi.
+
+        Ikkinchi shart muhim: asosiy strategiya byudjetni to'liq ishlatgan
+        bo'lsa, skalping o'z ulushi qolganiga qaramay signal bera olmaydi.
+        """
+        oz_ulushi = max(0.0, self.total_usd - self.allocated)
+        return min(oz_ulushi, self.parent.remaining_usd)
+
+    @property
+    def is_exhausted(self) -> bool:
+        return self.remaining_usd <= 0
+
+    def allocate(self, amount: float) -> float:
+        """Byudjetdan xavf ajratadi — ham o'z ulushidan, ham umumiydan."""
+        if amount <= 0:
+            return 0.0
+        beriladigan = min(amount, self.remaining_usd)
+        if beriladigan <= 0:
+            return 0.0
+        berildi = self.parent.allocate(beriladigan)
+        self.allocated += berildi
+        return berildi
+
+    def release(self, amount: float) -> None:
+        if amount <= 0:
+            return
+        self.allocated = max(0.0, self.allocated - amount)
+        self.parent.release(amount)

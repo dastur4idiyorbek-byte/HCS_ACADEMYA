@@ -13,10 +13,15 @@ from __future__ import annotations
 from typing import Protocol
 
 from core.config.schema import RiskEngineConfig
-from core.domain.enums import BlockReason, HealthBand
+from core.domain.enums import BlockReason, HealthBand, SignalSource
 from core.domain.models import RiskDecision, SignalCandidate
 from core.risk_engine.context import RiskContext
 from core.utils.time_utils import is_within_daily_window
+
+#: Suzuvchi nuqta xatosiga bardoshlilik. Ansiz aynan chegarada qurilgan
+#: daraja (masalan TP2 = 2.00%) hisobda 2.0000000000000018 chiqib, o'z
+#: chegarasidan "tashqarida" deb rad etilardi.
+_EPSILON = 1e-9
 
 
 class RiskRule(Protocol):
@@ -361,7 +366,16 @@ class FreshDataRule(_BaseRule):
 
 
 class TradeRulesRule:
-    """Stop 1% dan oshmasin, TP 3–5% oralig'ida, TP2 kamida 1:3 R/R."""
+    """3.3-band: Stop 1% dan oshmasin, TP oralig'ida, TP2 minimal R/R ta'minlasin.
+
+    STRATEGIYAGA QARAB moslashadi. Sabab: 3.3-band TP ni 3–5% deb belgilaydi,
+    3.9-banddagi skalping esa 1–2% harakatni kutadi. Bir xil chegara bilan
+    tekshirilsa, skalping signallari HAR DOIM rad etilardi — ya'ni
+    spetsifikatsiyada talab qilingan strategiya hech qachon ishlamasdi.
+
+    Stop chegarasi (1%) esa BARCHA strategiyalar uchun bir xil qoladi — u
+    kapital himoyasi, strategiya xususiyati emas.
+    """
 
     name = "trade_rules"
 
@@ -371,29 +385,35 @@ class TradeRulesRule:
         min_tp_pct: float,
         max_tp_pct: float,
         min_rr: float,
+        overrides: dict[SignalSource, tuple[float, float, float]] | None = None,
     ) -> None:
         self._max_stop_pct = max_stop_pct
         self._min_tp_pct = min_tp_pct
         self._max_tp_pct = max_tp_pct
         self._min_rr = min_rr
+        #: Strategiya -> (min_tp_pct, max_tp_pct, min_rr)
+        self._overrides = overrides or {}
+
+    def _bounds_for(self, source: SignalSource) -> tuple[float, float, float]:
+        return self._overrides.get(source, (self._min_tp_pct, self._max_tp_pct, self._min_rr))
 
     def check(self, candidate: SignalCandidate, context: RiskContext) -> RiskDecision:
         levels = candidate.levels
+        min_tp, max_tp, min_rr = self._bounds_for(candidate.source)
         muammolar: list[str] = []
 
-        if levels.stop_distance_pct > self._max_stop_pct:
+        if levels.stop_distance_pct > self._max_stop_pct + _EPSILON:
             muammolar.append(
                 f"Stop masofasi {levels.stop_distance_pct:.2f}% > {self._max_stop_pct}%"
             )
         for nom, masofa in (("TP1", levels.tp1_distance_pct), ("TP2", levels.tp2_distance_pct)):
-            if not self._min_tp_pct <= masofa <= self._max_tp_pct:
+            if not min_tp - _EPSILON <= masofa <= max_tp + _EPSILON:
                 muammolar.append(
-                    f"{nom} masofasi {masofa:.2f}% "
-                    f"{self._min_tp_pct}–{self._max_tp_pct}% oralig'idan tashqarida"
+                    f"{nom} masofasi {masofa:.2f}% {min_tp}–{max_tp}% oralig'idan tashqarida"
                 )
-        if levels.risk_reward_tp2 < self._min_rr:
+        if levels.risk_reward_tp2 < min_rr - _EPSILON:
             muammolar.append(
-                f"TP2 R/R {levels.risk_reward_tp2:.2f} < {self._min_rr} (1:{self._min_rr:.0f})"
+                f"TP2 R/R {levels.risk_reward_tp2:.2f} < {min_rr} (1:{min_rr:.0f})"
             )
 
         if muammolar:

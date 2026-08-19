@@ -39,7 +39,7 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 │   ├─ scoring/                darajalar, ball, reyting           ✅ tayyor
 │   ├─ market_health/          Bozor Salomatligi Indeksi          ✅ tayyor
 │   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
-│   └─ strategies/             classic_ta ✅ | opening_range      [12-bosqich]
+│   └─ strategies/             classic_ta ✅ | opening_range ✅   + registry
 ├─ risk_engine/                13 ta risk qoidasi                 ✅ tayyor
 ├─ position_sizing/            pozitsiya hajmi + agregat sig'im   ✅ tayyor
 ├─ backtest/                   tarixiy sinov                      [16-bosqich]
@@ -122,6 +122,8 @@ signal berish paytida emas.
 - **Bozor Salomatligi Indeksi (3.7-band)** — 5 omilli 0–100 markaziy puls;
   ball chegarasi, ochiq signal limiti va "signal beriladimi" — hammasi shunga
   bog'liq. Admin dashboardi `/panel` → 💓 Bozor Salomatligi
+- **Skalping strategiyasi (3.9-band)** — kunlik ochilish diapazonini yorib
+  o'tish; alohida byudjet ulushi bilan, lekin umumiy kunlik limit ichida
 
 ---
 

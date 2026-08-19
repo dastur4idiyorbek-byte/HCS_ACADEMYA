@@ -226,10 +226,26 @@ strategies:
     enabled: true
     session_open_utc: "00:00"
     range_minutes: 15              # ochilish diapazoni shakllanish vaqti
+    timeframe: "15m"               # diapazon shu timeframening birinchi shamidan olinadi
     volume_surge_mult: 2.0         # hajm o'rtachadan shuncha marta oshsa
-    min_move_pct: 1.0
+    volume_ma_period: 20
+    min_move_pct: 1.0              # kutilayotgan harakat oralig'i
     max_move_pct: 2.0
+    # Ochilishdan keyin signal qidiriladigan oyna. Undan keyin imkoniyat
+    # o'tib ketgan hisoblanadi — kech kirish eng yomon kirish.
+    signal_window_minutes: 45
+    # Diapazon narxning shu foizidan tor bo'lsa — harakat yo'q, o'tkazamiz
+    min_range_pct: 0.15
+    # Diapazon shu foizdan keng bo'lsa — Stop juda uzoq qolardi
+    max_range_pct: 1.2
     daily_risk_share_pct: 30.0     # umumiy kunlik byudjetdan shu ulushdan oshmaydi
+    # Ball vaznlari (jami 100). Asosiy strategiyanikidan FARQ qiladi:
+    # bu yerda S/R yo'q, hajm va yo'nalish aniqligi hal qiluvchi.
+    weights:
+      volume_surge: 35
+      range_quality: 25
+      direction_clarity: 25
+      risk_reward: 15
 
 # --- 1.2-band: obuna ---
 subscriptions:

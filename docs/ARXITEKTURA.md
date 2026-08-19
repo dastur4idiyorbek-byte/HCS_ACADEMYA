@@ -512,7 +512,69 @@ degan fikri avtomatlashtirildi.
 
 ---
 
-## 23. Bosqichlar holati
+## 23. Plug-in arxitekturasi sinovdan o'tdi (12-bosqich)
+
+6.1-band "yangi strategiya qo'shish uchun bitta fayl kifoya" deb va'da
+bergan edi. Skalping qo'shilganda bu tekshirildi. Natija:
+
+| O'zgardi | O'zgarmadi |
+|---|---|
+| `opening_range_scalp.py` (yangi) | Risk Engine mantig'i |
+| `registry.py` ga bitta qator | Signal kuzatuvchisi |
+| Konfiguratsiya bo'limi | Ball chegarasi mexanizmi |
+| | Bozor Salomatligi Indeksi |
+
+Risk Engine strategiya turini **umuman bilmaydi** — u faqat
+`SignalCandidate` ni ko'radi. Bitta istisno hujjatlashtirilgan (pastda).
+
+### 23.1. Skalping ballari asosiy strategiyanikidan boshqa
+
+S/R zonasi skalpingda yo'q, shuning uchun uning omillari ham boshqa:
+
+| Omil | Vazn |
+|---|---|
+| Hajm sakrashi | 35 |
+| Diapazon sifati | 25 |
+| Yo'nalish aniqligi | 25 |
+| Risk/Reward | 15 |
+
+Yig'indi baribir 100 — shu sababli **bir xil ball chegarasi** ikkala
+strategiyaga ham qo'llaniladi va ular halol taqqoslanadi.
+
+### 23.2. Aniqlangan ziddiyat: universal TP oralig'i skalpingga to'g'ri kelmaydi
+
+3.3-band TP ni **3–5%** deb belgilaydi. 3.9-band esa skalping **1–2%**
+harakat kutishini aytadi. Bir xil chegara bilan tekshirilsa, skalping
+signallari **har doim** rad etilardi — ya'ni spetsifikatsiyada talab
+qilingan strategiya hech qachon ishlamasdi.
+
+Yechim: `TradeRulesRule` strategiyaga qarab moslashadi
+(`overrides[SignalSource]`). Muhim tafsilot — **Stop chegarasi (1%) barcha
+strategiyalar uchun bir xil qoladi**: u kapital himoyasi, strategiya
+xususiyati emas.
+
+### 23.3. Alohida byudjet, lekin umumiy limit ichida
+
+3.9-band ikkita talabni birga qo'yadi: "alohida risk byudjeti" va
+"ikkalasi birga umumiy kunlik limitdan oshmasligi kerak".
+
+`StrategyBudget` ikkalasini ham ta'minlaydi — u **mustaqil hisob
+yuritmaydi**, asosiy byudjetdan ajratadi:
+
+```
+Umumiy byudjet $30  |  skalp ulushi $9
+asosiy strategiya $28 oldi  ->  skalpda $2 qoldi (o'z ulushi $9 bo'lsa ham)
+```
+
+### 23.4. Stop nima uchun diapazon o'rtasida
+
+Yorib o'tish muvaffaqiyatsiz bo'lsa narx odatda ochilish diapazoni ichiga
+qaytadi. O'rtaga qaytish — "yorib o'tish yolg'on edi" degan aniq belgi, va
+bu diapazon pastini kutishdan ko'ra **tezroq va arzonroq** chiqish.
+
+---
+
+## 24. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -527,7 +589,7 @@ degan fikri avtomatlashtirildi.
 | 9 | Risk Engine | ✅ (13 qoida) |
 | 10 | Bozor Salomatligi Indeksi | ✅ |
 | 11 | Pozitsiya hajmi + agregat balans | ✅ |
-| 12 | Opening range scalp | interfeys tayyor |
+| 12 | Opening range scalp | ✅ |
 | 13 | Postmortem (Signal Xotirasi) | DB tayyor |
 | 14 | Shaxsiy portfel | DB tayyor |
 | 15 | Hammasini bog'lash | — |

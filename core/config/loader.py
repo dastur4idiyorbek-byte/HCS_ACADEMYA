@@ -138,6 +138,21 @@ def validate(config: AppConfig) -> None:
             f"{config.market_health.weights.total()}"
         )
 
+    skalp = config.strategies.opening_range_scalp
+    if abs(skalp.weights.total() - 100) > 1e-9:
+        problems.append(
+            "strategies.opening_range_scalp.weights yig'indisi 100 bo'lishi kerak, "
+            f"hozir: {skalp.weights.total()}"
+        )
+    if skalp.min_move_pct > skalp.max_move_pct:
+        problems.append("opening_range_scalp: min_move_pct > max_move_pct")
+    if skalp.min_range_pct > skalp.max_range_pct:
+        problems.append("opening_range_scalp: min_range_pct > max_range_pct")
+    if not 0 < skalp.daily_risk_share_pct <= 100:
+        problems.append(
+            "opening_range_scalp.daily_risk_share_pct (0, 100] oralig'ida bo'lishi kerak"
+        )
+
     thresholds = config.scoring.thresholds
     if thresholds.health_mid_min >= thresholds.health_high_min:
         problems.append("scoring.thresholds: health_mid_min < health_high_min bo'lishi kerak")

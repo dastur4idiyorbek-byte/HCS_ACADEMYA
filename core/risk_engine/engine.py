@@ -12,8 +12,9 @@ zarur.
 
 from __future__ import annotations
 
+from core.analysis.strategies.opening_range_scalp import scalp_trade_rules
 from core.config.schema import AppConfig
-from core.domain.enums import BlockReason
+from core.domain.enums import BlockReason, SignalSource
 from core.domain.models import RiskDecision, SignalCandidate
 from core.risk_engine.context import RiskContext
 from core.risk_engine.rules import (
@@ -66,6 +67,13 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
             min_tp_pct=config.trade_rules.min_tp_distance_pct,
             max_tp_pct=config.trade_rules.max_tp_distance_pct,
             min_rr=config.trade_rules.min_risk_reward,
+            # 3.9-band skalpingi 1-2% harakat kutadi, 3.3-banddagi 3-5%
+            # oralig'i unga to'g'ri kelmaydi.
+            overrides={
+                SignalSource.OPENING_RANGE_SCALP: scalp_trade_rules(
+                    config.strategies.opening_range_scalp
+                )
+            },
         ),
     ]
 

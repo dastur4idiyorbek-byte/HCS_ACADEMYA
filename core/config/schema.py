@@ -340,14 +340,46 @@ class ClassicTaConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class ScalpWeights:
+    """3.9-band strategiyasining ball vaznlari (jami 100).
+
+    Asosiy strategiyanikidan farq qiladi: bu yerda S/R zonasi yo'q, hajm
+    sakrashi va yo'nalish aniqligi hal qiluvchi omillar.
+    """
+
+    volume_surge: float = 35
+    range_quality: float = 25
+    direction_clarity: float = 25
+    risk_reward: float = 15
+
+    def total(self) -> float:
+        return (
+            self.volume_surge
+            + self.range_quality
+            + self.direction_clarity
+            + self.risk_reward
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class OpeningRangeScalpConfig:
     enabled: bool = True
     session_open_utc: str = "00:00"
     range_minutes: int = 15
+    timeframe: str = "15m"
     volume_surge_mult: float = 2.0
+    volume_ma_period: int = 20
     min_move_pct: float = 1.0
     max_move_pct: float = 2.0
+    signal_window_minutes: int = 45
+    min_range_pct: float = 0.15
+    max_range_pct: float = 1.2
     daily_risk_share_pct: float = 30.0
+    weights: ScalpWeights = field(default_factory=ScalpWeights)
+
+    @property
+    def session_open_time(self) -> time:
+        return parse_hhmm(self.session_open_utc)
 
 
 @dataclass(frozen=True, slots=True)
