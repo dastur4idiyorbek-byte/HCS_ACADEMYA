@@ -1,0 +1,21 @@
+[project]
+name = "halol-crypto-savdo"
+version = "0.1.0"
+description = "HALOL CRYPTO SAVDO — halol kripto spot savdo signallari va avtomatlashtirilgan tahlil mexanizmi"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["error::DeprecationWarning:core.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]

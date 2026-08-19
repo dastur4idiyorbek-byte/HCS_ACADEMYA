@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Tests / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Loyiha
+.env
+*.db
+*.sqlite
+*.sqlite3
+data/
+logs/
+*.log
+
+# Muhit
+.idea/
+.vscode/
+.DS_Store

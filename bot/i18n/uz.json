@@ -1,0 +1,76 @@
+{
+  "umumiy": {
+    "salom": "Assalomu alaykum, {name}! 👋",
+    "loyiha_nomi": "HALOL CRYPTO SAVDO",
+    "menyu": "📋 Asosiy menyu",
+    "orqaga": "⬅️ Orqaga",
+    "bekor": "❌ Bekor qilish",
+    "tasdiqlash": "✅ Tasdiqlash",
+    "xato": "Kutilmagan xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.",
+    "ruxsat_yoq": "Bu bo'lim siz uchun mavjud emas."
+  },
+  "obuna": {
+    "tariflar": "💳 Tariflar",
+    "lite": "Lite — faqat signal",
+    "pro": "Pro — video darslar + signal",
+    "premium": "Premium — barchasi",
+    "kunlik": "1 kunlik (sinov)",
+    "oylik": "1 oylik",
+    "narx": "Narx: {amount} {currency}",
+    "tolov_yuborish": "To'lov chekini (skrinshot) shu yerga yuboring.",
+    "chek_qabul_qilindi": "Chek qabul qilindi. Admin tekshirgach xabar beramiz.",
+    "tasdiqlandi": "✅ Obunangiz faollashtirildi. Amal qilish muddati: {expires}",
+    "rad_etildi": "❌ To'lov tasdiqlanmadi. Sabab: {reason}",
+    "tugadi": "Obuna muddati tugadi. Davom etish uchun tarifni yangilang.",
+    "eslatma": "⏰ Obunangiz {days} kundan so'ng tugaydi."
+  },
+  "signal": {
+    "sarlavha": "{emoji} {symbol}",
+    "entry": "Kirish: {value}",
+    "stop": "Stop: {value}",
+    "tp1": "TP1: {value}",
+    "tp2": "TP2: {value}",
+    "holat_pending": "⏳ Kutilmoqda — narx kirish nuqtasiga yetmagan",
+    "holat_active": "✅ Faol",
+    "holat_tp1": "🎯 TP1 olindi",
+    "holat_tp2": "🎯🎯 TP2 olindi — signal yopildi",
+    "holat_stopped": "🛑 Stop bo'ldi — signal yopildi",
+    "holat_weakening": "⚠️ Zaiflashmoqda — chiqib ketish tavsiya etiladi",
+    "faol_emas": "❌ Signal faol emas",
+    "nega_signal": "❓ Nega bu signal?",
+    "nega_halol": "🕌 Nega bu coin halol?",
+    "men_kirdim": "✋ Men kirdim",
+    "kirgan_miqdor": "Qancha miqdorda kirdingiz? (USD)",
+    "almashtirish": "📉 {from_symbol} signali zaiflashmoqda → 📈 {to_symbol} da yaxshi imkoniyat paydo bo'ldi. Almashtirish tavsiya etiladi."
+  },
+  "portfel": {
+    "sarlavha": "📊 Mening portfelim",
+    "balans_soralmoqda": "Hisob balansingizni kiriting (USD). Bu faqat hisob-kitob uchun — biz hech qanday hisobga ulanmaymiz.",
+    "balans_saqlandi": "Balans saqlandi: ${balance}",
+    "tavsiya": "Tavsiya etilgan miqdor: ${size} (xavf: ${risk})",
+    "limit_tugadi": "Bugungi xavf chegarangiz tugadi.",
+    "statistika": "📈 Statistika",
+    "ogohlantirish": "⚠️ Bu moliyaviy maslahat emas. Bot pulni ushlab turmaydi va hech qachon \"shuncha oling\" demaydi — bu faqat hisob-kitob yordamchisi."
+  },
+  "admin": {
+    "panel": "🛠 Admin panel",
+    "yangi_signal": "➕ Yangi signal",
+    "tolovlar": "💰 Kutilayotgan to'lovlar",
+    "kontent": "🎬 Kontent",
+    "narxlar": "🏷 Narxlar",
+    "broadcast": "📢 Xabar yuborish",
+    "qoidabuzarlik": "🚫 Qoidabuzarlik",
+    "halol_royxat": "🕌 Halol coin ro'yxati",
+    "salomatlik": "💓 Bozor Salomatligi",
+    "hisobot": "🧾 O'z-o'zini tekshirish hisoboti",
+    "risk_sozlamalari": "⚙️ Risk sozlamalari",
+    "signal_toxtatildi": "Signal to'xtatildi: {symbol}\nSabablar:\n{reasons}"
+  },
+  "qoidabuzarlik": {
+    "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."
+  },
+  "shaffoflik": {
+    "aniqlik_dagvosi_yoq": "Biz hech qachon \"X% aniqlik\" deb va'da bermaymiz. Quyida — real statistika.",
+    "statistika_qatori": "Signallar: {total} | TP: {tp} | Stop: {stop}"
+  }
+}

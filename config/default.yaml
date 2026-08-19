@@ -1,0 +1,207 @@
+# =============================================================================
+#  HALOL CRYPTO SAVDO — markaziy konfiguratsiya
+#  6.4-band talabi: BARCHA "sehrli raqamlar" shu yerda. Kodda qattiq raqam yo'q.
+#  Admin panel orqali o'zgartiriladigan qiymatlar bazadagi `risk_config` /
+#  `price_config` jadvallaridan ustun keladi (qatlamli konfiguratsiya).
+# =============================================================================
+
+project:
+  name: "HALOL CRYPTO SAVDO"
+  default_language: "uz"
+  supported_languages: ["uz"]      # kelajakda: ["uz", "ru"]
+
+# --- 3.4-band: Top 30 Halal coin skrining ---
+halal_screening:
+  target_count: 30                 # ro'yxat aynan shuncha halol coinga to'lguncha pastga tushiladi
+  max_scan_depth: 300              # reyting bo'yicha maksimal necha o'ringacha tekshiriladi
+  min_daily_volume_usd: 50_000_000 # likvidlik filtri
+  quote_asset: "USDT"              # spot juftlik kotirovkasi
+  exclude_stablecoins: true
+  stablecoin_symbols:
+    [USDT, USDC, DAI, FDUSD, TUSD, USDE, PYUSD, USDD, BUSD, USDP, EURS]
+  refresh_interval_hours: 12
+  # Boshlang'ich harom ro'yxati (admin bazada tahrirlaydi — 1.4-band).
+  # Asos: foizli (riba) qarz protokollari, qimor/bahs, sun'iy privacy-anonimlik
+  # xavfi, meme/qimorbozlik tabiati, an'anaviy moliya derivativlari.
+  seed_haram_symbols:
+    [AAVE, COMP, MKR, CRV, LDO, CAKE, DYDX, GMX, SNX, RPL, PENDLE, ENA,
+     ROSE, XMR, ZEC, DASH, BNB, LEO, OKB, CRO]
+  seed_mashbooh_symbols:
+    [DOGE, SHIB, PEPE, WIF, BONK, FLOKI, TRUMP, TON, TRX, XRP]
+
+# --- 3.1 / 3.2-band: tahlil ---
+analysis:
+  timeframes: ["1h", "4h", "1d", "1w", "1M"]
+  entry_timeframe: "1h"
+  htf_confirmation: ["4h", "1d", "1w", "1M"]   # pastki TF yuqorisiga zid bo'lmasligi kerak
+  candles_lookback: 500
+
+  support_resistance:
+    swing_lookback: 5              # pivot aniqlash uchun chap/o'ng shamlar soni
+    zone_merge_atr_mult: 0.5       # yaqin zonalar shu ATR ulushida birlashtiriladi
+    min_touches: 2                 # zona "muhim" bo'lishi uchun minimal test soni
+    proximity_atr_mult: 1.0        # narx zonaga shu ATR masofasida bo'lsa "zonada"
+    fibonacci_levels: [0.382, 0.5, 0.618]
+
+  indicators:
+    ema_fast: 50
+    ema_slow: 200
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    macd_fast: 12
+    macd_slow: 26
+    macd_signal: 9
+    volume_ma_period: 20
+    atr_period: 14
+    adx_period: 14
+    adx_trend_threshold: 20        # bundan past — tekis (sideways) bozor
+
+# --- 3.5-band: ball tizimi ---
+scoring:
+  weights:
+    support_resistance: 25
+    trend: 20
+    rsi: 15
+    volume: 15
+    macd: 10
+    risk_reward: 15
+  # 3.5-band: chegara statik EMAS — Bozor Salomatligi Indeksiga qarab moslashadi
+  thresholds:
+    health_high_min: 80            # indeks >= 80 -> "yashil" rejim
+    health_mid_min: 40             # indeks >= 40 -> "sariq" rejim
+    threshold_high_health: 70
+    threshold_mid_health: 80
+    # indeks < health_mid_min bo'lsa yangi signal umuman berilmaydi
+
+# --- 3.3-band: universal risk qoidasi ---
+trade_rules:
+  max_stop_distance_pct: 1.0       # Stop masofasi narxning 1%idan oshmasligi shart
+  min_tp_distance_pct: 3.0
+  max_tp_distance_pct: 5.0
+  min_risk_reward: 3.0             # TP2 kamida 1:3 R/R
+
+# --- 4-bo'lim: Risk Engine ---
+risk_engine:
+  daily_loss_limit_pct: 3.0        # 4.1 — 5.1 bilan BITTA manba (kunlik byudjet)
+  weekly_loss_limit_pct: 8.0
+  max_open_signals: 5
+  max_open_signals_by_health:      # 4.2 — moslashuvchan limit
+    high: 5
+    mid: 3
+    low: 0
+  # 4.3 — korrelyatsiya: STATIK guruhlar. Bitta guruhdan bir vaqtda 1 ta signal.
+  correlation_groups:
+    - name: "btc_major"
+      symbols: [BTC, ETH, BCH, LTC]
+    - name: "l1_smart_contract"
+      symbols: [SOL, ADA, AVAX, NEAR, APT, SUI, DOT, ATOM]
+    - name: "l2_eth_eco"
+      symbols: [ARB, OP, MATIC, POL, STRK, ZK]
+    - name: "ai_compute"
+      symbols: [RENDER, FET, TAO, AKT, GRT]
+  max_signals_per_correlation_group: 1
+  # 4.5 — umumiy bozor (BTC) filtri
+  btc_filter:
+    reference_symbol: "BTC"
+    max_drop_pct_24h: -5.0         # BTC 24 soatda shundan ko'p tushsa — signal yo'q
+    timeframe: "1h"
+  # 4.7 — favqulodda to'xtash (kill switch)
+  kill_switch:
+    price_spike_pct: 5.0           # 1 daqiqada ±5% dan ortiq harakat
+    price_spike_window_seconds: 60
+    requires_manual_reset: true    # inson tekshirmaguncha qayta ishga tushmaydi
+  # 3.8 — ketma-ket zarar kill switch
+  consecutive_loss:
+    max_consecutive_stops: 5
+    cooldown_hours: 24
+  # 4.8 — Juma namozi vaqti filtri
+  friday_filter:
+    enabled: true
+    timezone: "Asia/Tashkent"      # UTC+5, config qilinadigan
+    weekday: 4                     # Monday=0 ... Friday=4
+    start: "11:00"
+    end: "15:00"
+    # DIQQAT: faqat YANGI signal generatsiyasi to'xtaydi.
+    # Mavjud faol signallar kuzatuvi uzluksiz davom etadi.
+  # 4.2 — signal rotatsiyasi
+  rotation:
+    min_score_gap: 30              # almashtirish tavsiyasi uchun minimal ball farqi
+    cooldown_minutes: 120          # whipsaw himoyasi
+  # 4.1 — dinamik chiqish
+  weakening:
+    score_drop_points: 25          # ball shuncha tushsa "⚠️ Zaiflashmoqda"
+
+# --- 3.7-band: Bozor Salomatligi Indeksi ---
+market_health:
+  weights:                         # yig'indisi 100 bo'lishi kerak
+    btc_dominance_stability: 20
+    halal_trend_breadth: 25
+    volatility_regime: 20
+    aggregate_user_capacity: 20
+    signal_saturation: 15
+  recompute_on_candle_close: true
+  daily_preview_utc_hour: 0        # UTC 00:00 atrofida kunlik oldindan tahlil
+  btc_dominance:
+    stable_change_pct: 0.5         # sutkalik o'zgarish shundan kichik bo'lsa "barqaror"
+    sharp_change_pct: 2.0
+
+# --- 5-bo'lim: pozitsiya hajmi va portfel ---
+position_sizing:
+  # 5.1 — pog'onali kunlik xavf foizi (balans USD bo'yicha)
+  risk_tiers:
+    - { max_balance: 1000, daily_risk_pct: 3.0 }
+    - { max_balance: 10000, daily_risk_pct: 2.0 }
+    - { max_balance: null, daily_risk_pct: 1.5 }   # null = cheksiz (yuqori pog'ona)
+  # 5.1.1 — kunlik limitni faol signallar orasida taqsimlash
+  allocation_method: "sequential_decay"   # yoki "equal_split"
+  sequential_decay_fraction: 0.34         # qolgan byudjetdan har signalga ulush
+  equal_split_expected_slots: 3           # "equal_split" uchun kutilayotgan signal soni
+  min_allocation_usd: 1.0
+  # SPOT savdo: leverage yo'q, pozitsiya balansdan oshmaydi.
+  # Stop 1% + kunlik xavf 3% bo'lsa formula 3x balans beradi — shuning uchun
+  # hisoblangan hajm shu chegara bilan kesiladi va foydalanuvchiga aytiladi.
+  max_position_pct_of_balance: 100.0
+  # 5.2 — agregat foydalanuvchi sig'imi
+  aggregate:
+    capacity_used_threshold: 0.8   # foydalanuvchi byudjetining 80%i band bo'lsa "to'lgan"
+    active_user_days: 7            # oxirgi N kunda faol bo'lgan obunachilar hisobga olinadi
+
+# --- 3.9-band: Kunlik Sham Ochilishi Skalping ---
+strategies:
+  classic_ta:
+    enabled: true
+  opening_range_scalp:
+    enabled: true
+    session_open_utc: "00:00"
+    range_minutes: 15              # ochilish diapazoni shakllanish vaqti
+    volume_surge_mult: 2.0         # hajm o'rtachadan shuncha marta oshsa
+    min_move_pct: 1.0
+    max_move_pct: 2.0
+    daily_risk_share_pct: 30.0     # umumiy kunlik byudjetdan shu ulushdan oshmaydi
+
+# --- 1.2-band: obuna ---
+subscriptions:
+  tiers: ["lite", "pro", "premium"]
+  periods:
+    daily: 1
+    monthly: 30
+  expiry_reminder_days: [2, 1]     # oylik obuna uchun eslatma
+  currencies: ["KGS", "USDT"]
+
+# --- 6.2-band: bozor ma'lumotlari ---
+market_data:
+  exchange: "binance"              # binance | bybit
+  ws_base_url: "wss://stream.binance.com:9443/stream"
+  rest_base_url: "https://api.binance.com"
+  ranking_source: "coingecko"      # coingecko | coinmarketcap
+  coingecko_base_url: "https://api.coingecko.com/api/v3"
+  reconnect_backoff_seconds: [2, 4, 8, 16, 32]
+  stale_price_seconds: 90          # shundan uzoq yangilanmasa — fail-safe, signal yo'q
+
+# --- 6.4-band: logging ---
+logging:
+  level: "INFO"
+  dir: "logs"
+  rotate_mb: 20
+  backups: 5

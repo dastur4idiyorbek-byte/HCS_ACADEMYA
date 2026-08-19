@@ -1,0 +1,117 @@
+# HALOL CRYPTO SAVDO
+
+Halol kripto **spot** savdo signallari va avtomatlashtirilgan tahlil mexanizmi.
+
+Bu — oddiy signal-bot emas. Bu — bir-biriga bog'liq, o'zini kuzatib boruvchi
+**mexanizm**: bozor holati, foydalanuvchi resurs sig'imi, halollik chegaralari va
+texnik tahlil — barchasi markaziy **Bozor Salomatligi Indeksi** orqali
+muvofiqlashtirilgan holda ishlaydi.
+
+---
+
+## Asosiy tamoyillar
+
+| Tamoyil | Ma'nosi |
+|---|---|
+| **"Miya" va "tana" ajratilgan** | `core/` — sof Python mantig'i, `aiogram` importi YO'Q. `bot/` — yupqa Telegram qatlami. Kelajakda mobil ilova `core/` ni qayta yozmasdan ishlatadi. |
+| **Foyda emas, to'g'ri qaror** | Maqsad "ko'proq signal" emas. Asosiy savol: *"Hozir signal berish to'g'rimi?"* Javob "yo'q" bo'lsa — signal berilmaydi, **bu normal holat**. |
+| **Fail-safe** | Noaniqlik yoki xatolikda tizim signal **BERMASLIKKA** moyil bo'ladi, xato signal berishga emas. |
+| **S/R birinchi** | Tahlil Support/Resistance zonalaridan boshlanadi. Indikatorlar — tasdiqlovchi, mustaqil signal manbai emas. |
+| **Halollik — brend negizi** | Faqat halol coinlar. Shubhali (mashbooh) ham harom kabi chetlab o'tiladi. |
+
+---
+
+## Arxitektura
+
+```
+core/                          "MIYA" — Telegram'ga bog'liq emas
+├─ config/                     qatlamli konfiguratsiya (YAML + DB + env)
+├─ domain/                     umumiy tiplar va modellar
+├─ storage/                    DB sxemasi va sessiyalar (15 jadval)
+├─ market_data/                WebSocket narx oqimi, OHLCV        [5-bosqich]
+├─ halal_screening/            Top 30 Halal mantig'i              ✅ tayyor
+├─ analysis/
+│   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           [6-bosqich]
+│   ├─ indicators/             EMA/RSI/MACD/hajm (tasdiqlovchi)   [7-bosqich]
+│   ├─ scoring/                ball hisoblash                     [8-bosqich]
+│   ├─ market_health/          Bozor Salomatligi Indeksi          [10-bosqich]
+│   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
+│   └─ strategies/             plug-in strategiyalar              ✅ interfeys
+├─ risk_engine/                13 ta risk qoidasi                 ✅ tayyor
+├─ position_sizing/            pozitsiya hajmi + agregat sig'im   ✅ tayyor
+├─ backtest/                   tarixiy sinov                      [16-bosqich]
+└─ utils/                      vaqt (timezone-aware), logging     ✅ tayyor
+
+bot/                           "TANA" — yupqa Telegram qatlami
+├─ handlers/                   user.py, admin.py                  [3-bosqich]
+├─ i18n/                       matnlar JSON'da (ko'p tillilikka tayyor)
+├─ keyboards.py                tarifga qarab menyu qurish
+├─ settings.py                 muhit sozlamalari
+└─ database.py                 core/storage ustidan qayta-eksport
+
+config/default.yaml            BARCHA sozlanadigan raqamlar shu yerda
+```
+
+---
+
+## Ishga tushirish
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+
+cp .env.example .env        # BOT_TOKEN va ADMIN_IDS ni to'ldiring
+pytest                      # testlar
+python -m bot.main          # bot (3-bosqichdan keyin to'liq ishlaydi)
+```
+
+---
+
+## Konfiguratsiya
+
+**Kodda birorta ham "sehrli raqam" yo'q.** RSI chegaralari, ball vaznlari, risk
+foizlari, Juma vaqt oralig'i — hammasi `config/default.yaml` da. Admin panel
+orqali o'zgartiriladigan qiymatlar bazadagi `risk_config` jadvalidan ustun
+keladi.
+
+Konfiguratsiya ishga tushishda **tekshiriladi**: vaznlar yig'indisi 100 emasmi,
+pog'onalar tartibsizmi, noma'lum kalit bormi — barchasi darhol xato beradi,
+signal berish paytida emas.
+
+---
+
+## Nima allaqachon ishlayapti
+
+- **Halol skrining (3.4)** — reyting bo'yicha pastga tushib, harom/shubhali
+  coinlarni o'tkazib yuborib, aynan 30 ta halol coin yig'adi
+- **Risk Engine (4)** — 13 ta qoida, "VA" mantig'i, barcha rad sabablari
+  yig'iladi (admin "nega berilmadi?" savoliga to'liq javob oladi)
+- **Juma namozi filtri (4.8)** — UTC+5, 11:00–15:00, faqat YANGI signal
+  to'xtaydi; mavjud signallar kuzatuvi davom etadi
+- **Pozitsiya hajmi (5.1/5.1.1/5.2)** — pog'onali xavf, kunlik byudjetni
+  taqsimlash, agregat foydalanuvchi sig'imi
+- **DB sxemasi** — 15 jadval, SQLite → PostgreSQL ko'chishga tayyor
+
+---
+
+## Testlar
+
+```bash
+pytest -q
+```
+
+Eng muhim test — `tests/core/test_position_sizing.py::test_barcha_signallar_stop_yesa_limitdan_oshmaydi`.
+Spetsifikatsiyaning 5.1.1-bandida u sinov sharti sifatida ochiq belgilangan:
+*"qaysi usul tanlanmasin, barcha faol signallar bir vaqtda Stop yesa, jami
+zarar kunlik limit foizidan oshmasligi KERAK"*. 120 ta kombinatsiyada
+tekshiriladi.
+
+---
+
+## Ogohlantirish
+
+Bu tizim **moliyaviy maslahat bermaydi**. Bot hech qachon haqiqiy hisobga
+ulanmaydi, pulni ushlab turmaydi va "shuncha oling/soting" demaydi — pozitsiya
+hajmi moduli faqat hisob-kitob yordamchisi. Hech qachon "X% aniqlik" da'vosi
+qilinmaydi; faqat real statistika ko'rsatiladi.
