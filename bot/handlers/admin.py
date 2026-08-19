@@ -33,12 +33,14 @@ from bot.states import (
 )
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
+from core.risk_engine import RiskEngine
 from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.models import User
 from core.storage.repositories import (
     CoinRulingRepository,
     ContentRepository,
+    MarketHealthRepository,
     PaymentRepository,
     PriceRepository,
     SubscriptionRepository,
@@ -516,14 +518,75 @@ async def content_save(
 
 
 # --------------------------------------------------------------------------- #
+#  3.7 — Bozor Salomatligi dashboardi
+# --------------------------------------------------------------------------- #
+
+
+@router.callback_query(F.data == "admin:salomatlik")
+async def market_health_dashboard(
+    callback: CallbackQuery,
+    database: Database,
+    config: AppConfig,
+    language: str,
+    **_: object,
+) -> None:
+    """3.7-band: "tizim nega sokin/faol" degan savolga bitta raqam bilan javob."""
+    async with database.session() as session:
+        repo = MarketHealthRepository(session)
+        oxirgi = await repo.latest()
+        tarix = await repo.history(limit=8)
+        qiymatlar = [f"{yozuv.value:.0f}" for yozuv in reversed(tarix)]
+
+    if oxirgi is None:
+        await callback.message.edit_text(
+            t("admin.salomatlik_yoq", language), reply_markup=back_button("home", language)
+        )
+        await callback.answer()
+        return
+
+    matn = _render_health(oxirgi)
+
+    chegara = RiskEngine(config).score_threshold(oxirgi.value)
+    matn += (
+        t("admin.salomatlik_chegara", language, threshold=f"{chegara:.0f}")
+        if chegara is not None
+        else t("admin.salomatlik_chegara_yopiq", language)
+    )
+    if len(qiymatlar) > 1:
+        matn += t("admin.salomatlik_tarix", language, values=" → ".join(qiymatlar))
+
+    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
+    await callback.answer()
+
+
+def _render_health(record) -> str:  # noqa: ANN001
+    """Bazadagi yozuvdan dashboard matnini quradi."""
+    belgilar = {"high": "🟢", "mid": "🟡", "low": "🔴"}
+    izohlar = {
+        "high": "signal chegarasi past — erkin rejim",
+        "mid": "signal beriladi, lekin ehtiyotkorroq",
+        "low": "yangi signal to'xtatilgan — faqat kuzatuv",
+    }
+    qatorlar = [
+        f"{belgilar[record.band]} Bozor Salomatligi: {record.value:.0f}/100",
+        f"   {izohlar[record.band]}",
+        "",
+    ]
+    if record.detail:
+        qatorlar.extend(f"• {qator}" for qator in record.detail.splitlines())
+    if record.is_daily_preview:
+        qatorlar.append("\n⏱ Bu — kunlik oldindan tahlil (hali o'lchanmagan)")
+    return "\n".join(qatorlar)
+
+
+# --------------------------------------------------------------------------- #
 #  Hali qurilmagan bo'limlar (10, 13 va 9-bosqichlarda ulanadi)
 # --------------------------------------------------------------------------- #
 
 
-@router.callback_query(F.data.in_({"admin:salomatlik", "admin:hisobot", "admin:risk"}))
+@router.callback_query(F.data.in_({"admin:hisobot", "admin:risk"}))
 async def not_ready_yet(callback: CallbackQuery, language: str, **_: object) -> None:
     bosqichlar = {
-        "admin:salomatlik": "Bozor Salomatligi dashboardi — 10-bosqichda ulanadi.",
         "admin:hisobot": "O'z-o'zini tekshirish hisoboti — 13-bosqichda ulanadi.",
         "admin:risk": "Risk sozlamalari tahriri — 9-bosqich ustiga qo'shiladi.",
     }

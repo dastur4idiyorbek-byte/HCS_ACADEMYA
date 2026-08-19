@@ -4,8 +4,7 @@ Formula (har sham yopilganda qayta hisoblanadi, 0-100):
     BTC Dominance holati (barqarormi, keskin o'zgaryaptimi)
   + Top-30 Halal coinlarning umumiy trend yo'nalishi
   + Volatillik rejimi (ADX)
-  + Agregat foydalanuvchi sig'imi (5.2-band — allaqachon tayyor:
-    `core.position_sizing.compute_aggregate_capacity`)
+  + Agregat foydalanuvchi sig'imi (5.2-band)
   + Faol signallar to'yinganlik darajasi
 
 Natija:
@@ -13,11 +12,14 @@ Natija:
     🟡 40-79  — ehtiyotkorroq (chegara balandroq)
     🔴 0-39   — yangi signal to'xtaydi, faqat kuzatuv
 
-Kelajakda yangi omil (masalan Fear & Greed Index) qo'shilsa, formulaga
-shunchaki qo'shiladi — butun tizim qayta qurilmaydi. Shuning uchun omillar
-`HealthFactor` ro'yxati sifatida modellashtirilgan.
-
-HOLAT: 10-bosqichda quriladi (boshqa modullar tayyor bo'lgandan keyin,
-chunki bu ularning natijalarini birlashtiradi).
-Chiqadigan tip: `core.domain.models.MarketHealth`.
+Indeks quyidagilarni boshqaradi:
+  - `RiskEngine.score_threshold()` — minimal ball chegarasi (3.5)
+  - `MaxOpenSignalsRule` — bir vaqtda ochiq signallar soni (4.2)
+  - `MarketHealthRule` — 40 dan past bo'lsa signal umuman yo'q (4.9)
 """
+
+from core.analysis.market_health.calculator import MarketHealthCalculator, describe
+from core.analysis.market_health.factors import build_factors
+from core.analysis.market_health.inputs import HealthInputs
+
+__all__ = ["HealthInputs", "MarketHealthCalculator", "build_factors", "describe"]

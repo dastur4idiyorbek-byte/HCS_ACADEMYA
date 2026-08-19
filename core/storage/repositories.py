@@ -26,10 +26,17 @@ from core.domain.enums import (
     SubscriptionTier,
     UserRole,
 )
-from core.domain.models import EntryPlan, HalalVerdict, Signal, SignalLevels
+from core.domain.models import (
+    EntryPlan,
+    HalalVerdict,
+    MarketHealth,
+    Signal,
+    SignalLevels,
+)
 from core.storage.models import (
     CoinRuling,
     Content,
+    MarketHealthLog,
     Payment,
     PriceConfig,
     SignalRecord,
@@ -564,6 +571,56 @@ class SignalRepository:
             closed_at=record.closed_at,
             signal_id=record.id,
         )
+
+
+class MarketHealthRepository:
+    """3.7-band: indeks tarixi.
+
+    Nima uchun saqlanadi: postmortem (3.8) "Indeks 60dan past bo'lganda
+    berilgan signallarning necha foizi Stop yegan?" degan savolga javob
+    berishi kerak. Bu javob faqat tarix bo'lsa mumkin.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def record(
+        self, health: MarketHealth, is_daily_preview: bool = False
+    ) -> MarketHealthLog:
+        ballar = {omil.name: omil.score for omil in health.factors}
+        yozuv = MarketHealthLog(
+            value=health.value,
+            band=health.band.value,
+            btc_dominance_score=ballar.get("btc_dominance_stability"),
+            trend_breadth_score=ballar.get("halal_trend_breadth"),
+            volatility_score=ballar.get("volatility_regime"),
+            user_capacity_score=ballar.get("aggregate_user_capacity"),
+            saturation_score=ballar.get("signal_saturation"),
+            is_daily_preview=is_daily_preview,
+            detail="\n".join(omil.explanation for omil in health.factors),
+        )
+        self._session.add(yozuv)
+        await self._session.flush()
+        return yozuv
+
+    async def latest(self) -> MarketHealthLog | None:
+        stmt = select(MarketHealthLog).order_by(MarketHealthLog.created_at.desc()).limit(1)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def history(self, limit: int = 24) -> list[MarketHealthLog]:
+        stmt = (
+            select(MarketHealthLog)
+            .order_by(MarketHealthLog.created_at.desc())
+            .limit(limit)
+        )
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def average_since(self, since: datetime) -> float | None:
+        stmt = select(func.avg(MarketHealthLog.value)).where(
+            MarketHealthLog.created_at >= since,
+            MarketHealthLog.is_daily_preview.is_(False),
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
 
 
 def today_utc() -> date:

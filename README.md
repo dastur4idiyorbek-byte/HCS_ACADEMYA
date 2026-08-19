@@ -37,7 +37,7 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 │   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           ✅ tayyor
 │   ├─ indicators/             EMA/RSI/MACD/ADX/ATR/hajm          ✅ tayyor
 │   ├─ scoring/                darajalar, ball, reyting           ✅ tayyor
-│   ├─ market_health/          Bozor Salomatligi Indeksi          [10-bosqich]
+│   ├─ market_health/          Bozor Salomatligi Indeksi          ✅ tayyor
 │   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
 │   └─ strategies/             classic_ta ✅ | opening_range      [12-bosqich]
 ├─ risk_engine/                13 ta risk qoidasi                 ✅ tayyor
@@ -119,6 +119,9 @@ signal berish paytida emas.
   statik emas — Bozor Salomatligi Indeksiga qarab moslashadi
 - **`classic_ta` strategiyasi** — to'liq zanjir: S/R → Discount → ko'p
   timeframe → indikatorlar → darajalar → ball
+- **Bozor Salomatligi Indeksi (3.7-band)** — 5 omilli 0–100 markaziy puls;
+  ball chegarasi, ochiq signal limiti va "signal beriladimi" — hammasi shunga
+  bog'liq. Admin dashboardi `/panel` → 💓 Bozor Salomatligi
 
 ---
 

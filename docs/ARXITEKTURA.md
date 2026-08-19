@@ -470,7 +470,49 @@ yuborilmaydi. Ball tizimi zaif kirishni o'zi filtrlaydi, qattiq to'siqsiz.
 
 ---
 
-## 22. Bosqichlar holati
+## 22. Bozor Salomatligi Indeksi — nima uchun bitta raqam
+
+3.7-band muammoni aniq qo'yadi: har omil alohida tekshirilsa, ular orasida
+nomuvofiqlik chiqadi — bitta modul "bozor yaxshi" desa, boshqasi "balans
+yo'q" deydi.
+
+Yechim — besh omilni bitta 0-100 raqamga jamlash. Indeks uchta narsani
+boshqaradi:
+
+| Indeks | Rejim | Ball chegarasi (3.5) | Ochiq signal limiti (4.2) |
+|---|---|---|---|
+| 96 | 🟢 | 70 | 5 |
+| 63 | 🟡 | 80 | 3 |
+| 56 | 🟡 | 80 | 3 |
+| 35 | 🔴 | yopiq | 0 |
+
+**Ma'lumot yo'q bo'lganda har bir omil alohida qaror qiladi** — "ma'lumot
+yo'q" har doim ham "yomon" degani emas:
+
+| Omil | Ma'lumot yo'q | Sabab |
+|---|---|---|
+| BTC dominance | 0.0 | bozor holati noma'lum — ehtiyotkorlik |
+| Trend kengligi | 0.0 | halol ro'yxat tahlil qilinmagan |
+| Volatillik | 0.0 | tekis bozorni ajratib bo'lmaydi |
+| **Sig'im** | **1.0** | foydalanuvchi yo'q — tizim o'zini cheklamasin |
+| To'yinganlik | hisoblanadi | ochiq signal soni doim ma'lum |
+
+Birinchi uchtasi nol bo'lgani uchun ma'lumotsiz indeks 40 dan past chiqadi
+va signal berilmaydi — bu ataylab (0.3-band).
+
+**Kunlik oldindan tahlilda boshqa omillar 0.5 (neytral)**, nol emas. Nol
+qo'yilsa kun boshida tizim har doim "qizil" bo'lardi va hech qachon ishga
+tushmasdi.
+
+Eng ko'rgazmali holat — 5.2-banddagi "inson omili": bozor yaxshi (dominance
+barqaror, 80% coin ko'tarilishda, ADX 38), lekin foydalanuvchilarning
+10 tadan 9 tasi band. Indeks 63 ga tushadi va chegara qattiqlashadi —
+tajribali treyderning *"odamlar allaqachon band, yana signal keraksiz"*
+degan fikri avtomatlashtirildi.
+
+---
+
+## 23. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -483,7 +525,7 @@ yuborilmaydi. Ball tizimi zaif kirishni o'zi filtrlaydi, qattiq to'siqsiz.
 | 7 | Indikatorlar | ✅ |
 | 8 | Ball hisoblash + reytinglash | ✅ |
 | 9 | Risk Engine | ✅ (13 qoida) |
-| 10 | Bozor Salomatligi Indeksi | modellar tayyor |
+| 10 | Bozor Salomatligi Indeksi | ✅ |
 | 11 | Pozitsiya hajmi + agregat balans | ✅ |
 | 12 | Opening range scalp | interfeys tayyor |
 | 13 | Postmortem (Signal Xotirasi) | DB tayyor |

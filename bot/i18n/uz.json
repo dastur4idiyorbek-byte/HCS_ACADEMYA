@@ -133,7 +133,11 @@
     "signal_tartib_xato": "Darajalar tartibi noto'g'ri.\nSpot/long uchun shart: Stop < Entry < TP1 < TP2\n\n{detail}",
     "signal_yuborildi": "✅ Signal yuborildi: {sent} ta obunachiga.",
     "signal_bekor": "Signal bekor qilindi.",
-    "signal_qoida_buzildi": "⚠️ Ogohlantirish: {reasons}\n\nBaribir yuborilsinmi?"
+    "signal_qoida_buzildi": "⚠️ Ogohlantirish: {reasons}\n\nBaribir yuborilsinmi?",
+    "salomatlik_yoq": "Bozor Salomatligi hali hisoblanmagan. Tahlil sikli ishga tushgach paydo bo'ladi.",
+    "salomatlik_tarix": "\n📈 Oxirgi o'lchovlar: {values}",
+    "salomatlik_chegara": "\n🎯 Hozirgi ball chegarasi: {threshold}",
+    "salomatlik_chegara_yopiq": "\n🎯 Chegara: yopiq — yangi signal berilmaydi"
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."
