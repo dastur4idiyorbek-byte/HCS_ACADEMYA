@@ -35,7 +35,7 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 ├─ halal_screening/            Top 30 Halal mantig'i              ✅ tayyor
 ├─ analysis/
 │   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           ✅ tayyor
-│   ├─ indicators/             ATR ✅ | EMA/RSI/MACD/hajm         [7-bosqich]
+│   ├─ indicators/             EMA/RSI/MACD/ADX/ATR/hajm          ✅ tayyor
 │   ├─ scoring/                ball hisoblash                     [8-bosqich]
 │   ├─ market_health/          Bozor Salomatligi Indeksi          [10-bosqich]
 │   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
@@ -113,6 +113,8 @@ signal berish paytida emas.
   sanash, Fibonacci yordamchi sifatida; barchasi ATR birligida o'lchanadi
 - **Discount / Premium** — narx diapazonning arzon yoki qimmat yarmidami.
   Kirish faqat "Support zonasida VA Discount zonada" bo'lganda ko'rib chiqiladi
+- **Indikatorlar (3.1-band)** — EMA50/200, RSI(14), MACD(12/26/9), ADX(14),
+  hajm. Faqat TASDIQLOVCHI: `zone_ready=False` bo'lsa signal chiqmaydi
 
 ---
 

@@ -369,7 +369,54 @@ chuqurroq Discount — yuqoriroq ball.
 
 ---
 
-## 19. Bosqichlar holati
+## 19. Indikatorlar: nima uchun ular hech qachon o'zicha signal bermaydi
+
+`confirm()` funksiyasi `zone_ready` ni **kiruvchi shart** sifatida oladi:
+
+```python
+hukm = confirm(snapshot, config, zone_ready=zone_map.entry_allowed())
+```
+
+Agar `zone_ready=False` bo'lsa, indikatorlar qanchalik yaxshi bo'lmasin,
+`is_confirmed` `False` qaytadi. Bu ataylab shunday tuzilgan: 3.1-band
+"yolg'iz RSI 30dan past chiqdi kabi indikator-asosli signal YO'Q" deb aniq
+belgilaydi, va bu qoida kod tuzilishining o'zida mustahkamlangan — uni
+tasodifan chetlab o'tib bo'lmaydi.
+
+---
+
+## 20. Aniqlangan ziddiyat: qat'iy EMA talabi va "arzon joydan kirish"
+
+3.1-band ikkita talabni birga qo'yadi:
+
+1. **Trend:** narx **ikkala** EMA'dan yuqori bo'lishi shart
+2. **Kirish:** narx Support zonasida va Discount zonada bo'lishi shart
+
+Amalda bular bir-biriga qarshi ishlaydi. Support zonasiga qaytish
+(pullback) deyarli har doim narxni EMA50 dan pastga tushiradi — aks holda
+u support'ga yetib bormaydi.
+
+Sinov (sun'iy ma'lumot, ko'tarilish trendi + support'ga qaytish, 12 ta
+takrorlash):
+
+| Talab | Trend tasdig'i |
+|---|---|
+| Qat'iy (`narx > EMA50` shart) | 0/12 |
+| Yumshoq (`EMA50 > EMA200` va `narx > EMA200`) | 12/12 |
+
+*Eslatma: sun'iy ma'lumot har doim pullback bilan tugaydi, shuning uchun
+farq haqiqiy bozordagidan kattaroq ko'rinadi. Lekin tuzilmaviy ziddiyat
+real.*
+
+**Qabul qilingan yechim:** sozlanadigan bayroq
+`analysis.indicators.trend_requires_price_above_fast`, standart qiymati
+`true` — ya'ni **spetsifikatsiya bo'yicha qat'iy variant**. Uni o'zgartirish
+loyiha egasining qarori, va 16-bosqichdagi backtest ikkala variantni real
+ma'lumotda taqqoslab, javobni raqam bilan beradi.
+
+---
+
+## 21. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -379,7 +426,7 @@ chuqurroq Discount — yuqoriroq ball.
 | 4 | Halol skrining (Top 30 Halal) | ✅ |
 | 5 | Signal moduli + WebSocket | ✅ |
 | 6 | Support/Resistance | ✅ |
-| 7 | Indikatorlar | — |
+| 7 | Indikatorlar | ✅ |
 | 8 | Ball hisoblash + backtest | — |
 | 9 | Risk Engine | ✅ (13 qoida) |
 | 10 | Bozor Salomatligi Indeksi | modellar tayyor |

@@ -62,6 +62,17 @@ analysis:
   indicators:
     ema_fast: 50
     ema_slow: 200
+    # 3.1-band: "narx ikkala EMA'dan yuqorida" — qat'iy talab (standart).
+    #
+    # DIQQAT: bu talab "Support zonasiga qaytishda kirish" bilan ziddiyatga
+    # kirishi mumkin. Support'ga qaytish (pullback) deyarli har doim narxni
+    # EMA50 dan pastga tushiradi — aks holda u support'ga yetib bormaydi.
+    #
+    # `false` qilinsa: trend tuzilishi EMA50 > EMA200 va narx > EMA200 bilan
+    # aniqlanadi, narxning EMA50 dan pastga tushishi esa kirish imkoniyati
+    # deb qaraladi ("uptrendda pasayishdan foydalanish").
+    # Qaysi variant yaxshiroq — 16-bosqichdagi backtest ko'rsatadi.
+    trend_requires_price_above_fast: true
     rsi_period: 14
     rsi_oversold: 30
     rsi_overbought: 70
