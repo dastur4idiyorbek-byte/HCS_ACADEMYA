@@ -4,16 +4,22 @@ Ishga tushirish:
     python -m bot.main
 
 6.2-band: polling rejimi (webhook emas — domen/SSL shart emas).
-
-HOLAT: 3-bosqichda to'liq ulanadi. Hozircha konfiguratsiya, baza va "miya"
-qatlamini tekshirib, tayyorlik holatini ko'rsatadi.
 """
 
 from __future__ import annotations
 
 import asyncio
 
-from core.config import load_config
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+
+from bot.handlers import admin as admin_handlers
+from bot.handlers import user as user_handlers
+from bot.middlewares import UserContextMiddleware
+from bot.settings import BotSettings, load_settings
+from core.config import AppConfig, load_config
 from core.risk_engine import RiskEngine
 from core.storage import Database
 from core.utils.logging_setup import get_logger, setup_logging
@@ -21,10 +27,27 @@ from core.utils.logging_setup import get_logger, setup_logging
 logger = get_logger(__name__)
 
 
-async def bootstrap() -> None:
-    """Tizim komponentlarini ishga tushiradi va tayyorligini tekshiradi."""
-    from bot.settings import load_settings  # muhit talab qilinadi
+def build_dispatcher(database: Database, settings: BotSettings, config: AppConfig) -> Dispatcher:
+    """Dispatcher quradi: middleware'lar, routerlar va umumiy kontekst."""
+    dispatcher = Dispatcher(storage=MemoryStorage())
 
+    # Kontekst middleware BARCHA yangilanishlarga — handlerlar tayyor
+    # ma'lumot oladi (foydalanuvchi, tarif, rol).
+    context = UserContextMiddleware(database, settings)
+    dispatcher.message.middleware(context)
+    dispatcher.callback_query.middleware(context)
+
+    # Admin routeri BIRINCHI: `/panel` va `admin:*` callback'lari oddiy
+    # foydalanuvchi handlerlariga tushib ketmasligi kerak.
+    dispatcher.include_router(admin_handlers.router)
+    dispatcher.include_router(user_handlers.router)
+
+    # Konfiguratsiya barcha handlerlarga uzatiladi
+    dispatcher["config"] = config
+    return dispatcher
+
+
+async def run() -> None:
     settings = load_settings()
     setup_logging(level=settings.log_level, log_dir=settings.log_dir)
 
@@ -40,17 +63,30 @@ async def bootstrap() -> None:
     logger.info("Risk Engine tayyor: %d ta qoida", len(engine.rules))
     logger.info("Adminlar: %d ta", len(settings.admin_ids))
 
-    # TODO(3-bosqich): aiogram Dispatcher, handlerlar va polling shu yerda ulanadi
-    logger.warning(
-        "Telegram qatlami hali ulanmagan (3-bosqich). "
-        "Hozircha faqat 'miya' qatlami va baza tayyor."
+    bot = Bot(
+        token=settings.token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
+    dispatcher = build_dispatcher(database, settings, config)
 
-    await database.dispose()
+    # TODO(5-bosqich): WebSocket narx kuzatuvi shu yerda fon vazifasi
+    # sifatida ishga tushiriladi.
+    # TODO(15-bosqich): avtomatik signal sikli va obuna muddati tekshiruvi.
+
+    try:
+        logger.info("Bot polling rejimida ishga tushdi")
+        await dispatcher.start_polling(bot, allowed_updates=dispatcher.resolve_used_update_types())
+    finally:
+        await bot.session.close()
+        await database.dispose()
+        logger.info("Bot to'xtatildi")
 
 
 def main() -> None:
-    asyncio.run(bootstrap())
+    try:
+        asyncio.run(run())
+    except KeyboardInterrupt:
+        logger.info("Foydalanuvchi tomonidan to'xtatildi")
 
 
 if __name__ == "__main__":

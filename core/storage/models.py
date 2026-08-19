@@ -15,7 +15,6 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     Date,
-    DateTime,
     Float,
     ForeignKey,
     Index,
@@ -26,7 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.storage.base import Base, TimestampMixin
+from core.storage.base import Base, TimestampMixin, UtcDateTime
 
 # --------------------------------------------------------------------------- #
 #  Foydalanuvchilar va obuna (1-bo'lim)
@@ -48,9 +47,9 @@ class User(Base, TimestampMixin):
 
     # 5.1-band: foydalanuvchi O'ZI kiritgan balans (haqiqiy hisobga ulanmagan)
     declared_balance_usd: Mapped[float | None] = mapped_column(Float)
-    balance_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    balance_updated_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
-    last_active_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_active_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
 
     subscriptions: Mapped[list[Subscription]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -78,15 +77,15 @@ class Subscription(Base, TimestampMixin):
     tier: Mapped[str] = mapped_column(String(16), nullable=False)
     period: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="pending", nullable=False)
-    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    starts_at: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), index=True, nullable=False
+        UtcDateTime, index=True, nullable=False
     )
     is_trial: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     # 1.2-band: muddat tugashiga 1-2 kun qolganda eslatma (takror yubormaslik uchun)
     reminders_sent: Mapped[str | None] = mapped_column(String(32))
     # 1.3-band: qoidabuzarlik uchun vaqtincha to'xtatish
-    suspended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    suspended_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     suspend_reason: Mapped[str | None] = mapped_column(Text)
 
     user: Mapped[User] = relationship(back_populates="subscriptions")
@@ -115,7 +114,7 @@ class Payment(Base, TimestampMixin):
     # Telegram file_id — chek/skrinshot
     receipt_file_id: Mapped[str | None] = mapped_column(String(256))
     reviewed_by: Mapped[int | None] = mapped_column(BigInteger)
-    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     reject_reason: Mapped[str | None] = mapped_column(Text)
 
     user: Mapped[User] = relationship(back_populates="payments")
@@ -249,8 +248,8 @@ class SignalRecord(Base, TimestampMixin):
     market_health_at_entry: Mapped[float | None] = mapped_column(Float)
     correlation_group: Mapped[str | None] = mapped_column(String(32))
 
-    activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    activated_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    closed_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     close_price: Mapped[float | None] = mapped_column(Float)
     result_pct: Mapped[float | None] = mapped_column(Float)
 
@@ -343,7 +342,7 @@ class UserPosition(Base, TimestampMixin):
     risk_amount_usd: Mapped[float | None] = mapped_column(Float)
     trade_date: Mapped[date] = mapped_column(Date, index=True, nullable=False)
 
-    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    closed_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
     exit_price: Mapped[float | None] = mapped_column(Float)
     pnl_usd: Mapped[float | None] = mapped_column(Float)
     pnl_pct: Mapped[float | None] = mapped_column(Float)

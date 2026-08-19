@@ -28,7 +28,8 @@ muvofiqlashtirilgan holda ishlaydi.
 core/                          "MIYA" — Telegram'ga bog'liq emas
 ├─ config/                     qatlamli konfiguratsiya (YAML + DB + env)
 ├─ domain/                     umumiy tiplar va modellar
-├─ storage/                    DB sxemasi va sessiyalar (15 jadval)
+├─ storage/                    DB sxemasi, repository'lar (15 jadval)
+├─ services/                   obuna hayot-sikli                  ✅ tayyor
 ├─ market_data/                WebSocket narx oqimi, OHLCV        [5-bosqich]
 ├─ halal_screening/            Top 30 Halal mantig'i              ✅ tayyor
 ├─ analysis/
@@ -44,11 +45,16 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 └─ utils/                      vaqt (timezone-aware), logging     ✅ tayyor
 
 bot/                           "TANA" — yupqa Telegram qatlami
-├─ handlers/                   user.py, admin.py                  [3-bosqich]
+├─ handlers/                   user.py, admin.py                  ✅ tayyor
 ├─ i18n/                       matnlar JSON'da (ko'p tillilikka tayyor)
 ├─ keyboards.py                tarifga qarab menyu qurish
+├─ middlewares.py              foydalanuvchi konteksti, admin himoyasi
+├─ states.py                   FSM dialoglari
+├─ formatting.py               signal-kartochka
 ├─ settings.py                 muhit sozlamalari
 └─ database.py                 core/storage ustidan qayta-eksport
+
+scripts/seed.py                boshlang'ich narxlar va coin qarorlari
 
 config/default.yaml            BARCHA sozlanadigan raqamlar shu yerda
 ```
@@ -63,8 +69,9 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 
 cp .env.example .env        # BOT_TOKEN va ADMIN_IDS ni to'ldiring
+python -m scripts.seed      # boshlang'ich narxlar va coin qarorlari
 pytest                      # testlar
-python -m bot.main          # bot (3-bosqichdan keyin to'liq ishlaydi)
+python -m bot.main          # botni ishga tushirish
 ```
 
 ---
@@ -95,6 +102,9 @@ signal berish paytida emas.
 - **Kirish buyurtmasi (5.1.0)** — narx zonaga yetmagan bo'lsa LIMIT, allaqachon
   zonada bo'lsa MARKET; chiqish har doim OCO. Signal-kartochka shabloni tayyor
 - **DB sxemasi** — 15 jadval, SQLite → PostgreSQL ko'chishga tayyor
+- **Telegram bot (1-bo'lim)** — obuna, to'lov cheki va admin tasdig'i, kontent
+  `protect_content` bilan, admin panel (narxlar, halol ro'yxat, broadcast,
+  qoidabuzarlik), tarifga qarab quriladigan menyu
 
 ---
 

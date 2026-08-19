@@ -1,4 +1,4 @@
-from core.storage.base import Base, TimestampMixin
+from core.storage.base import Base, TimestampMixin, UtcDateTime
 from core.storage.database import (
     Database,
     create_engine,
@@ -41,6 +41,7 @@ __all__ = [
     "SignalRecord",
     "Subscription",
     "TimestampMixin",
+    "UtcDateTime",
     "User",
     "UserPosition",
     "Violation",

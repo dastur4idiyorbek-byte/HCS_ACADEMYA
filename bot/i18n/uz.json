@@ -7,7 +7,13 @@
     "bekor": "❌ Bekor qilish",
     "tasdiqlash": "✅ Tasdiqlash",
     "xato": "Kutilmagan xatolik yuz berdi. Birozdan so'ng qayta urinib ko'ring.",
-    "ruxsat_yoq": "Bu bo'lim siz uchun mavjud emas."
+    "ruxsat_yoq": "Bu bo'lim siz uchun mavjud emas.",
+    "boshlash": "🏠 Bosh sahifa",
+    "yordam": "❓ Yordam",
+    "yordam_matni": "HALOL CRYPTO SAVDO — halol kripto spot savdo signallari.\n\n• Tarif tanlang va to'lov chekini yuboring\n• Admin tasdiqlagach obunangiz faollashadi\n• Signallar avtomatik kuzatiladi va holati yangilanadi\n\n⚠️ Bu moliyaviy maslahat emas. Bot pulingizni ushlab turmaydi.",
+    "bekor_qilindi": "Bekor qilindi.",
+    "raqam_kiriting": "Iltimos, raqam kiriting.",
+    "musbat_raqam_kiriting": "Iltimos, noldan katta raqam kiriting."
   },
   "obuna": {
     "tariflar": "💳 Tariflar",
@@ -22,7 +28,15 @@
     "tasdiqlandi": "✅ Obunangiz faollashtirildi. Amal qilish muddati: {expires}",
     "rad_etildi": "❌ To'lov tasdiqlanmadi. Sabab: {reason}",
     "tugadi": "Obuna muddati tugadi. Davom etish uchun tarifni yangilang.",
-    "eslatma": "⏰ Obunangiz {days} kundan so'ng tugaydi."
+    "eslatma": "⏰ Obunangiz {days} kundan so'ng tugaydi.",
+    "sarlavha": "💳 Tariflar\n\nO'zingizga mos tarifni tanlang:",
+    "tarif_tanlandi": "Tarif: {tier}\n\nMuddatni tanlang:",
+    "narx_belgilanmagan": "Bu tarif uchun narx hali belgilanmagan. Admin bilan bog'laning.",
+    "tolov_korsatmasi": "Tarif: {tier} — {period}\nSumma: {amount} {currency}\n\nTo'lov rekvizitlari:\n{details}\n\nTo'lovni amalga oshirib, chek (skrinshot) ni shu yerga yuboring.",
+    "chek_kutilmoqda": "Sizda tekshirilayotgan to'lov bor. Admin javobini kuting.",
+    "faol_obuna": "Sizning tarifingiz: {tier}\nAmal qilish muddati: {expires}",
+    "obuna_yoq": "Sizda faol obuna yo'q.",
+    "faqat_rasm": "Iltimos, chek rasmini (skrinshot) yuboring."
   },
   "signal": {
     "sarlavha": "{emoji} {symbol}",
@@ -46,7 +60,8 @@
     "miqdor_hisoblanmagan": "balansingizni kiriting",
     "buyurtma_limit": "🎯 Limit",
     "buyurtma_market": "⚡ Market",
-    "kirish_sababi": "📥 Kirish turi: {reason}"
+    "kirish_sababi": "📥 Kirish turi: {reason}",
+    "faol_signallar": "📡 Signallar"
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",
@@ -55,7 +70,10 @@
     "tavsiya": "Tavsiya etilgan miqdor: ${size} (xavf: ${risk})",
     "limit_tugadi": "Bugungi xavf chegarangiz tugadi.",
     "statistika": "📈 Statistika",
-    "ogohlantirish": "⚠️ Bu moliyaviy maslahat emas. Bot pulni ushlab turmaydi va hech qachon \"shuncha oling\" demaydi — bu faqat hisob-kitob yordamchisi."
+    "ogohlantirish": "⚠️ Bu moliyaviy maslahat emas. Bot pulni ushlab turmaydi va hech qachon \"shuncha oling\" demaydi — bu faqat hisob-kitob yordamchisi.",
+    "balans_yoq": "Balansingiz kiritilmagan. Pozitsiya hajmi tavsiyasini olish uchun kiriting.",
+    "balans_ozgartirish": "💵 Balansni o'zgartirish",
+    "hozirgi_balans": "Hozirgi balans: ${balance}"
   },
   "admin": {
     "panel": "🛠 Admin panel",
@@ -69,7 +87,38 @@
     "salomatlik": "💓 Bozor Salomatligi",
     "hisobot": "🧾 O'z-o'zini tekshirish hisoboti",
     "risk_sozlamalari": "⚙️ Risk sozlamalari",
-    "signal_toxtatildi": "Signal to'xtatildi: {symbol}\nSabablar:\n{reasons}"
+    "signal_toxtatildi": "Signal to'xtatildi: {symbol}\nSabablar:\n{reasons}",
+    "salom": "🛠 Admin panel\n\nKutilayotgan to'lovlar: {pending}",
+    "tolov_yoq": "Kutilayotgan to'lov yo'q.",
+    "tolov_kartochka": "💰 To'lov #{id}\n\nFoydalanuvchi: {user}\nTarif: {tier} — {period}\nSumma: {amount} {currency}",
+    "tasdiqla": "✅ Tasdiqlash",
+    "rad_et": "❌ Rad etish",
+    "rad_sababi": "Rad etish sababini yozing:",
+    "tolov_tasdiqlandi": "✅ To'lov #{id} tasdiqlandi.",
+    "tolov_rad_etildi": "❌ To'lov #{id} rad etildi.",
+    "tolov_allaqachon_korilgan": "Bu to'lov allaqachon ko'rib chiqilgan.",
+    "narx_tarif_tanlang": "Qaysi tarif narxini o'zgartirasiz?",
+    "narx_muddat_tanlang": "Muddatni tanlang:",
+    "narx_valyuta_tanlang": "Valyutani tanlang:",
+    "narx_summa": "Yangi summani kiriting:",
+    "narx_rekvizit": "To'lov rekvizitlarini kiriting (yoki /skip):",
+    "narx_saqlandi": "✅ Narx saqlandi: {tier} {period} — {amount} {currency}",
+    "broadcast_matn": "Yubormoqchi bo'lgan xabaringizni yozing:",
+    "broadcast_natija": "📢 Yuborildi: {sent} ta, yetib bormadi: {failed} ta",
+    "qoidabuzarlik_id": "Foydalanuvchi Telegram ID sini kiriting:",
+    "qoidabuzarlik_sabab": "Qoidabuzarlik sababini yozing:",
+    "qoidabuzarlik_bajarildi": "Foydalanuvchi ogohlantirildi, tarifi to'xtatildi.",
+    "foydalanuvchi_topilmadi": "Bunday foydalanuvchi topilmadi.",
+    "coin_soralmoqda": "Coin belgisini kiriting (masalan: BTC):",
+    "coin_holat_tanlang": "{symbol} uchun holatni tanlang:",
+    "coin_sabab": "Sababni qisqacha yozing:",
+    "coin_saqlandi": "✅ {symbol} → {status}",
+    "coin_royxat": "🕌 Coin qarorlari\n\nHarom: {haram}\nShubhali: {mashbooh}",
+    "kontent_tur": "Kontent turini tanlang:",
+    "kontent_sarlavha": "Sarlavhani kiriting:",
+    "kontent_tarif": "Minimal tarifni tanlang:",
+    "kontent_fayl": "Video yoki faylni yuboring (yoki /skip):",
+    "kontent_saqlandi": "✅ Kontent qo'shildi: {title}"
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."
@@ -77,5 +126,10 @@
   "shaffoflik": {
     "aniqlik_dagvosi_yoq": "Biz hech qachon \"X% aniqlik\" deb va'da bermaymiz. Quyida — real statistika.",
     "statistika_qatori": "Signallar: {total} | TP: {tp} | Stop: {stop}"
+  },
+  "kontent": {
+    "sarlavha": "🎬 Kontent",
+    "bosh": "Hozircha kontent qo'shilmagan.",
+    "himoyalangan": "Bu material himoyalangan — tarqatish taqiqlanadi."
   }
 }

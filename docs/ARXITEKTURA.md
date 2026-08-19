@@ -213,13 +213,54 @@ nuqta `0.15000000000000568` beradi).
 
 ---
 
-## 12. Bosqichlar holati
+## 12. Vaqt saqlash: `UtcDateTime` (3-bosqichda chiqqan muammo)
+
+SQLite vaqt zonasini **saqlamaydi**. `DateTime(timezone=True)` bo'lsa ham,
+o'qishda naive `datetime` qaytadi. Oqibatlari:
+
+1. Naive va aware vaqtni taqqoslash `TypeError` beradi (bu hali yaxshi —
+   darhol ko'rinadi)
+2. Bundan yomoni: mahalliy vaqt zonasiga bog'liq mantiq (4.8-band Juma
+   filtri) jimgina noto'g'ri ishlashi mumkin
+
+Yechim — `core/storage/base.py` dagi `UtcDateTime` `TypeDecorator`:
+
+- **yozishda:** naive vaqt **rad etiladi**, aware vaqt UTC'ga keltiriladi
+- **o'qishda:** naive vaqtga UTC belgisi qo'yiladi
+
+Barcha vaqt ustunlari shu turdan foydalanadi. PostgreSQL'ga o'tilganda
+xatti-harakat o'zgarmaydi.
+
+---
+
+## 13. Nima uchun repository'lar `core/` da
+
+3-bosqichda handlerlar yozilganda tabiiy vasvasa — SQL so'rovlarni
+handlerlarga yozish. Bunday qilinsa, mobil ilovaga o'tishda hammasi qayta
+yozilardi.
+
+Shuning uchun:
+
+```
+bot/handlers/     — faqat "ko'rsatish" (yupqa)
+core/services/    — "nima qilinishi kerak" (biznes qaror)
+core/storage/     — "qanday saqlanadi" (repository)
+```
+
+Masalan `SubscriptionService.approve_payment()` obunani faollashtiradi va
+to'lovni belgilaydi — handler faqat natijani foydalanuvchiga yetkazadi.
+Shu sababli obuna mantig'i Telegram'siz to'liq test qilinadi
+(`tests/core/test_repositories.py`).
+
+---
+
+## 14. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
 | 1 | Arxitektura skeleti | ✅ |
 | 2 | DB sxemasi (15 jadval) | ✅ |
-| 3 | Bot "tana" qismi | skelet tayyor |
+| 3 | Bot "tana" qismi | ✅ |
 | 4 | Halol skrining (Top 30 Halal) | ✅ |
 | 5 | Signal moduli + WebSocket | interfeys tayyor |
 | 6 | Support/Resistance | — |
