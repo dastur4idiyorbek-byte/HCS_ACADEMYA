@@ -9,6 +9,7 @@ Ishga tushirish:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -16,10 +17,13 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.handlers import admin as admin_handlers
+from bot.handlers import signals as signal_handlers
 from bot.handlers import user as user_handlers
 from bot.middlewares import UserContextMiddleware
+from bot.services import SignalWatcher
 from bot.settings import BotSettings, load_settings
 from core.config import AppConfig, load_config
+from core.market_data import BinancePriceStream
 from core.risk_engine import RiskEngine
 from core.storage import Database
 from core.utils.logging_setup import get_logger, setup_logging
@@ -37,9 +41,11 @@ def build_dispatcher(database: Database, settings: BotSettings, config: AppConfi
     dispatcher.message.middleware(context)
     dispatcher.callback_query.middleware(context)
 
-    # Admin routeri BIRINCHI: `/panel` va `admin:*` callback'lari oddiy
+    # Admin routerlari BIRINCHI: `/panel` va `admin:*` callback'lari oddiy
     # foydalanuvchi handlerlariga tushib ketmasligi kerak.
+    dispatcher.include_router(signal_handlers.admin_router)
     dispatcher.include_router(admin_handlers.router)
+    dispatcher.include_router(signal_handlers.user_router)
     dispatcher.include_router(user_handlers.router)
 
     # Konfiguratsiya barcha handlerlarga uzatiladi
@@ -69,14 +75,22 @@ async def run() -> None:
     )
     dispatcher = build_dispatcher(database, settings, config)
 
-    # TODO(5-bosqich): WebSocket narx kuzatuvi shu yerda fon vazifasi
-    # sifatida ishga tushiriladi.
+    # 2-bo'lim: narx oqimi kuzatuvchisi fon vazifasi sifatida.
+    stream = BinancePriceStream(config.market_data, config.halal_screening.quote_asset)
+    watcher = SignalWatcher(bot, database, config, stream, settings.admin_ids)
+    dispatcher["watcher"] = watcher
+    watcher_task = asyncio.create_task(watcher.run(), name="signal-watcher")
+
     # TODO(15-bosqich): avtomatik signal sikli va obuna muddati tekshiruvi.
 
     try:
         logger.info("Bot polling rejimida ishga tushdi")
         await dispatcher.start_polling(bot, allowed_updates=dispatcher.resolve_used_update_types())
     finally:
+        watcher_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await watcher_task
+        await stream.close()
         await bot.session.close()
         await database.dispose()
         logger.info("Bot to'xtatildi")

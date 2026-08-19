@@ -58,3 +58,15 @@ def test_barcha_til_fayllari_bir_xil_kalitlarga_ega() -> None:
     for fayl in fayllar[1:]:
         boshqa = kalitlar(json.loads(fayl.read_text(encoding="utf-8")))
         assert boshqa == asos, f"{fayl.name} kalitlari {fayllar[0].name} dan farq qiladi"
+
+
+def test_har_bir_signal_holati_uchun_matn_bor() -> None:
+    """Kalitlar `SignalStatus` qiymatlariga AYNAN mos bo'lishi kerak.
+
+    Aks holda yangi holat qo'shilganda tizim ish paytida buziladi — bu
+    aynan shunday yuz bergan, shuning uchun test qo'shildi.
+    """
+    from core.domain.enums import SignalStatus
+
+    for status in SignalStatus:
+        assert t(f"signal.holat_{status.value}"), f"{status.value} uchun matn yo'q"

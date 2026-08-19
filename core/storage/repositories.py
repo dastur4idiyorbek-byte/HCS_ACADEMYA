@@ -18,20 +18,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.domain.enums import (
     HalalStatus,
+    OrderType,
     PaymentStatus,
+    SignalSource,
+    SignalStatus,
     SubscriptionStatus,
     SubscriptionTier,
     UserRole,
 )
-from core.domain.models import HalalVerdict
+from core.domain.models import EntryPlan, HalalVerdict, Signal, SignalLevels
 from core.storage.models import (
     CoinRuling,
     Content,
     Payment,
     PriceConfig,
+    SignalRecord,
     Subscription,
     User,
     Violation,
+)
+from core.storage.models import (
+    SignalEvent as SignalEventRow,
 )
 from core.utils.time_utils import utc_now
 
@@ -421,6 +428,142 @@ class CoinRulingRepository:
             .order_by(CoinRuling.symbol)
         )
         return list((await self._session.execute(stmt)).scalars())
+
+
+class SignalRepository:
+    """Signallar (2-bo'lim)."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(
+        self,
+        symbol: str,
+        levels: SignalLevels,
+        source: SignalSource,
+        entry_plan: EntryPlan | None = None,
+        score: float | None = None,
+        score_breakdown: str | None = None,
+        halal_reason: str | None = None,
+        note: str | None = None,
+        market_health: float | None = None,
+        correlation_group: str | None = None,
+    ) -> SignalRecord:
+        yozuv = SignalRecord(
+            symbol=symbol.upper(),
+            source=source.value,
+            status=SignalStatus.PENDING.value,
+            entry=levels.entry,
+            stop=levels.stop,
+            tp1=levels.tp1,
+            tp2=levels.tp2,
+            entry_order_type=(entry_plan.order_type if entry_plan else OrderType.LIMIT).value,
+            price_at_signal=entry_plan.current_price if entry_plan else None,
+            score=score,
+            score_breakdown=score_breakdown,
+            halal_reason=halal_reason,
+            note=note,
+            market_health_at_entry=market_health,
+            correlation_group=correlation_group,
+        )
+        self._session.add(yozuv)
+        await self._session.flush()
+        return yozuv
+
+    async def get(self, signal_id: int) -> SignalRecord | None:
+        return await self._session.get(SignalRecord, signal_id)
+
+    async def open_signals(self) -> list[SignalRecord]:
+        """Hali yopilmagan signallar — kuzatuvni tiklash uchun.
+
+        Bot qayta ishga tushganda kuzatuv nolday boshlanmasligi kerak.
+        """
+        yopiq = [
+            SignalStatus.TP2_HIT.value,
+            SignalStatus.STOPPED.value,
+            SignalStatus.CANCELLED.value,
+        ]
+        stmt = (
+            select(SignalRecord)
+            .where(SignalRecord.status.not_in(yopiq))
+            .order_by(SignalRecord.created_at)
+        )
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def recent(self, limit: int = 10) -> list[SignalRecord]:
+        stmt = select(SignalRecord).order_by(SignalRecord.created_at.desc()).limit(limit)
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def apply_event(
+        self,
+        signal_id: int,
+        status: SignalStatus,
+        price: float,
+        at: datetime,
+        kind: str,
+        detail: str | None = None,
+    ) -> SignalRecord | None:
+        """Kuzatuvchidan kelgan hodisani bazaga yozadi."""
+        yozuv = await self.get(signal_id)
+        if yozuv is None:
+            return None
+
+        yozuv.status = status.value
+        if status is SignalStatus.ACTIVE and yozuv.activated_at is None:
+            yozuv.activated_at = at
+        if status in {SignalStatus.TP2_HIT, SignalStatus.STOPPED, SignalStatus.CANCELLED}:
+            yozuv.closed_at = at
+            yozuv.close_price = price
+            yozuv.result_pct = (price - yozuv.entry) / yozuv.entry * 100
+        if kind == "false_signal":
+            yozuv.is_false_signal = True
+
+        self._session.add(
+            SignalEventRow(
+                signal_id=signal_id, event=kind, price=price, detail=detail
+            )
+        )
+        return yozuv
+
+    async def consecutive_stops(self, limit: int = 20) -> int:
+        """3.8-band: oxirgi nechta signal KETMA-KET Stop yegan."""
+        stmt = (
+            select(SignalRecord.status)
+            .where(
+                SignalRecord.status.in_(
+                    [SignalStatus.STOPPED.value, SignalStatus.TP1_HIT.value,
+                     SignalStatus.TP2_HIT.value]
+                ),
+                SignalRecord.closed_at.is_not(None),
+            )
+            .order_by(SignalRecord.closed_at.desc())
+            .limit(limit)
+        )
+        soni = 0
+        for status in (await self._session.execute(stmt)).scalars():
+            if status != SignalStatus.STOPPED.value:
+                break
+            soni += 1
+        return soni
+
+    @staticmethod
+    def to_domain(record: SignalRecord) -> Signal:
+        """DB yozuvidan domain obyektiga — kuzatuvchi shu tipni kutadi."""
+        return Signal(
+            symbol=record.symbol,
+            levels=SignalLevels(
+                entry=record.entry, stop=record.stop, tp1=record.tp1, tp2=record.tp2
+            ),
+            source=SignalSource(record.source),
+            status=SignalStatus(record.status),
+            score=record.score,
+            halal_reason=record.halal_reason,
+            note=record.note,
+            created_at=record.created_at,
+            activated_at=record.activated_at,
+            closed_at=record.closed_at,
+            signal_id=record.id,
+        )
 
 
 def today_utc() -> date:

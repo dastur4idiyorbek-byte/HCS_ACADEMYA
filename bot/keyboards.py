@@ -106,6 +106,7 @@ def cancel_button(language: str = DEFAULT_LANGUAGE) -> InlineKeyboardMarkup:
 
 #: Admin panel bo'limlari — kengaytiriladigan (yangi bo'lim shu yerga qo'shiladi)
 ADMIN_SECTIONS: list[tuple[str, str]] = [
+    ("yangi_signal", "admin.yangi_signal"),
     ("tolovlar", "admin.tolovlar"),
     ("narxlar", "admin.narxlar"),
     ("kontent", "admin.kontent"),

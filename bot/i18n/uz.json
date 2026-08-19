@@ -46,8 +46,6 @@
     "tp2": "TP2: {value}",
     "holat_pending": "⏳ Kutilmoqda — narx kirish nuqtasiga yetmagan",
     "holat_active": "✅ Faol",
-    "holat_tp1": "🎯 TP1 olindi",
-    "holat_tp2": "🎯🎯 TP2 olindi — signal yopildi",
     "holat_stopped": "🛑 Stop bo'ldi — signal yopildi",
     "holat_weakening": "⚠️ Zaiflashmoqda — chiqib ketish tavsiya etiladi",
     "faol_emas": "❌ Signal faol emas",
@@ -61,7 +59,13 @@
     "buyurtma_limit": "🎯 Limit",
     "buyurtma_market": "⚡ Market",
     "kirish_sababi": "📥 Kirish turi: {reason}",
-    "faol_signallar": "📡 Signallar"
+    "faol_signallar": "📡 Signallar",
+    "yangilandi": "{emoji} {symbol} — {status}",
+    "royxat_bosh": "Hozircha faol signal yo'q.",
+    "royxat_sarlavha": "📡 Faol signallar",
+    "holat_tp1_hit": "🎯 TP1 olindi",
+    "holat_tp2_hit": "🎯🎯 TP2 olindi — signal yopildi",
+    "holat_cancelled": "❌ Bekor qilindi — narx kirish nuqtasiga yetmadi"
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",
@@ -118,7 +122,18 @@
     "kontent_sarlavha": "Sarlavhani kiriting:",
     "kontent_tarif": "Minimal tarifni tanlang:",
     "kontent_fayl": "Video yoki faylni yuboring (yoki /skip):",
-    "kontent_saqlandi": "✅ Kontent qo'shildi: {title}"
+    "kontent_saqlandi": "✅ Kontent qo'shildi: {title}",
+    "signal_coin": "Coin belgisini kiriting (masalan: BTC):",
+    "signal_entry": "Kirish (Entry) narxini kiriting:",
+    "signal_stop": "Stop narxini kiriting (Entry'dan past bo'lishi kerak):",
+    "signal_tp1": "TP1 narxini kiriting (Entry'dan yuqori):",
+    "signal_tp2": "TP2 narxini kiriting (TP1'dan yuqori):",
+    "signal_izoh": "Qisqacha izoh yozing (yoki /skip):",
+    "signal_preview": "Quyidagi signal yuborilsinmi?\n\n{card}\n\n{note}",
+    "signal_tartib_xato": "Darajalar tartibi noto'g'ri.\nSpot/long uchun shart: Stop < Entry < TP1 < TP2\n\n{detail}",
+    "signal_yuborildi": "✅ Signal yuborildi: {sent} ta obunachiga.",
+    "signal_bekor": "Signal bekor qilindi.",
+    "signal_qoida_buzildi": "⚠️ Ogohlantirish: {reasons}\n\nBaribir yuborilsinmi?"
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."

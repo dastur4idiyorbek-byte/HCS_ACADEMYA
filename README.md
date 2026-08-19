@@ -30,7 +30,8 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 ├─ domain/                     umumiy tiplar va modellar
 ├─ storage/                    DB sxemasi, repository'lar (15 jadval)
 ├─ services/                   obuna hayot-sikli                  ✅ tayyor
-├─ market_data/                WebSocket narx oqimi, OHLCV        [5-bosqich]
+├─ market_data/                WebSocket, OHLCV, reyting          ✅ tayyor
+├─ signals/                    holat mashinasi (⏳→✅→🎯→🎯🎯/🛑)   ✅ tayyor
 ├─ halal_screening/            Top 30 Halal mantig'i              ✅ tayyor
 ├─ analysis/
 │   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           [6-bosqich]
@@ -45,7 +46,8 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 └─ utils/                      vaqt (timezone-aware), logging     ✅ tayyor
 
 bot/                           "TANA" — yupqa Telegram qatlami
-├─ handlers/                   user.py, admin.py                  ✅ tayyor
+├─ handlers/                   user.py, admin.py, signals.py      ✅ tayyor
+├─ services/                   narx kuzatuvchisi (fon vazifasi)   ✅ tayyor
 ├─ i18n/                       matnlar JSON'da (ko'p tillilikka tayyor)
 ├─ keyboards.py                tarifga qarab menyu qurish
 ├─ middlewares.py              foydalanuvchi konteksti, admin himoyasi
@@ -105,6 +107,8 @@ signal berish paytida emas.
 - **Telegram bot (1-bo'lim)** — obuna, to'lov cheki va admin tasdig'i, kontent
   `protect_content` bilan, admin panel (narxlar, halol ro'yxat, broadcast,
   qoidabuzarlik), tarifga qarab quriladigan menyu
+- **Signal moduli (2-bo'lim)** — admin qo'lda kiritadi (FSM + preview),
+  Binance WebSocket narxni kuzatadi, holat avtomatik yangilanadi, kill switch
 
 ---
 

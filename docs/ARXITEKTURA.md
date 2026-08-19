@@ -254,7 +254,53 @@ Shu sababli obuna mantig'i Telegram'siz to'liq test qilinadi
 
 ---
 
-## 14. Bosqichlar holati
+## 14. Narx sakrashi (gap) qanday talqin qilinadi
+
+Narx bir nuqtadan ikkinchisiga sakrab o'tishi mumkin — masalan Entry'dan
+to'g'ridan-to'g'ri Stop'dan pastga. Ikki talqin bor:
+
+1. "Buyurtma bajarilmadi, biz kirmadik" — foydani oshirib ko'rsatadi
+2. "Buyurtma Entry'da bajarilib, keyin Stop yedi" — ehtiyotkor
+
+`SignalTracker` **ikkinchisini** tanlaydi (0.3-band). Statistika haqiqatdan
+yomonroq ko'rinishi mumkin, lekin yaxshiroq ko'rinishidan afzal — 3.6-band
+shaffoflik talabi ham shuni taqozo qiladi.
+
+Shu sababli Stop tekshiruvi TP'dan **oldin** bajariladi.
+
+---
+
+## 15. Nima uchun kuzatuv qayta ishga tushirishda tiklanadi
+
+`SignalWatcher.restore_from_database()` bot har ishga tushganda ochiq
+signallarni bazadan o'qib, kuzatuvga qaytaradi. Ansiz server qayta
+yuklangach barcha faol signallar "yo'qolardi" — foydalanuvchi TP yoki Stop
+haqida xabar olmasdan qolardi.
+
+Xuddi shu sababli `SignalWatcher` yangi signal qo'shilganda darhol
+xabardor qilinadi (`add_signal`), keyingi qayta ishga tushirishni kutmaydi.
+
+---
+
+## 16. Kuzatuvchi nima uchun bunchalik "yupqa"
+
+`bot/services/watcher.py` faqat ulab turadi:
+
+```
+narx oqimi -> SignalTracker -> hodisalar -> baza + Telegram
+```
+
+Barcha qaror `core/signals/tracker.py` da — u sof, tarmoqqa va Telegram'ga
+bog'liq emas. Natijada:
+
+- holat mashinasi 21 ta test bilan to'liq qamrab olingan
+- kuzatuvchining o'zi soxta oqim va soxta bot bilan sinaladi
+  (`tests/bot/test_watcher.py`) — haqiqiy tarmoq kerak emas
+- backtest (16-bosqich) xuddi shu `SignalTracker` ni ishlatadi
+
+---
+
+## 17. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -262,7 +308,7 @@ Shu sababli obuna mantig'i Telegram'siz to'liq test qilinadi
 | 2 | DB sxemasi (15 jadval) | ✅ |
 | 3 | Bot "tana" qismi | ✅ |
 | 4 | Halol skrining (Top 30 Halal) | ✅ |
-| 5 | Signal moduli + WebSocket | interfeys tayyor |
+| 5 | Signal moduli + WebSocket | ✅ |
 | 6 | Support/Resistance | — |
 | 7 | Indikatorlar | — |
 | 8 | Ball hisoblash + backtest | — |
