@@ -300,7 +300,35 @@ bog'liq emas. Natijada:
 
 ---
 
-## 17. Bosqichlar holati
+## 17. S/R zonalarida qabul qilingan qarorlar
+
+**Zona — nuqta emas, oraliq.** Bozor aniq bir narxda emas, tor oraliqda
+buriladi. Bitta pivotdan iborat zona ham ATR asosida kengaytiriladi.
+
+**Tekis cho'qqida faqat birinchi sham pivot deb olinadi.** Aks holda bir xil
+balandlikdagi ketma-ket shamlar bir nechta bir xil pivot berardi va zona
+sun'iy ravishda "ko'p test qilingan" ko'rinardi.
+
+**Oxirgi `lookback` ta sham pivot bo'la olmaydi.** Ular hali o'ng tomondan
+tasdiqlanmagan. Bu ataylab: tasdiqlanmagan cho'qqiga tayanish "kelajakka
+qarash" (lookahead) xatosi bo'lardi va backtest natijalarini
+soxtalashtirardi — 16-bosqichda bu xato butun sozlashni buzardi.
+
+**Ketma-ket shamlar zonada turgani bitta test hisoblanadi.** Narx zonada 5
+sham turgani "5 marta sinaldi" degani emas.
+
+**ATR — o'lchov birligi, tasdiqlovchi indikator emas.** Zona kengligi va
+narxgacha masofa ATR bilan o'lchanadi, shuning uchun coin $0.0004 yoki
+$67 000 bo'lishidan qat'i nazar "yaqin" bir xil ma'no beradi. Tasdiqlovchi
+indikatorlar (EMA, RSI, MACD, hajm) 7-bosqichda alohida qo'shiladi.
+
+**Fibonacci zonalari alohida belgilanadi** (`from_fibonacci=True`). Yolg'iz
+Fibonacci darajasi — hech qanday pivot tasdiqlamagan — zaif dalil, shuning
+uchun ball hisoblashda (8-bosqich) pastroq baholanadi.
+
+---
+
+## 18. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -309,7 +337,7 @@ bog'liq emas. Natijada:
 | 3 | Bot "tana" qismi | ✅ |
 | 4 | Halol skrining (Top 30 Halal) | ✅ |
 | 5 | Signal moduli + WebSocket | ✅ |
-| 6 | Support/Resistance | — |
+| 6 | Support/Resistance | ✅ |
 | 7 | Indikatorlar | — |
 | 8 | Ball hisoblash + backtest | — |
 | 9 | Risk Engine | ✅ (13 qoida) |

@@ -34,8 +34,8 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 ├─ signals/                    holat mashinasi (⏳→✅→🎯→🎯🎯/🛑)   ✅ tayyor
 ├─ halal_screening/            Top 30 Halal mantig'i              ✅ tayyor
 ├─ analysis/
-│   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           [6-bosqich]
-│   ├─ indicators/             EMA/RSI/MACD/hajm (tasdiqlovchi)   [7-bosqich]
+│   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           ✅ tayyor
+│   ├─ indicators/             ATR ✅ | EMA/RSI/MACD/hajm         [7-bosqich]
 │   ├─ scoring/                ball hisoblash                     [8-bosqich]
 │   ├─ market_health/          Bozor Salomatligi Indeksi          [10-bosqich]
 │   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
@@ -109,6 +109,8 @@ signal berish paytida emas.
   qoidabuzarlik), tarifga qarab quriladigan menyu
 - **Signal moduli (2-bo'lim)** — admin qo'lda kiritadi (FSM + preview),
   Binance WebSocket narxni kuzatadi, holat avtomatik yangilanadi, kill switch
+- **S/R zonalari (3.1-band)** — swing pivotlar, zonaga birlashtirish, test
+  sanash, Fibonacci yordamchi sifatida; barchasi ATR birligida o'lchanadi
 
 ---
 

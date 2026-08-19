@@ -1,11 +1,29 @@
 """3.1-band: Support/Resistance zonalarini aniqlash — BIRLAMCHI tahlil.
 
 Tahlil EMA/RSI/MACD'dan emas, aynan shu moduldan boshlanadi. Aniqlanadi:
-  - tarixiy narx darajalari (swing high/low pivotlar)
-  - ko'p marta test qilingan zonalar (`min_touches`)
-  - Fibonacci 38.2% / 50% / 61.8% — YORDAMCHI sifatida, mustaqil emas
-  - yaqin darajalar ATR asosida zonaga birlashtiriladi (nuqta emas, oraliq)
+  - swing pivotlar (tarixiy burilish nuqtalari)
+  - yaqin pivotlarni birlashtirish orqali ZONALAR (nuqta emas, oraliq)
+  - har bir zona necha marta test qilingani
+  - Fibonacci 38.2% / 50% / 61.8% — YORDAMCHI sifatida
 
-HOLAT: 6-bosqichda quriladi (7-bo'limdagi tartib bo'yicha).
-Chiqadigan tip: `core.domain.models.SRZone`.
+Chiqadigan tip: `ZoneMap` (`core.domain.models.SRZone` ro'yxati bilan).
 """
+
+from core.analysis.support_resistance.detector import SupportResistanceDetector, ZoneMap
+from core.analysis.support_resistance.fibonacci import (
+    SwingRange,
+    fibonacci_levels,
+    find_swing_range,
+)
+from core.analysis.support_resistance.pivots import Pivot, count_touches, find_pivots
+
+__all__ = [
+    "Pivot",
+    "SupportResistanceDetector",
+    "SwingRange",
+    "ZoneMap",
+    "count_touches",
+    "fibonacci_levels",
+    "find_pivots",
+    "find_swing_range",
+]
