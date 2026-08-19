@@ -8,6 +8,8 @@ Tahlil aynan shu moduldan boshlanadi, EMA/RSI/MACD'dan emas. Ketma-ketlik:
     3. Har bir zona necha marta test qilingani sanaladi
     4. Fibonacci darajalari yordamchi sifatida qo'shiladi
     5. Zonalar joriy narxga nisbatan support/resistance deb ajratiladi
+    6. Diapazon Discount/Premium zonalariga bo'linadi (range_position.py) —
+       narx "arzon"mi yoki "qimmat"mi degan savolga javob
 
 Zonalarning kengligi ATR bilan o'lchanadi — narx miqyosidan qat'i nazar
 "yaqin" tushunchasi bir xil ma'no beradi.
@@ -23,6 +25,10 @@ from core.analysis.support_resistance.fibonacci import (
     find_swing_range,
 )
 from core.analysis.support_resistance.pivots import Pivot, count_touches, find_pivots
+from core.analysis.support_resistance.range_position import (
+    RangePosition,
+    compute_range_position,
+)
 from core.config.schema import SupportResistanceConfig
 from core.domain.enums import ZoneKind
 from core.domain.models import Candle, SRZone
@@ -67,6 +73,34 @@ class ZoneMap:
             if zona.contains(self.price):
                 return zona
         return None
+
+    def range_position(self) -> RangePosition | None:
+        """Narxning eng yaqin Support—Resistance diapazonidagi joylashuvi.
+
+        Returns:
+            `RangePosition`, yoki `None` — diapazon qurib bo'lmadi (bir
+            tomonda zona yo'q). Bunday holatda Discount/Premium filtri
+            qo'llanilmaydi va signal 0.3-band bo'yicha zaif hisoblanadi.
+        """
+        support = self.nearest_support()
+        resistance = self.nearest_resistance()
+        if support is None or resistance is None:
+            return None
+        return compute_range_position(self.price, support, resistance)
+
+    def entry_allowed(self) -> bool:
+        """Qat'iy qoida: narx Support zonasida VA Discount zonada bo'lsa kirish.
+
+        Support yaqinida turgan narx ham, agar diapazonning yuqori yarmida
+        bo'lsa (oraliq tor yoki narx aslida Premium'da), kirish uchun to'liq
+        kuchga ega emas.
+        """
+        joylashuv = self.range_position()
+        if joylashuv is None:
+            return False
+        zona = self.zone_at_price()
+        support_ichida = zona is not None and zona.kind is ZoneKind.SUPPORT
+        return joylashuv.allows_entry(support_ichida)
 
     def distance_in_atr(self, zone: SRZone) -> float:
         """Narxdan zonagacha masofa, ATR birligida."""

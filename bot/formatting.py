@@ -11,6 +11,7 @@ bo'lsa o'rniga taklif matni ko'rsatiladi.
 from __future__ import annotations
 
 from bot.i18n import DEFAULT_LANGUAGE, t
+from core.analysis.support_resistance import RangePosition
 from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
 
 
@@ -38,19 +39,23 @@ def render_signal_card(
     suggestion: PositionSuggestion | None = None,
     quote_asset: str = "USDT",
     language: str = DEFAULT_LANGUAGE,
+    range_position: RangePosition | None = None,
 ) -> str:
     """5.1.0-banddagi signal-kartochkani chiqaradi.
 
     Args:
         suggestion: pozitsiya hajmi tavsiyasi. `None` bo'lsa (foydalanuvchi
             balansini kiritmagan) "Miqdor" o'rniga taklif matni ko'rsatiladi.
+        range_position: Discount/Premium joylashuvi (3.1-band). Berilsa,
+            kartochka oxiriga zona qatori qo'shiladi — foydalanuvchi narx
+            arzon yoki qimmat ekanini ko'radi.
     """
     if suggestion is not None and suggestion.position_size_usd > 0:
         amount = f"${format_price(suggestion.position_size_usd)}"
     else:
         amount = t("signal.miqdor_hisoblanmagan", language)
 
-    return t(
+    kartochka = t(
         "signal.kartochka",
         language,
         symbol=symbol.upper(),
@@ -67,3 +72,6 @@ def render_signal_card(
         stop_pct=format_pct(-levels.stop_distance_pct),
         rr=f"{levels.risk_reward_tp2:.1f}",
     )
+    if range_position is not None:
+        kartochka += f"\n📍 {range_position.describe()}"
+    return kartochka

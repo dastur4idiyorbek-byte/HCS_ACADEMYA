@@ -82,3 +82,25 @@ def test_foiz_formatlash() -> None:
     assert format_pct(3.0) == "+3.00%"
     assert format_pct(-0.8) == "-0.80%"
     assert format_pct(3.0, signed=False) == "3.00%"
+
+
+def test_kartochkada_zona_qatori_korsatiladi() -> None:
+    """3.1-band davomi: foydalanuvchi narx arzon yoki qimmat ekanini ko'radi."""
+    from core.analysis.support_resistance import compute_range_position
+    from core.domain.enums import ZoneKind
+    from core.domain.models import SRZone
+
+    support = SRZone(ZoneKind.SUPPORT, low=2400, high=2440, touches=3)
+    resistance = SRZone(ZoneKind.RESISTANCE, low=2600, high=2640, touches=3)
+    joy = compute_range_position(2460, support, resistance)
+
+    kartochka = render_signal_card(
+        "ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG), range_position=joy
+    )
+    assert "📍" in kartochka
+    assert "Discount" in kartochka
+
+
+def test_zona_qatori_ixtiyoriy() -> None:
+    kartochka = render_signal_card("ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG))
+    assert "📍" not in kartochka

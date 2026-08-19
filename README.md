@@ -111,6 +111,8 @@ signal berish paytida emas.
   Binance WebSocket narxni kuzatadi, holat avtomatik yangilanadi, kill switch
 - **S/R zonalari (3.1-band)** — swing pivotlar, zonaga birlashtirish, test
   sanash, Fibonacci yordamchi sifatida; barchasi ATR birligida o'lchanadi
+- **Discount / Premium** — narx diapazonning arzon yoki qimmat yarmidami.
+  Kirish faqat "Support zonasida VA Discount zonada" bo'lganda ko'rib chiqiladi
 
 ---
 

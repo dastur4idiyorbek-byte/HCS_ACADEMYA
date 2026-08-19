@@ -328,7 +328,48 @@ uchun ball hisoblashda (8-bosqich) pastroq baholanadi.
 
 ---
 
-## 18. Bosqichlar holati
+## 18. Discount / Premium zonalari (3.1-band davomi)
+
+S/R diapazoni ikkiga bo'linadi va narxning nisbiy joylashuvi foizda
+hisoblanadi:
+
+```
+Resistance  ───────────────  100%
+                                    PREMIUM — narx QIMMAT
+O'rta chiziq ─ ─ ─ ─ ─ ─ ─    50%
+                                    DISCOUNT — narx ARZON
+Support     ───────────────    0%
+```
+
+Qat'iy qoida: **kirish faqat "Support zonasida VA Discount zonada"** bo'lganda
+ko'rib chiqiladi.
+
+Nima uchun ikkala shart ham kerak — spetsifikatsiyadagi holat: oraliq juda
+tor bo'lsa, narx Support zonasi **ichida** turgani holda ham diapazonning
+yuqori yarmida (Premium'da) bo'lishi mumkin. Bunday kirish qimmat va
+Resistance'gacha joy kam.
+
+| narx | foiz | zona | Support ichida | kirish |
+|---|---|---|---|---|
+| 96 | 0% | Discount | ha | ✅ |
+| 100 | 22% | Discount | yo'q | ❌ |
+| 106 | 56% | Premium | ha | ❌ |
+| 92 | −22% | — | ha | ❌ (zona buzilgan) |
+
+**Tayanch nuqtalar — zona MARKAZLARI**, chekkalar emas. Chekkalarni olish
+diapazonni zona kengligiga bog'liq qilib qo'yardi: keng zona diapazonni
+sun'iy toraytirib, foizni buzardi.
+
+**Diapazondan chiqish yashirilmaydi.** `percent < 0` — qo'llab-quvvatlash
+buzilgan, `> 100` — qarshilik yorib o'tilgan. Ikkalasi ham muhim ma'lumot,
+`0..100` ga siqib qo'yilmaydi.
+
+`depth` (0..1) qiymati 3.5-banddagi "S/R zonasi sifati" ballida ishlatiladi:
+chuqurroq Discount — yuqoriroq ball.
+
+---
+
+## 19. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
