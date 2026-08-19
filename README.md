@@ -38,7 +38,7 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 │   ├─ indicators/             EMA/RSI/MACD/ADX/ATR/hajm          ✅ tayyor
 │   ├─ scoring/                darajalar, ball, reyting           ✅ tayyor
 │   ├─ market_health/          Bozor Salomatligi Indeksi          ✅ tayyor
-│   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
+│   ├─ postmortem/             Signal Xotirasi, naqsh izlash      ✅ tayyor
 │   └─ strategies/             classic_ta ✅ | opening_range ✅   + registry
 ├─ risk_engine/                13 ta risk qoidasi                 ✅ tayyor
 ├─ position_sizing/            pozitsiya hajmi + agregat sig'im   ✅ tayyor
@@ -124,6 +124,9 @@ signal berish paytida emas.
   bog'liq. Admin dashboardi `/panel` → 💓 Bozor Salomatligi
 - **Skalping strategiyasi (3.9-band)** — kunlik ochilish diapazonini yorib
   o'tish; alohida byudjet ulushi bilan, lekin umumiy kunlik limit ichida
+- **Signal Xotirasi (3.8-band)** — yopilgan signallarda naqsh izlash va
+  haftalik hisobot. Tavsiyalar **avtomatik qo'llanilmaydi** —
+  `/panel` → 🧾 O'z-o'zini tekshirish hisoboti
 
 ---
 

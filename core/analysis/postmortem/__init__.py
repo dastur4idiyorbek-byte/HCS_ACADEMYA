@@ -1,24 +1,48 @@
 """3.8-band: Signal Xotirasi — o'z-o'zini tekshiruvchi qism (Self-Audit Loop).
 
-Har bir yopilgan signal statistikaga qo'shilib qolmaydi — tizim orqaga qarab
-"nima uchun shunday bo'ldi" tahlil qiladi:
-  - Stop yegan bo'lsa: S/R zonasi noto'g'ri belgilanganmi? Hajm yolg'on
-    signal berganmi? Bozor Salomatligi past bo'lsa ham signal o'tib ketganmi?
-  - TP2'gacha yetgan bo'lsa: qaysi omillar eng kuchli ishladi?
+Har bir yopilgan signal statistikaga qo'shilib qolmaydi — tizim orqaga
+qarab "nima uchun shunday bo'ldi" tahlil qiladi va NAQSH izlaydi.
 
-Bu — statistika emas, NAQSH (pattern) izlash.
+Statistika va naqsh farqi:
+    statistika — "35% signal Stop yedi"
+    naqsh      — "Salomatlik 60dan past bo'lganda 70% Stop yeydi"
 
-MUHIM: xulosalar AVTOMATIK O'ZGARTIRISH QILMAYDI (xavfli bo'lardi) — faqat
-adminga aniq tavsiya sifatida ko'rsatiladi.
+Ikkinchisi sababga ishora qiladi, birinchisi esa yo'q.
 
-Kuzatiladigan alohida holatlar:
-  - "Yolg'on signal": faol bo'lgach 1 soat ichida Stop (zaif kirish nuqtasi)
-  - Ketma-ket zarar: N ta ketma-ket Stop -> kill switch (Risk Engine'da
-    `ConsecutiveLossRule` sifatida allaqachon tayyor)
+MUHIM TAMOYIL: xulosalar AVTOMATIK O'ZGARTIRISH QILMAYDI. Tizim o'z
+sozlamalarini o'zi o'zgartirsa, xato naqsh butun strategiyani buzishi va
+buni hech kim sezmasdan qolishi mumkin. Hisobot faqat adminga aniq tavsiya
+beradi — qaror insonniki.
 
-Chiqadigan natija: haftalik "O'z-o'zini tekshirish hisoboti" (faqat admin).
+HALOLLIK CHEGARASI: naqsh faqat namuna yetarli bo'lganda e'lon qilinadi.
+"Naqsh topilmadi" va "ma'lumot yetarli emas" — bir xil narsa emas, va
+hisobotda ular ajratiladi.
 
-HOLAT: 13-bosqichda quriladi. Kerakli ma'lumot bazada allaqachon
-saqlanmoqda: `signals.market_health_at_entry`, `signals.is_false_signal`,
-`signal_events`, `market_health_log`.
+    outcome.py   — yopilgan signal va uning konteksti
+    patterns.py  — naqsh izlash
+    report.py    — haftalik hisobot
 """
+
+from core.analysis.postmortem.outcome import ClosedSignal, Outcome, outcome_from_status
+from core.analysis.postmortem.patterns import Pattern, Segment, find_patterns
+from core.analysis.postmortem.report import (
+    PeriodStats,
+    SelfAuditReport,
+    build_report,
+    compute_stats,
+    render_report,
+)
+
+__all__ = [
+    "ClosedSignal",
+    "Outcome",
+    "Pattern",
+    "PeriodStats",
+    "Segment",
+    "SelfAuditReport",
+    "build_report",
+    "compute_stats",
+    "find_patterns",
+    "outcome_from_status",
+    "render_report",
+]

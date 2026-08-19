@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.analysis.postmortem import ClosedSignal, outcome_from_status
 from core.domain.enums import (
     HalalStatus,
     OrderType,
@@ -552,6 +553,56 @@ class SignalRepository:
                 break
             soni += 1
         return soni
+
+    async def closed_since(self, since: datetime) -> list[ClosedSignal]:
+        """3.8-band: postmortem uchun yopilgan signallar va ularning konteksti.
+
+        TP1 ga yetganini `signal_events` dan bilib olamiz — bu farq muhim:
+        "Stop yedi" va "TP1 oldi, keyin Stop yedi" bir xil natija emas.
+        """
+        yopiq = [
+            SignalStatus.TP2_HIT.value,
+            SignalStatus.STOPPED.value,
+            SignalStatus.CANCELLED.value,
+        ]
+        stmt = (
+            select(SignalRecord)
+            .where(
+                SignalRecord.status.in_(yopiq),
+                SignalRecord.closed_at.is_not(None),
+                SignalRecord.closed_at >= since,
+            )
+            .order_by(SignalRecord.closed_at)
+        )
+        yozuvlar = list((await self._session.execute(stmt)).scalars())
+        if not yozuvlar:
+            return []
+
+        tp1_stmt = select(SignalEventRow.signal_id).where(
+            SignalEventRow.signal_id.in_([y.id for y in yozuvlar]),
+            SignalEventRow.event == "tp1_hit",
+        )
+        tp1_olganlar = set((await self._session.execute(tp1_stmt)).scalars())
+
+        return [
+            ClosedSignal(
+                signal_id=yozuv.id,
+                symbol=yozuv.symbol,
+                source=SignalSource(yozuv.source),
+                outcome=outcome_from_status(
+                    SignalStatus(yozuv.status), reached_tp1=yozuv.id in tp1_olganlar
+                ),
+                score=yozuv.score,
+                market_health_at_entry=yozuv.market_health_at_entry,
+                result_pct=yozuv.result_pct,
+                created_at=yozuv.created_at,
+                activated_at=yozuv.activated_at,
+                closed_at=yozuv.closed_at,
+                is_false_signal=yozuv.is_false_signal,
+                correlation_group=yozuv.correlation_group,
+            )
+            for yozuv in yozuvlar
+        ]
 
     @staticmethod
     def to_domain(record: SignalRecord) -> Signal:

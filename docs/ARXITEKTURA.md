@@ -574,7 +574,60 @@ bu diapazon pastini kutishdan ko'ra **tezroq va arzonroq** chiqish.
 
 ---
 
-## 24. Bosqichlar holati
+## 24. Signal Xotirasi: naqsh va statistika farqi
+
+3.8-band "statistika emas, **naqsh izlash**" deydi. Farq:
+
+| | Misol |
+|---|---|
+| Statistika | "35% signal Stop yedi" |
+| **Naqsh** | "Salomatlik 60dan past bo'lganda 79% Stop yeydi" |
+
+Ikkinchisi **sababga** ishora qiladi va aniq harakat taklif qiladi.
+
+### 24.1. Halollik chegarasi
+
+Naqsh faqat namuna yetarli bo'lganda e'lon qilinadi. 5 ta signal asosida
+"70% Stop yeydi" deyish statistika emas, shovqin. Har bir naqsh ikki
+shartdan o'tishi kerak:
+
+- `min_sample_size` — **har ikkala** guruhda alohida
+- `min_effect_pct` — natijalar farqi shu foiz punktidan katta bo'lishi
+
+Ma'lumoti yo'q signal (masalan salomatlik qayd etilmagan) **ikkala guruhga
+ham kirmaydi** — noma'lum ma'lumot naqshni buzmasligi kerak.
+
+### 24.2. "Naqsh topilmadi" ≠ "ma'lumot yetarli emas"
+
+Hisobot bu ikkisini **ajratadi**. Kichik namunada:
+
+> ℹ️ Namuna kichik (3 ta savdo, kamida 12 kerak) — naqsh izlanmadi.
+> Bu "muammo yo'q" degani EMAS, shunchaki ma'lumot yetarli emas.
+
+Aralashtirish xavfli bo'lardi: admin "hammasi joyida" deb o'ylab qolardi.
+
+### 24.3. Nima uchun avtomatik o'zgartirish yo'q
+
+Spetsifikatsiya buni aniq talab qiladi, va sabab jiddiy: tizim o'z
+sozlamalarini o'zi o'zgartirsa, **xato naqsh butun strategiyani buzishi va
+buni hech kim sezmasdan qolishi mumkin**. Har bir hisobot oxirida bu ochiq
+yoziladi:
+
+> ⚠️ Bu tavsiyalar AVTOMATIK qo'llanilmaydi. Sozlamani o'zgartirish qarori —
+> sizniki.
+
+### 24.4. "TP1 oldi, keyin Stop" alohida natija
+
+`Outcome.TP1_THEN_STOP` — bu foyda hisoblanadi (pozitsiyaning bir qismi TP1
+da yopilgan), lekin `Outcome.STOP` dan ajratiladi. Aralashtirilsa, naqsh
+tahlili "Stop yedi" deb noto'g'ri xulosa chiqarardi.
+
+Xuddi shunday, **bekor qilingan signal statistikaga kirmaydi** — u savdo
+bo'lmagan va win-rate ni sun'iy buzardi.
+
+---
+
+## 25. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -590,7 +643,7 @@ bu diapazon pastini kutishdan ko'ra **tezroq va arzonroq** chiqish.
 | 10 | Bozor Salomatligi Indeksi | ✅ |
 | 11 | Pozitsiya hajmi + agregat balans | ✅ |
 | 12 | Opening range scalp | ✅ |
-| 13 | Postmortem (Signal Xotirasi) | DB tayyor |
+| 13 | Postmortem (Signal Xotirasi) | ✅ |
 | 14 | Shaxsiy portfel | DB tayyor |
 | 15 | Hammasini bog'lash | — |
 | 16 | Backtest (1-2 yillik) | — |

@@ -8,6 +8,8 @@ Handlerlar yupqa: qarorlarni `core/services/` va repository'lar qabul qiladi.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -31,6 +33,7 @@ from bot.states import (
     PriceFlow,
     ViolationFlow,
 )
+from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
 from core.risk_engine import RiskEngine
@@ -43,11 +46,13 @@ from core.storage.repositories import (
     MarketHealthRepository,
     PaymentRepository,
     PriceRepository,
+    SignalRepository,
     SubscriptionRepository,
     UserRepository,
     ViolationRepository,
 )
 from core.utils.logging_setup import get_logger
+from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
 
@@ -580,14 +585,40 @@ def _render_health(record) -> str:  # noqa: ANN001
 
 
 # --------------------------------------------------------------------------- #
+#  3.8 — O'z-o'zini tekshirish hisoboti
+# --------------------------------------------------------------------------- #
+
+
+@router.callback_query(F.data == "admin:hisobot")
+async def self_audit_report(
+    callback: CallbackQuery,
+    database: Database,
+    config: AppConfig,
+    language: str,
+    **_: object,
+) -> None:
+    """3.8-band: haftalik hisobot. Tavsiyalar AVTOMATIK qo'llanilmaydi."""
+    hozir = utc_now()
+    boshlanish = hozir - timedelta(days=config.postmortem.lookback_days)
+
+    async with database.session() as session:
+        signallar = await SignalRepository(session).closed_since(boshlanish)
+
+    hisobot = build_report(signallar, config.postmortem, hozir)
+    await callback.message.edit_text(
+        render_report(hisobot), reply_markup=back_button("home", language)
+    )
+    await callback.answer()
+
+
+# --------------------------------------------------------------------------- #
 #  Hali qurilmagan bo'limlar (10, 13 va 9-bosqichlarda ulanadi)
 # --------------------------------------------------------------------------- #
 
 
-@router.callback_query(F.data.in_({"admin:hisobot", "admin:risk"}))
+@router.callback_query(F.data.in_({"admin:risk"}))
 async def not_ready_yet(callback: CallbackQuery, language: str, **_: object) -> None:
     bosqichlar = {
-        "admin:hisobot": "O'z-o'zini tekshirish hisoboti — 13-bosqichda ulanadi.",
         "admin:risk": "Risk sozlamalari tahriri — 9-bosqich ustiga qo'shiladi.",
     }
     await callback.message.edit_text(

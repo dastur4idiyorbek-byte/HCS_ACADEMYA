@@ -389,6 +389,25 @@ class StrategiesConfig:
 
 
 # --------------------------------------------------------------------------- #
+#  3.8 — Signal Xotirasi
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class PostmortemConfig:
+    """3.8-band: o'z-o'zini tekshirish sozlamalari."""
+
+    #: Naqsh e'lon qilish uchun minimal namuna — halollik chegarasi
+    min_sample_size: int = 12
+    #: Naqsh "kuchli" bo'lishi uchun natijalar farqi (foiz punkti)
+    min_effect_pct: float = 15.0
+    lookback_days: int = 30
+    report_weekday: int = 0
+    report_hour_utc: int = 6
+    false_signal_window_minutes: int = 60
+
+
+# --------------------------------------------------------------------------- #
 #  1.2 — Obuna
 # --------------------------------------------------------------------------- #
 
@@ -453,6 +472,7 @@ class AppConfig:
     trade_rules: TradeRulesConfig = field(default_factory=TradeRulesConfig)
     risk_engine: RiskEngineConfig = field(default_factory=RiskEngineConfig)
     market_health: MarketHealthConfig = field(default_factory=MarketHealthConfig)
+    postmortem: PostmortemConfig = field(default_factory=PostmortemConfig)
     position_sizing: PositionSizingConfig = field(default_factory=PositionSizingConfig)
     strategies: StrategiesConfig = field(default_factory=StrategiesConfig)
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)

@@ -247,6 +247,21 @@ strategies:
       direction_clarity: 25
       risk_reward: 15
 
+# --- 3.8-band: Signal Xotirasi (postmortem) ---
+postmortem:
+  # Naqsh e'lon qilish uchun MINIMAL namuna. Bu — halollik chegarasi:
+  # 5 ta signal asosida "70% Stop yeydi" deyish statistika emas, shovqin.
+  min_sample_size: 12
+  # Naqsh "kuchli" deb hisoblanishi uchun natijalar farqi (foiz punkti)
+  min_effect_pct: 15.0
+  # Tahlil qilinadigan davr
+  lookback_days: 30
+  # Haftalik hisobot qaysi kun yuboriladi (Monday=0 ... Sunday=6)
+  report_weekday: 0
+  report_hour_utc: 6
+  # Faol bo'lgach shu vaqt ichida Stop yesa — "yolg'on signal"
+  false_signal_window_minutes: 60
+
 # --- 1.2-band: obuna ---
 subscriptions:
   tiers: ["lite", "pro", "premium"]
