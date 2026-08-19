@@ -416,7 +416,61 @@ ma'lumotda taqqoslab, javobni raqam bilan beradi.
 
 ---
 
-## 21. Bosqichlar holati
+## 21. 8-bosqichda aniqlangan uchta tuzilmaviy ziddiyat
+
+Ball tizimini qurish jarayonida strategiyani sun'iy ma'lumotda uchdan-uchgacha
+sinaganda uchta ziddiyat chiqdi. Uchalasi ham bir manbadan: **support'da sotib
+olish barcha "trend davom etmoqda" ko'rsatkichlariga qarshi turadi.**
+
+### 21.1. Toza trendda ustda qarshilik yo'q
+
+3.1-band "TP1 — eng yaqin resistance" deydi. Lekin ko'tarilish trendi degani
+aynan **yangi cho'qqilar** demakdir — ustda qarshilik zonasi yo'q.
+
+Natijada tizim aynan trend filtri talab qiladigan sharoitda TP1 ni qura
+olmasdi. Yechim: `trade_rules.allow_measured_tp` (standart `true`) —
+qarshilik topilmasa TP1 o'lchangan masofa bo'yicha qo'yiladi va bu
+`tp_from_structure=False` bilan ochiq belgilanadi.
+
+### 21.2. Discount/Premium diapazoni ham ikkala zonani talab qilardi
+
+Xuddi shu sabab bir qatlam yuqorida takrorlandi: diapazon qurilmasa,
+Discount filtri umuman ishlamaydi.
+
+Yechim: bir tomonda zona bo'lmasa, **oxirgi muhim swing darajasi** tayanch
+sifatida ishlatiladi (`ZoneMap.swing_low` / `swing_high`). Treyderlar ham
+trendda "joriy oyoq"ning (leg) diapazoniga qarab arzon/qimmatni baholaydi.
+
+### 21.3. MACD tasdig'i va Discount oynasi kesishmaydi
+
+Eng jiddiy topilma. O'lchov (sun'iy ma'lumot, turli chuqurlik va burilish
+kombinatsiyalari):
+
+| Burilish shamlari | Holat |
+|---|---|
+| 0–3 | Narx Discount'da ✅, lekin MACD tasdiqlamaydi ❌ |
+| ≥4 | MACD tasdiqlaydi ✅, lekin narx Premium'ga o'tgan ❌ |
+
+Sabab tuzilmaviy: MACD **kechikuvchi** indikator, u faqat narx allaqachon
+ko'tarilgandan keyin tasdiqlaydi — o'sha paytda narx kirish zonasidan chiqib
+ketgan bo'ladi.
+
+**Yechim va uning asosi:** 3.5-band ball tizimini AYNAN shu uchun yaratgan —
+indikatorlar ballga hissa qo'shadi, qarorni esa **umumiy ball chegarasi**
+qabul qiladi. "4/4 indikator majburiy" talabi ball chegarasining ustiga
+qo'yilgan ikkinchi to'siq edi.
+
+Endi: `analysis.indicators.min_confirmations` (standart 2, 4 = qat'iy
+variant). Zona sharti (S/R + Discount) MAJBURIY bo'lib qoladi, shuning uchun
+"yolg'iz indikator-asosli signal yo'q" qoidasi buzilmaydi.
+
+Bu qaror o'zini oqladi: sinovda MACD tasdiqlamagan nomzod **61.5/100** ball
+oldi — bu eng past chegaradan (70) ham past, ya'ni signal baribir
+yuborilmaydi. Ball tizimi zaif kirishni o'zi filtrlaydi, qattiq to'siqsiz.
+
+---
+
+## 22. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -427,7 +481,7 @@ ma'lumotda taqqoslab, javobni raqam bilan beradi.
 | 5 | Signal moduli + WebSocket | ✅ |
 | 6 | Support/Resistance | ✅ |
 | 7 | Indikatorlar | ✅ |
-| 8 | Ball hisoblash + backtest | — |
+| 8 | Ball hisoblash + reytinglash | ✅ |
 | 9 | Risk Engine | ✅ (13 qoida) |
 | 10 | Bozor Salomatligi Indeksi | modellar tayyor |
 | 11 | Pozitsiya hajmi + agregat balans | ✅ |

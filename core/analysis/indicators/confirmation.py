@@ -41,11 +41,25 @@ class Confirmation:
 
     zone_ready: bool
     factors: list[ConfirmationFactor]
+    #: Nechta omil tasdiqlashi shart. 4 — qat'iy "hammasi" varianti.
+    min_confirmations: int = 2
 
     @property
     def is_confirmed(self) -> bool:
-        """Signal ko'rib chiqilishi uchun: zona tayyor VA barcha omil tasdiqlagan."""
-        return self.zone_ready and all(omil.confirmed for omil in self.factors)
+        """Signal ko'rib chiqilishi uchun shartlar.
+
+        1. Zona tayyor (S/R + Discount) — MAJBURIY, bu chetlab o'tilmaydi
+        2. Kamida `min_confirmations` ta indikator tasdiqlagan
+
+        Nima uchun "hammasi" emas: MACD kechikuvchi indikator — u faqat narx
+        ko'tarilgandan keyin tasdiqlaydi, o'sha paytda narx Discount
+        zonasidan chiqib ketgan bo'ladi. 4/4 talabi bilan ikki oyna
+        kesishmaydi va tizim amalda hech qachon signal bermaydi (o'lchangan).
+
+        Qolgan tanlovni 3.5-banddagi ball chegarasi qiladi — u aynan shu
+        uchun mo'ljallangan.
+        """
+        return self.zone_ready and self.confirmed_count >= self.min_confirmations
 
     @property
     def confirmed_count(self) -> int:
@@ -88,6 +102,7 @@ def confirm(
             _macd_factor(snapshot),
             _volume_factor(snapshot),
         ],
+        min_confirmations=config.min_confirmations,
     )
 
 

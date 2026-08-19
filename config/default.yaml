@@ -84,6 +84,19 @@ analysis:
     adx_period: 14
     adx_trend_threshold: 20        # bundan past — tekis (sideways) bozor
 
+    # Nechta indikator tasdiqlashi SHART (4 tadan: trend, RSI, MACD, hajm).
+    #
+    # DIQQAT — o'lchangan muammo: 4/4 talab qilinsa, tizim amalda hech qachon
+    # signal bermaydi. Sabab: MACD kechikuvchi indikator, u faqat narx
+    # allaqachon ko'tarilgandan keyin tasdiqlaydi — o'sha paytda esa narx
+    # Discount zonasidan chiqib ketgan bo'ladi. Ikki oyna kesishmaydi.
+    #
+    # 3.5-band ball tizimini AYNAN shu uchun yaratgan: indikatorlar ballga
+    # hissa qo'shadi, qarorni esa umumiy ball chegarasi qabul qiladi.
+    # Zona sharti (S/R + Discount) baribir MAJBURIY bo'lib qoladi —
+    # "yolg'iz indikator-asosli signal yo'q" qoidasi buzilmaydi.
+    min_confirmations: 2            # 4 = qat'iy "hammasi tasdiqlasin" varianti
+
 # --- 3.5-band: ball tizimi ---
 scoring:
   weights:
@@ -107,6 +120,17 @@ trade_rules:
   min_tp_distance_pct: 3.0
   max_tp_distance_pct: 5.0
   min_risk_reward: 3.0             # TP2 kamida 1:3 R/R
+
+  # 3.1-band "TP1 — eng yaqin resistance" deydi. Lekin TOZA KO'TARILISH
+  # TRENDIDA ustda qarshilik BO'LMAYDI — trend degani aynan shu.
+  #
+  # Natijada tizim aynan trend filtri talab qiladigan sharoitda hech qachon
+  # signal bera olmasligi mumkin. `true` bo'lsa: qarshilik topilmasa, TP1
+  # o'lchangan masofa (min_tp_distance_pct) bo'yicha qo'yiladi va signal
+  # tafsilotida bu ochiq ko'rsatiladi.
+  #
+  # `false` — qat'iy tuzilmaviy variant: qarshilik yo'q bo'lsa signal yo'q.
+  allow_measured_tp: true
 
 # --- 4-bo'lim: Risk Engine ---
 risk_engine:

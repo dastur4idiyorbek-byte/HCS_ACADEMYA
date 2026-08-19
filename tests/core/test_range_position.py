@@ -206,15 +206,31 @@ def test_zonemap_kirish_shartini_qollaydi() -> None:
         assert not xarita.entry_allowed()
 
 
-def test_bir_tomonda_zona_yoq_bolsa_kirish_rad_etiladi() -> None:
-    """Diapazon qurib bo'lmasa, Discount/Premium filtri ishlamaydi -> kirish yo'q."""
+def test_bir_tomonda_zona_yoq_bolsa_swing_tayanchi_ishlatiladi() -> None:
+    """Toza ko'tarilishda ustda qarshilik zonasi bo'lmaydi — trend degani shu.
+
+    Bunday holatda diapazon chegarasi oxirgi muhim swing darajasidan
+    olinadi. Aks holda tizim aynan trend filtri talab qiladigan sharoitda
+    Discount/Premium ni umuman hisoblay olmasdi.
+    """
     detektor = SupportResistanceDetector(
         SupportResistanceConfig(swing_lookback=3, min_touches=2)
     )
-    # Faqat ko'tarilib boruvchi narx — narxdan yuqorida qarshilik yo'q
     shamlar = [sham(i, 100 + i * 2, 98 + i * 2, 99 + i * 2) for i in range(60)]
     xarita = detektor.detect(shamlar)
 
-    if xarita is not None and xarita.nearest_resistance() is None:
-        assert xarita.range_position() is None
-        assert not xarita.entry_allowed()
+    assert xarita is not None
+    if xarita.nearest_resistance() is None:
+        assert xarita.swing_high is not None, "swing tayanchi saqlanishi kerak"
+        assert xarita.range_position() is not None, "swing tayanchi bilan diapazon quriladi"
+
+
+def test_swing_tayanchlari_saqlanadi() -> None:
+    detektor = SupportResistanceDetector(
+        SupportResistanceConfig(swing_lookback=3, min_touches=2)
+    )
+    xarita = detektor.detect(diapazon_ichida_tugaydigan_qator())
+
+    assert xarita.swing_low is not None
+    assert xarita.swing_high is not None
+    assert xarita.swing_low < xarita.swing_high

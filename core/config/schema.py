@@ -70,6 +70,7 @@ class IndicatorConfig:
     atr_period: int = 14
     adx_period: int = 14
     adx_trend_threshold: float = 20.0
+    min_confirmations: int = 2
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,6 +157,7 @@ class TradeRulesConfig:
     min_tp_distance_pct: float = 3.0
     max_tp_distance_pct: float = 5.0
     min_risk_reward: float = 3.0
+    allow_measured_tp: bool = True
 
 
 # --------------------------------------------------------------------------- #

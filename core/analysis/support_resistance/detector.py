@@ -44,6 +44,15 @@ class ZoneMap:
     zones: list[SRZone]
     price: float
     atr: float
+    #: 3.1-band: narx zonaga shu ATR masofasida bo'lsa "zonada" hisoblanadi.
+    #: Qat'iy "ichida" sharti amalda deyarli hech qachon bajarilmaydi —
+    #: zona kengligi ATR ning yarmi, narx esa doim harakatda.
+    proximity_atr: float = 1.0
+    #: Oxirgi muhim harakatning chegaralari. Diapazon uchun ZAXIRA tayanch:
+    #: toza ko'tarilish trendida ustda qarshilik zonasi bo'lmaydi (trend
+    #: degani aynan shu), lekin joriy harakatning cho'qqisi baribir mavjud.
+    swing_low: float | None = None
+    swing_high: float | None = None
 
     @property
     def supports(self) -> list[SRZone]:
@@ -68,25 +77,57 @@ class ZoneMap:
         return self.resistances[0] if self.resistances else None
 
     def zone_at_price(self) -> SRZone | None:
-        """Narx aynan qaysi zonada turibdi (agar turgan bo'lsa)."""
+        """Narx AYNAN qaysi zonaning ichida turibdi (qat'iy tekshiruv)."""
         for zona in self.zones:
             if zona.contains(self.price):
                 return zona
         return None
 
+    def active_zone(self, kind: ZoneKind | None = None) -> SRZone | None:
+        """Narx qaysi zonaga YAQIN (`proximity_atr` masofasida).
+
+        3.1-band "narx shu muhim zonaga yaqinlashganda" deydi — aynan
+        ichida bo'lishini talab qilmaydi. Qat'iy "ichida" sharti amalda
+        deyarli hech qachon bajarilmaydi: zona kengligi ATR ning yarmi
+        atrofida, narx esa har sahniyada harakat qiladi.
+
+        Args:
+            kind: berilsa, faqat shu turdagi zonalar tekshiriladi.
+        """
+        nomzodlar = [z for z in self.zones if kind is None or z.kind is kind]
+        yaqinlar = [z for z in nomzodlar if self.is_price_near(z, self.proximity_atr)]
+        if not yaqinlar:
+            return None
+        return min(yaqinlar, key=lambda z: z.distance_to(self.price))
+
     def range_position(self) -> RangePosition | None:
-        """Narxning eng yaqin Support—Resistance diapazonidagi joylashuvi.
+        """Narxning Support—Resistance diapazonidagi joylashuvi.
+
+        Bir tomonda zona bo'lmasa, oxirgi muhim swing darajasi tayanch
+        sifatida ishlatiladi. Sabab: toza ko'tarilish trendida ustda
+        qarshilik zonasi BO'LMAYDI — trend degani aynan shu. Agar bunday
+        holatda diapazon umuman qurilmasa, tizim aynan trend filtri talab
+        qiladigan sharoitda hech qachon signal bera olmasdi.
 
         Returns:
-            `RangePosition`, yoki `None` — diapazon qurib bo'lmadi (bir
-            tomonda zona yo'q). Bunday holatda Discount/Premium filtri
-            qo'llanilmaydi va signal 0.3-band bo'yicha zaif hisoblanadi.
+            `RangePosition`, yoki `None` — hech qanday tayanch topilmadi.
         """
-        support = self.nearest_support()
-        resistance = self.nearest_resistance()
+        support = self.nearest_support() or self._synthetic_zone(
+            self.swing_low, ZoneKind.SUPPORT
+        )
+        resistance = self.nearest_resistance() or self._synthetic_zone(
+            self.swing_high, ZoneKind.RESISTANCE
+        )
         if support is None or resistance is None:
             return None
         return compute_range_position(self.price, support, resistance)
+
+    def _synthetic_zone(self, level: float | None, kind: ZoneKind) -> SRZone | None:
+        """Swing darajasidan tor zaxira zona quradi (diapazon tayanchi uchun)."""
+        if level is None:
+            return None
+        yarim = self.atr * 0.25
+        return SRZone(kind=kind, low=level - yarim, high=level + yarim, touches=1)
 
     def entry_allowed(self) -> bool:
         """Qat'iy qoida: narx Support zonasida VA Discount zonada bo'lsa kirish.
@@ -98,9 +139,8 @@ class ZoneMap:
         joylashuv = self.range_position()
         if joylashuv is None:
             return False
-        zona = self.zone_at_price()
-        support_ichida = zona is not None and zona.kind is ZoneKind.SUPPORT
-        return joylashuv.allows_entry(support_ichida)
+        support_yaqinida = self.active_zone(ZoneKind.SUPPORT) is not None
+        return joylashuv.allows_entry(support_yaqinida)
 
     def distance_in_atr(self, zone: SRZone) -> float:
         """Narxdan zonagacha masofa, ATR birligida."""
@@ -139,12 +179,20 @@ class SupportResistanceDetector:
         pivotlar = find_pivots(candles, self._config.swing_lookback)
         zonalar = self._cluster(pivotlar, candles, tolerans, narx)
         zonalar.extend(self._fibonacci_zones(candles, zonalar, tolerans, narx))
+        harakat = find_swing_range(candles)
 
         # Ko'p marta test qilinmagan zonalar chiqarib tashlanadi — ular
         # tasodifiy tebranish bo'lishi mumkin.
         muhimlar = [z for z in zonalar if z.touches >= self._config.min_touches]
 
-        return ZoneMap(zones=muhimlar, price=narx, atr=atr_qiymati)
+        return ZoneMap(
+            zones=muhimlar,
+            price=narx,
+            atr=atr_qiymati,
+            proximity_atr=self._config.proximity_atr_mult,
+            swing_low=harakat.low if harakat else None,
+            swing_high=harakat.high if harakat else None,
+        )
 
     # ------------------------------------------------------------------ #
 

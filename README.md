@@ -36,10 +36,10 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 ├─ analysis/
 │   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           ✅ tayyor
 │   ├─ indicators/             EMA/RSI/MACD/ADX/ATR/hajm          ✅ tayyor
-│   ├─ scoring/                ball hisoblash                     [8-bosqich]
+│   ├─ scoring/                darajalar, ball, reyting           ✅ tayyor
 │   ├─ market_health/          Bozor Salomatligi Indeksi          [10-bosqich]
 │   ├─ postmortem/             Signal Xotirasi (o'z-o'zini audit) [13-bosqich]
-│   └─ strategies/             plug-in strategiyalar              ✅ interfeys
+│   └─ strategies/             classic_ta ✅ | opening_range      [12-bosqich]
 ├─ risk_engine/                13 ta risk qoidasi                 ✅ tayyor
 ├─ position_sizing/            pozitsiya hajmi + agregat sig'im   ✅ tayyor
 ├─ backtest/                   tarixiy sinov                      [16-bosqich]
@@ -115,6 +115,10 @@ signal berish paytida emas.
   Kirish faqat "Support zonasida VA Discount zonada" bo'lganda ko'rib chiqiladi
 - **Indikatorlar (3.1-band)** — EMA50/200, RSI(14), MACD(12/26/9), ADX(14),
   hajm. Faqat TASDIQLOVCHI: `zone_ready=False` bo'lsa signal chiqmaydi
+- **Ball tizimi (3.5-band)** — 6 omil, jami 100, darajali baholash. Chegara
+  statik emas — Bozor Salomatligi Indeksiga qarab moslashadi
+- **`classic_ta` strategiyasi** — to'liq zanjir: S/R → Discount → ko'p
+  timeframe → indikatorlar → darajalar → ball
 
 ---
 
