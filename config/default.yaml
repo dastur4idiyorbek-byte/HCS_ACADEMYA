@@ -194,8 +194,13 @@ market_data:
   exchange: "binance"              # binance | bybit
   ws_base_url: "wss://stream.binance.com:9443/stream"
   rest_base_url: "https://api.binance.com"
-  ranking_source: "coingecko"      # coingecko | coinmarketcap
-  coingecko_base_url: "https://api.coingecko.com/api/v3"
+  # Kapitalizatsiya reytingi manbai (3.4-band, Top 30 Halal uchun).
+  # CoinMarketCap API kalitini talab qiladi -> .env dagi CMC_API_KEY.
+  # Kalit yo'q bo'lsa tizim skrining qilmaydi va halol ro'yxat yangilanmaydi
+  # (0.3-band fail-safe: eski, tasdiqlangan ro'yxat bilan davom etadi).
+  ranking_source: "coinmarketcap"  # coinmarketcap | coingecko
+  coinmarketcap_base_url: "https://pro-api.coinmarketcap.com/v1"
+  coingecko_base_url: "https://api.coingecko.com/api/v3"   # zaxira manba
   reconnect_backoff_seconds: [2, 4, 8, 16, 32]
   stale_price_seconds: 90          # shundan uzoq yangilanmasa — fail-safe, signal yo'q
 

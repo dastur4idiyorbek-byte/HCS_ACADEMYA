@@ -358,7 +358,8 @@ class MarketDataConfig:
     exchange: str = "binance"
     ws_base_url: str = "wss://stream.binance.com:9443/stream"
     rest_base_url: str = "https://api.binance.com"
-    ranking_source: str = "coingecko"
+    ranking_source: str = "coinmarketcap"
+    coinmarketcap_base_url: str = "https://pro-api.coinmarketcap.com/v1"
     coingecko_base_url: str = "https://api.coingecko.com/api/v3"
     reconnect_backoff_seconds: list[int] = field(default_factory=lambda: [2, 4, 8, 16, 32])
     stale_price_seconds: int = 90

@@ -187,6 +187,20 @@ def validate(config: AppConfig) -> None:
     except ValueError as exc:
         problems.append(f"risk_engine.friday_filter: {exc}")
 
+    ruxsat_etilgan_manbalar = {"coinmarketcap", "coingecko"}
+    if config.market_data.ranking_source not in ruxsat_etilgan_manbalar:
+        problems.append(
+            f"market_data.ranking_source noma'lum: {config.market_data.ranking_source!r} "
+            f"(ruxsat: {', '.join(sorted(ruxsat_etilgan_manbalar))})"
+        )
+
+    ruxsat_etilgan_birjalar = {"binance", "bybit"}
+    if config.market_data.exchange not in ruxsat_etilgan_birjalar:
+        problems.append(
+            f"market_data.exchange noma'lum: {config.market_data.exchange!r} "
+            f"(ruxsat: {', '.join(sorted(ruxsat_etilgan_birjalar))})"
+        )
+
     analysis = config.analysis
     if analysis.entry_timeframe not in analysis.timeframes:
         problems.append("analysis.entry_timeframe `timeframes` ro'yxatida bo'lishi kerak")

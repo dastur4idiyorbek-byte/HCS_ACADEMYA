@@ -82,3 +82,23 @@ def test_notogri_pogonalar_rad_etiladi(tmp_path) -> None:
 def test_mavjud_bolmagan_fayl_standartlarga_qaytadi(tmp_path) -> None:
     config = load_config(tmp_path / "yoq.yaml")
     assert config.project.name == "HALOL CRYPTO SAVDO"
+
+
+def test_bozor_malumotlari_manbalari_tasdiqlangan(config: AppConfig) -> None:
+    """Foydalanuvchi tanlagan qarorlar: Binance + CoinMarketCap."""
+    assert config.market_data.exchange == "binance"
+    assert config.market_data.ranking_source == "coinmarketcap"
+
+
+def test_notogri_birja_rad_etiladi(tmp_path) -> None:
+    yomon = tmp_path / "yomon.yaml"
+    yomon.write_text("market_data:\n  exchange: kraken\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="exchange noma'lum"):
+        load_config(yomon)
+
+
+def test_notogri_reyting_manbai_rad_etiladi(tmp_path) -> None:
+    yomon = tmp_path / "yomon.yaml"
+    yomon.write_text("market_data:\n  ranking_source: messari\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="ranking_source noma'lum"):
+        load_config(yomon)
