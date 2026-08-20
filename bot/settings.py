@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+#: `.env` fayli loyiha ildizida qidiriladi (bot/settings.py -> bot/ -> ildiz)
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
 
 
 class SettingsError(RuntimeError):
@@ -39,10 +45,30 @@ def _parse_admin_ids(raw: str | None) -> frozenset[int]:
     return frozenset(ids)
 
 
+def load_env_file(path: Path | None = None) -> None:
+    """`.env` faylini muhitga yuklaydi (mavjud bo'lsa).
+
+    README `cp .env.example .env` deydi, shuning uchun bu fayl haqiqatan
+    o'qilishi kerak. Allaqachon o'rnatilgan muhit o'zgaruvchilari USTUN
+    turadi (`override=False`) — serverda `.env` emas, tizim o'zgaruvchilari
+    ishlatiladi (masalan systemd yoki Docker orqali berilganda).
+
+    Fayl yo'q bo'lsa — xato emas: sozlamalar to'g'ridan-to'g'ri muhitdan
+    berilgan bo'lishi mumkin.
+    """
+    fayl = path or ENV_FILE
+    if fayl.is_file():
+        load_dotenv(fayl, override=False)
+
+
 def load_settings() -> BotSettings:
     """Muhitdan sozlamalarni o'qiydi.
 
     Token yo'q bo'lsa darhol xato beriladi — yarim ishlaydigan bot xavfli.
+
+    Bu funksiya FAQAT muhitni o'qiydi. `.env` faylini yuklash alohida
+    qadam (`load_env_file`) — shunda sozlamalar manbai aniq bo'ladi va
+    testlar `.env` fayliga bog'lanib qolmaydi.
     """
     token = os.getenv("BOT_TOKEN", "").strip()
     if not token:

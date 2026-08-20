@@ -14,6 +14,7 @@ import contextlib
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramNetworkError, TelegramUnauthorizedError
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.handlers import admin as admin_handlers
@@ -22,7 +23,7 @@ from bot.handlers import signals as signal_handlers
 from bot.handlers import user as user_handlers
 from bot.middlewares import UserContextMiddleware
 from bot.services import PipelineRunner, Scheduler, SignalWatcher
-from bot.settings import BotSettings, load_settings
+from bot.settings import BotSettings, SettingsError, load_env_file, load_settings
 from core.config import AppConfig, load_config
 from core.market_data import BinanceCandleProvider, BinancePriceStream
 from core.market_data.ranking import build_ranking_provider
@@ -57,6 +58,10 @@ def build_dispatcher(database: Database, settings: BotSettings, config: AppConfi
 
 
 async def run() -> None:
+    # README `cp .env.example .env` deydi — demak bu fayl o'qilishi shart.
+    # Tizim muhit o'zgaruvchilari ustun turadi (systemd, Docker).
+    load_env_file()
+
     settings = load_settings()
     setup_logging(level=settings.log_level, log_dir=settings.log_dir)
 
@@ -105,9 +110,30 @@ async def run() -> None:
             await watcher_task
         await stream.close()
         await candle_provider.close()
+        await ranking_provider.close()
         await bot.session.close()
         await database.dispose()
         logger.info("Bot to'xtatildi")
+
+
+#: Ishga tushirishdagi tipik xatolar -> foydalanuvchi tushunadigan izoh.
+#: Xom traceback o'rniga aniq ko'rsatma beriladi: birinchi ishga tushirishda
+#: eng ko'p uchraydigan uchta muammo shular.
+def _tushuntir(xato: BaseException) -> str:
+    if isinstance(xato, SettingsError):
+        return str(xato)
+    if isinstance(xato, TelegramUnauthorizedError):
+        return (
+            "BOT_TOKEN Telegram tomonidan qabul qilinmadi. Tokenni BotFather'da "
+            "tekshiring (/mybots -> API Token) va `.env` fayliga to'liq nusxalang."
+        )
+    if isinstance(xato, TelegramNetworkError):
+        return (
+            "api.telegram.org ga ulanib bo'lmadi. Internet aloqasini tekshiring. "
+            "Telegram to'silgan tarmoqda bo'lsangiz, serverdan (masalan Oracle "
+            "Cloud) ishga tushiring."
+        )
+    return ""
 
 
 def main() -> None:
@@ -115,6 +141,11 @@ def main() -> None:
         asyncio.run(run())
     except KeyboardInterrupt:
         logger.info("Foydalanuvchi tomonidan to'xtatildi")
+    except (SettingsError, TelegramNetworkError, TelegramUnauthorizedError) as xato:
+        # Bu uchtasi — sozlash muammosi, dastur xatosi emas. Foydalanuvchiga
+        # 40 qatorli traceback emas, bitta aniq jumla kerak.
+        logger.error("Ishga tushirib bo'lmadi: %s", _tushuntir(xato))
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":
