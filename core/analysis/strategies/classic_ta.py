@@ -161,6 +161,13 @@ class ClassicTaStrategy(Strategy):
 
         Sham yetarli bo'lmagan timeframe `FLAT` deb belgilanadi — bu
         muvofiqlikni buzadi va signal berilmaydi (0.3-band).
+
+        Diqqat: bu yerda `htf_trend_requires_price_above_fast` ishlatiladi,
+        `trend_requires_price_above_fast` emas. 3.1-band'ning "narx
+        EMA'lardan yuqori" sharti KIRISH qarori haqida; 3.2-band esa
+        yuqori timeframelarning TREND YO'NALISHI haqida. Ikkalasiga bir xil
+        qat'iy shartni qo'llash ularni bir-birini inkor qiladigan qilib
+        qo'yadi — o'lchov `docs/ARXITEKTURA.md` 27-bo'limda.
         """
         from core.analysis.indicators import timeframe_trend
 
@@ -173,7 +180,7 @@ class ClassicTaStrategy(Strategy):
                         data.series(tf),
                         indicators.ema_fast,
                         indicators.ema_slow,
-                        indicators.trend_requires_price_above_fast,
+                        indicators.htf_trend_requires_price_above_fast,
                     ),
                 )
                 for tf in self._config.analysis.htf_confirmation

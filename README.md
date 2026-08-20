@@ -135,6 +135,54 @@ signal berish paytida emas.
   chegara → Risk Engine → Telegram. Fon vazifalari: sikl, halol ro'yxat,
   obuna muddati, haftalik hisobot. 4.1 ⚠️ Zaiflashmoqda va 4.2 rotatsiya
 
+- **Backtest (6.3-band)** — jonli signal siklining O'ZINI tarixiy
+  ma'lumotda qayta o'ynatadi (`core/backtest/`). Lookahead himoyasi vaqt
+  kesimi bilan; isinish eng yuqori timeframega qarab hisoblanadi
+
+---
+
+## Backtest
+
+**Haqiqiy pul ishlatilishidan oldin bu majburiy** (6.3-band).
+
+```bash
+python -m scripts.backtest --compare --days 730
+```
+
+| bayroq | ma'nosi |
+|---|---|
+| `--days N` | necha kunlik tarix (1-2 yil tavsiya etiladi) |
+| `--symbols BTC,ETH` | qaysi coinlar |
+| `--compare` | ochiq savollarni yonma-yon o'lchaydi |
+| `--refresh` | keshni yangilaydi (`data/candles/`) |
+
+Hisobot win-rate, o'rtacha natija, **maksimal pasayish**, ketma-ket zarar
+va rad etish sabablarini ko'rsatadi. 30 tadan kam savdo bo'lsa
+"namuna kichik" ogohlantirishi chiqadi — kichik namunadan xulosa
+chiqarilmaydi.
+
+Signal chiqmagan bo'lsa hisobot **nima uchun** ekanini aytadi:
+
+```
+   Savdo bo'lmadi. Rad etish sabablari:
+        586 × classic_ta:zone_position
+        498 × threshold
+
+   Chegaraga yetmagan nomzodlar: 498 ta
+     eng yuqori ball: 68.3  |  o'rtacha: 50.8
+```
+
+Oxirgi ikki qator "nomzod umuman yo'q edi"ni "nomzod bor edi, lekin ball
+yetmadi"dan ajratadi — chegarani sozlash uchun hal qiluvchi farq.
+
+> **Diqqat:** backtest o'z kompyuteringizda yoki serverda ishga
+> tushirilishi kerak — bozor ma'lumot manbalari (Binance) ochiq internet
+> talab qiladi. Sintetik ma'lumotdan **birorta raqam** xulosa sifatida
+> olinmaydi; u faqat mexanizmni tekshiradi.
+
+Backtest jarayonida topilgan va tuzatilgan ikki tuzilmaviy xato
+`docs/ARXITEKTURA.md` 27 va 28-bo'limlarda o'lchov bilan yozilgan.
+
 ---
 
 ## Testlar

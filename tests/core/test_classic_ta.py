@@ -44,6 +44,18 @@ def tushish(n: int = 260) -> list[Candle]:
     return [sham(i, 300 - i * 0.4) for i in range(n)]
 
 
+def qaytishdagi_kotarilish(n: int = 260, qaytish: int = 25) -> list[Candle]:
+    """Haqiqiy pullback: uzoq ko'tarilish, so'ng EMA50 ostiga tushish.
+
+    Narx EMA50 dan PAST, lekin EMA200 dan YUQORI va EMA50 > EMA200 —
+    ya'ni trend tuzilishi buzilmagan, faqat vaqtincha qaytish. Aynan shu
+    holat support zonasini yaratadi.
+    """
+    narxlar = [100 + i * 0.4 for i in range(n - qaytish)]
+    narxlar += [narxlar[-1] - 0.9 * (i + 1) for i in range(qaytish)]
+    return [sham(i, narx) for i, narx in enumerate(narxlar)]
+
+
 @pytest.fixture
 def config():  # noqa: ANN201
     return load_config()
@@ -226,6 +238,74 @@ def test_zaif_nomzod_ball_chegarasidan_otmaydi(config) -> None:  # noqa: ANN001
         assert natija.score < chegara, (
             "MACD tasdiqlamagan nomzod eng past chegaradan ham o'tmasligi kerak"
         )
+
+
+def test_yuqori_timeframe_trendi_alohida_qoida_bilan_tasniflanadi(config) -> None:  # noqa: ANN001
+    """3.2-band 3.1-band'dan alohida qoidaga ega — 27-bo'limda o'lchangan.
+
+    Support zonasiga qaytish kunlik grafikda narxni deyarli har doim EMA50
+    dan pastga tushiradi. Agar 3.1-band'ning "narx EMA'lardan yuqori"
+    sharti yuqori timeframe TRENDINI tasniflashda ham qo'llanilsa, kunlik
+    trend hech qachon `UP` bo'lmaydi va birorta signal chiqmaydi.
+
+    Standart sozlamada ikki bayroq FARQ QILISHI kerak — aks holda
+    tuzatish yo'qolgan bo'ladi.
+    """
+    indikatorlar = config.analysis.indicators
+
+    assert indikatorlar.trend_requires_price_above_fast is True, "3.1-band qat'iy qoladi"
+    assert indikatorlar.htf_trend_requires_price_above_fast is False, (
+        "3.2-band tuzilma bo'yicha tasniflanadi (EMA50 > EMA200)"
+    )
+
+
+def test_qatiy_htf_qoidasi_qaytishda_trendni_yoqotadi(config) -> None:  # noqa: ANN001
+    """Bayroq `True` bo'lsa, sog'lom qaytish "trend yo'q" deb o'qiladi.
+
+    Bu test tuzatishning SABABINI qayd etadi. Yuqori timeframe qatori —
+    haqiqiy pullback: EMA50 > EMA200 (trend buzilmagan), lekin narx EMA50
+    dan past. Qat'iy qoida buni `FLAT` deb tasniflaydi va 3.2-band
+    muvofiqligini abadiy buzadi — 27-bo'limdagi o'lchov shuni ko'rsatdi.
+    """
+    from core.analysis.indicators import timeframe_trend
+    from core.domain.enums import TrendDirection
+
+    shamlar = qaytishdagi_kotarilish()
+    ind = config.analysis.indicators
+
+    qatiy = timeframe_trend(shamlar, ind.ema_fast, ind.ema_slow, True)
+    yumshoq = timeframe_trend(shamlar, ind.ema_fast, ind.ema_slow, False)
+
+    assert qatiy is TrendDirection.FLAT, "qat'iy qoida sog'lom qaytishni ham rad etadi"
+    assert yumshoq is TrendDirection.UP, "tuzilma bo'yicha trend hali ham ko'tarilishda"
+
+
+def test_htf_bayrogi_strategiyada_qollaniladi(config) -> None:  # noqa: ANN001
+    """Strategiya HTF trendini aynan `htf_trend_requires_price_above_fast` bilan tasniflaydi.
+
+    Yuqori timeframe qaytishda bo'lganda: standart sozlama o'tkazadi,
+    qat'iy sozlama `timeframes` bosqichida to'xtatadi.
+    """
+    qatiy_ind = dataclasses.replace(
+        config.analysis.indicators, htf_trend_requires_price_above_fast=True
+    )
+    qatiy = dataclasses.replace(
+        config, analysis=dataclasses.replace(config.analysis, indicators=qatiy_ind)
+    )
+    kiruvchi_shamlar = qaytishli_kotarilish()
+    yuqori_shamlar = qaytishdagi_kotarilish()
+
+    qatiy_strategiya = ClassicTaStrategy(qatiy)
+    qatiy_strategiya.analyze(kirish(qatiy, kiruvchi_shamlar, htf=yuqori_shamlar))
+    assert qatiy_strategiya.last_rejection is not None
+    assert qatiy_strategiya.last_rejection.stage == "timeframes"
+
+    standart = ClassicTaStrategy(config)
+    natija = standart.analyze(kirish(config, kiruvchi_shamlar, htf=yuqori_shamlar))
+    sabab = standart.last_rejection
+    assert natija is not None or (sabab is not None and sabab.stage != "timeframes"), (
+        "standart sozlamada yuqori timeframe to'sig'i chiqmasligi kerak"
+    )
 
 
 # --------------------------------------------------------------------------- #

@@ -97,7 +97,7 @@ def confirm(
     return Confirmation(
         zone_ready=zone_ready,
         factors=[
-            _trend_factor(snapshot),
+            _trend_factor(snapshot, config),
             _rsi_factor(snapshot, config),
             _macd_factor(snapshot),
             _volume_factor(snapshot),
@@ -106,7 +106,7 @@ def confirm(
     )
 
 
-def _trend_factor(snapshot: IndicatorSnapshot) -> ConfirmationFactor:
+def _trend_factor(snapshot: IndicatorSnapshot, config: IndicatorConfig) -> ConfirmationFactor:
     """3.1-band: narx ikkala EMA'dan yuqori VA EMA50 > EMA200."""
     if snapshot.ema_fast is None or snapshot.ema_slow is None:
         return ConfirmationFactor(
@@ -116,9 +116,21 @@ def _trend_factor(snapshot: IndicatorSnapshot) -> ConfirmationFactor:
     yonalish = snapshot.trend
     tasdiq = yonalish is TrendDirection.UP
 
-    # Kuch: EMA'lar orasidagi farq narxga nisbatan. Farq katta — trend aniq.
-    ajralish = abs(snapshot.ema_fast - snapshot.ema_slow) / snapshot.price
-    kuch = min(1.0, ajralish / 0.05) if tasdiq else 0.0
+    # Kuch: EMA'lar orasidagi farq ATR birligida. Nima uchun ATR, foiz emas:
+    # EMA50 va EMA200 orasidagi masofa timeframega bog'liq — 15 daqiqalik
+    # grafikda 0.2%, kunlikda 15%. Bitta foiz chegarasi ikkalasiga ham mos
+    # kelmaydi va past timeframeda bu omil doim nolga yaqin bo'lib qolardi
+    # (o'lchov: docs/ARXITEKTURA.md, 28-bo'lim). ATR volatillikni o'zi
+    # hisobga oladi, shuning uchun o'lchov timeframedan mustaqil bo'ladi.
+    if not tasdiq:
+        kuch = 0.0
+    elif snapshot.atr is None or snapshot.atr <= 0:
+        # ATR yo'q — kuchni o'lchab bo'lmaydi. Yo'nalish tasdiqlangan, lekin
+        # qo'shimcha ball berilmaydi (0.3-band: noaniqlikda kamroq).
+        kuch = 0.0
+    else:
+        ajralish_atr = abs(snapshot.ema_fast - snapshot.ema_slow) / snapshot.atr
+        kuch = min(1.0, ajralish_atr / config.ema_separation_full_atr)
 
     izoh = (
         f"Trend: narx ikkala EMA'dan yuqori, tez EMA sekinidan baland "

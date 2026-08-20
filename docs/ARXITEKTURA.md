@@ -727,7 +727,239 @@ yaxshiroq" deb foydalanuvchini charchatardi.
 
 ---
 
-## 27. Bosqichlar holati
+## 27. Backtest 1-topilma: 3.1 va 3.2 bandlar bir xil qoidani baham ko'ra olmaydi
+
+**Muammo.** 16-bosqichda backtest ishga tushirilganda **birorta signal
+chiqmadi**. Sabab qidirilganda ikki to'siq navbatma-navbat almashib
+turgani ko'rindi:
+
+| qadam | holat | to'siq |
+|---|---|---|
+| 22000 | barcha timeframelar UP | narx tsikl cho'qqisida -> **Premium** -> zona to'sig'i |
+| 23500 | narx qaytmoqda -> **Discount** | 30m/1h endi DOWN -> timeframe to'sig'i |
+
+Ya'ni ikki shart bir vaqtda hech qachon bajarilmasdi.
+
+**Birinchi gipoteza rad etildi.** "Tasdiqlovchi timeframelar ro'yxati juda
+keng" deb o'ylandi. O'lchandi — ro'yxatni toraytirish **hech narsani
+o'zgartirmadi**:
+
+| `htf_confirmation` | signal | asosiy to'siq |
+|---|---|---|
+| `30m, 1h, 4h, 1d` | 0 | `classic_ta:timeframes` (614) |
+| `1h, 4h, 1d` | 0 | `classic_ta:timeframes` (614) |
+| `4h, 1d` | 0 | `classic_ta:timeframes` (614) |
+| `1d` | 0 | `classic_ta:timeframes` (614) |
+
+To'rttala variantda bir xil raqam — demak, muammo ro'yxatda emas.
+
+**Haqiqiy sabab.** Har bir timeframe uchun trend yo'nalishi chop etildi
+(chapda `trend_requires_price_above_fast=True`, o'ngda `False`):
+
+| qadam | 30m | 1h | 4h | 1d |
+|---|---|---|---|---|
+| 19210 | down/down | down/down | flat/flat | **flat/up** |
+| 19930 | up/up | flat/down | down/down | **flat/up** |
+| 20290 | flat/up | up/up | flat/down | **flat/up** |
+
+Kunlik timeframe **har bir qadamda** qat'iy qoida bilan `FLAT`, yumshoq
+qoida bilan `UP`. Sabab oddiy: qat'iy qoida "narx EMA50 dan yuqori" ni
+talab qiladi, lekin **sog'lom ko'tarilish trendi ham muntazam EMA50 ga
+qaytadi** — aynan shu qaytish support zonasini va Discount holatini
+yaratadi. Qat'iy qoida bilan kunlik trend hech qachon `UP` bo'lmaydi.
+
+**Qaror.** 3.1-band va 3.2-band **har xil savolga** javob beradi:
+
+- **3.1-band** — *kirish* qarori: "hozir sotib olish to'g'rimi". Bu yerda
+  "narx EMA'lardan yuqori" mazmunli.
+- **3.2-band** — yuqori timeframelarning *trend yo'nalishi*: "katta rasm
+  ko'tarilishdami". Bu yerda tuzilma muhim (EMA50 > EMA200 va narx >
+  EMA200), narxning EMA50 ga nisbatan hozirgi holati emas.
+
+Shuning uchun ikkinchi sozlama ajratildi:
+
+```yaml
+analysis:
+  indicators:
+    trend_requires_price_above_fast: true       # 3.1 — kirish qarori (qat'iy qoladi)
+    htf_trend_requires_price_above_fast: false  # 3.2 — trend tasnifi (tuzilma bo'yicha)
+```
+
+Ikkalasi ham sozlanadi. Spetsifikatsiyaning 3.1-bandi **o'zgarmadi** —
+faqat u qo'llaniladigan joy aniqlashtirildi.
+
+---
+
+## 28. Backtest 2-topilma: trend balli 20 dan 1 ball ola olmasdi
+
+Birinchi tuzatishdan keyin zanjir to'liq ishladi — 463 ta nomzod
+shakllandi va ballandi. Lekin **eng yuqori ball 66.8**, chegara esa 70.
+Hech biri o'tmadi. Nomzodlar tarkibi ko'rildi:
+
+| omil | o'rtacha | maksimal | vazn |
+|---|---|---|---|
+| support_resistance | 20.62 | 24.98 | 25 |
+| **trend** | **0.71** | **10.21** | **20** |
+| rsi | 6.69 | 7.50 | 15 |
+| volume | 3.06 | 15.00 | 15 |
+| macd | 4.16 | 10.00 | 10 |
+| risk_reward | 15.00 | 15.00 | 15 |
+
+Trend omili 20 balldan o'rtacha **0.71** olardi. Kodda sabab topildi:
+
+```python
+ajralish = abs(ema_fast - ema_slow) / price
+kuch = min(1.0, ajralish / 0.05)      # <- 5% qat'iy raqam
+```
+
+To'liq ball uchun EMA50 va EMA200 orasidagi masofa **narxning 5%** i
+bo'lishi kerak edi. Haqiqiy ajralish o'lchandi:
+
+| timeframe | mediana | p90 | maksimal |
+|---|---|---|---|
+| 15m (kirish TF) | 0.19% | 0.42% | 0.61% |
+| 1h | 0.73% | 1.32% | 1.80% |
+| 4h | 3.00% | 3.80% | 4.10% |
+| 1d | 15.00% | 15.00% | 15.00% |
+
+5% chegarasi **kunlik grafik uchun** to'g'ri, kirish timeframe uchun esa
+10-25 baravar katta. Shu sababli bu omil 15 daqiqalik grafikda deyarli
+har doim nolga yaqin bo'lardi — 100 ballik shkalaning 20 bali amalda
+mavjud emasdi.
+
+**Qaror.** O'lchov birligi foizdan **ATR**ga o'zgartirildi va chegara
+konfiguratsiyaga chiqarildi (6.4-band: kodda sehrli raqam bo'lmasin):
+
+```python
+ajralish_atr = abs(ema_fast - ema_slow) / atr
+kuch = min(1.0, ajralish_atr / config.ema_separation_full_atr)
+```
+
+Nima uchun ATR: u volatillikni o'zi hisobga oladi, shuning uchun o'lchov
+timeframedan mustaqil bo'ladi. ATR birligida o'lchangan ajralish trend
+kuchini haqiqatan ajratadi:
+
+| trend | 15m mediana | 15m maksimal |
+|---|---|---|
+| kuchli (0.25%/kun) | 0.53 ATR | 2.10 ATR |
+| o'rtacha (0.15%/kun) | 0.39 ATR | 1.70 ATR |
+| zaif (0.05%/kun) | 0.35 ATR | 1.41 ATR |
+
+Standart qiymat `ema_separation_full_atr: 1.5` — kuchli trend to'liq
+ballga yaqinlashadi, zaif trend past ball oladi.
+
+ATR hisoblanmagan bo'lsa kuch **0** bo'ladi (0.3-band: noaniqlikda
+kamroq), lekin yo'nalish tasdig'i saqlanadi.
+
+**RSI omili ham yarim ballda to'yingan** (maksimal 7.50 / 15). Bu esa
+**ataylab shunday**: 3.1-band "RSI 30 dan QAYTISH" ni kuchli tasdiq deb
+belgilaydi, o'rta zona (30-55) esa zaif tasdiq. Ko'tarilish trendidagi
+qaytishda RSI odatda 50-55 atrofida bo'ladi — undan chuqurroq tushish
+trendning buzilganini bildiradi. Bu chegara o'zgartirilmadi.
+
+---
+
+## 29. Backtest 3-topilma: chiqish narxi sham chekkasida yozilardi
+
+Uchidan uchiga sinov qo'shilganda (signal chiqishi -> kuzatuv -> yopilish)
+birinchi natija shubha uyg'otdi: stop masofasi **1% dan oshmasligi
+kafolatlangan** bo'lsa ham, savdolar bunday natija berardi:
+
+```
+  stop  natija -1.561%   entry 120.9592  chiqish 119.0712
+  stop  natija -1.231%   entry 120.9896  chiqish 119.5008
+  stop  natija -1.658%   entry 121.0401  chiqish 119.0339
+  stop  natija -1.050%   entry 120.9713  chiqish 119.7008
+```
+
+**Sabab.** Kuzatuvchiga sham ichidagi harakat `low -> high -> close`
+tartibida beriladi (eng yomon talqin). Hodisa qaytarganda esa **o'sha
+narx** — ya'ni shamning eng past nuqtasi — chiqish narxi sifatida
+yozilardi. Natijada zarar shamning kattaligiga bog'lanib qolardi: keng
+sham "yomonroq stop" bergandek ko'rinardi, garchi buyurtma o'sha 1%
+darajada bajarilgan bo'lsa ham.
+
+**Qaror.** Chiqish buyurtmasi — **OCO** (5.1.0-band). U Stop yoki TP
+darajaga TEGILGANDA bajariladi. Sham ichida narx daraja orqali uzluksiz
+o'tadi, shuning uchun to'g'ri to'ldirish narxi — **darajaning o'zi**:
+
+```python
+if event.new_status is SignalStatus.TP2_HIT:
+    return darajalar.tp2      # narx TP2 orqali YUQORIGA o'tdi
+if event.new_status is SignalStatus.STOPPED:
+    return darajalar.stop     # narx Stop orqali PASTGA o'tdi
+```
+
+Tuzatishdan keyin barcha stoplar chegara ichida:
+
+```
+  stop  natija -0.983%    stop  natija -0.914%
+  stop  natija -0.984%    stop  natija -0.977%
+```
+
+Bu — `tests/core/test_backtest.py::test_stop_zarari_universal_chegaradan_oshmaydi`
+regressiya testi bilan qulflangan.
+
+**Ochiq qolgan cheklov.** Haqiqiy uzilish (gap) modellashtirilmaydi: sham
+ochilishi darajadan nariga sakrasa, jonli savdoda to'ldirish yomonroq
+bo'ladi. Kuzatuvchiga faqat low/high/close beriladi, shuning uchun bu farq
+ko'rinmaydi. 15 daqiqalik spot grafikda uzilish kam uchraydi, lekin
+natijalarni o'qiganda esda tutilsin.
+
+---
+
+## 30. Backtest sintetik ma'lumotda: nima isbotlandi, nima isbotlanmadi
+
+**Isbotlandi:**
+
+0. Zanjir haqiqatan signal chiqaradi, kuzatadi va yopadi — sozlama
+   qisqartirilgan holda 4 ta signal chiqdi va 4 tasi yopildi
+   (`test_zanjir_signal_chiqarib_savdoni_yopadi`).
+1. Zanjir uchidan uchiga ishlaydi: skrining -> S/R -> Discount ->
+   timeframe -> indikator -> daraja -> ball -> Risk Engine -> kuzatuv.
+2. Har bir to'siq o'z sababini qaytaradi va sabablar sanaladi
+   (`rejections`), shuning uchun "nol signal" holati **tekshiriladigan**
+   bo'ldi — bu 16-bosqichning asosiy qiymati.
+3. Lookahead himoyasi ishlaydi (`Dataset.up_to` vaqt kesimi bilan).
+4. Isinish (warm-up) eng yuqori timeframega qarab hisoblanadi — kunlik
+   EMA200 uchun 200 kunlik ma'lumot kerak, kirish timeframeda bu
+   200 x 96 = 19 200 qadam.
+
+**Isbotlanmadi — va isbotlab ham bo'lmaydi:**
+
+Win-rate, o'rtacha natija, maksimal pasayish kabi **birorta raqam**
+sintetik ma'lumotdan chiqarilmaydi. Sintetik qator generatorning
+parametrlariga bo'ysunadi, bozorga emas. Shu sababli bu yerda hech qanday
+"strategiya X% beradi" degan xulosa yozilmagan.
+
+**Muhit cheklovi.** Ushbu ishlab chiqish muhitida barcha tashqi bozor
+ma'lumot manbalari yopiq (`api.binance.com`, `api.bybit.com`,
+`api.coingecko.com`, `data-api.binance.vision` — 403/000). Haqiqiy
+1-2 yillik backtest **serverda yoki shaxsiy kompyuterda** ishga
+tushirilishi kerak:
+
+```bash
+python -m scripts.backtest --compare --days 730
+```
+
+Bu — 6.3-bandning majburiy sharti: **haqiqiy pul ishlatilishidan oldin**
+backtest natijasi ko'rilishi shart.
+
+**Hisobotdagi yangi qator.** Nol savdo chiqqanda "nomzod umuman
+yo'q edi"mi yoki "nomzod bor edi, lekin ball yetmadi"mi — bu farq
+chegarani sozlash uchun hal qiluvchi. Shuning uchun hisobot endi
+chegaraga yetmagan ballarni ko'rsatadi:
+
+```
+   Chegaraga yetmagan nomzodlar: 463 ta
+     eng yuqori ball: 66.8  |  o'rtacha: 50.2
+```
+
+Aynan shu qator 28-bo'limdagi xatoni topishga olib keldi.
+
+---
+
+## 31. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -746,5 +978,5 @@ yaxshiroq" deb foydalanuvchini charchatardi.
 | 13 | Postmortem (Signal Xotirasi) | ✅ |
 | 14 | Shaxsiy portfel va statistika | ✅ |
 | 15 | Hammasini bog'lash | ✅ |
-| 16 | Backtest (1-2 yillik) | — |
+| 16 | Backtest mexanizmi | ✅ (haqiqiy ma'lumot serverda kerak) |
 | 17 | Test va sozlash | davomiy |

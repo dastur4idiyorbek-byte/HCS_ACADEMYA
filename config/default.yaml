@@ -73,6 +73,17 @@ analysis:
     # deb qaraladi ("uptrendda pasayishdan foydalanish").
     # Qaysi variant yaxshiroq — 16-bosqichdagi backtest ko'rsatadi.
     trend_requires_price_above_fast: true
+    # 3.2-band: yuqori timeframe TRENDINI tasniflashda narx EMA50 dan yuqori
+    # bo'lishi talab qilinmaydi. Sabab (o'lchangan): support zonasiga qaytish
+    # kunlik grafikda narxni deyarli har doim EMA50 dan pastga tushiradi, shu
+    # sababli qat'iy talab bilan kunlik trend HECH QACHON "UP" bo'lmaydi va
+    # birorta signal chiqmaydi. Batafsil: docs/ARXITEKTURA.md, 27-bo'lim.
+    htf_trend_requires_price_above_fast: false
+    # Trend balli uchun EMA50—EMA200 ajralishi necha ATR bo'lganda to'liq
+    # hisoblanadi. ATR birligi tanlangan, chunki foiz timeframega bog'liq:
+    # 15m grafikda ajralish 0.2%, kunlikda 15% — bitta foiz chegarasi ikkalasiga
+    # ham to'g'ri kelmaydi. Batafsil: docs/ARXITEKTURA.md, 28-bo'lim.
+    ema_separation_full_atr: 1.5
     rsi_period: 14
     rsi_oversold: 30
     rsi_overbought: 70

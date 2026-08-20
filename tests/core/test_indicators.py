@@ -381,6 +381,67 @@ def test_omillar_darajali_baholanadi(config: IndicatorConfig) -> None:
         assert 0.0 <= omil.strength <= 1.0, f"{omil.name}: {omil.strength}"
 
 
+def test_trend_kuchi_timeframedan_mustaqil(config: IndicatorConfig) -> None:
+    """28-bo'lim: trend kuchi ATR birligida o'lchanadi, foizda emas.
+
+    Bir xil SHAKLDAGI, lekin har xil volatillikdagi ikki qator bir xil
+    trend kuchini berishi kerak. Foiz bilan o'lchanganda bunday bo'lmasdi:
+    past timeframeda EMA50—EMA200 ajralishi 0.2%, kunlikda 15% — bitta
+    foiz chegarasi ikkalasiga ham to'g'ri kelmaydi va past timeframeda bu
+    omil doim nolga yaqin bo'lib qolardi.
+    """
+    mayin = [sham(i, 100 + i * 0.01) for i in range(250)]
+    keskin = [
+        Candle(
+            open_time=sham_obyekti.open_time,
+            open=sham_obyekti.open,
+            high=sham_obyekti.close * 1.02,
+            low=sham_obyekti.close * 0.98,
+            close=sham_obyekti.close,
+            volume=sham_obyekti.volume,
+        )
+        for sham_obyekti in mayin
+    ]
+
+    mayin_kuch = confirm(build_snapshot(mayin, config), config, zone_ready=True).factor(
+        "trend"
+    )
+    keskin_kuch = confirm(build_snapshot(keskin, config), config, zone_ready=True).factor(
+        "trend"
+    )
+
+    assert mayin_kuch.confirmed and keskin_kuch.confirmed
+    # Keskin qatorda ATR kattaroq -> bir xil EMA ajralishi kamroq ATR beradi.
+    assert keskin_kuch.strength < mayin_kuch.strength
+
+
+def test_trend_kuchi_sozlanadigan_chegara_bilan_olchanadi() -> None:
+    """Sehrli raqam yo'q (6.4-band): chegara konfiguratsiyadan keladi."""
+    shamlar = [sham(i, 100 + i * 0.01) for i in range(250)]
+
+    keng = IndicatorConfig(ema_separation_full_atr=10.0)
+    tor = IndicatorConfig(ema_separation_full_atr=0.2)
+
+    keng_kuch = confirm(build_snapshot(shamlar, keng), keng, zone_ready=True).factor("trend")
+    tor_kuch = confirm(build_snapshot(shamlar, tor), tor, zone_ready=True).factor("trend")
+
+    assert keng_kuch.strength < tor_kuch.strength
+    assert tor_kuch.strength == 1.0, "past chegarada to'liq ball berilishi kerak"
+
+
+def test_atr_yoq_bolsa_trend_kuchi_nol(config: IndicatorConfig) -> None:
+    """0.3-band: o'lchab bo'lmasa, qo'shimcha ball berilmaydi."""
+    import dataclasses
+
+    holat = build_snapshot([sham(i, 100 + i * 0.01) for i in range(250)], config)
+    atrsiz = dataclasses.replace(holat, atr=None)
+
+    omil = confirm(atrsiz, config, zone_ready=True).factor("trend")
+
+    assert omil.confirmed, "yo'nalish hali ham tasdiqlangan"
+    assert omil.strength == 0.0
+
+
 def test_hukm_tushuntirish_beradi(config: IndicatorConfig) -> None:
     """3.6-band: "Nega bu signal?" tugmasi shu matndan to'ladi."""
     hukm = confirm(build_snapshot(kotarilish_shamlari(), config), config, zone_ready=True)

@@ -60,6 +60,14 @@ class IndicatorConfig:
     ema_fast: int = 50
     ema_slow: int = 200
     trend_requires_price_above_fast: bool = True
+    #: 3.2-band: yuqori timeframelarni tasniflashda ham "narx EMA50 dan
+    #: yuqori" talab qilinsinmi. Standart `False` — sabab
+    #: `docs/ARXITEKTURA.md` 27-bo'limda o'lchov bilan.
+    htf_trend_requires_price_above_fast: bool = False
+    #: Trend "kuchi" uchun EMA50—EMA200 ajralishi necha ATR bo'lsa to'liq ball.
+    #: ATR birligida — chunki foizda o'lchash timeframega bog'liq bo'lib qoladi
+    #: (o'lchov: `docs/ARXITEKTURA.md` 28-bo'lim).
+    ema_separation_full_atr: float = 1.5
     rsi_period: int = 14
     rsi_oversold: float = 30.0
     rsi_overbought: float = 70.0
