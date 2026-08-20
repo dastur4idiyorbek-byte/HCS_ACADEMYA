@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 
+from bot.hosting import apply_platform_defaults
 from core.config import load_config
 from core.domain.enums import HalalStatus, SubscriptionTier
 from core.halal_screening.rulings import DEFAULT_HARAM_REASON, DEFAULT_MASHBOOH_REASON
@@ -38,6 +39,8 @@ DEFAULT_PRICES: list[tuple[SubscriptionTier, str, str, float]] = [
 
 async def seed() -> None:
     setup_logging()
+    # Bot bilan bir xil bazaga yozishimiz shart (doimiy disk ulangan bo'lsa).
+    apply_platform_defaults()
     config = load_config()
     database = Database()
     await database.init_models()

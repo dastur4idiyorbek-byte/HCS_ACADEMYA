@@ -119,6 +119,67 @@ async def test_create_all_dan_keyin_upgrade_xato_bermaydi(tmp_path) -> None:  # 
 
 
 @pytest.mark.skipif(not ALEMBIC.is_file(), reason="alembic o'rnatilmagan")
+def test_papka_yoq_bolsa_migratsiya_ozi_yaratadi(tmp_path) -> None:  # noqa: ANN001
+    """Toza serverda `data/` papkasi bo'lmaydi — alembic uni yaratishi kerak.
+
+    Bu regressiya testi haqiqiy nosozlikni qayd etadi: Railway'da birinchi
+    joylashtirish `unable to open database file` bilan yiqilgan edi. Sabab —
+    papka yaratish `create_engine` ichida edi, alembic esa o'z engine'ini
+    quradi va u yerga yetib bormaydi. Ishlab chiqishda papka allaqachon
+    mavjud bo'lgani uchun xato ko'rinmagan.
+    """
+    yoq_papka = tmp_path / "hali" / "yaratilmagan"
+    assert not yoq_papka.exists()
+
+    natija = subprocess.run(
+        [str(ALEMBIC), "upgrade", "head"],
+        cwd=ILDIZ,
+        env={
+            **os.environ,
+            "DATABASE_URL": f"sqlite+aiosqlite:///{yoq_papka / 'hcs.db'}",
+            "RAILWAY_VOLUME_MOUNT_PATH": "",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert natija.returncode == 0, (
+        f"papka yaratilmagani uchun yiqildi:\n{natija.stderr}"
+    )
+    assert (yoq_papka / "hcs.db").is_file()
+
+
+@pytest.mark.skipif(not ALEMBIC.is_file(), reason="alembic o'rnatilmagan")
+def test_disk_ulansa_migratsiya_osha_bazaga_tegadi(tmp_path) -> None:  # noqa: ANN001
+    """Migratsiya va bot BITTA bazaga ishlashi shart.
+
+    Har biri yo'lni o'zicha hisoblasa, alembic bir faylga, bot esa
+    boshqasiga yozadi — jadvallar bor, lekin ma'lumot yo'q. Bunday
+    nosozlikni payqash juda qiyin.
+    """
+    disk = tmp_path / "disk"
+    disk.mkdir()
+
+    natija = subprocess.run(
+        [str(ALEMBIC), "upgrade", "head"],
+        cwd=ILDIZ,
+        env={
+            **{k: v for k, v in os.environ.items() if k != "DATABASE_URL"},
+            "RAILWAY_VOLUME_MOUNT_PATH": str(disk),
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert natija.returncode == 0, natija.stderr
+    assert (disk / "hcs.db").is_file(), (
+        "migratsiya doimiy diskdagi bazaga tegmadi — bot boshqa faylga ishlaydi"
+    )
+
+
+@pytest.mark.skipif(not ALEMBIC.is_file(), reason="alembic o'rnatilmagan")
 def test_migratsiyalar_ilova_kodini_import_qilmaydi() -> None:
     """Migratsiyalar muzlatilgan tarix — ular `core.*` ga tayanmasligi kerak.
 

@@ -55,6 +55,25 @@ def database_url_for_platform(explicit: str | None = None) -> str | None:
     return f"sqlite+aiosqlite:///{disk / 'hcs.db'}"
 
 
+def apply_platform_defaults() -> str | None:
+    """Doimiy disk ulangan bo'lsa `DATABASE_URL` ni o'shanga yo'naltiradi.
+
+    Nima uchun muhit o'zgaruvchisi orqali: botni, `scripts/seed.py` ni va
+    Alembic'ni BITTA bazaga qaratish kerak. Har biri o'zicha yo'l
+    hisoblasa, migratsiya bir faylga, bot esa boshqasiga yozadi va buni
+    payqash juda qiyin.
+
+    Har bir kirish nuqtasi ishga tushishida shuni chaqiradi.
+
+    Returns:
+        O'rnatilgan yangi URL, yoki `None` — o'zgartirish kerak emas.
+    """
+    yangi = database_url_for_platform(os.getenv("DATABASE_URL"))
+    if yangi is not None:
+        os.environ["DATABASE_URL"] = yangi
+    return yangi
+
+
 def warn_if_data_is_temporary(database_url: str) -> bool:
     """Baza vaqtinchalik diskda bo'lsa baland ovozda ogohlantiradi.
 

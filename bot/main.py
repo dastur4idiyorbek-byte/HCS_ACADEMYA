@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -22,7 +21,7 @@ from bot.handlers import admin as admin_handlers
 from bot.handlers import portfolio as portfolio_handlers
 from bot.handlers import signals as signal_handlers
 from bot.handlers import user as user_handlers
-from bot.hosting import database_url_for_platform, warn_if_data_is_temporary
+from bot.hosting import apply_platform_defaults, warn_if_data_is_temporary
 from bot.middlewares import UserContextMiddleware
 from bot.services import PipelineRunner, Scheduler, SignalWatcher
 from bot.settings import BotSettings, SettingsError, load_env_file, load_settings
@@ -72,7 +71,7 @@ async def run() -> None:
 
     # Doimiy disk ulangan bo'lsa (Railway va sh.k.), baza o'sha yerda
     # joylashsin. Ochiq berilgan DATABASE_URL hech qachon bekor qilinmaydi.
-    baza_url = database_url_for_platform(os.getenv("DATABASE_URL")) or settings.database_url
+    baza_url = apply_platform_defaults() or settings.database_url
     warn_if_data_is_temporary(baza_url)
 
     database = Database(baza_url)

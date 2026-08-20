@@ -32,8 +32,13 @@ def resolve_database_url(url: str | None = None) -> str:
     return url or os.getenv("DATABASE_URL") or DEFAULT_DATABASE_URL
 
 
-def _ensure_sqlite_directory(url: str) -> None:
-    """SQLite fayli uchun papka mavjudligini ta'minlaydi."""
+def ensure_sqlite_directory(url: str) -> None:
+    """SQLite fayli uchun papka mavjudligini ta'minlaydi.
+
+    Ochiq funksiya, chunki uni `create_engine` dan tashqarida ham chaqirish
+    kerak: Alembic o'z engine'ini quradi va bu yerga yetib kelmaydi. Papka
+    yaratilmasa SQLite "unable to open database file" deb yiqiladi.
+    """
     if not url.startswith("sqlite"):
         return
     _, _, path_part = url.partition(":///")
@@ -45,7 +50,7 @@ def _ensure_sqlite_directory(url: str) -> None:
 def create_engine(url: str | None = None, echo: bool = False) -> AsyncEngine:
     """Async engine yaratadi."""
     resolved = resolve_database_url(url)
-    _ensure_sqlite_directory(resolved)
+    ensure_sqlite_directory(resolved)
     engine = create_async_engine(resolved, echo=echo, future=True)
 
     if resolved.startswith("sqlite"):

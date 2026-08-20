@@ -22,7 +22,10 @@ if config.config_file_name is not None:
 # migratsiya yasaydi (jadvallar `Base.metadata` ga ro'yxatdan o'tmaydi).
 from core.storage import models  # noqa: E402, F401
 from core.storage.base import Base  # noqa: E402
-from core.storage.database import resolve_database_url  # noqa: E402
+from core.storage.database import (  # noqa: E402
+    ensure_sqlite_directory,
+    resolve_database_url,
+)
 
 target_metadata = Base.metadata
 
@@ -50,10 +53,19 @@ def _database_url() -> str:
     URL `alembic.ini` da saqlanmaydi: PostgreSQL paroli git ga tushmasligi
     kerak. `.env` fayli ham o'qiladi — README shuni yaratishni aytadi.
     """
+    from bot.hosting import apply_platform_defaults
     from bot.settings import load_env_file
 
     load_env_file()
-    return resolve_database_url()
+    # Doimiy disk ulangan bo'lsa, migratsiya ham O'SHA bazaga tegishi kerak —
+    # aks holda bot bilan har xil faylga ishlaymiz.
+    apply_platform_defaults()
+
+    url = resolve_database_url()
+    # SQLite papkasi bo'lmasa "unable to open database file" chiqadi. Alembic
+    # o'z engine'ini quradi, shuning uchun buni shu yerda ta'minlaymiz.
+    ensure_sqlite_directory(url)
+    return url
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

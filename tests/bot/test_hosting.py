@@ -8,10 +8,12 @@ Aks holda baza har yangilanishda jimgina o'chadi va buni faqat mijoz
 from __future__ import annotations
 
 import logging
+import os
 
 from bot.hosting import (
     RAILWAY_ENV,
     RAILWAY_VOLUME,
+    apply_platform_defaults,
     database_url_for_platform,
     is_ephemeral_platform,
     volume_path,
@@ -91,3 +93,39 @@ def test_bosh_disk_qiymati_etiborsiz_qoldiriladi(monkeypatch) -> None:  # noqa: 
 
     assert volume_path() is None
     assert database_url_for_platform(None) is None
+
+
+# --------------------------------------------------------------------------- #
+#  Barcha kirish nuqtalari bitta bazaga qarashi
+# --------------------------------------------------------------------------- #
+
+
+def test_sozlama_muhitga_yoziladi(monkeypatch) -> None:  # noqa: ANN001
+    """Bot, seed va Alembic BITTA bazaga ishlashi shart.
+
+    Yo'l muhit o'zgaruvchisiga yoziladi, chunki har bir kirish nuqtasi uni
+    o'zicha hisoblasa, migratsiya bir faylga, bot esa boshqasiga yozadi.
+    """
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.setenv(RAILWAY_VOLUME, "/data")
+
+    natija = apply_platform_defaults()
+
+    assert natija == "sqlite+aiosqlite:////data/hcs.db"
+    assert os.environ["DATABASE_URL"] == natija
+
+
+def test_ochiq_sozlama_muhitda_ham_saqlanadi(monkeypatch) -> None:  # noqa: ANN001
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@host/db")
+    monkeypatch.setenv(RAILWAY_VOLUME, "/data")
+
+    assert apply_platform_defaults() is None
+    assert os.environ["DATABASE_URL"] == "postgresql+asyncpg://u:p@host/db"
+
+
+def test_disksiz_muhit_ozgartirilmaydi(monkeypatch) -> None:  # noqa: ANN001
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv(RAILWAY_VOLUME, raising=False)
+
+    assert apply_platform_defaults() is None
+    assert "DATABASE_URL" not in os.environ
