@@ -81,7 +81,15 @@ async def run() -> None:
 
     engine = RiskEngine(config)
     logger.info("Risk Engine tayyor: %d ta qoida", len(engine.rules))
-    logger.info("Adminlar: %d ta", len(settings.admin_ids))
+    # ID'lar ataylab to'liq yoziladi: `/panel` admin bo'lmaganga JIMGINA
+    # javob bermaydi (panel borligi oshkor qilinmasligi kerak). Shu sababli
+    # ADMIN_IDS xato yozilsa hech qanday belgi qolmasdi — sozlangan ID'ni
+    # jurnalda ko'rish yagona yo'l.
+    logger.info(
+        "Adminlar: %d ta -> %s",
+        len(settings.admin_ids),
+        ", ".join(str(i) for i in sorted(settings.admin_ids)) or "yo'q",
+    )
 
     bot = Bot(
         token=settings.token,

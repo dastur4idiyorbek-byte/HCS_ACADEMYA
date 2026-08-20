@@ -90,7 +90,8 @@ class AdminOnlyMiddleware(BaseMiddleware):
         if not data.get("is_admin", False):
             tg_user = _extract_user(event)
             logger.warning(
-                "Admin bo'limiga ruxsatsiz urinish: telegram_id=%s",
+                "Admin bo'limiga ruxsatsiz urinish: telegram_id=%s. "
+                "Agar bu SIZ bo'lsangiz — shu raqamni ADMIN_IDS ga yozing.",
                 tg_user.id if tg_user else "nomalum",
             )
             return None
