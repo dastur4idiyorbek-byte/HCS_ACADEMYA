@@ -47,13 +47,28 @@ def visible_menu_items(tier: SubscriptionTier | None) -> list[str]:
 
 
 def main_menu(
-    tier: SubscriptionTier | None, language: str = DEFAULT_LANGUAGE
+    tier: SubscriptionTier | None,
+    language: str = DEFAULT_LANGUAGE,
+    is_admin: bool = False,
 ) -> InlineKeyboardMarkup:
-    """Asosiy menyu — faqat ruxsat etilgan bandlar bilan."""
+    """Asosiy menyu — faqat ruxsat etilgan bandlar bilan.
+
+    Admin uchun oxirida panel tugmasi qo'shiladi. Nima uchun kerak:
+    `/panel` buyrug'i ishlaydi, lekin uni BILISH kerak edi — menyuda hech
+    qanday izi yo'q edi. Oddiy foydalanuvchiga bu tugma ko'rinmaydi, ya'ni
+    panelning mavjudligi oshkor bo'lmaydi (1.1-band).
+    """
     builder = InlineKeyboardBuilder()
     for nom in visible_menu_items(tier):
         builder.button(text=t(MENU_LABELS[nom], language), callback_data=f"menu:{nom}")
     builder.adjust(2)
+
+    if is_admin:
+        builder.row(
+            InlineKeyboardButton(
+                text=t("admin.panel_tugma", language), callback_data="menu:panel"
+            )
+        )
     return builder.as_markup()
 
 

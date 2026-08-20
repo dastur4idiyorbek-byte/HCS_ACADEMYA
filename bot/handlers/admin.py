@@ -88,6 +88,30 @@ async def show_panel(
     )
 
 
+@router.callback_query(F.data == "menu:panel")
+async def open_panel_from_menu(
+    callback: CallbackQuery,
+    state: FSMContext,
+    database: Database,
+    language: str,
+    **_: object,
+) -> None:
+    """Asosiy menyudagi «🛠 Admin panel» tugmasi.
+
+    `/panel` buyrug'i bilan bir xil, faqat yozish shart emas. Router
+    `AdminOnlyMiddleware` ostida, shuning uchun admin bo'lmagan bosishlar
+    shu yerga umuman yetib kelmaydi.
+    """
+    await state.clear()
+    async with database.session() as session:
+        kutilayotgan = await PaymentRepository(session).pending_count()
+    await callback.message.edit_text(
+        t("admin.salom", language, pending=kutilayotgan),
+        reply_markup=admin_panel(language),
+    )
+    await callback.answer()
+
+
 @router.callback_query(F.data == "admin:home")
 async def panel_home(
     callback: CallbackQuery, state: FSMContext, database: Database, language: str, **_: object

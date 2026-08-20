@@ -152,7 +152,8 @@
     "sokinlik_sarlavha": "🔇 Oxirgi {hours} soatda signal berilmagan sabablari\n\n",
     "sokinlik_yoq": "🔇 Oxirgi {hours} soatda birorta rad etish yozilmagan.\n\nBu ikki narsani bildirishi mumkin: sikl hali ishlamagan, yoki barcha nomzodlar signalga aylangan.",
     "sokinlik_izoh": "\nSignal bermaslik — xato emas (0.2-band). Lekin bitta sabab hukmronlik qilsa, sozlamani ko'rib chiqish kerak bo'lishi mumkin.",
-    "sokinlik_oxirgi": "\n\nOxirgi tafsilotlar:\n"
+    "sokinlik_oxirgi": "\n\nOxirgi tafsilotlar:\n",
+    "panel_tugma": "🛠 Admin panel"
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."

@@ -16,6 +16,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramNetworkError, TelegramUnauthorizedError
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import BotCommand, BotCommandScopeChat, BotCommandScopeDefault
 
 from bot.handlers import admin as admin_handlers
 from bot.handlers import portfolio as portfolio_handlers
@@ -56,6 +57,40 @@ def build_dispatcher(database: Database, settings: BotSettings, config: AppConfi
     # Konfiguratsiya barcha handlerlarga uzatiladi
     dispatcher["config"] = config
     return dispatcher
+
+
+#: Telegram'da "/" bosilganda ko'rinadigan buyruqlar
+UMUMIY_BUYRUQLAR = [
+    BotCommand(command="start", description="Botni ishga tushirish"),
+]
+#: Adminlar qo'shimcha ko'radigan buyruqlar
+ADMIN_BUYRUQLARI = [
+    *UMUMIY_BUYRUQLAR,
+    BotCommand(command="panel", description="Admin panel"),
+]
+
+
+async def register_commands(bot: Bot, admin_ids: frozenset[int]) -> None:
+    """Buyruqlarni Telegram menyusiga yozadi.
+
+    Busiz "/" bosilganda ro'yxat bo'sh chiqadi va foydalanuvchi
+    `/start` dan boshqa nima borligini bilmaydi.
+
+    `/panel` FAQAT adminlarga ko'rsatiladi — oddiy foydalanuvchida
+    admin panelning mavjudligi bilinmaydi (1.1-band).
+
+    Yozib bo'lmasa bot to'xtamaydi: bu qulaylik, majburiy shart emas
+    (0.3-band).
+    """
+    try:
+        await bot.set_my_commands(UMUMIY_BUYRUQLAR, scope=BotCommandScopeDefault())
+        for admin_id in admin_ids:
+            await bot.set_my_commands(
+                ADMIN_BUYRUQLARI, scope=BotCommandScopeChat(chat_id=admin_id)
+            )
+        logger.info("Telegram buyruqlari yozildi (adminlarga /panel ham)")
+    except Exception:  # noqa: BLE001 — qulaylik, ishga tushirishni to'smaydi
+        logger.warning("Buyruqlar menyusini yozib bo'lmadi", exc_info=True)
 
 
 async def run() -> None:
@@ -113,6 +148,8 @@ async def run() -> None:
     )
     scheduler = Scheduler(bot, database, config, runner, settings.admin_ids)
     scheduler.start()
+
+    await register_commands(bot, settings.admin_ids)
 
     try:
         logger.info("Bot polling rejimida ishga tushdi")

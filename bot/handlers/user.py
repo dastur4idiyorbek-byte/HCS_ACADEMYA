@@ -55,13 +55,14 @@ async def show_menu(
     state: FSMContext,
     tier: SubscriptionTier | None,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     await state.clear()
     salom = t("umumiy.salom", language, name=message.from_user.full_name)
     await message.answer(
         f"{salom}\n\n{t('umumiy.menyu', language)}",
-        reply_markup=main_menu(tier, language),
+        reply_markup=main_menu(tier, language, is_admin),
     )
 
 
@@ -71,11 +72,12 @@ async def back_home(
     state: FSMContext,
     tier: SubscriptionTier | None,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     await state.clear()
     await callback.message.edit_text(
-        t("umumiy.menyu", language), reply_markup=main_menu(tier, language)
+        t("umumiy.menyu", language), reply_markup=main_menu(tier, language, is_admin)
     )
     await callback.answer()
 
@@ -119,6 +121,7 @@ async def show_payment_details(
     config: AppConfig,
     db_user_id: int,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     """Narx va rekvizitlarni ko'rsatib, chek kutish holatiga o'tadi."""
@@ -163,6 +166,7 @@ async def receive_receipt(
     config: AppConfig,
     db_user_id: int,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     """Chek qabul qilinadi — obuna HALI berilmaydi, admin tasdiqlashi kerak."""
@@ -201,6 +205,7 @@ async def show_portfolio(
     database: Database,
     db_user_id: int,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     async with database.session() as session:
@@ -243,6 +248,7 @@ async def save_balance(
     database: Database,
     tier: SubscriptionTier | None,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     try:
@@ -262,7 +268,7 @@ async def save_balance(
     await state.clear()
     await message.answer(
         t("portfel.balans_saqlandi", language, balance=f"{balans:,.2f}"),
-        reply_markup=main_menu(tier, language),
+        reply_markup=main_menu(tier, language, is_admin),
     )
 
 
@@ -277,6 +283,7 @@ async def show_content(
     database: Database,
     tier: SubscriptionTier | None,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     async with database.session() as session:
@@ -306,10 +313,11 @@ async def cancel_flow(
     state: FSMContext,
     tier: SubscriptionTier | None,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     await state.clear()
     await callback.message.edit_text(
-        t("umumiy.bekor_qilindi", language), reply_markup=main_menu(tier, language)
+        t("umumiy.bekor_qilindi", language), reply_markup=main_menu(tier, language, is_admin)
     )
     await callback.answer()

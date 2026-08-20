@@ -54,6 +54,7 @@ async def ask_position_amount(
     database: Database,
     db_user_id: int,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     signal_id = int(callback.data.rsplit(":", 1)[1])
@@ -87,6 +88,7 @@ async def save_position(
     db_user_id: int,
     tier: SubscriptionTier | None,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     try:
@@ -111,7 +113,7 @@ async def save_position(
     logger.info("Pozitsiya qayd etildi: user=%s signal=%s", db_user_id, data["signal_id"])
     await message.answer(
         t("signal.kirdim_qayd_etildi", language, symbol=data["symbol"], amount=f"{miqdor:,.2f}"),
-        reply_markup=main_menu(tier, language),
+        reply_markup=main_menu(tier, language, is_admin),
     )
 
 
@@ -126,6 +128,7 @@ async def show_positions(
     database: Database,
     db_user_id: int,
     language: str,
+    is_admin: bool = False,
     **_: object,
 ) -> None:
     async with database.session() as session:
