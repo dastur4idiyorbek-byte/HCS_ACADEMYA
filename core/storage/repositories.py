@@ -42,6 +42,7 @@ from core.storage.models import (
     MarketHealthLog,
     Payment,
     PriceConfig,
+    RiskBlock,
     SignalRecord,
     Subscription,
     User,
@@ -820,6 +821,86 @@ class MarketHealthRepository:
             MarketHealthLog.is_daily_preview.is_(False),
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+
+class RiskBlockRepository:
+    """3.7-band: "tizim nega sokin?" savoliga aniq javob.
+
+    Signal chiqmasligi XATO EMAS (0.2-band), lekin admin SABABINI ko'ra
+    olishi kerak — aks holda ishlayotgan tizimni buzuq tizimdan ajratib
+    bo'lmaydi. Sikl har bir rad etishni shu yerga yozadi.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def record_many(
+        self,
+        rejections: list[tuple[str | None, str, str | None]],
+        market_health: float | None = None,
+    ) -> int:
+        """Bir siklning barcha rad etishlarini yozadi.
+
+        Args:
+            rejections: `(symbol, reason, detail)` uchliklari.
+            market_health: o'sha paytdagi indeks — sabablarni keyinroq
+                "past salomatlikda" va "normal bozorda" deb ajratish uchun.
+
+        Returns:
+            Yozilgan qatorlar soni.
+        """
+        if not rejections:
+            return 0
+
+        for symbol, reason, detail in rejections:
+            self._session.add(
+                RiskBlock(
+                    symbol=symbol,
+                    reason=reason[:48],
+                    detail=detail,
+                    market_health=market_health,
+                )
+            )
+        await self._session.flush()
+        return len(rejections)
+
+    async def summary_since(self, since: datetime, limit: int = 10) -> list[tuple[str, int]]:
+        """Sabab -> nechta marta, eng ko'pidan boshlab.
+
+        Aynan shu ro'yxat "nega signal yo'q" savoliga javob beradi: bitta
+        sabab hukmronlik qilsa, sozlama noto'g'ri qo'yilgan bo'lishi
+        mumkin.
+        """
+        stmt = (
+            select(RiskBlock.reason, func.count(RiskBlock.id))
+            .where(RiskBlock.created_at >= since)
+            .group_by(RiskBlock.reason)
+            .order_by(func.count(RiskBlock.id).desc())
+            .limit(limit)
+        )
+        return [(qator[0], qator[1]) for qator in (await self._session.execute(stmt)).all()]
+
+    async def latest(self, limit: int = 5) -> list[RiskBlock]:
+        """Eng oxirgi rad etishlar — tafsiloti bilan."""
+        stmt = select(RiskBlock).order_by(RiskBlock.created_at.desc()).limit(limit)
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def purge_before(self, cutoff: datetime) -> int:
+        """Eski yozuvlarni o'chiradi.
+
+        Har siklda o'nlab qator yoziladi — cheklanmasa jadval yillar
+        davomida o'sib ketadi. Tarixiy tahlil uchun bir necha kun yetarli.
+        """
+        eskilar = (
+            await self._session.execute(
+                select(RiskBlock).where(RiskBlock.created_at < cutoff)
+            )
+        ).scalars()
+        soni = 0
+        for yozuv in eskilar:
+            await self._session.delete(yozuv)
+            soni += 1
+        return soni
 
 
 def today_utc() -> date:

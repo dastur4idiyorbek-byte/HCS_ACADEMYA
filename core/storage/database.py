@@ -66,13 +66,73 @@ def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSessi
     return async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
+def _alembic_head() -> str | None:
+    """Migratsiyalarning oxirgi versiyasi (`head`), yoki `None`.
+
+    Alembic o'rnatilmagan yoki `migrations/` papkasi yo'q bo'lsa `None` —
+    bu xato emas, testlarda migratsiyalar kerak emas.
+    """
+    try:
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+    except ImportError:
+        return None
+
+    ildiz = Path(__file__).resolve().parents[2]
+    ini = ildiz / "alembic.ini"
+    if not ini.is_file() or not (ildiz / "migrations" / "versions").is_dir():
+        return None
+
+    try:
+        sozlama = Config(str(ini))
+        sozlama.set_main_option("script_location", str(ildiz / "migrations"))
+        return ScriptDirectory.from_config(sozlama).get_current_head()
+    except Exception:  # noqa: BLE001 — belgilamaslik ishga tushirishni to'smaydi
+        logger.debug("Alembic `head` versiyasi aniqlanmadi", exc_info=True)
+        return None
+
+
+def _stamp_if_fresh(connection, head: str) -> None:  # noqa: ANN001
+    """Yangi yaratilgan bazani `head` versiyasi bilan belgilaydi.
+
+    Nima uchun kerak: `create_all` jadvallarni yaratadi, lekin
+    `alembic_version` ni to'ldirmaydi. Keyin serverda `alembic upgrade
+    head` ishga tushirilsa, u noldan boshlashga urinadi va "jadval
+    allaqachon mavjud" xatosini beradi.
+
+    Faqat BO'SH `alembic_version` to'ldiriladi — mavjud versiya hech
+    qachon o'zgartirilmaydi, aks holda qo'llanilmagan migratsiya
+    qo'llanilgan deb belgilanib qolardi.
+    """
+    connection.exec_driver_sql(
+        "CREATE TABLE IF NOT EXISTS alembic_version "
+        "(version_num VARCHAR(32) NOT NULL, "
+        "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+    )
+    mavjud = connection.exec_driver_sql("SELECT version_num FROM alembic_version").first()
+    if mavjud is None:
+        connection.exec_driver_sql(
+            "INSERT INTO alembic_version (version_num) VALUES (?)"
+            if connection.dialect.paramstyle == "qmark"
+            else "INSERT INTO alembic_version (version_num) VALUES (%s)",
+            (head,),
+        )
+
+
 async def init_models(engine: AsyncEngine) -> None:
     """Jadvallarni yaratadi (dastlabki ishga tushirish uchun).
 
-    Ishlab chiqarishda sxema o'zgarishlari Alembic orqali boshqariladi.
+    Ishlab chiqarishda sxema o'zgarishlari Alembic orqali boshqariladi:
+    `alembic upgrade head`. Bu funksiya yangi bazani o'sha `head` bilan
+    belgilaydi, shunda keyingi yangilanish to'g'ri joydan davom etadi.
     """
+    head = _alembic_head()
+
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+        if head is not None:
+            await connection.run_sync(_stamp_if_fresh, head)
+
     logger.info("Ma'lumotlar bazasi sxemasi tayyor (%d jadval)", len(Base.metadata.tables))
 
 

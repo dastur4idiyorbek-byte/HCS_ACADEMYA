@@ -19,6 +19,7 @@ from core.storage import Database
 from core.storage.repositories import (
     CoinRulingRepository,
     MarketHealthRepository,
+    RiskBlockRepository,
     SignalRepository,
     SubscriptionRepository,
     UserRepository,
@@ -184,6 +185,41 @@ async def test_salomatlik_hisoblanib_bazaga_yoziladi(db: Database, config) -> No
 
     assert yozuv is not None
     assert 0 <= yozuv.value <= 100
+
+
+async def test_rad_etish_sabablari_bazaga_yoziladi(db: Database, config) -> None:  # noqa: ANN001
+    """3.7-band: signal chiqmasa, SABABI admin uchun saqlanishi kerak.
+
+    Jurnal yetarli emas — u aylanadi va Telegram'dan ochib bo'lmaydi.
+    """
+    ish = runner(db, config)
+    await ish.refresh_universe()
+    natija = await ish.run_once()
+
+    assert natija is not None
+    assert natija.rejected, "bu sinov ma'lumotida rad etish kutilgan edi"
+
+    async with db.session() as session:
+        xulosa = await RiskBlockRepository(session).summary_since(
+            datetime.now(UTC) - timedelta(hours=1)
+        )
+
+    assert xulosa, "rad etish sabablari yozilmagan"
+    assert sum(soni for _, soni in xulosa) == len(natija.rejected)
+
+
+async def test_sabab_yozilmasa_sikl_toxtamaydi(db: Database, config, monkeypatch) -> None:  # noqa: ANN001
+    """0.3-band: kuzatuv yozuvi asosiy ishni to'xtatmasligi kerak."""
+
+    async def yiqiladi(*_args, **_kwargs):  # noqa: ANN002, ANN003, ANN202
+        raise RuntimeError("baza band")
+
+    monkeypatch.setattr(RiskBlockRepository, "record_many", yiqiladi)
+
+    ish = runner(db, config)
+    await ish.refresh_universe()
+
+    assert await ish.run_once() is not None
 
 
 async def test_bosh_royxatda_sikl_otkazib_yuboriladi(db: Database, config) -> None:  # noqa: ANN001

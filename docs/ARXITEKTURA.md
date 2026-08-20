@@ -959,7 +959,70 @@ Aynan shu qator 28-bo'limdagi xatoni topishga olib keldi.
 
 ---
 
-## 31. Bosqichlar holati
+## 31. 17-bosqichda topilgan yetishmovchiliklar
+
+Yakuniy tekshiruvda uchta "e'lon qilingan, lekin qurilmagan" narsa topildi.
+Ularning har biri bir xil turdagi xato: bog'liqlik yoki jadval mavjud,
+lekin uni ishlatadigan kod yo'q.
+
+### 31.1 `python-dotenv` chaqirilmasdi
+
+`requirements.txt` da bor edi, README `cp .env.example .env` deydi — lekin
+fayl hech qachon o'qilmasdi. Bu **birinchi ishga tushirishni to'sardi**.
+
+Yuklash `load_settings()` ICHIGA qo'yilmadi: u sof muhit o'quvchisi bo'lib
+qolishi kerak, aks holda testlar `.env` fayliga bog'lanardi. Shuning uchun
+`load_env_file()` alohida funksiya va `run()` boshida chaqiriladi.
+
+### 31.2 `alembic` sozlanmagan edi
+
+Bog'liqlikda bor edi, lekin `alembic.ini` ham, migratsiyalar ham yo'q edi.
+Sxema faqat `create_all` bilan yaratilardi — ya'ni **model o'zgarsa,
+ishlab turgan serverni yangilab bo'lmasdi** (to'lovlar va obunalar bazada).
+
+Uch qaror qayd etilsin:
+
+1. **Migratsiyalar ilova kodini import qilmaydi.** `autogenerate` odatda
+   `core.storage.base.UtcDateTime` deb yozadi va migratsiya ilova kodiga
+   bog'lanib qoladi — o'sha klass ko'chirilsa eski migratsiyalar
+   ishlamaydi. `env.py` dagi `_render_item` uni `sa.DateTime(timezone=True)`
+   deb yozadi: bazada u aynan shu.
+
+2. **`create_all` endi `alembic_version` ni belgilaydi.** Tuzoq: yangi baza
+   `create_all` bilan yaratilsa, `alembic_version` bo'sh qolardi va
+   keyingi `alembic upgrade head` noldan boshlab "jadval allaqachon
+   mavjud" xatosini berardi. Faqat BO'SH versiya to'ldiriladi — mavjudi
+   hech qachon o'zgartirilmaydi.
+
+3. **URL `alembic.ini` da saqlanmaydi.** U `DATABASE_URL` dan olinadi,
+   chunki PostgreSQL paroli git ga tushmasligi kerak.
+
+Uchta test buni qulflaydi: migratsiya `create_all` bilan bir xil sxema
+beradimi, mavjud bazani yangilab bo'ladimi, migratsiyalar `core.*` ni
+import qilmaydimi.
+
+### 31.3 `risk_blocks` jadvaliga hech narsa yozilmasdi
+
+Jadval 2-bosqichda "tizim nega sokin?" uchun qurilgan, `RejectedCandidate`
+ning izohida "admin dashboardi uchun (3.7-band)" deb yozilgan — lekin na
+yozuvchi, na ko'rsatuvchi kod bor edi. Sabablar faqat jurnalga tushardi,
+jurnal esa aylanadi va Telegram'dan ochib bo'lmaydi.
+
+Endi sikl har bir rad etishni yozadi va `/panel` → 🔇 ularni guruhlab
+ko'rsatadi. Yozib bo'lmasa sikl to'xtamaydi (0.3-band).
+
+Yozuvlar 7 kun saqlanadi: har siklda o'nlab qator yoziladi, cheklanmasa
+bepul serverning diski to'lardi.
+
+### 31.4 `numpy` va `pandas` ishlatilmasdi
+
+O'lchandi: `core/`, `bot/`, `scripts/`, `tests/` da **nol** import.
+Indikatorlar ataylab sof Python'da yozilgan (9-bo'lim). Ikkalasi ~100 MB
+egallardi — Oracle Cloud bepul ARM serverida bu sezilarli. Olib tashlandi.
+
+---
+
+## 32. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -979,4 +1042,4 @@ Aynan shu qator 28-bo'limdagi xatoni topishga olib keldi.
 | 14 | Shaxsiy portfel va statistika | ✅ |
 | 15 | Hammasini bog'lash | ✅ |
 | 16 | Backtest mexanizmi | ✅ (haqiqiy ma'lumot serverda kerak) |
-| 17 | Test va sozlash | davomiy |
+| 17 | Yakuniy test, migratsiya, joylashtirish | ✅ |

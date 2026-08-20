@@ -72,10 +72,14 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 
 cp .env.example .env        # BOT_TOKEN va ADMIN_IDS ni to'ldiring
+alembic upgrade head        # jadvallarni yaratadi/yangilaydi
 python -m scripts.seed      # boshlang'ich narxlar va coin qarorlari
 pytest                      # testlar
 python -m bot.main          # botni ishga tushirish
 ```
+
+Serverga o'rnatish, systemd, zaxira nusxa va yangilash:
+**[`docs/ISHGA_TUSHIRISH.md`](docs/ISHGA_TUSHIRISH.md)**.
 
 ---
 
@@ -135,6 +139,11 @@ signal berish paytida emas.
   chegara → Risk Engine → Telegram. Fon vazifalari: sikl, halol ro'yxat,
   obuna muddati, haftalik hisobot. 4.1 ⚠️ Zaiflashmoqda va 4.2 rotatsiya
 
+- **"Nega signal yo'q" dashboardi (3.7-band)** — har bir rad etish sababi
+  bazaga yoziladi va `/panel` → 🔇 da guruhlangan holda ko'rinadi. Signal
+  bermaslik xato emas, lekin sababi **ko'rinishi** kerak
+- **Sxema migratsiyalari** — `alembic upgrade head`. Test modellar bilan
+  migratsiyalar ajralib ketmasligini ta'minlaydi
 - **Backtest (6.3-band)** — jonli signal siklining O'ZINI tarixiy
   ma'lumotda qayta o'ynatadi (`core/backtest/`). Lookahead himoyasi vaqt
   kesimi bilan; isinish eng yuqori timeframega qarab hisoblanadi

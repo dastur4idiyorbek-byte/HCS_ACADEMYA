@@ -38,6 +38,7 @@ from core.storage import Database
 from core.storage.repositories import (
     CoinRulingRepository,
     MarketHealthRepository,
+    RiskBlockRepository,
     SignalRepository,
     SubscriptionRepository,
     UserRepository,
@@ -248,10 +249,35 @@ class PipelineRunner:
         kirish = self._build_input(shamlar, salomatlik, ochiq_signallar, ketma_ket_stop)
         natija = self._cycle.run(kirish)
 
+        await self._record_rejections(natija, salomatlik)
+
         for nomzod in natija.emitted:
             await self._emit(nomzod, salomatlik)
 
         return natija
+
+    async def _record_rejections(self, result: CycleResult, health: MarketHealth) -> None:
+        """3.7-band: nima uchun signal chiqmagani bazaga yoziladi.
+
+        Signal chiqmasligi xato emas (0.2-band), lekin admin sababini
+        ko'ra olishi kerak — aks holda ishlayotgan tizimni buzuq tizimdan
+        ajratib bo'lmaydi. Jurnal yetarli emas: u aylanadi va Telegram'dan
+        ochib bo'lmaydi.
+
+        Yozib bo'lmasa — sikl to'xtamaydi (0.3-band).
+        """
+        if not result.rejected:
+            return
+
+        qatorlar = [
+            (None if rad.symbol == "*" else rad.symbol, rad.stage, rad.detail)
+            for rad in result.rejected
+        ]
+        try:
+            async with self._db.session() as session:
+                await RiskBlockRepository(session).record_many(qatorlar, health.value)
+        except Exception:  # noqa: BLE001 — kuzatuv yozuvi siklni to'xtatmaydi
+            logger.exception("Rad etish sabablarini yozib bo'lmadi")
 
     def _build_input(
         self,

@@ -46,6 +46,7 @@ from core.storage.repositories import (
     MarketHealthRepository,
     PaymentRepository,
     PriceRepository,
+    RiskBlockRepository,
     SignalRepository,
     SubscriptionRepository,
     UserRepository,
@@ -582,6 +583,61 @@ def _render_health(record) -> str:  # noqa: ANN001
     if record.is_daily_preview:
         qatorlar.append("\n⏱ Bu — kunlik oldindan tahlil (hali o'lchanmagan)")
     return "\n".join(qatorlar)
+
+
+# --------------------------------------------------------------------------- #
+#  3.7 — "Nega signal yo'q" dashboardi
+# --------------------------------------------------------------------------- #
+
+#: Sokinlik hisoboti qancha vaqtni qamrab oladi
+SOKINLIK_SOATLARI = 24
+
+
+@router.callback_query(F.data == "admin:sokinlik")
+async def silence_dashboard(
+    callback: CallbackQuery,
+    database: Database,
+    language: str,
+    **_: object,
+) -> None:
+    """3.7-band: signal chiqmaganda SABABI ko'rinishi kerak.
+
+    Signal bermaslik xato emas (0.2-band) — lekin sababi ko'rinmasa,
+    ishlayotgan tizimni buzuq tizimdan ajratib bo'lmaydi. Bu ekran aynan
+    shu farqni beradi.
+    """
+    boshlanish = utc_now() - timedelta(hours=SOKINLIK_SOATLARI)
+
+    async with database.session() as session:
+        repo = RiskBlockRepository(session)
+        xulosa = await repo.summary_since(boshlanish)
+        oxirgilar = await repo.latest(limit=3)
+
+    if not xulosa:
+        await callback.message.edit_text(
+            t("admin.sokinlik_yoq", language, hours=SOKINLIK_SOATLARI),
+            reply_markup=back_button("home", language),
+        )
+        await callback.answer()
+        return
+
+    matn = t("admin.sokinlik_sarlavha", language, hours=SOKINLIK_SOATLARI)
+    jami = sum(soni for _, soni in xulosa)
+    for sabab, soni in xulosa:
+        ulush = soni / jami * 100
+        matn += f"• <b>{sabab}</b> — {soni} marta ({ulush:.0f}%)\n"
+
+    matn += t("admin.sokinlik_izoh", language)
+
+    if oxirgilar:
+        matn += t("admin.sokinlik_oxirgi", language)
+        for yozuv in oxirgilar:
+            coin = yozuv.symbol or "—"
+            tafsilot = (yozuv.detail or "")[:120]
+            matn += f"• {coin}: {tafsilot}\n"
+
+    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
+    await callback.answer()
 
 
 # --------------------------------------------------------------------------- #
