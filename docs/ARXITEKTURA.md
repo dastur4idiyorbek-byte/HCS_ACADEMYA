@@ -670,7 +670,64 @@ esa unga bog'lanadi.
 
 ---
 
-## 26. Bosqichlar holati
+## 26. Avtomatik sikl: nima uchun ikki qatlam
+
+15-bosqich butun mexanizmni bog'ladi, lekin ATAYLAB ikki qatlamda:
+
+```
+core/pipeline/cycle.py     SOF: CycleInput -> CycleResult
+                           tarmoq yo'q, baza yo'q, Telegram yo'q
+        ↑
+bot/services/runner.py     Jonli ma'lumotni YIG'ADI va natijani TARQATADI
+```
+
+Sabab: 16-bosqichdagi backtest `runner.py` o'rniga tarixiy ma'lumot
+yig'uvchini qo'yadi va **sikl kodi o'zgarmaydi**. Agar sikl bazaga
+murojaat qilganda, backtest uchun uni qayta yozishga to'g'ri kelardi — va
+ikki xil kod ikki xil natija berardi, ya'ni backtest ma'nosini yo'qotardi.
+
+### 26.1. Past salomatlikda coinlar umuman tahlil qilinmaydi
+
+4.9-band "indeks 40dan past bo'lsa yangi signal to'xtaydi" deydi. Sikl
+buni **birinchi** tekshiradi va tahlilni umuman boshlamaydi:
+
+```
+Yomon bozor (salomatlik 30):
+  Sikl: 0 coin tahlil qilindi, 0 signal chiqdi (chegara yopiq)
+```
+
+30 coinni tahlil qilib, keyin hammasini rad etish resurs isrofi bo'lardi.
+
+### 26.2. Yangi signal darhol "ochiq" hisoblanadi
+
+Bir siklda bir nechta nomzod chiqishi mumkin. Yangi chiqarilgan signal
+keyingi nomzodlar uchun darhol "ochiq signal" ro'yxatiga qo'shiladi —
+ansiz korrelyatsiya (4.3) va limit (4.2) qoidalari bir siklda buzilardi:
+
+```
+Yaxshi bozor: BTC ✅ chiqdi
+              ETH ⏭ 'btc_major' guruhida allaqachon ochiq signal bor
+```
+
+### 26.3. Sikl oralig'i timeframega bog'langan
+
+`cycle_interval()` kirish timeframeidan hisoblanadi (15m -> 15 daqiqa).
+Tez-tez ishga tushirish foyda bermaydi: sham yopilmaguncha tahlil natijasi
+o'zgarmaydi, faqat tarmoq va CPU sarflanadi.
+
+### 26.4. Rotatsiyada faqat BITTA tavsiya
+
+4.2-band "faqat eng zaif faol signalni almashtirish" deydi. Bir vaqtda bir
+nechta almashtirish taklifi foydalanuvchini chalg'itardi — u qaysi birini
+bajarishni bilmasdi.
+
+Whipsaw himoyasi ikki qatlamli: minimal ball farqi (30) **va** sovutish
+davri (120 daqiqa). Ansiz tizim har sham yopilganda "u yaxshiroq, yo'q bu
+yaxshiroq" deb foydalanuvchini charchatardi.
+
+---
+
+## 27. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
@@ -688,6 +745,6 @@ esa unga bog'lanadi.
 | 12 | Opening range scalp | ✅ |
 | 13 | Postmortem (Signal Xotirasi) | ✅ |
 | 14 | Shaxsiy portfel va statistika | ✅ |
-| 15 | Hammasini bog'lash | — |
+| 15 | Hammasini bog'lash | ✅ |
 | 16 | Backtest (1-2 yillik) | — |
 | 17 | Test va sozlash | davomiy |

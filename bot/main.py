@@ -21,10 +21,11 @@ from bot.handlers import portfolio as portfolio_handlers
 from bot.handlers import signals as signal_handlers
 from bot.handlers import user as user_handlers
 from bot.middlewares import UserContextMiddleware
-from bot.services import SignalWatcher
+from bot.services import PipelineRunner, Scheduler, SignalWatcher
 from bot.settings import BotSettings, load_settings
 from core.config import AppConfig, load_config
-from core.market_data import BinancePriceStream
+from core.market_data import BinanceCandleProvider, BinancePriceStream
+from core.market_data.ranking import build_ranking_provider
 from core.risk_engine import RiskEngine
 from core.storage import Database
 from core.utils.logging_setup import get_logger, setup_logging
@@ -83,16 +84,27 @@ async def run() -> None:
     dispatcher["watcher"] = watcher
     watcher_task = asyncio.create_task(watcher.run(), name="signal-watcher")
 
-    # TODO(15-bosqich): avtomatik signal sikli va obuna muddati tekshiruvi.
+    # 15-bosqich: avtomatik signal sikli va takrorlanuvchi vazifalar.
+    candle_provider = BinanceCandleProvider(
+        config.market_data, config.halal_screening.quote_asset
+    )
+    ranking_provider = build_ranking_provider(config.market_data)
+    runner = PipelineRunner(
+        bot, database, config, candle_provider, ranking_provider, watcher
+    )
+    scheduler = Scheduler(bot, database, config, runner, settings.admin_ids)
+    scheduler.start()
 
     try:
         logger.info("Bot polling rejimida ishga tushdi")
         await dispatcher.start_polling(bot, allowed_updates=dispatcher.resolve_used_update_types())
     finally:
+        await scheduler.stop()
         watcher_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await watcher_task
         await stream.close()
+        await candle_provider.close()
         await bot.session.close()
         await database.dispose()
         logger.info("Bot to'xtatildi")

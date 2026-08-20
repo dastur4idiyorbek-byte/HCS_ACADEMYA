@@ -42,12 +42,13 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 │   └─ strategies/             classic_ta ✅ | opening_range ✅   + registry
 ├─ risk_engine/                13 ta risk qoidasi                 ✅ tayyor
 ├─ position_sizing/            pozitsiya hajmi + agregat sig'im   ✅ tayyor
+├─ pipeline/                   avtomatik signal sikli             ✅ tayyor
 ├─ backtest/                   tarixiy sinov                      [16-bosqich]
 └─ utils/                      vaqt (timezone-aware), logging     ✅ tayyor
 
 bot/                           "TANA" — yupqa Telegram qatlami
 ├─ handlers/                   user.py, admin.py, signals.py      ✅ tayyor
-├─ services/                   narx kuzatuvchisi (fon vazifasi)   ✅ tayyor
+├─ services/                   kuzatuvchi, runner, scheduler      ✅ tayyor
 ├─ i18n/                       matnlar JSON'da (ko'p tillilikka tayyor)
 ├─ keyboards.py                tarifga qarab menyu qurish
 ├─ middlewares.py              foydalanuvchi konteksti, admin himoyasi
@@ -130,6 +131,9 @@ signal berish paytida emas.
 - **Shaxsiy portfel (5.4-band)** — «✋ Men kirdim» → miqdor → signal
   yopilganda avtomatik foyda/zarar. TP1 da qismli yopish hisobga olinadi.
   Umumiy statistika shaxsiy ma'lumotsiz
+- **Avtomatik signal sikli (15-bosqich)** — skrining → strategiyalar → ball →
+  chegara → Risk Engine → Telegram. Fon vazifalari: sikl, halol ro'yxat,
+  obuna muddati, haftalik hisobot. 4.1 ⚠️ Zaiflashmoqda va 4.2 rotatsiya
 
 ---
 
