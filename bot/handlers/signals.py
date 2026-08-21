@@ -23,7 +23,8 @@ from bot.states import SignalFlow
 from core.analysis import decide_entry_plan
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
-from core.domain.models import SignalLevels
+from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
+from core.position_sizing import PositionSizer
 from core.storage import Database
 from core.storage.repositories import (
     SignalRepository,
@@ -241,12 +242,9 @@ async def signal_send(
     if watcher is not None:
         watcher.add_signal(signal_id)
 
-    kartochka = render_signal_card(
-        data["symbol"], levels, reja,
-        quote_asset=config.halal_screening.quote_asset, language=language,
-    )
     yuborildi = await _broadcast_signal(
-        callback.bot, qabul_qiluvchilar, kartochka, signal_id, language
+        callback.bot, qabul_qiluvchilar, data["symbol"], levels, reja,
+        signal_id, config, language,
     )
 
     await state.clear()
@@ -258,28 +256,72 @@ async def signal_send(
     await callback.answer()
 
 
-async def _subscriber_ids(session) -> list[int]:  # noqa: ANN001
-    """Signal ko'rishga haqli obunachilar (Lite va undan yuqori)."""
+async def _subscriber_ids(session) -> list[tuple[int, float | None]]:  # noqa: ANN001
+    """Signal ko'rishga haqli obunachilar: `(telegram_id, balans)`.
+
+    Balans ham kerak, chunki pozitsiya hajmi har kimda boshqacha
+    (5.1-band) — kartochka har bir qabul qiluvchi uchun alohida yasaladi.
+    """
     users = UserRepository(session)
     obunalar = SubscriptionRepository(session)
-    natija: list[int] = []
+    natija: list[tuple[int, float | None]] = []
     for user in await users.active_users(since_days=90):
         tier = await obunalar.tier_for(user.id)
         if tier is not None and tier.covers(SubscriptionTier.LITE):
-            natija.append(user.telegram_id)
+            natija.append((user.telegram_id, user.declared_balance_usd))
     return natija
 
 
-async def _broadcast_signal(
-    bot, telegram_ids: list[int], card: str, signal_id: int, language: str
-) -> int:  # noqa: ANN001
-    """1.3-band: `protect_content=True` — forward/saqlash bloklanadi."""
+def suggest_size(
+    symbol: str, levels: SignalLevels, balance: float | None, config: AppConfig
+) -> PositionSuggestion | None:
+    """5.1-band: shu foydalanuvchi uchun pozitsiya hajmi.
+
+    `commit=False` — bu faqat ko'rsatish uchun hisob; xavf byudjeti
+    foydalanuvchi "Men kirdim" deganda band qilinadi (5.4-band).
+
+    Hisoblab bo'lmasa `None`: miqdorsiz bo'lsa ham signal yuboriladi
+    (0.3-band).
+    """
+    if balance is None or balance <= 0:
+        return None
+    try:
+        sizer = PositionSizer(config.position_sizing)
+        return sizer.suggest(symbol, levels, sizer.budget_for(balance), commit=False)
+    except Exception:  # noqa: BLE001
+        logger.warning("Pozitsiya hajmi hisoblanmadi: %s", symbol, exc_info=True)
+        return None
+
+
+async def _broadcast_signal(  # noqa: PLR0913
+    bot,  # noqa: ANN001
+    recipients: list[tuple[int, float | None]],
+    symbol: str,
+    levels: SignalLevels,
+    entry_plan: EntryPlan,
+    signal_id: int,
+    config: AppConfig,
+    language: str,
+) -> int:
+    """1.3-band: `protect_content=True` — forward/saqlash bloklanadi.
+
+    Kartochka HAR BIR qabul qiluvchi uchun alohida yasaladi: miqdor
+    ularning o'z balansidan hisoblanadi (5.1-band).
+    """
     yuborildi = 0
-    for telegram_id in telegram_ids:
+    for telegram_id, balans in recipients:
+        kartochka = render_signal_card(
+            symbol,
+            levels,
+            entry_plan,
+            suggestion=suggest_size(symbol, levels, balans, config),
+            quote_asset=config.halal_screening.quote_asset,
+            language=language,
+        )
         try:
             await bot.send_message(
                 telegram_id,
-                card,
+                kartochka,
                 protect_content=True,
                 reply_markup=signal_actions(signal_id, language),
             )

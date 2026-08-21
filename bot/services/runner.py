@@ -28,12 +28,12 @@ from core.analysis.scoring import breakdown_to_json
 from core.analysis.strategies import build_strategies, required_timeframes
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
-from core.domain.models import Candle, HalalVerdict, MarketHealth
+from core.domain.models import Candle, HalalVerdict, MarketHealth, PositionSuggestion
 from core.halal_screening import HalalScreener, StaticRulingRegistry
 from core.market_data import CandleProvider, RankingProvider
 from core.market_data.ranking import RankingUnavailableError
 from core.pipeline import CycleInput, CycleResult, SignalCycle, SignalMonitor, SymbolData
-from core.position_sizing import compute_aggregate_capacity
+from core.position_sizing import PositionSizer, compute_aggregate_capacity
 from core.storage import Database
 from core.storage.repositories import (
     CoinRulingRepository,
@@ -207,8 +207,6 @@ class PipelineRunner:
 
     async def _user_budgets(self, session, users):  # noqa: ANN001, ANN202
         """5.2-band: foydalanuvchilarning kunlik xavf byudjetlari."""
-        from core.position_sizing import PositionSizer
-
         sizer = PositionSizer(self._config.position_sizing)
         obunalar = SubscriptionRepository(session)
         byudjetlar = []
@@ -357,13 +355,16 @@ class PipelineRunner:
 
         self._watcher.add_signal(signal_id)
 
-        kartochka = render_signal_card(
-            candidate.symbol,
-            candidate.levels,
-            reja,
-            quote_asset=self._config.halal_screening.quote_asset,
-        )
-        for telegram_id in qabul_qiluvchilar:
+        for telegram_id, balans in qabul_qiluvchilar:
+            # 5.1-band: miqdor foydalanuvchining o'z balansidan hisoblanadi,
+            # shuning uchun kartochka har biri uchun alohida yasaladi.
+            kartochka = render_signal_card(
+                candidate.symbol,
+                candidate.levels,
+                reja,
+                suggestion=self._suggest_size(candidate.symbol, candidate.levels, balans),
+                quote_asset=self._config.halal_screening.quote_asset,
+            )
             try:
                 await self._bot.send_message(
                     telegram_id,
@@ -376,14 +377,45 @@ class PipelineRunner:
 
         logger.info("Avtomatik signal yuborildi: %s (ball %.0f)", candidate.symbol, candidate.score)
 
-    async def _subscribers(self, session) -> list[int]:  # noqa: ANN001
+    def _suggest_size(
+        self, symbol: str, levels, balance: float | None  # noqa: ANN001
+    ) -> PositionSuggestion | None:
+        """5.1-band: shu foydalanuvchi uchun pozitsiya hajmi.
+
+        Balans kiritilmagan bo'lsa `None` — kartochkada miqdor o'rniga
+        "balansingizni kiriting" taklifi chiqadi.
+
+        Hisob-kitob `commit=False` bilan: bu FAQAT ko'rsatish uchun, xavf
+        byudjetidan hech narsa ajratilmaydi. Byudjet foydalanuvchi
+        "Men kirdim" deganda band qilinadi (5.4-band).
+
+        Hisoblab bo'lmasa `None` qaytadi va signal baribir yuboriladi —
+        miqdor yo'qligi signalni to'sib qo'ymaydi (0.3-band).
+        """
+        if balance is None or balance <= 0:
+            return None
+        try:
+            sizer = PositionSizer(self._config.position_sizing)
+            return sizer.suggest(symbol, levels, sizer.budget_for(balance), commit=False)
+        except Exception:  # noqa: BLE001 — miqdorsiz bo'lsa ham signal ketsin
+            logger.warning("Pozitsiya hajmi hisoblanmadi: %s", symbol, exc_info=True)
+            return None
+
+    async def _subscribers(self, session) -> list[tuple[int, float | None]]:  # noqa: ANN001
+        """Signal oladigan foydalanuvchilar: `(telegram_id, balans)`.
+
+        Balans ham qaytariladi, chunki pozitsiya hajmi HAR KIM UCHUN
+        boshqacha (5.1-band) — kartochka har bir qabul qiluvchi uchun
+        alohida yasaladi. Balans kiritilmagan bo'lsa `None`: kartochkada
+        miqdor o'rniga taklif matni chiqadi.
+        """
         users = UserRepository(session)
         obunalar = SubscriptionRepository(session)
         natija = []
         for user in await users.active_users(since_days=90):
             tarif = await obunalar.tier_for(user.id)
             if tarif is not None and tarif.covers(SubscriptionTier.LITE):
-                natija.append(user.telegram_id)
+                natija.append((user.telegram_id, user.declared_balance_usd))
         return natija
 
     # ------------------------------------------------------------------ #
