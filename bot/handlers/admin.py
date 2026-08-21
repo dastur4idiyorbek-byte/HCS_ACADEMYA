@@ -9,6 +9,7 @@ Handlerlar yupqa: qarorlarni `core/services/` va repository'lar qabul qiladi.
 from __future__ import annotations
 
 from datetime import timedelta
+from html import escape
 
 from aiogram import F, Router
 from aiogram.filters import Command
@@ -58,6 +59,24 @@ from core.utils.logging_setup import get_logger
 from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
+
+
+def _xavfsiz(matn: str) -> str:
+    """Telegram HTML rejimi uchun matnni xavfsizlaydi.
+
+    Xabarlar `parse_mode=HTML` bilan yuboriladi: matndagi ochiq `<`
+    teg boshlanishi deb o'qiladi va Telegram BUTUN xabarni rad etadi
+    (`can't parse entities`). Handler xato bilan tugaydi, tugma esa
+    foydalanuvchi uchun shunchaki "javob bermaydi" — ekranda hech
+    qanday xato ko'rinmaydi. Shuning uchun bazadan yoki tahlildan
+    kelgan har bir qiymat shu yerdan o'tadi.
+
+    `quote=False` — apostrof ATAYLAB qochirilmaydi. O'zbek matnida u
+    har qadamda uchraydi ("sig'madi", "to'xtagan") va `&#x27;` ga
+    aylansa ekranni o'qib bo'lmaydi. Matn tanasida uni qochirish
+    shart emas: faqat `< > &` maxsus ma'noga ega.
+    """
+    return escape(matn, quote=False)
 
 router = Router(name="admin")
 router.message.middleware(AdminOnlyMiddleware())
@@ -608,7 +627,7 @@ def _render_health(record) -> str:  # noqa: ANN001
         "",
     ]
     if record.detail:
-        qatorlar.extend(f"• {qator}" for qator in record.detail.splitlines())
+        qatorlar.extend(f"• {_xavfsiz(qator)}" for qator in record.detail.splitlines())
     if record.is_daily_preview:
         qatorlar.append("\n⏱ Bu — kunlik oldindan tahlil (hali o'lchanmagan)")
     return "\n".join(qatorlar)
@@ -653,12 +672,7 @@ async def silence_dashboard(
     matn = t("admin.sokinlik_sarlavha", language, hours=SOKINLIK_SOATLARI)
     matn += _render_silence(xulosa, language)
 
-    if oxirgilar:
-        matn += t("admin.sokinlik_oxirgi", language)
-        for yozuv in oxirgilar:
-            coin = yozuv.symbol or "—"
-            tafsilot = (yozuv.detail or "")[:120]
-            matn += f"• {coin}: {tafsilot}\n"
+    matn += _render_latest(oxirgilar, language)
 
     await callback.message.edit_text(matn, reply_markup=back_button("home", language))
     await callback.answer()
@@ -697,19 +711,40 @@ def _render_silence(summary: list[tuple[str, int, bool]], language: str) -> str:
         jami = sum(soni for _, soni in tahlil)
         matn += t("admin.sokinlik_tahlil", language, total=jami)
         for sabab, soni in tahlil:
-            matn += f"• {stage_label(sabab)} — {soni} marta ({_ulush(soni, jami)})\n"
+            ulush = _xavfsiz(_ulush(soni, jami))
+            matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta ({ulush})\n"
 
     if sikl:
         matn += t("admin.sokinlik_sikl", language)
         for sabab, soni in sikl:
-            matn += f"• {stage_label(sabab)} — {soni} marta\n"
+            matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta\n"
 
     if vaqt:
         matn += t("admin.sokinlik_vaqt", language)
         for sabab, soni in vaqt:
-            matn += f"• {stage_label(sabab)} — {soni} marta\n"
+            matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta\n"
 
     matn += t("admin.sokinlik_izoh", language)
+    return matn
+
+
+def _render_latest(records: list, language: str) -> str:  # noqa: ANN001
+    """Oxirgi rad etishlar — tafsiloti bilan.
+
+    Tafsilot matni TAHLILDAN keladi va unda `<` bo'lishi mumkin
+    (masalan "Ball 62 < chegara 70"). Telegram HTML rejimida bu teg
+    boshlanishi deb o'qiladi va BUTUN xabar rad etiladi — ya'ni bitta
+    qator butun ekranni ochilmas qiladi. Shuning uchun ekranga
+    chiqadigan har bir qiymat qalqondan o'tadi.
+    """
+    if not records:
+        return ""
+
+    matn = t("admin.sokinlik_oxirgi", language)
+    for yozuv in records:
+        coin = yozuv.symbol or "—"
+        tafsilot = (yozuv.detail or "")[:120]
+        matn += f"• {_xavfsiz(coin)}: {_xavfsiz(tafsilot)}\n"
     return matn
 
 

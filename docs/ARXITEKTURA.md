@@ -1544,7 +1544,72 @@ ko'rsatadi.
 
 ---
 
-## 38. Bosqichlar holati
+## 38. `<1%` butun ekranni o'chirib qo'ydi
+
+37-bo'limdagi tuzatish joylashtirilgach, 🔇 tugmasi **umuman javob
+bermay qoldi**. Qolgan tugmalar ishlardi.
+
+### Sabab
+
+Bot xabarlari `parse_mode=HTML` bilan yuboriladi. Bunda matndagi ochiq
+`<` teg boshlanishi deb o'qiladi. `<1%` esa hech qanday tegga
+o'xshamaydi, shuning uchun Telegram BUTUN xabarni rad etadi:
+
+```
+Bad Request: can't parse entities
+```
+
+Handler xato bilan tugaydi, `callback.answer()` ga yetib bormaydi —
+foydalanuvchi uchun bu "tugma bosildi, hech narsa bo'lmadi" ko'rinadi.
+Ekranda hech qanday xato yo'q, jurnalda esa bor. Aynan shu sababli
+uni faqat jonli sinovda sezish mumkin edi.
+
+Ya'ni "0%" ni tuzatish uchun qo'yilgan `<1%` ekranni butunlay
+ochilmas qilib qo'ydi.
+
+### Ikkinchi manba
+
+Xuddi shu xato ikkinchi joyda ham kutib turgan edi:
+
+```python
+detail=f"Ball {element.score:.0f} < chegara {chegara:.0f}",
+```
+
+Bu matn "Oxirgi tafsilotlar" bo'limida ko'rsatiladi. Ya'ni `threshold`
+rad etishi oxirgi uchtalikka tushgan har safar ekran ochilmasdi. Bu
+mening o'zgarishimdan oldin ham mavjud edi, faqat kamdan-kam
+uchraganidan ko'rinmagan.
+
+### Yechim
+
+Bazadan yoki tahlildan kelgan har bir qiymat `_xavfsiz()` dan o'tadi.
+
+Muhim tafsilot: `html.escape` sukut bo'yicha apostrofni ham qochiradi.
+O'zbek matnida u har qadamda uchraydi va `sig&#x27;madi` bo'lib
+chiqadi. Matn tanasida apostrofni qochirish SHART EMAS — faqat
+`< > &` maxsus ma'noga ega — shuning uchun `quote=False`.
+
+### Nima uchun test funksiyani emas, XABARNI tekshiradi
+
+`_ulush()` ni alohida sinash bu xatoni topmagan bo'lardi: u to'g'ri
+qiymat qaytaradi. Xato qismlar birlashganda, ya'ni tayyor xabarda
+tug'iladi.
+
+`tests/bot/test_message_html.py` tayyor matnni oladi, Telegram
+qabul qiladigan teglarni olib tashlaydi va qolgan `<` ni qidiradi.
+Tuzatishdan oldingi kodda bu test 5 ta xato topadi.
+
+### Naqsh
+
+Bu — 34-bo'limdagi "sarlavha va holat ikki manbadan" xatosining
+qarindoshi: **ma'lumot va belgilash bir-biridan ajratilmagan**. U
+yerda ikkita manba bitta gapni ikki xil aytardi; bu yerda ma'lumot
+matni belgilash sifatida o'qildi. Ikkalasida ham chegara qo'yilmagan
+edi.
+
+---
+
+## 39. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
