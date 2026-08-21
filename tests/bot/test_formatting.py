@@ -20,15 +20,17 @@ def test_kartochka_spetsifikatsiya_tuzilishiga_mos() -> None:
     kartochka = render_signal_card("eth", darajalar(), reja)
 
     assert "ETH/USDT" in kartochka
-    assert "Narx" in kartochka
+    assert "KIRISH narxi" in kartochka, "narvon kirish nuqtasini ko'rsatishi kerak"
     assert "OCO" in kartochka, "chiqish buyurtmasi turi aytilishi kerak"
-    assert "OCO" in kartochka and "50%" in kartochka, (
-        "ikkita OCO va ularning ulushi ko'rsatilishi kerak"
+    assert "1-OCO" in kartochka and "2-OCO" in kartochka, (
+        "ikkala OCO ham ko'rsatilishi kerak"
     )
-    # Ikkita OCO: har birida bitta TP va BIR XIL Stop
-    assert kartochka.count("🎯") == 2, "har bir OCO uchun bitta TP"
-    assert kartochka.count("🛑") == 2, "Stop ikkala OCO da ham takrorlanadi"
-    assert "1-OCO" in kartochka and "2-OCO" in kartochka
+    assert "50%" in kartochka, "har bir OCO ning ulushi ko'rsatilishi kerak"
+    # Narvon: har bir daraja BIR MARTA ko'rsatiladi, OCO tegishliligi
+    # yonida yoziladi — raqamlar takrorlanmaydi.
+    assert kartochka.count("🎯") == 2, "ikkita TP"
+    assert kartochka.count("🛑") == 1, "Stop bir marta, 'ikkalasida' deb belgilanadi"
+    assert "ikkalasida" in kartochka
 
 
 def test_limit_va_market_kartochkada_korinadi() -> None:
@@ -164,3 +166,100 @@ def test_xavf_pul_bilan_korsatiladi() -> None:
 
     assert "2.72" in kartochka
     assert "Stop ishlasa" in kartochka
+
+
+# --------------------------------------------------------------------------- #
+#  Sarlavha va holat — BITTA manba (34.1-bo'lim)
+# --------------------------------------------------------------------------- #
+
+
+def test_holat_berilsa_harakat_qatori_shundan_olinadi() -> None:
+    """ENG MUHIM: bitta xabarda ikkita qarama-qarshi gap bo'lmasin.
+
+    Avval harakat qatori buyurtma turidan ("Hozir oling"), holat esa
+    kuzatuvchidan ("Kutilmoqda") kelardi — ikki alohida manba. Natijada
+    narx kirish nuqtasiga yetmagan bo'lsa ham kartochka "Hozir oling"
+    derdi.
+    """
+    from core.domain.enums import SignalStatus
+
+    lv = darajalar()
+    # Narx Entry'dan YUQORIDA -> buyurtma turi Limit bo'lishi kerak edi,
+    # lekin holat aniq: kutilmoqda.
+    reja = decide_entry_plan(lv.entry * 1.02, lv, KONFIG)
+
+    kutilmoqda = render_signal_card("ETH", lv, reja, status=SignalStatus.PENDING)
+    sotib_olingan = render_signal_card("ETH", lv, reja, status=SignalStatus.ACTIVE)
+
+    assert "Kutilmoqda" in kutilmoqda
+    assert "Hozir oling" not in kutilmoqda, "zid gap bo'lmasligi kerak"
+    assert "sotib olingan" in sotib_olingan.lower()
+
+
+def test_holat_berilmasa_buyurtma_turidan_olinadi() -> None:
+    """Yangi signal — hali kuzatilmagan, holat yo'q."""
+    lv = darajalar()
+
+    darhol = render_signal_card("ETH", lv, decide_entry_plan(lv.entry, lv, KONFIG))
+    kutish = render_signal_card(
+        "ETH", lv, decide_entry_plan(lv.entry * 1.02, lv, KONFIG)
+    )
+
+    assert "⚡" in darhol
+    assert "📌" in kutish
+
+
+def test_belgi_takrorlanmaydi() -> None:
+    """Holat matnida belgi bor — kartochka uni ikkinchi marta qo'ymaydi."""
+    from core.domain.enums import SignalStatus
+
+    lv = darajalar()
+    kartochka = render_signal_card(
+        "ETH", lv, decide_entry_plan(lv.entry, lv, KONFIG), status=SignalStatus.PENDING
+    )
+
+    assert "⏳ ⏳" not in kartochka
+
+
+# --------------------------------------------------------------------------- #
+#  Narx narvoni
+# --------------------------------------------------------------------------- #
+
+
+def test_narvon_darajalarni_tartib_bilan_korsatadi() -> None:
+    """Yuqoridan pastga: TP2 -> TP1 -> kirish -> Stop."""
+    from bot.formatting import render_price_ladder
+
+    lv = darajalar()
+    qatorlar = render_price_ladder(lv).splitlines()
+
+    assert len(qatorlar) == 4
+    assert "TP2" in qatorlar[0]
+    assert "TP1" in qatorlar[1]
+    assert "KIRISH" in qatorlar[2]
+    assert "Stop" in qatorlar[3]
+
+
+def test_narvon_hozirgi_narxni_oz_orniga_qoyadi() -> None:
+    """Narx qayerda turgani bir qarashda ko'rinishi kerak."""
+    from bot.formatting import render_price_ladder
+
+    lv = darajalar()
+
+    yuqorida = render_price_ladder(lv, current_price=lv.entry * 1.01).splitlines()
+    pastda = render_price_ladder(lv, current_price=(lv.entry + lv.stop) / 2).splitlines()
+
+    # Narx kirishdan yuqorida -> narvonda kirishdan OLDIN turadi
+    assert "hozirgi" in yuqorida[2] and "KIRISH" in yuqorida[3]
+    # Narx kirishdan pastda -> kirishdan KEYIN turadi
+    assert "KIRISH" in pastda[2] and "hozirgi" in pastda[3]
+
+
+def test_narvon_kirish_narxida_takrorlanmaydi() -> None:
+    """Joriy narx kirish narxiga teng bo'lsa, ikkita bir xil qator chiqmaydi."""
+    from bot.formatting import render_price_ladder
+
+    lv = darajalar()
+    qatorlar = render_price_ladder(lv, current_price=lv.entry).splitlines()
+
+    assert len(qatorlar) == 4

@@ -54,7 +54,7 @@
     "men_kirdim": "🖐 Men sotib oldim",
     "kirgan_miqdor": "Qancha miqdorga sotib oldingiz? (USD)",
     "almashtirish": "📉 {from_symbol} signali zaiflashmoqda → 📈 {to_symbol} da yaxshi imkoniyat paydo bo'ldi. Almashtirish tavsiya etiladi.",
-    "kartochka": "🟢 <b>{symbol}/{quote}</b> — yangi signal\n\n<b>SOTIB OLISH</b>\n{order_emoji} {order_label}\n<code>Narx     {entry}</code>\n<code>Miqdor   {amount}</code>\n\n<b>SOTISH</b> — 2 ta OCO buyurtma\n<code>1-OCO ({share}%)  🎯 {tp1}  {tp1_pct}</code>\n<code>            🛑 {stop}  {stop_pct}</code>\n<code>2-OCO ({share}%)  🎯 {tp2}  {tp2_pct}</code>\n<code>            🛑 {stop}  {stop_pct}</code>",
+    "kartochka": "🟢 <b>{symbol}/{quote}</b>\n\n{order_emoji}{order_label}\n\n{ladder}\n\n<code>Miqdor  {amount}</code>",
     "miqdor_hisoblanmagan": "balansingizni kiriting",
     "buyurtma_limit": "📌",
     "buyurtma_market": "⚡",
@@ -72,7 +72,11 @@
     "kirdim_signal_yopiq": "Bu signal allaqachon yopilgan.",
     "natija_xabari": "{emoji} {symbol} yopildi\n\nSizning natijangiz: {pnl_pct} ({pnl_usd})",
     "natija_qismli": "\nTP1 da {share}% sotilgan edi.",
-    "xavf_puli": "⚖️ Stop ishlasa: <b>{risk}</b>"
+    "xavf_puli": "⚖️ Stop ishlasa: <b>{risk}</b>",
+    "narvon_kirish": "KIRISH narxi",
+    "narvon_hozir": "hozirgi narx",
+    "narvon_sarlavha": "<b>Narxlar</b>",
+    "narvon_ikkala_oco": "ikkalasida"
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",

@@ -405,6 +405,10 @@ async def list_signals(
                     quote_asset=config.halal_screening.quote_asset,
                     language=language,
                     tp1_close_pct=config.portfolio.tp1_close_pct,
+                    # Holat KARTOCHKA ICHIDA ko'rsatiladi — tashqaridan
+                    # qo'shilsa, u buyurtma turi bilan zid chiqishi mumkin
+                    # (34.1-bo'lim).
+                    status=SignalStatus(yozuv.status),
                 ),
                 SignalStatus(yozuv.status),
             )
@@ -416,10 +420,10 @@ async def list_signals(
         return
 
     await callback.answer()
-    for signal_id, kartochka, status in kartochkalar:
-        holat = t(f"signal.holat_{status.value}", language)
+    for signal_id, kartochka, _status in kartochkalar:
+        # Holat kartochka ichida — bu yerda takror qo'shilmaydi.
         await callback.message.answer(
-            f"{kartochka}\n\n{holat}",
+            kartochka,
             protect_content=True,
             reply_markup=signal_actions(signal_id, language),
         )
