@@ -201,3 +201,77 @@ async def test_admin_bolmagan_panelga_kira_olmaydi(dispatcher, sinov_boti) -> No
     )
 
     assert yozuv.chaqiruvlar == [], "begonaga javob berilmasligi kerak"
+
+
+# --------------------------------------------------------------------------- #
+#  Uchidan uchiga: admin yuborilgan signalni bekor qiladi
+# --------------------------------------------------------------------------- #
+
+ADMIN = User(id=777, is_bot=False, first_name="Admin", full_name="Admin")
+ADMIN_SUHBAT = Chat(id=777, type="private")
+
+
+def _admin_bosish(data: str, update_id: int) -> Update:
+    return Update(
+        update_id=update_id,
+        callback_query=CallbackQuery(
+            id=str(update_id),
+            from_user=ADMIN,
+            chat_instance="ci",
+            data=data,
+            message=Message(
+                message_id=2, date=datetime.now(UTC), chat=ADMIN_SUHBAT, text="panel"
+            ),
+        ),
+    )
+
+
+async def test_admin_yuborilgan_signalni_bekor_qiladi(dispatcher, sinov_boti) -> None:  # noqa: ANN001
+    """Signal yuborilgach uni to'xtatishning yo'li bo'lishi kerak.
+
+    Zanjir: panel -> Ochiq signallar -> signalni tanlash -> tasdiqlash.
+    Har bir bo'g'in alohida sinalgan, lekin callback_data nomlari bir-biriga
+    mos kelmasa tugma jimgina "ishlamaydi" — bu test aynan shuni tutadi.
+    """
+    from core.domain.enums import SignalSource
+    from core.domain.models import SignalLevels
+    from core.storage.repositories import SignalRepository
+
+    bot, yozuv = sinov_boti
+
+    async with TEST_DB.session() as session:
+        yozuv_signal = await SignalRepository(session).create(
+            symbol="BTC",
+            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            source=SignalSource.MANUAL,
+        )
+        signal_id = yozuv_signal.id
+
+    async def yubor(update: Update) -> list[tuple[str, str, list[str]]]:
+        yozuv.chaqiruvlar.clear()
+        await dispatcher.feed_update(bot, update)
+        return list(yozuv.chaqiruvlar)
+
+    # 1) Ochiq signallar ro'yxati
+    javob = await yubor(_admin_bosish("admin:faol_signallar", 201))
+    tugmalar = [t for _, _, tt in javob for t in tt]
+    assert any(f"#{signal_id} BTC" in t for t in tugmalar), tugmalar
+
+    # 2) Signalni tanlash -> tasdiq so'raladi
+    javob = await yubor(_admin_bosish(f"sigadm:pick:{signal_id}", 202))
+    matnlar = " ".join(matn for _, matn, _ in javob)
+    assert "bekor qilinsinmi" in matnlar.lower(), matnlar
+
+    # 3) Tasdiqlash -> baza yopiladi
+    javob = await yubor(_admin_bosish(f"sigadm:cancel:{signal_id}", 203))
+    matnlar = " ".join(matn for _, matn, _ in javob)
+    assert "bekor qilindi" in matnlar.lower(), matnlar
+
+    async with TEST_DB.session() as session:
+        yangilangan = await SignalRepository(session).get(signal_id)
+        assert yangilangan.status == "cancelled"
+
+    # 4) Ro'yxat endi bo'sh — bekor qilingan signal qaytib chiqmaydi
+    javob = await yubor(_admin_bosish("admin:faol_signallar", 204))
+    matnlar = " ".join(matn for _, matn, _ in javob)
+    assert "ochiq signal yo'q" in matnlar.lower(), matnlar

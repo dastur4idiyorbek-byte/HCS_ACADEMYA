@@ -288,6 +288,11 @@ class Signal:
     activated_at: datetime | None = None
     closed_at: datetime | None = None
     signal_id: int | None = None
+    #: TP1 ga bir marta yetganmi. Nima uchun `status` yetarli emas: TP1 dan
+    #: keyin narx Stop'ga tushsa, `status` STOPPED bo'lib qoladi va "TP1
+    #: olingan edi" fakti yo'qoladi — qismli sotish esa hisobga olinishi
+    #: kerak (5.4-band).
+    tp1_reached: bool = False
 
     @property
     def correlation_symbol(self) -> str:

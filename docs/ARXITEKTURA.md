@@ -1287,6 +1287,80 @@ savdo o'rtacha zarar keltirardi. Stop 4% bo'lsa TP1 kamida 6% da turadi.
 
 ---
 
+## 35. Yuborilgan signalni bekor qilish
+
+### Muammo
+
+Signal yuborilgach uni to'xtatishning **hech qanday yo'li yo'q edi**.
+`signal:cancel` degan tugma bor edi, lekin u faqat *yozish jarayonini*
+bekor qilardi — signal hali yuborilmagan payt. Yuborilgandan keyin
+signal ikki holatdan birida tugashi mumkin edi:
+
+1. narx TP2 yoki Stop'ga yetadi;
+2. 24 soat kutadi va `check_expiry()` uni eskirgan deb bekor qiladi.
+
+Ya'ni noto'g'ri kiritilgan yoki sinov uchun berilgan signal obunachilarda
+bir kunga qadar "faol" bo'lib turardi.
+
+### Nima uchun o'chirish emas, bekor qilish
+
+Yozuvni bazadan o'chirish eng oson yo'l edi, lekin u ikki narsani buzardi:
+
+- **Postmortem tarixi** (3.8-band) — signal nima uchun berilgani va nima
+  bilan tugagani yozuvda qoladi. O'chirilgan signal haqida keyin hech
+  narsa aytib bo'lmaydi.
+- **Ochiq pozitsiyalar** — "Men sotib oldim" degan foydalanuvchining
+  pozitsiyasi `signal_id` ga bog'langan. Signal o'chirilsa, pozitsiya
+  hech qachon yopilmaydigan yetim yozuvga aylanardi.
+
+`CANCELLED` holati esa allaqachon **natija statistikasidan chiqarilgan** —
+ya'ni sinov signali g'alaba foizini ham buzmaydi. Shuning uchun tanlov:
+signal `CANCELLED` deb belgilanadi, yozuv joyida qoladi.
+
+### Nima uchun bitta yo'l
+
+Bekor qilish to'rt joyni birga yangilashi kerak:
+
+| Joy | Yangilanmasa nima bo'ladi |
+|---|---|
+| `SignalTracker` | narx TP'ga yetsa signal qayta "ochiladi" |
+| baza | qayta ishga tushirilganda signal yana kuzatuvga tiklanadi |
+| ochiq pozitsiyalar | foydalanuvchi natijasini kutib qolaveradi |
+| `PriceStream` obunasi | kerak bo'lmagan coin oqimda qolib ketadi |
+
+Shuning uchun handler bu ishni o'zi qilmaydi — hammasi
+`SignalWatcher.cancel_signal()` ichida, bitta joyda. Handler faqat
+tasdiq so'raydi va natijani ko'rsatadi.
+
+Kuzatuvchi ishlamayotgan bo'lsa (`watcher is None`) handler bazani
+to'g'ridan-to'g'ri yopadi: bunday holatda kuzatuvda yangilanadigan narsa
+ham yo'q.
+
+### Yo'l-yo'lakay topilgan xato: TP1 dan keyingi Stop
+
+`_close_positions()` qismli sotishni hisobga olish uchun signal TP1 ga
+yetgan-yetmaganini so'rardi:
+
+```python
+return signal.status in {SignalStatus.TP1_HIT, SignalStatus.TP2_HIT}
+```
+
+Lekin bu tekshiruv signal **yopilgandan keyin** bajariladi. TP1 dan keyin
+narx Stop'ga tushsa, `status` allaqachon `STOPPED` bo'lib qolgan — ya'ni
+"TP1 olingan edi" fakti yo'qolgan. Natijada aynan shu holat, ya'ni
+funksiya izohida yozilgan holat, sof zarar bo'lib hisoblanardi.
+
+Sabab tanish: **bir maydondan ikki xil ma'no so'ralgan** — `status`
+"hozir qayerda" degan savolga javob beradi, "qayerdan o'tgan" degan
+savolga emas. Yechim: `Signal.tp1_reached` bayrog'i. U bir marta
+ko'tariladi va keyin o'chmaydi; qayta ishga tushirilganda holatdan
+tiklanadi.
+
+Bu xato bekor qilish yo'lida ham takrorlanardi (`CANCELLED` ham `status`
+ni almashtiradi), shuning uchun shu yerda tuzatildi.
+
+---
+
 ## 35. Bosqichlar holati
 
 | # | Bosqich | Holat |

@@ -122,6 +122,7 @@ def cancel_button(language: str = DEFAULT_LANGUAGE) -> InlineKeyboardMarkup:
 #: Admin panel bo'limlari — kengaytiriladigan (yangi bo'lim shu yerga qo'shiladi)
 ADMIN_SECTIONS: list[tuple[str, str]] = [
     ("yangi_signal", "admin.yangi_signal"),
+    ("faol_signallar", "admin.faol_signallar"),
     ("tolovlar", "admin.tolovlar"),
     ("narxlar", "admin.narxlar"),
     ("kontent", "admin.kontent"),
@@ -198,6 +199,42 @@ def signal_actions(
             [
                 InlineKeyboardButton(
                     text=t("signal.men_kirdim", language), callback_data=f"sig:enter:{signal_id}"
+                )
+            ],
+        ]
+    )
+
+
+def open_signal_list(
+    signals: list[tuple[int, str]], language: str = DEFAULT_LANGUAGE
+) -> InlineKeyboardMarkup:
+    """Admin uchun ochiq signallar ro'yxati — har biri bekor qilish tugmasi.
+
+    Tugma matnida coin ham, id ham bo'ladi: bitta coinda bir nechta signal
+    ochiq bo'lishi mumkin, id'siz qaysi birini bekor qilayotganingiz
+    ko'rinmaydi.
+    """
+    builder = InlineKeyboardBuilder()
+    for signal_id, matn in signals:
+        builder.button(text=matn, callback_data=f"sigadm:pick:{signal_id}")
+    builder.button(text=t("umumiy.orqaga", language), callback_data="menu:panel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def cancel_confirm(signal_id: int, language: str = DEFAULT_LANGUAGE) -> InlineKeyboardMarkup:
+    """Bekor qilish qaytarib bo'lmaydi — shuning uchun tasdiq so'raladi."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("admin.signal_bekor_ha", language),
+                    callback_data=f"sigadm:cancel:{signal_id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("umumiy.orqaga", language), callback_data="admin:faol_signallar"
                 )
             ],
         ]

@@ -23,7 +23,7 @@ from core.domain.enums import SignalStatus, SubscriptionTier
 from core.domain.portfolio import PositionOutcome
 from core.market_data import PriceCache, PriceStream, SpikeDetector
 from core.services import compute_outcome
-from core.signals import SignalEvent, SignalTracker
+from core.signals import SignalEvent, SignalEventKind, SignalTracker
 from core.storage import Database
 from core.storage.repositories import (
     SignalRepository,
@@ -127,6 +127,65 @@ class SignalWatcher:
             signal = SignalRepository.to_domain(yozuv)
         self._tracker.track(signal)
         self._sync_subscription()
+
+    async def cancel_signal(self, signal_id: int, reason: str) -> str | None:
+        """Yuborilgan signalni admin qarori bilan bekor qiladi.
+
+        Nima uchun kerak edi: signal yuborilgach uni to'xtatishning hech
+        qanday yo'li yo'q edi — noto'g'ri kiritilgan yoki sinov uchun
+        berilgan signal TP/Stop'gacha yoki 24 soat eskirgunicha "faol"
+        bo'lib turardi.
+
+        Bu bitta yo'l HAMMA joyni yangilaydi: kuzatuv, baza, ochiq
+        pozitsiyalar va obunachilar. Ularning birortasi qolib ketsa,
+        signal bir joyda yopiq, boshqasida ochiq ko'rinardi.
+
+        Signal o'chirilmaydi, `CANCELLED` deb belgilanadi (3.8-band):
+        tarix saqlanadi, lekin natija statistikasiga kirmaydi.
+
+        Args:
+            signal_id: bazadagi signal id.
+            reason: sabab — obunachilarga shu matn boradi.
+
+        Returns:
+            Coin belgisi, yoki `None` — signal topilmadi yoxud
+            allaqachon yopilgan.
+        """
+        async with self._db.session() as session:
+            yozuv = await SignalRepository(session).get(signal_id)
+            if yozuv is None or SignalStatus(yozuv.status).is_closed:
+                return None
+            symbol = yozuv.symbol
+            kirish_narxi = yozuv.entry
+
+        hozir = utc_now()
+        narx = self._cache.price_of(symbol) or kirish_narxi
+
+        hodisa = self._tracker.cancel(signal_id, hozir, reason, price=narx)
+        if hodisa is None:
+            # Kuzatuvda yo'q (masalan kuzatuv hali tiklanmagan) — baza va
+            # xabarlar baribir yangilanishi kerak, shuning uchun hodisani
+            # o'zimiz yasaymiz.
+            hodisa = SignalEvent(
+                signal_id=signal_id,
+                symbol=symbol,
+                kind=SignalEventKind.CANCELLED,
+                price=narx,
+                at=hozir,
+                new_status=SignalStatus.CANCELLED,
+                detail=reason,
+            )
+
+        await self._persist([hodisa])
+        # Pozitsiyalar kuzatuvdan chiqarilishidan OLDIN yopiladi: TP1
+        # olingan-olinmagani `_tracker` dagi holatdan aniqlanadi.
+        await self._close_positions([hodisa])
+        await self._notify([hodisa])
+        self._tracker.untrack(signal_id)
+        self._sync_subscription()
+
+        logger.info("Signal admin tomonidan bekor qilindi: id=%s symbol=%s", signal_id, symbol)
+        return symbol
 
     def _sync_subscription(self) -> None:
         """Kuzatiladigan coinlar ro'yxatini oqimga yetkazadi."""
@@ -236,8 +295,16 @@ class SignalWatcher:
 
     @staticmethod
     def _reached_tp1(signal) -> bool:  # noqa: ANN001
-        """Signal Stop yeyishdan oldin TP1 ga yetganmi."""
-        return signal.status in {SignalStatus.TP1_HIT, SignalStatus.TP2_HIT}
+        """Signal yopilishdan oldin TP1 ga yetganmi.
+
+        `status` ga qarash yetarli emas edi: TP1 dan keyin Stop ishlasa
+        holat STOPPED bo'lib qolardi va qismli sotish hisobga olinmasdan,
+        "TP1 oldi, keyin Stop" sof zarar ko'rinardi.
+        """
+        return signal.tp1_reached or signal.status in {
+            SignalStatus.TP1_HIT,
+            SignalStatus.TP2_HIT,
+        }
 
     @staticmethod
     async def _telegram_ids(session, user_ids: list[int]):  # noqa: ANN001, ANN205

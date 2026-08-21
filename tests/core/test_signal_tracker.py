@@ -261,3 +261,72 @@ def test_coin_belgisi_registrga_bogliq_emas(tracker: SignalTracker) -> None:
     key = tracker.track(signal("btc"))
     tracker.on_price("BTC", 100.0, BOSH)
     assert tracker.get(key).status is SignalStatus.ACTIVE
+
+
+# --------------------------------------------------------------------------- #
+#  Qo'lda bekor qilish (admin)
+# --------------------------------------------------------------------------- #
+
+
+def test_qolda_bekor_qilish_signalni_yopadi(tracker: SignalTracker) -> None:
+    key = tracker.track(signal())
+
+    hodisa = tracker.cancel(key, BOSH + timedelta(minutes=5), "Admin bekor qildi")
+
+    assert hodisa is not None
+    assert hodisa.kind is SignalEventKind.CANCELLED
+    assert hodisa.closes_signal
+    assert hodisa.detail == "Admin bekor qildi"
+    assert tracker.get(key).status is SignalStatus.CANCELLED
+    assert tracker.symbols() == set(), "bekor qilingan coin kuzatuvdan chiqadi"
+
+
+def test_faol_signal_ham_bekor_qilinadi(tracker: SignalTracker) -> None:
+    """Kutilayotgan signalgina emas — allaqachon sotib olingani ham."""
+    key = tracker.track(signal())
+    tracker.on_price("BTC", 100.0, BOSH)
+    assert tracker.get(key).status is SignalStatus.ACTIVE
+
+    hodisa = tracker.cancel(key, BOSH + timedelta(hours=1), "Admin bekor qildi", price=102.0)
+
+    assert hodisa is not None
+    assert hodisa.price == 102.0, "yopilish narxi — bozordagi joriy narx"
+    assert tracker.get(key).status is SignalStatus.CANCELLED
+
+
+def test_yopilgan_signal_qayta_bekor_qilinmaydi(tracker: SignalTracker) -> None:
+    """TP yoki Stop bilan tugagan natija keyin o'zgartirilmaydi."""
+    key = tracker.track(signal())
+    tracker.on_price("BTC", 100.0, BOSH)
+    tracker.on_price("BTC", 99.0, BOSH + timedelta(hours=2))
+    assert tracker.get(key).status is SignalStatus.STOPPED
+
+    assert tracker.cancel(key, BOSH + timedelta(hours=3), "kech") is None
+    assert tracker.get(key).status is SignalStatus.STOPPED
+
+
+def test_notanish_signal_bekor_qilinmaydi(tracker: SignalTracker) -> None:
+    assert tracker.cancel(12345, BOSH, "yo'q signal") is None
+
+
+def test_narx_berilmasa_kirish_narxi_olinadi(tracker: SignalTracker) -> None:
+    """Narx noma'lum bo'lsa foyda/zarar nolga teng deb qaraladi (0.3-band)."""
+    key = tracker.track(signal(entry=100.0))
+    hodisa = tracker.cancel(key, BOSH, "sabab")
+    assert hodisa.price == 100.0
+
+
+def test_tp1_bayrogi_stopdan_keyin_ham_qoladi(tracker: SignalTracker) -> None:
+    """TP1 dan keyin Stop ishlasa, qismli sotish hisobga olinishi kerak.
+
+    `status` ga qarash yetarli emas edi: u STOPPED bo'lib qolardi va
+    "TP1 oldi, keyin Stop" sof zarar ko'rinardi (5.4-band).
+    """
+    key = tracker.track(signal())
+    tracker.on_price("BTC", 100.0, BOSH)
+    tracker.on_price("BTC", 103.0, BOSH + timedelta(hours=1))
+    assert tracker.get(key).tp1_reached is True
+
+    tracker.on_price("BTC", 99.0, BOSH + timedelta(hours=2))
+    assert tracker.get(key).status is SignalStatus.STOPPED
+    assert tracker.get(key).tp1_reached is True

@@ -17,7 +17,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.formatting import render_signal_card
 from bot.i18n import t
-from bot.keyboards import admin_panel, back_button, cancel_button, signal_actions
+from bot.keyboards import (
+    admin_panel,
+    back_button,
+    cancel_button,
+    cancel_confirm,
+    open_signal_list,
+    signal_actions,
+)
 from bot.middlewares import AdminOnlyMiddleware
 from bot.states import SignalFlow
 from core.analysis import decide_entry_plan
@@ -33,6 +40,7 @@ from core.storage.repositories import (
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
+from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
 
@@ -369,6 +377,132 @@ async def _broadcast_signal(  # noqa: PLR0913
         except Exception:  # noqa: BLE001 — bitta xato tarqatishni to'xtatmasin
             logger.warning("Signal yetkazilmadi: telegram_id=%s", telegram_id)
     return yuborildi
+
+
+# --------------------------------------------------------------------------- #
+#  Admin: yuborilgan signalni bekor qilish
+# --------------------------------------------------------------------------- #
+
+#: Bekor qilingan signalda obunachiga ko'rsatiladigan sabab
+CANCEL_REASON_KEY = "admin.signal_bekor_sabab"
+
+
+@admin_router.callback_query(F.data == "admin:faol_signallar")
+async def open_signals_list(
+    callback: CallbackQuery, database: Database, language: str, **_: object
+) -> None:
+    """Hozir ochiq bo'lgan signallar — har biri bekor qilinishi mumkin.
+
+    Nima uchun kerak: yuborilgan signalni to'xtatishning yo'li yo'q edi.
+    Noto'g'ri kiritilgan yoki sinov uchun berilgan signal TP/Stop'ga
+    yetgunicha yoxud 24 soat eskirgunicha obunachilarda "faol" turardi.
+    """
+    async with database.session() as session:
+        yozuvlar = await SignalRepository(session).open_signals()
+        bandlar = [
+            (
+                yozuv.id,
+                f"{SignalStatus(yozuv.status).emoji} #{yozuv.id} {yozuv.symbol}",
+            )
+            for yozuv in yozuvlar
+        ]
+
+    if not bandlar:
+        await callback.message.edit_text(
+            t("admin.faol_signal_yoq", language), reply_markup=admin_panel(language)
+        )
+        await callback.answer()
+        return
+
+    await callback.message.edit_text(
+        t("admin.faol_signal_sarlavha", language, count=len(bandlar)),
+        reply_markup=open_signal_list(bandlar, language),
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(F.data.startswith("sigadm:pick:"))
+async def confirm_cancel(
+    callback: CallbackQuery, database: Database, language: str, **_: object
+) -> None:
+    """Tasdiq so'raydi: bekor qilishni ortga qaytarib bo'lmaydi."""
+    signal_id = int(callback.data.rsplit(":", 1)[1])
+
+    async with database.session() as session:
+        yozuv = await SignalRepository(session).get(signal_id)
+        topildi = yozuv is not None and not SignalStatus(yozuv.status).is_closed
+        symbol = yozuv.symbol if yozuv else ""
+        holat = SignalStatus(yozuv.status) if yozuv else None
+
+    if not topildi:
+        await callback.answer(t("admin.signal_allaqachon_yopiq", language), show_alert=True)
+        return
+
+    await callback.message.edit_text(
+        t(
+            "admin.signal_bekor_tasdiq",
+            language,
+            id=signal_id,
+            symbol=symbol,
+            status=t(f"signal.holat_{holat.value}", language),
+        ),
+        reply_markup=cancel_confirm(signal_id, language),
+    )
+    await callback.answer()
+
+
+@admin_router.callback_query(F.data.startswith("sigadm:cancel:"))
+async def cancel_open_signal(
+    callback: CallbackQuery,
+    database: Database,
+    language: str,
+    watcher=None,  # noqa: ANN001 — `bot/main.py` dispatcher orqali uzatadi
+    **_: object,
+) -> None:
+    """Signalni `CANCELLED` deb belgilaydi va obunachilarga xabar beradi.
+
+    O'chirish emas, bekor qilish: yozuv tarixda qoladi (3.8-band), lekin
+    `CANCELLED` natija statistikasiga kirmaydi — ya'ni sinov signali
+    raqamlarni buzmaydi.
+    """
+    signal_id = int(callback.data.rsplit(":", 1)[1])
+    sabab = t(CANCEL_REASON_KEY, language)
+
+    if watcher is not None:
+        symbol = await watcher.cancel_signal(signal_id, sabab)
+    else:
+        # Kuzatuvchi ishlamayotgan bo'lsa ham admin signalni yopa olishi
+        # kerak — bunday holatda kuzatuvda yangilanadigan narsa ham yo'q.
+        symbol = await _cancel_in_database(database, signal_id, sabab)
+
+    if symbol is None:
+        await callback.answer(t("admin.signal_allaqachon_yopiq", language), show_alert=True)
+        return
+
+    logger.info("Admin signalni bekor qildi: id=%s symbol=%s", signal_id, symbol)
+    await callback.message.edit_text(
+        t("admin.signal_bekor_qilindi", language, id=signal_id, symbol=symbol),
+        reply_markup=admin_panel(language),
+    )
+    await callback.answer()
+
+
+async def _cancel_in_database(database: Database, signal_id: int, reason: str) -> str | None:
+    """Kuzatuvchisiz zaxira yo'l: faqat bazadagi holatni yopadi."""
+    async with database.session() as session:
+        repo = SignalRepository(session)
+        yozuv = await repo.get(signal_id)
+        if yozuv is None or SignalStatus(yozuv.status).is_closed:
+            return None
+        await repo.apply_event(
+            signal_id=signal_id,
+            status=SignalStatus.CANCELLED,
+            price=yozuv.entry,
+            at=utc_now(),
+            kind="cancelled",
+            detail=reason,
+        )
+        return yozuv.symbol
 
 
 # --------------------------------------------------------------------------- #

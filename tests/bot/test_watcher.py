@@ -20,6 +20,7 @@ from core.storage import Database
 from core.storage.repositories import (
     SignalRepository,
     SubscriptionRepository,
+    UserPositionRepository,
     UserRepository,
 )
 
@@ -265,3 +266,104 @@ async def test_kuzatuv_royxati_yopilgach_qisqaradi(db: Database) -> None:
 
     assert watcher.tracker.symbols() == set()
     assert stream.subscribed == set(), "yopilgan signal obunadan chiqadi"
+
+
+# --------------------------------------------------------------------------- #
+#  Yuborilgan signalni bekor qilish (admin)
+# --------------------------------------------------------------------------- #
+
+
+async def test_bekor_qilish_bazani_va_kuzatuvni_yangilaydi(db: Database) -> None:
+    """Bitta chaqiruv hamma joyni yopishi kerak — aks holda signal bir
+    joyda yopiq, boshqasida ochiq ko'rinardi."""
+    signal_id = await _signal_yarat(db, "BTC")
+    await _obunachi_yarat(db)
+
+    stream = SoxtaStream([])
+    watcher = _watcher(SoxtaBot(), db, stream)
+    await watcher.restore_from_database()
+    assert stream.subscribed == {"BTC"}
+
+    symbol = await watcher.cancel_signal(signal_id, "Admin bekor qildi")
+
+    assert symbol == "BTC"
+    assert watcher.tracker.symbols() == set()
+    assert stream.subscribed == set(), "bekor qilingan coin oqim obunasidan chiqadi"
+    async with db.session() as session:
+        yozuv = await SignalRepository(session).get(signal_id)
+        assert yozuv.status == SignalStatus.CANCELLED.value
+        assert yozuv.closed_at is not None
+
+
+async def test_bekor_qilinganda_obunachiga_xabar_boradi(db: Database) -> None:
+    signal_id = await _signal_yarat(db, "BTC")
+    await _obunachi_yarat(db, telegram_id=555)
+
+    bot = SoxtaBot()
+    watcher = _watcher(bot, db, SoxtaStream([]))
+    await watcher.restore_from_database()
+    await watcher.cancel_signal(signal_id, "Admin bekor qildi")
+
+    assert [chat_id for chat_id, _ in bot.messages] == [555]
+    assert "⛔" in bot.messages[0][1]
+
+
+async def test_yopilgan_signal_qayta_bekor_qilinmaydi(db: Database) -> None:
+    signal_id = await _signal_yarat(db, "BTC")
+    async with db.session() as session:
+        await SignalRepository(session).apply_event(
+            signal_id, SignalStatus.TP2_HIT, 105.0, BOSH, "tp2_hit"
+        )
+
+    watcher = _watcher(SoxtaBot(), db, SoxtaStream([]))
+    assert await watcher.cancel_signal(signal_id, "kech") is None
+
+    async with db.session() as session:
+        yozuv = await SignalRepository(session).get(signal_id)
+        assert yozuv.status == SignalStatus.TP2_HIT.value, "natija o'zgarmasligi kerak"
+
+
+async def test_mavjud_bolmagan_signal_none_qaytaradi(db: Database) -> None:
+    watcher = _watcher(SoxtaBot(), db, SoxtaStream([]))
+    assert await watcher.cancel_signal(999, "yo'q") is None
+
+
+async def test_kuzatuvda_bolmagan_signal_ham_bekor_qilinadi(db: Database) -> None:
+    """`restore_from_database()` chaqirilmagan bo'lsa ham baza yangilanadi."""
+    signal_id = await _signal_yarat(db, "BTC")
+    await _obunachi_yarat(db)
+
+    watcher = _watcher(SoxtaBot(), db, SoxtaStream([]))
+    assert await watcher.cancel_signal(signal_id, "Admin bekor qildi") == "BTC"
+
+    async with db.session() as session:
+        yozuv = await SignalRepository(session).get(signal_id)
+        assert yozuv.status == SignalStatus.CANCELLED.value
+
+
+async def test_bekor_qilinganda_ochiq_pozitsiya_yopiladi(db: Database) -> None:
+    """5.4-band: "Men sotib oldim" degan foydalanuvchi natijasiz qolmasin."""
+    signal_id = await _signal_yarat(db, "BTC", entry=100.0)
+    await _obunachi_yarat(db, telegram_id=555)
+
+    async with db.session() as session:
+        user = await UserRepository(session).get_by_telegram_id(555)
+        await UserPositionRepository(session).record_entry(
+            user_id=user.id, signal_id=signal_id, amount_usd=200.0, entry_price=100.0
+        )
+
+    bot = SoxtaBot()
+    watcher = _watcher(bot, db, SoxtaStream([]))
+    await watcher.restore_from_database()
+    watcher.prices.update(PriceTick("BTC", 102.0, BOSH))
+
+    await watcher.cancel_signal(signal_id, "Admin bekor qildi")
+
+    async with db.session() as session:
+        user = await UserRepository(session).get_by_telegram_id(555)
+        ochiqlar = await UserPositionRepository(session).open_for_signal(signal_id)
+        assert ochiqlar == [], "pozitsiya ochiq qolmasligi kerak"
+
+    assert any("+2.00%" in matn for _, matn in bot.messages), (
+        "yopilish narxi bozordagi joriy narx bo'lishi kerak"
+    )

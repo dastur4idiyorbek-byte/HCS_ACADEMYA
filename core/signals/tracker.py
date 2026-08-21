@@ -133,6 +133,45 @@ class SignalTracker:
             )
         return hodisalar
 
+    def cancel(
+        self, key: int, at: datetime, detail: str, price: float | None = None
+    ) -> SignalEvent | None:
+        """Signalni qo'lda bekor qiladi (admin qarori).
+
+        Nima uchun bekor qilish, o'chirish emas: yopilgan signal statistika
+        va postmortem uchun tarixda qolishi kerak (3.8-band). `CANCELLED`
+        holati esa natija hisobiga umuman kirmaydi — ya'ni sinov signali
+        raqamlarni buzmaydi.
+
+        Allaqachon yopilgan signal qayta bekor qilinmaydi: TP yoki Stop
+        bilan tugagan natijani keyin o'zgartirib bo'lmaydi.
+
+        Args:
+            key: `track()` qaytargan kalit (bazadagi signal id).
+            at: bekor qilish vaqti.
+            detail: sabab — foydalanuvchiga shu matn ko'rsatiladi.
+            price: yopilish narxi. `None` bo'lsa kirish narxi olinadi
+                (narx ma'lum bo'lmasa foyda/zarar nolga teng deb qaraladi).
+
+        Returns:
+            Hodisa, yoki `None` — signal kuzatuvda yo'q/allaqachon yopilgan.
+        """
+        signal = self._signals.get(key)
+        if signal is None or signal.status.is_closed:
+            return None
+
+        signal.status = SignalStatus.CANCELLED
+        signal.closed_at = at
+        return SignalEvent(
+            signal_id=key if key > 0 else None,
+            symbol=signal.symbol,
+            kind=SignalEventKind.CANCELLED,
+            price=price if price is not None else signal.levels.entry,
+            at=at,
+            new_status=SignalStatus.CANCELLED,
+            detail=detail,
+        )
+
     def mark_weakening(self, key: int, at: datetime, detail: str) -> SignalEvent | None:
         """4.1-band: ball keskin pasaydi — "⚠️ Zaiflashmoqda".
 
@@ -226,6 +265,7 @@ class SignalTracker:
 
         # --- 🎯 TP1 ---
         if signal.status in {SignalStatus.ACTIVE, SignalStatus.WEAKENING} and price >= levels.tp1:
+            signal.tp1_reached = True
             qayd(
                 SignalEventKind.TP1_HIT,
                 SignalStatus.TP1_HIT,

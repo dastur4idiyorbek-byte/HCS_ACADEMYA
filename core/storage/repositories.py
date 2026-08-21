@@ -625,6 +625,8 @@ class SignalRepository:
             activated_at=record.activated_at,
             closed_at=record.closed_at,
             signal_id=record.id,
+            tp1_reached=SignalStatus(record.status)
+            in {SignalStatus.TP1_HIT, SignalStatus.TP2_HIT},
         )
 
 
