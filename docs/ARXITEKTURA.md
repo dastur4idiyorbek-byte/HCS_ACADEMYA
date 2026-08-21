@@ -1088,7 +1088,95 @@ tuzatilishi kerak.
 
 ---
 
-## 33. Bosqichlar holati
+## 33. Jonli indeks nima uchun 38/100 turardi
+
+32-bo'limdagi tuzatishdan keyin ham jonli bot signal bermadi. Bu safar
+taxmin qilishning hojati yo'q edi: `/panel` -> 💓 beshta omilni ochib
+berdi.
+
+```
+🔴 Bozor Salomatligi: 38/100
+• BTC Dominance ma'lumoti yo'q
+• Halol coinlarning 4%i ko'tarilish trendida (27 tadan)
+• Bozor rejimi: trend shakllanmoqda (ADX 24)
+• 1/1 foydalanuvchida hali kunlik xavf sig'imi bor
+• Faol signallar: 2/5 (60% joy bo'sh)
+```
+
+Hisob qayta qurildi va **aynan 38.0** chiqdi — ya'ni model jonli tizimga
+mos:
+
+| omil | ball | vazn | ulush |
+|---|---|---|---|
+| btc_dominance_stability | **0.00** | 20 | **0.0** |
+| halal_trend_breadth | **0.04** | 25 | **1.0** |
+| volatility_regime | 0.40 | 20 | 8.0 |
+| aggregate_user_capacity | 1.00 | 20 | 20.0 |
+| signal_saturation | 0.60 | 15 | 9.0 |
+| | | | **38.0** |
+
+Ikkita omil deyarli nol edi va ikkalasi ham xato sababli.
+
+### 33.1 BTC Dominance manbai umuman ulanmagan edi
+
+Kodda ochiq qoldirilgan:
+
+```python
+btc_dominance=None,  # TODO(17): dominance manbai ulanadi
+```
+
+Ya'ni indeksning **20 bali o'lik** edi. Bu 17-bosqichda bajarilishi kerak
+edi, lekin o'tkazib yuborilgan.
+
+**Qaror.** `core/market_data/dominance.py` qo'shildi — CoinMarketCap
+`/global-metrics/quotes/latest`. Kalit allaqachon reyting uchun
+ishlatilyapti, yangi kalit kerak emas.
+
+Ikki ehtiyot chorasi:
+
+1. **Sutkalik o'zgarish maydoni ixtiyoriy.** CMC uni har doim ham
+   qaytarmaydi va nomini o'zgartirgan. Ikkita nom sinab ko'riladi,
+   topilmasa `None` — omil buni hisobga oladi.
+2. **Hech qanday istisno tashqariga chiqmaydi.** Tarmoq xatosi, buzuq
+   javob, yaroqsiz kalit — hammasi `None` beradi va sikl davom etadi
+   (0.3-band).
+
+Kalit yo'q bo'lsa ishga tushishda ogohlantirish yoziladi: *"BTC Dominance
+omili nol ball oladi (indeksning 20 bali ishlatilmaydi)"*.
+
+### 33.2 Bozor kengligi qat'iy qoida bilan o'lchanardi
+
+27 coindan atigi **1 tasi** (4%) "ko'tarilishda" deb hisoblangan. Sabab —
+27-bo'limdagi xatoning aynan o'zi, faqat boshqa joyda:
+
+```python
+trendlar[symbol] = timeframe_trend(..., indicators.trend_requires_price_above_fast)
+```
+
+Bozor **kengligi** — "katta rasm ko'tarilishdami" degan REJIM savoli,
+kirish qarori emas. 27-bo'limda buning uchun
+`htf_trend_requires_price_above_fast` ajratilgandi, lekin bu joy
+o'tkazib yuborilgan: kenglik hali ham qat'iy qoidani ishlatardi va
+support zonasiga qaytgan har bir coin "trendsiz" ko'rinardi.
+
+Endi kenglik ham tuzilma qoidasini ishlatadi (EMA50 > EMA200). Backtest
+dvigateli ham bir xil qilindi.
+
+### 33.3 Nima o'zgarmadi
+
+Ball chegarasi (70/80) va salomatlik chegarasi (40) **tegilmadi**. Uchala
+tuzatish ham indeksning sun'iy ravishda past turishiga qaratilgan, signal
+berishni majburlashga emas. 0.2-band kuchda: bozor mos bo'lmasa bot jim
+turadi.
+
+**Ochiq savol.** Dominance so'rovi bu muhitda sinab ko'rilmagan — tarmoq
+yopiq. Javob TAHLILI to'liq sinalgan (bo'sh, buzuq, maydonsiz javoblar),
+lekin haqiqiy chaqiruv jonli ishlashda tekshirilishi kerak: `/panel` ->
+💓 da "BTC Dominance ma'lumoti yo'q" qatori yo'qolishi lozim.
+
+---
+
+## 34. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

@@ -424,11 +424,16 @@ class Backtester:
             atr = atr_pct(seriya, indicators.atr_period)
             if atr is not None:
                 atr_qiymatlari[symbol] = atr
+            # 3.7-band, 2-omil: bozor KENGLIGI — "katta rasm ko'tarilishdami".
+            # Bu rejim savoli, kirish qarori emas, shuning uchun tuzilma
+            # qoidasi ishlatiladi (EMA50 > EMA200), qat'iy "narx EMA50 dan
+            # yuqori" emas. Qat'iy qoida bilan jonli botda 27 coindan
+            # atigi 1 tasi "ko'tarilishda" chiqardi — 32-bo'lim.
             trendlar[symbol] = timeframe_trend(
                 seriya,
                 indicators.ema_fast,
                 indicators.ema_slow,
-                indicators.trend_requires_price_above_fast,
+                indicators.htf_trend_requires_price_above_fast,
             )
 
         limitlar = self._config.risk_engine.max_open_signals_by_health

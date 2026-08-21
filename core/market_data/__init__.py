@@ -25,6 +25,7 @@ from core.market_data.binance import (
     from_binance_symbol,
     to_binance_symbol,
 )
+from core.market_data.dominance import CoinMarketCapDominance, DominanceSnapshot
 from core.market_data.ranking import (
     CoinGeckoRanking,
     CoinMarketCapRanking,
@@ -34,6 +35,8 @@ from core.market_data.ranking import (
 )
 
 __all__ = [
+    "CoinMarketCapDominance",
+    "DominanceSnapshot",
     "BackoffPolicy",
     "BinanceCandleProvider",
     "BinancePriceStream",

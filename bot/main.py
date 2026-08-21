@@ -27,7 +27,11 @@ from bot.middlewares import UserContextMiddleware
 from bot.services import PipelineRunner, Scheduler, SignalWatcher
 from bot.settings import BotSettings, SettingsError, load_env_file, load_settings
 from core.config import AppConfig, load_config
-from core.market_data import BinanceCandleProvider, BinancePriceStream
+from core.market_data import (
+    BinanceCandleProvider,
+    BinancePriceStream,
+    CoinMarketCapDominance,
+)
 from core.market_data.ranking import build_ranking_provider
 from core.risk_engine import RiskEngine
 from core.storage import Database
@@ -143,8 +147,16 @@ async def run() -> None:
         config.market_data, config.halal_screening.quote_asset
     )
     ranking_provider = build_ranking_provider(config.market_data)
+    # 3.7-band, 1-omil: BTC dominance. Kalit yo'q bo'lsa omil nol ball
+    # oladi va buni admin `/panel` -> 💓 da ko'radi.
+    dominance = CoinMarketCapDominance(config.market_data)
+    if not dominance.is_configured:
+        logger.warning(
+            "CMC_API_KEY yo'q — BTC Dominance omili nol ball oladi "
+            "(indeksning 20 bali ishlatilmaydi)"
+        )
     runner = PipelineRunner(
-        bot, database, config, candle_provider, ranking_provider, watcher
+        bot, database, config, candle_provider, ranking_provider, watcher, dominance
     )
     scheduler = Scheduler(bot, database, config, runner, settings.admin_ids)
     scheduler.start()
@@ -162,6 +174,7 @@ async def run() -> None:
         await stream.close()
         await candle_provider.close()
         await ranking_provider.close()
+        await dominance.close()
         await bot.session.close()
         await database.dispose()
         logger.info("Bot to'xtatildi")

@@ -30,7 +30,7 @@ from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
 from core.domain.models import Candle, HalalVerdict, MarketHealth, PositionSuggestion
 from core.halal_screening import HalalScreener, StaticRulingRegistry
-from core.market_data import CandleProvider, RankingProvider
+from core.market_data import CandleProvider, CoinMarketCapDominance, RankingProvider
 from core.market_data.ranking import RankingUnavailableError
 from core.pipeline import CycleInput, CycleResult, SignalCycle, SignalMonitor, SymbolData
 from core.position_sizing import PositionSizer, compute_aggregate_capacity
@@ -78,6 +78,7 @@ class PipelineRunner:
         candles: CandleProvider,
         ranking: RankingProvider,
         watcher,  # noqa: ANN001 — bot.services.watcher.SignalWatcher
+        dominance: CoinMarketCapDominance | None = None,
     ) -> None:
         self._bot = bot
         self._db = database
@@ -85,6 +86,7 @@ class PipelineRunner:
         self._candles = candles
         self._ranking = ranking
         self._watcher = watcher
+        self._dominance = dominance
 
         self._strategies = build_strategies(config)
         self._cycle = SignalCycle(config, self._strategies)
@@ -171,11 +173,16 @@ class PipelineRunner:
             )
             if not seriya:
                 continue
+            # 3.7-band, 2-omil: bozor KENGLIGI — "katta rasm ko'tarilishdami".
+            # Bu rejim savoli, kirish qarori emas, shuning uchun tuzilma
+            # qoidasi ishlatiladi (EMA50 > EMA200), qat'iy "narx EMA50 dan
+            # yuqori" emas. Qat'iy qoida bilan jonli botda 27 coindan
+            # atigi 1 tasi "ko'tarilishda" chiqardi — 32-bo'lim.
             trendlar[symbol] = timeframe_trend(
                 seriya,
                 indicators.ema_fast,
                 indicators.ema_slow,
-                indicators.trend_requires_price_above_fast,
+                indicators.htf_trend_requires_price_above_fast,
             )
             qiymat = adx(seriya, indicators.adx_period)
             if qiymat is not None:
@@ -192,11 +199,15 @@ class PipelineRunner:
         )
         limitlar = self._config.risk_engine.max_open_signals_by_health
 
+        # 3.7-band, 1-omil. Olinmasa `None` — omil nol ball oladi, lekin
+        # sikl to'xtamaydi (0.3-band).
+        dominance = await self._dominance.fetch() if self._dominance else None
+
         return self._health.compute(
             HealthInputs(
                 computed_at=utc_now(),
-                btc_dominance=None,  # TODO(17): dominance manbai ulanadi
-                btc_dominance_change_24h=None,
+                btc_dominance=dominance.value if dominance else None,
+                btc_dominance_change_24h=dominance.change_24h if dominance else None,
                 universe_trends=trendlar,
                 universe_adx=adx_qiymatlari,
                 capacity=sigim,
