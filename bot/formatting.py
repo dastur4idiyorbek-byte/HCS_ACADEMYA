@@ -72,6 +72,15 @@ def render_signal_card(
         stop_pct=format_pct(-levels.stop_distance_pct),
         rr=f"{levels.risk_reward_tp2:.1f}",
     )
+    # Xavfni PUL bilan ko'rsatish — foizdan ko'ra tushunarli. Balans
+    # kiritilmagan bo'lsa hisoblab bo'lmaydi, o'shanda qator qo'shilmaydi.
+    if suggestion is not None and suggestion.risk_amount_usd > 0:
+        kartochka += "\n\n" + t(
+            "signal.xavf_puli",
+            language,
+            risk=f"−${suggestion.risk_amount_usd:,.2f}",
+        )
+
     if range_position is not None:
         kartochka += f"\n📍 {range_position.describe()}"
     return kartochka

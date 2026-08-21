@@ -9,9 +9,9 @@ class SignalStatus(str, Enum):
     """2-bo'lim: signal holati (to'liq avtomatik kuzatiladi)."""
 
     PENDING = "pending"          # ⏳ Kutilmoqda — narx Entry'ga yetmagan
-    ACTIVE = "active"            # ✅ Faol — narx Entry'ga yetgan
+    ACTIVE = "active"            # 🟢 Faol — narx Entry'ga yetgan
     TP1_HIT = "tp1_hit"          # 🎯 TP1 olindi
-    TP2_HIT = "tp2_hit"          # 🎯🎯 TP2 olindi — yopiladi
+    TP2_HIT = "tp2_hit"          # 🏁 TP2 olindi — yopiladi
     STOPPED = "stopped"          # 🛑 Stop bo'ldi — yopiladi
     WEAKENING = "weakening"      # ⚠️ Zaiflashmoqda (4.1-band)
     CANCELLED = "cancelled"      # bekor qilingan (Entry'ga yetmasdan eskirgan)
@@ -29,14 +29,17 @@ class SignalStatus(str, Enum):
         return _STATUS_EMOJI[self]
 
 
+#: Har bir belgi BITTA ma'noda. Avval ✅ ham "faol", ham "tasdiqlandi",
+#: ham "saqlandi" degani edi; 🎯 esa ham TP, ham Limit buyurtma edi —
+#: shu sababli kartochkani ko'z bilan o'qib bo'lmasdi.
 _STATUS_EMOJI: dict[SignalStatus, str] = {
-    SignalStatus.PENDING: "⏳",
-    SignalStatus.ACTIVE: "✅",
-    SignalStatus.TP1_HIT: "🎯",
-    SignalStatus.TP2_HIT: "🎯🎯",
-    SignalStatus.STOPPED: "🛑",
-    SignalStatus.WEAKENING: "⚠️",
-    SignalStatus.CANCELLED: "❌",
+    SignalStatus.PENDING: "⏳",     # kutilmoqda
+    SignalStatus.ACTIVE: "🟢",      # ochiq va ishlayapti
+    SignalStatus.TP1_HIT: "🎯",     # foyda nuqtasi
+    SignalStatus.TP2_HIT: "🏁",     # yakuniy maqsad — tugadi
+    SignalStatus.STOPPED: "🛑",     # zarar bilan yopildi
+    SignalStatus.WEAKENING: "⚠️",   # ogohlantirish
+    SignalStatus.CANCELLED: "⛔",   # umuman ochilmadi
 }
 
 
@@ -54,11 +57,19 @@ class OrderType(str, Enum):
 
     @property
     def emoji(self) -> str:
-        return "🎯" if self is OrderType.LIMIT else "⚡"
+        """📌 — narx belgilangan joyga kelishini kutamiz; ⚡ — hozir.
+
+        🎯 ATAYLAB ishlatilmaydi: u faqat foyda nuqtasi (TP) uchun.
+        Bitta belgi ikki ma'noda ishlatilsa, kartochka o'qilmay qoladi.
+        """
+        return "📌" if self is OrderType.LIMIT else "⚡"
 
     @property
     def label_uz(self) -> str:
-        return "Limit" if self is OrderType.LIMIT else "Market"
+        """Nima qilish kerakligini AYTADI, turini nomlab qo'ymaydi."""
+        if self is OrderType.LIMIT:
+            return "Buyurtma qoldiring — narx shu yerga kelganda ochiladi"
+        return "Hozir oling — narx allaqachon kerakli joyda"
 
 
 class ExitOrderType(str, Enum):

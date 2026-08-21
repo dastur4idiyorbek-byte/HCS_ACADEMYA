@@ -159,7 +159,7 @@ async def test_obunachiga_xabar_yuboriladi(db: Database) -> None:
 
     qabul_qiluvchilar = {chat_id for chat_id, _ in bot.messages}
     assert qabul_qiluvchilar == {555}
-    assert any("✅" in matn for _, matn in bot.messages), "faollashish xabari"
+    assert any("🟢" in matn for _, matn in bot.messages), "faollashish xabari (🟢 = faol)"
     assert any("🎯" in matn for _, matn in bot.messages), "TP1 xabari"
 
 

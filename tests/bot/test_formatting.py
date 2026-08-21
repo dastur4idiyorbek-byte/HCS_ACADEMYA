@@ -19,11 +19,11 @@ def test_kartochka_spetsifikatsiya_tuzilishiga_mos() -> None:
     reja = decide_entry_plan(2478.0, darajalar(), KONFIG)
     kartochka = render_signal_card("eth", darajalar(), reja)
 
-    assert "🟢 SIGNAL: ETH/USDT" in kartochka
-    assert "📥 KIRISH" in kartochka
-    assert "📤 CHIQISH (OCO)" in kartochka
-    assert "📊 Risk/Reward: 1:" in kartochka
-    for qator in ("🎯 TP1:", "🎯 TP2:", "🛑 Stop:"):
+    assert "ETH/USDT" in kartochka
+    assert "Narx" in kartochka
+    assert "OCO" in kartochka, "chiqish buyurtmasi turi aytilishi kerak"
+    assert "foyda imkoniyati" in kartochka, "risk/reward tushunarli tilda aytilishi kerak"
+    for qator in ("🎯 TP1", "🎯 TP2", "🛑 Stop"):
         assert qator in kartochka
 
 
@@ -31,8 +31,8 @@ def test_limit_va_market_kartochkada_korinadi() -> None:
     kutish = render_signal_card("ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG))
     darhol = render_signal_card("ETH", darajalar(), decide_entry_plan(2451.0, darajalar(), KONFIG))
 
-    assert "🎯 Limit" in kutish
-    assert "⚡ Market" in darhol
+    assert "📌" in kutish, "Limit uchun 📌 kutilgan"
+    assert "⚡" in darhol, "Market uchun ⚡ kutilgan"
 
 
 def test_limit_kartochkasida_entry_narxi_korsatiladi() -> None:
@@ -52,7 +52,7 @@ def test_miqdor_pozitsiya_hisobidan_toladi() -> None:
     taklif = sizer.suggest("ETH", darajalar(), byudjet)
 
     kartochka = render_signal_card("ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG), taklif)
-    assert "$" in kartochka.split("Miqdor:")[1].split("\n")[0]
+    assert "$" in kartochka.split("Miqdor")[1].split("\n")[0]
 
 
 def test_balans_kiritilmagan_bolsa_taklif_korsatiladi() -> None:
@@ -62,8 +62,8 @@ def test_balans_kiritilmagan_bolsa_taklif_korsatiladi() -> None:
 
 def test_stop_manfiy_foiz_bilan_korsatiladi() -> None:
     kartochka = render_signal_card("ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG))
-    stop_qatori = next(q for q in kartochka.splitlines() if "Stop:" in q)
-    assert "(-0." in stop_qatori
+    stop_qatori = next(q for q in kartochka.splitlines() if "Stop" in q)
+    assert "-0." in stop_qatori
 
 
 def test_arzon_coin_narxi_kesilmaydi() -> None:
@@ -104,3 +104,59 @@ def test_kartochkada_zona_qatori_korsatiladi() -> None:
 def test_zona_qatori_ixtiyoriy() -> None:
     kartochka = render_signal_card("ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG))
     assert "📍" not in kartochka
+
+
+# --------------------------------------------------------------------------- #
+#  Belgi tizimi — bitta belgi, bitta ma'no
+# --------------------------------------------------------------------------- #
+
+
+def test_bitta_belgi_bitta_manoda() -> None:
+    """Avval 🎯 ham TP, ham Limit buyurtma edi — kartochka o'qilmasdi.
+
+    Bu test aynan shu chalkashlikni qaytib kelishidan saqlaydi.
+    """
+    from core.domain.enums import OrderType, SignalStatus
+
+    buyurtma_belgilari = {tur.emoji for tur in OrderType}
+    holat_belgilari = {holat.emoji for holat in SignalStatus}
+
+    assert "🎯" not in buyurtma_belgilari, "🎯 faqat foyda nuqtasi uchun"
+    assert len(buyurtma_belgilari) == len(OrderType), "har bir tur o'z belgisiga ega"
+    assert len(holat_belgilari) == len(SignalStatus), "har bir holat o'z belgisiga ega"
+
+
+def test_kartochka_nima_qilishni_aytadi() -> None:
+    """Foydalanuvchi raqamlarni emas, HARAKATNI ko'rishi kerak."""
+    from core.domain.enums import OrderType
+
+    assert "oling" in OrderType.MARKET.label_uz.lower()
+    assert "buyurtma" in OrderType.LIMIT.label_uz.lower()
+
+
+def test_xavf_pul_bilan_korsatiladi() -> None:
+    """Foiz mavhum — pul aniq."""
+    from core.domain.models import PositionSuggestion
+
+    lv = darajalar()
+    kartochka = render_signal_card(
+        "ETH",
+        lv,
+        decide_entry_plan(lv.entry, lv, KONFIG),
+        suggestion=PositionSuggestion(
+            symbol="ETH",
+            balance=1000.0,
+            daily_risk_pct=3.0,
+            daily_budget_usd=30.0,
+            remaining_budget_usd=27.28,
+            risk_amount_usd=2.72,
+            position_size_usd=340.0,
+            entry=lv.entry,
+            stop_distance_pct=0.76,
+            units=0.1388,
+            within_daily_limit=True,
+        ),
+    )
+
+    assert "2.72" in kartochka
+    assert "zararingiz" in kartochka

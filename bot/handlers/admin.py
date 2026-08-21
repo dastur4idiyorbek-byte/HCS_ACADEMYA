@@ -33,6 +33,7 @@ from bot.states import (
     PriceFlow,
     ViolationFlow,
 )
+from bot.ui import show_screen
 from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
@@ -83,8 +84,11 @@ async def show_panel(
     await state.clear()
     async with database.session() as session:
         kutilayotgan = await PaymentRepository(session).pending_count()
-    await message.answer(
-        t("admin.salom", language, pending=kutilayotgan), reply_markup=admin_panel(language)
+    await show_screen(
+        message,
+        state,
+        t("admin.salom", language, pending=kutilayotgan),
+        reply_markup=admin_panel(language),
     )
 
 

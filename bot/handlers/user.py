@@ -17,6 +17,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot.i18n import t
 from bot.keyboards import back_button, main_menu, period_menu, tier_menu
 from bot.states import BalanceFlow, PaymentFlow
+from bot.ui import show_screen
 from core.config.schema import AppConfig
 from core.domain.enums import SubscriptionPeriod, SubscriptionTier
 from core.services import SubscriptionService
@@ -60,7 +61,9 @@ async def show_menu(
 ) -> None:
     await state.clear()
     salom = t("umumiy.salom", language, name=message.from_user.full_name)
-    await message.answer(
+    await show_screen(
+        message,
+        state,
         f"{salom}\n\n{t('umumiy.menyu', language)}",
         reply_markup=main_menu(tier, language, is_admin),
     )

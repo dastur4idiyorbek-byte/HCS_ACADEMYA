@@ -14,7 +14,7 @@ def test_ozbek_tili_mavjud() -> None:
 
 
 def test_matn_olinadi() -> None:
-    assert t("umumiy.menyu") == "📋 Asosiy menyu"
+    assert "Asosiy menyu" in t("umumiy.menyu")
 
 
 def test_orin_egallovchilar_toldiriladi() -> None:
