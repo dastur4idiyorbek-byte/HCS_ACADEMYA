@@ -205,7 +205,7 @@ async def test_rad_etish_sabablari_bazaga_yoziladi(db: Database, config) -> None
         )
 
     assert xulosa, "rad etish sabablari yozilmagan"
-    assert sum(soni for _, soni in xulosa) == len(natija.rejected)
+    assert sum(soni for _, soni, _ in xulosa) == len(natija.rejected)
 
 
 async def test_sabab_yozilmasa_sikl_toxtamaydi(db: Database, config, monkeypatch) -> None:  # noqa: ANN001

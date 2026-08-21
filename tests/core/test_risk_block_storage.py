@@ -43,8 +43,8 @@ async def test_sabablar_yoziladi_va_guruhlanadi(db) -> None:  # noqa: ANN001
     async with db.session() as session:
         xulosa = await RiskBlockRepository(session).summary_since(HOZIR - timedelta(days=1))
 
-    assert xulosa[0] == ("classic_ta:zone_position", 3)
-    assert ("threshold", 1) in xulosa
+    assert xulosa[0] == ("classic_ta:zone_position", 3, False)
+    assert ("threshold", 1, False) in xulosa
 
 
 async def test_bosh_royxat_yozilmaydi(db) -> None:  # noqa: ANN001

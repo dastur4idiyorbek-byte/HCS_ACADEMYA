@@ -95,3 +95,65 @@ class CycleResult:
             f"{self.emitted_count} signal chiqdi "
             f"(salomatlik {salomatlik}, chegara {chegara})"
         )
+
+
+# --------------------------------------------------------------------------- #
+#  Rad etish bosqichlari — dashboard uchun (3.7-band)
+# --------------------------------------------------------------------------- #
+
+#: Vaqt darvozasi bo'lgan bosqichlar — TASHXIS EMAS, soat ko'rsatkichi.
+#:
+#: Skalping oynasi kuniga atigi 45 daqiqa ochiq (12-bosqich), ya'ni
+#: qolgan 96% vaqtda "oyna yopiq" yozuvi HAR SIKLDA, HAR COIN uchun
+#: yoziladi. Natijada u dashboardda birinchi o'rinni egallab, haqiqiy
+#: sabablarni pastga surib yuboradi va foizlarni ham buzadi.
+#:
+#: Bu yozuvlar o'chirilmaydi (kutuv ishlayotganini ko'rsatadi), lekin
+#: alohida ajratiladi va foiz hisobiga kirmaydi.
+ROUTINE_STAGES: frozenset[str] = frozenset(
+    {
+        "opening_range_scalp:window",   # oyna yopilgan — kuniga 45 daqiqa
+        "opening_range_scalp:session",  # bugungi ochilish shami hali yo'q
+    }
+)
+
+#: Bosqich kodlaridan odam o'qiydigan nom. Kod nomi (`classic_ta:zones`)
+#: adminga hech narsa aytmaydi.
+STAGE_LABELS: dict[str, str] = {
+    # Sikl darajasi — bitta yozuv BARCHA coinlarni to'xtatadi
+    "market_health": "Bozor Salomatligi past",
+    "threshold": "Ball chegaradan past",
+    "risk_engine": "Risk Engine to'xtatdi",
+    # 3.1 — klassik texnik tahlil
+    "classic_ta:halal": "Halol ro'yxatda emas",
+    "classic_ta:data": "Sham ma'lumoti yetarli emas",
+    "classic_ta:zones": "Support/Resistance zonasi topilmadi",
+    "classic_ta:zone_position": "Narx support zonasidan uzoq",
+    "classic_ta:timeframes": "Timeframelar bir-biriga zid",
+    "classic_ta:indicators": "Indikatorlar hisoblanmadi",
+    "classic_ta:confirmation": "Indikatorlar tasdiqlamadi",
+    "classic_ta:levels": "Darajalar risk qoidasiga sig'madi",
+    "classic_ta:no_setup": "Shart bajarilmadi",
+    "classic_ta:error": "Strategiya ichki xatosi",
+    # 3.9 — kunlik sham ochilishi skalping
+    "opening_range_scalp:halal": "Halol ro'yxatda emas",
+    "opening_range_scalp:data": "Sham ma'lumoti yetarli emas",
+    "opening_range_scalp:session": "Bugungi ochilish shami hali yo'q",
+    "opening_range_scalp:window": "Skalping oynasi yopiq",
+    "opening_range_scalp:range": "Ochilish diapazoni mos emas",
+    "opening_range_scalp:volume": "Hajm yetarli emas",
+    "opening_range_scalp:breakout": "Diapazon hali buzilmagan",
+    "opening_range_scalp:levels": "Darajalar risk qoidasiga sig'madi",
+    "opening_range_scalp:no_setup": "Shart bajarilmadi",
+    "opening_range_scalp:error": "Strategiya ichki xatosi",
+}
+
+
+def stage_label(stage: str) -> str:
+    """Bosqich kodining o'zbekcha nomi. Nomi yo'q bo'lsa — kodning o'zi."""
+    return STAGE_LABELS.get(stage, stage)
+
+
+def is_routine_stage(stage: str) -> bool:
+    """Bu bosqich vaqt darvozasimi (tashxis emas)."""
+    return stage in ROUTINE_STAGES

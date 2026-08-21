@@ -866,21 +866,35 @@ class RiskBlockRepository:
         await self._session.flush()
         return len(rejections)
 
-    async def summary_since(self, since: datetime, limit: int = 10) -> list[tuple[str, int]]:
-        """Sabab -> nechta marta, eng ko'pidan boshlab.
+    async def summary_since(
+        self, since: datetime, limit: int = 10
+    ) -> list[tuple[str, int, bool]]:
+        """Sabab -> `(nechta marta, sikl darajasidami)`, eng ko'pidan boshlab.
 
         Aynan shu ro'yxat "nega signal yo'q" savoliga javob beradi: bitta
         sabab hukmronlik qilsa, sozlama noto'g'ri qo'yilgan bo'lishi
         mumkin.
+
+        Uchinchi element nima uchun kerak: yozuvlar IKKI XIL o'lchovda
+        yoziladi. Sikl darajasidagi to'xtash (`symbol` yo'q, masalan
+        Bozor Salomatligi past) bitta yozuv bo'lsa ham O'SHA SIKLDAGI
+        BARCHA coinlarni to'xtatadi; coin darajasidagi yozuv esa faqat
+        bittasini. Ikkalasini bitta ustunga qo'shib foizlash — 30 ta
+        coinni to'xtatgan sababni bitta coinni to'xtatgani bilan teng
+        deb hisoblash demakdir.
         """
+        daraja = RiskBlock.symbol.is_(None).label("cycle_level")
         stmt = (
-            select(RiskBlock.reason, func.count(RiskBlock.id))
+            select(RiskBlock.reason, func.count(RiskBlock.id), daraja)
             .where(RiskBlock.created_at >= since)
-            .group_by(RiskBlock.reason)
+            .group_by(RiskBlock.reason, daraja)
             .order_by(func.count(RiskBlock.id).desc())
             .limit(limit)
         )
-        return [(qator[0], qator[1]) for qator in (await self._session.execute(stmt)).all()]
+        return [
+            (qator[0], qator[1], bool(qator[2]))
+            for qator in (await self._session.execute(stmt)).all()
+        ]
 
     async def latest(self, limit: int = 5) -> list[RiskBlock]:
         """Eng oxirgi rad etishlar — tafsiloti bilan."""

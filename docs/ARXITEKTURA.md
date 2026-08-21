@@ -1440,7 +1440,111 @@ keyin ochilishi mumkin, shuning uchun bu raqam yolg'on bo'lib chiqardi.
 
 ---
 
-## 37. Bosqichlar holati
+## 37. Sokinlik dashboardi: bitta ustunda uch xil o'lchov
+
+Jonli ekran shunday ko'rinardi:
+
+```
+• opening_range_scalp:window — 945 marta (49%)
+• classic_ta:zone_position   — 624 marta (32%)
+• classic_ta:timeframes      — 312 marta (16%)
+• market_health              —  53 marta (3%)
+• threshold                  —   5 marta (0%)
+• classic_ta:levels          —   3 marta (0%)
+• classic_ta:confirmation    —   1 marta (0%)
+```
+
+Bu ro'yxatda uchta alohida xato bor edi.
+
+### 1. "5 marta (0%)"
+
+`{:.0f}%` yaxlitlashi 0.26% ni "0%" ga aylantiradi. Natijada bitta
+qatorda ikkita qarama-qarshi gap turardi: "5 marta bo'ldi" va
+"hech qachon bo'lmadi".
+
+Yechim: nolga yaxlitlanadigan qiymat `<1%` deb yoziladi. Chegara
+qo'lda tanlanmaydi — matn yasab ko'riladi va `"0%"` chiqsa
+almashtiriladi. Python yarim sonlarni juft tomonga yaxlitlaydi
+(`f"{0.5:.0f}"` → `"0"`), shuning uchun 0.5 ni chegara qilib qo'yish
+noto'g'ri bo'lardi.
+
+### 2. Vaqt sharti tashxis o'rnida turibdi
+
+`opening_range_scalp:window` — skalping oynasi yopiq degani. Oyna
+kuniga atigi **45 daqiqa** ochiq (12-bosqich), ya'ni vaqtning 96.9%
+ida bu yozuv HAR SIKLDA, HAR COIN uchun yoziladi.
+
+Shuning uchun u har doim birinchi o'rinda turadi va har doim ~50%
+bo'ladi — bozor qanday bo'lishidan qat'i nazar. Bu tashxis emas, soat
+ko'rsatkichi. Yomoni: u maxrajni ikki barobar shishirib, qolgan barcha
+sabablarning foizini ikki barobar kichraytiradi.
+
+Yozuvlar o'chirilmaydi (kutuv ishlayotganini ko'rsatadi), lekin
+`ROUTINE_STAGES` ro'yxati orqali alohida bo'limga chiqariladi va foiz
+hisobiga kirmaydi.
+
+### 3. Ikki xil o'lchov bitta ustunda
+
+`market_health` — SIKL darajasidagi yozuv (`symbol` yo'q). U chiqqanda
+sikl to'xtaydi va **birorta coin umuman ko'rilmaydi**. Qolgan sabablar
+esa COIN darajasida: bitta coin, bitta sikl.
+
+Ya'ni "53 marta market_health" ≈ 53 × 30 = 1590 ta coin imkoniyati
+yo'qolgan, "624 marta zone_position" esa 624 ta coin imkoniyati. Ularni
+qo'shib foizlash — 30 ta coinni to'xtatgan sababni bittasini to'xtatgani
+bilan teng deb hisoblash.
+
+Ekranda market_health "3%" bo'lib ko'rinardi, aslida u eng katta
+to'siqlardan biri edi.
+
+Yechim: `summary_since()` endi `symbol IS NULL` bo'yicha ham guruhlaydi
+va uchinchi element sifatida "sikl darajasidami" degan javobni
+qaytaradi. Dashboard uchta bo'limga ajratadi, foiz faqat coin
+darajasidagi yozuvlar ichida hisoblanadi.
+
+### Yana bir marta: bir xil xatoning to'rtinchi ko'rinishi
+
+32, 33 va 34-bo'limlarda **bir shkala uchun to'g'ri bo'lgan qiymat
+boshqa shkalaga qo'llangani** to'rt marta topilgan edi (EMA ajralishi,
+ADX, narx-EMA qoidasi ikki marta). Bu — o'shaning beshinchisi, faqat
+chegara emas, **sanoq** darajasida: bir xil o'lchovda emas raqamlar
+bitta maxrajga qo'shilgan.
+
+### Kod nomlari o'rniga odam o'qiydigan nomlar
+
+`classic_ta:zone_position` adminга hech narsa aytmaydi. Endi
+`STAGE_LABELS` dan "Narx support zonasidan uzoq" deb chiqadi.
+
+Nomlar `core/pipeline/context.py` da, bosqich kodlari esa boshqa
+fayllarda yaratiladi — ikkisi ajralib ketishi mumkin. `i18n` uchun
+allaqachon ishlatilgan usul takrorlandi: `tests/core/test_stage_labels.py`
+kodni skanerlab, nomsiz qolgan yoki ortiqcha qolgan bosqichni topadi.
+Nom topilmasa dashboard yiqilmaydi — kodning o'zi ko'rsatiladi
+(0.3-band).
+
+### Natija
+
+```
+📊 Coin tahlili — 945 ta tekshiruv
+• Narx support zonasidan uzoq — 624 marta (66%)
+• Timeframelar bir-biriga zid — 312 marta (33%)
+• Ball chegaradan past — 5 marta (1%)
+• Darajalar risk qoidasiga sig'madi — 3 marta (<1%)
+• Indikatorlar tasdiqlamadi — 1 marta (<1%)
+
+⏸ Butun sikl to'xtagan
+• Bozor Salomatligi past — 53 marta
+
+⏱ Vaqt shartlari — foiz hisobiga kirmaydi
+• Skalping oynasi yopiq — 945 marta
+```
+
+Endi ro'yxatning boshida turgan raqam haqiqatan ham eng katta to'siqni
+ko'rsatadi.
+
+---
+
+## 38. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

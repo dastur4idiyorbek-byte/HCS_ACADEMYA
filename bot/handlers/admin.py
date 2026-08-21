@@ -37,6 +37,7 @@ from bot.ui import show_screen
 from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
+from core.pipeline import is_routine_stage, stage_label
 from core.risk_engine import RiskEngine
 from core.services import SubscriptionService
 from core.storage import Database
@@ -650,12 +651,7 @@ async def silence_dashboard(
         return
 
     matn = t("admin.sokinlik_sarlavha", language, hours=SOKINLIK_SOATLARI)
-    jami = sum(soni for _, soni in xulosa)
-    for sabab, soni in xulosa:
-        ulush = soni / jami * 100
-        matn += f"• <b>{sabab}</b> — {soni} marta ({ulush:.0f}%)\n"
-
-    matn += t("admin.sokinlik_izoh", language)
+    matn += _render_silence(xulosa, language)
 
     if oxirgilar:
         matn += t("admin.sokinlik_oxirgi", language)
@@ -666,6 +662,68 @@ async def silence_dashboard(
 
     await callback.message.edit_text(matn, reply_markup=back_button("home", language))
     await callback.answer()
+
+
+def _render_silence(summary: list[tuple[str, int, bool]], language: str) -> str:
+    """Rad etish sabablarini UCH GURUHGA ajratib ko'rsatadi.
+
+    Nima uchun bitta ro'yxat yetarli emas edi: yozuvlar bir xil
+    o'lchovda emas.
+
+    1. Coin tahlili — har coin, har sikl uchun bitta yozuv.
+    2. Sikl darajasi — bitta yozuv BARCHA coinlarni to'xtatadi
+       (`symbol` yo'q). Bittasi 30 tasiga teng.
+    3. Vaqt shartlari — skalping oynasi kuniga 45 daqiqa ochiq, ya'ni
+       "oyna yopiq" yozuvi vaqtning 96% ida chiqadi. Bu tashxis emas,
+       soat ko'rsatkichi.
+
+    Uchalasi bitta ustunda qo'shilganda vaqt sharti birinchi o'rinni
+    egallab, haqiqiy sabablarni pastga surib yuborardi.
+    """
+    tahlil: list[tuple[str, int]] = []
+    sikl: list[tuple[str, int]] = []
+    vaqt: list[tuple[str, int]] = []
+
+    for sabab, soni, sikl_darajasi in summary:
+        if is_routine_stage(sabab):
+            vaqt.append((sabab, soni))
+        elif sikl_darajasi:
+            sikl.append((sabab, soni))
+        else:
+            tahlil.append((sabab, soni))
+
+    matn = ""
+    if tahlil:
+        jami = sum(soni for _, soni in tahlil)
+        matn += t("admin.sokinlik_tahlil", language, total=jami)
+        for sabab, soni in tahlil:
+            matn += f"• {stage_label(sabab)} — {soni} marta ({_ulush(soni, jami)})\n"
+
+    if sikl:
+        matn += t("admin.sokinlik_sikl", language)
+        for sabab, soni in sikl:
+            matn += f"• {stage_label(sabab)} — {soni} marta\n"
+
+    if vaqt:
+        matn += t("admin.sokinlik_vaqt", language)
+        for sabab, soni in vaqt:
+            matn += f"• {stage_label(sabab)} — {soni} marta\n"
+
+    matn += t("admin.sokinlik_izoh", language)
+    return matn
+
+
+def _ulush(count: int, total: int) -> str:
+    """Foiz. Nolga yaxlitlanadigan qiymat `<1%` deb yoziladi.
+
+    Avval `{:.0f}%` ishlatilardi: 5 marta sodir bo'lgan sabab "0%" deb
+    ko'rinardi — ya'ni "bo'ldi" va "bo'lmadi" bitta qatorda yozilgan
+    edi. Kichik son ham nol emas.
+    """
+    if total <= 0:
+        return "—"
+    matn = f"{count / total * 100:.0f}%"
+    return "<1%" if matn == "0%" else matn
 
 
 # --------------------------------------------------------------------------- #

@@ -165,10 +165,10 @@
     "salomatlik_chegara": "\n🎯 Hozirgi ball chegarasi: {threshold}",
     "salomatlik_chegara_yopiq": "\n🎯 Chegara: yopiq — yangi signal berilmaydi",
     "sokinlik": "🔇 Nega signal yo'q",
-    "sokinlik_sarlavha": "🔇 Oxirgi {hours} soatda signal berilmagan sabablari\n\n",
+    "sokinlik_sarlavha": "🔇 <b>Oxirgi {hours} soatda signal berilmagan sabablari</b>\n",
     "sokinlik_yoq": "🔇 Oxirgi {hours} soatda birorta rad etish yozilmagan.\n\nBu ikki narsani bildirishi mumkin: sikl hali ishlamagan, yoki barcha nomzodlar signalga aylangan.",
-    "sokinlik_izoh": "\nSignal bermaslik — xato emas (0.2-band). Lekin bitta sabab hukmronlik qilsa, sozlamani ko'rib chiqish kerak bo'lishi mumkin.",
-    "sokinlik_oxirgi": "\n\nOxirgi tafsilotlar:\n",
+    "sokinlik_izoh": "\nSignal bermaslik — xato emas (0.2-band). Lekin <b>Coin tahlili</b> bo'limida bitta sabab hukmronlik qilsa, o'sha sozlamani ko'rib chiqish kerak bo'lishi mumkin.\n",
+    "sokinlik_oxirgi": "\n📝 <b>Oxirgi tafsilotlar</b>\n",
     "panel_tugma": "Admin panel",
     "faol_signal_sarlavha": "🗂 <b>Ochiq signallar</b> — {count} ta\n\nBekor qilish uchun signalni tanlang.\nBekor qilingan signal tarixda qoladi, lekin natija statistikasiga kirmaydi.",
     "faol_signal_yoq": "🗂 Hozir ochiq signal yo'q.",
@@ -176,7 +176,10 @@
     "signal_bekor_ha": "⛔ Ha, bekor qilinsin",
     "signal_bekor_qilindi": "⛔ Signal bekor qilindi: #{id} — {symbol}",
     "signal_allaqachon_yopiq": "Bu signal allaqachon yopilgan.",
-    "signal_bekor_sabab": "Signal admin tomonidan bekor qilindi."
+    "signal_bekor_sabab": "Signal admin tomonidan bekor qilindi.",
+    "sokinlik_tahlil": "\n📊 <b>Coin tahlili</b> — {total} ta tekshiruv\n",
+    "sokinlik_sikl": "\n⏸ <b>Butun sikl to'xtagan</b>\nBunda birorta coin umuman ko'rilmaydi — ya'ni bitta yozuv o'sha sikldagi hamma coinni to'xtatgan.\n",
+    "sokinlik_vaqt": "\n⏱ <b>Vaqt shartlari</b> — foiz hisobiga kirmaydi\nSkalping oynasi kuniga atigi 45 daqiqa ochiq. Qolgan vaqtda bu yozuv kutilgan holat, nosozlik emas.\n"
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."
