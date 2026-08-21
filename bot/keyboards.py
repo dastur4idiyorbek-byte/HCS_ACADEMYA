@@ -183,26 +183,58 @@ def tier_choice(prefix: str, language: str = DEFAULT_LANGUAGE) -> InlineKeyboard
 
 
 def signal_actions(
-    signal_id: int, language: str = DEFAULT_LANGUAGE
+    signal_id: int, language: str = DEFAULT_LANGUAGE, back_to: str | None = None
 ) -> InlineKeyboardMarkup:
-    """3.6-band: har bir signal ostida shaffoflik tugmalari."""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=t("signal.nega_signal", language), callback_data=f"sig:why:{signal_id}"
-                ),
-                InlineKeyboardButton(
-                    text=t("signal.nega_halol", language), callback_data=f"sig:halal:{signal_id}"
-                ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=t("signal.men_kirdim", language), callback_data=f"sig:enter:{signal_id}"
-                )
-            ],
-        ]
-    )
+    """3.6-band: har bir signal ostida shaffoflik tugmalari.
+
+    `back_to` — ro'yxatdan ochilganda qaytish tugmasi qo'shiladi. Yangi
+    xabar sifatida kelgan signalda u kerak emas (qaytadigan ekran yo'q).
+    """
+    qatorlar = [
+        [
+            InlineKeyboardButton(
+                text=t("signal.nega_signal", language), callback_data=f"sig:why:{signal_id}"
+            ),
+            InlineKeyboardButton(
+                text=t("signal.nega_halol", language), callback_data=f"sig:halal:{signal_id}"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text=t("signal.men_kirdim", language), callback_data=f"sig:enter:{signal_id}"
+            )
+        ],
+    ]
+    if back_to is not None:
+        qatorlar.append(
+            [InlineKeyboardButton(text=t("umumiy.orqaga", language), callback_data=back_to)]
+        )
+    return InlineKeyboardMarkup(inline_keyboard=qatorlar)
+
+
+def signal_list(
+    enterable: list[tuple[int, str]],
+    late: list[tuple[int, str]],
+    language: str = DEFAULT_LANGUAGE,
+) -> InlineKeyboardMarkup:
+    """Foydalanuvchi uchun signallar ro'yxati — tugma shaklida.
+
+    Nima uchun tugma, kartochka emas: avval har bir signal alohida xabar
+    bo'lib kelardi. Uchta signal — uchta uzun kartochka, ular orasida
+    hech qanday tartib yo'q va suhbat to'lib ketardi. Endi bitta ekran:
+    qaysi signallar bor, qaysi biriga hozir qo'shilish mumkin.
+
+    Kech qolganlar ro'yxatdan olib tashlanmaydi, chunki foydalanuvchi
+    ular haqida BILISHI kerak — lekin narxlari ochilmaydi.
+    """
+    builder = InlineKeyboardBuilder()
+    for signal_id, matn in enterable:
+        builder.button(text=matn, callback_data=f"sig:open:{signal_id}")
+    for signal_id, matn in late:
+        builder.button(text=matn, callback_data=f"sig:late:{signal_id}")
+    builder.button(text=t("umumiy.orqaga", language), callback_data="menu:home")
+    builder.adjust(1)
+    return builder.as_markup()
 
 
 def open_signal_list(

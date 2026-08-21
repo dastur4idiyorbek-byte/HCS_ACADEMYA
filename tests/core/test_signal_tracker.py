@@ -330,3 +330,28 @@ def test_tp1_bayrogi_stopdan_keyin_ham_qoladi(tracker: SignalTracker) -> None:
     tracker.on_price("BTC", 99.0, BOSH + timedelta(hours=2))
     assert tracker.get(key).status is SignalStatus.STOPPED
     assert tracker.get(key).tp1_reached is True
+
+
+# --------------------------------------------------------------------------- #
+#  Kirish mumkinligi (foydalanuvchi ro'yxati shunga tayanadi)
+# --------------------------------------------------------------------------- #
+
+
+def test_kirish_mumkin_ochiq_bilan_bir_xil_emas() -> None:
+    """TP1 olingan signal ochiq, lekin unga endi kirilmaydi.
+
+    Ikkalasi bitta xususiyat bo'lib qolsa, foydalanuvchi ro'yxatida
+    kech qolingan signalning narxlari ham ochilib ketardi.
+    """
+    kirish_mumkin = {h for h in SignalStatus if h.is_enterable}
+    assert kirish_mumkin == {SignalStatus.PENDING, SignalStatus.ACTIVE}
+
+    assert SignalStatus.TP1_HIT.is_open, "TP1 olingan signal hali kuzatuvda"
+    assert not SignalStatus.TP1_HIT.is_enterable, "lekin unga kirish kech"
+    assert not SignalStatus.WEAKENING.is_enterable, "zaiflashayotganiga ham"
+
+
+def test_yopilgan_holatlarga_kirib_bolmaydi() -> None:
+    for holat in SignalStatus:
+        if holat.is_closed:
+            assert not holat.is_enterable, holat

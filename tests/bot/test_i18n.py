@@ -78,6 +78,7 @@ def _enum_kalitlarini_yig() -> None:
     ENUM_KALITLARI.extend(
         [
             ("signal.holat_{}", SignalStatus),
+            ("signal.qisqa_{}", SignalStatus),
             ("obuna.{}", SubscriptionTier),
             ("obuna.{}", SubscriptionPeriod),
         ]

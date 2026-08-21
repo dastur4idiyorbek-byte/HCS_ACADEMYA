@@ -24,6 +24,7 @@ from bot.keyboards import (
     cancel_confirm,
     open_signal_list,
     signal_actions,
+    signal_list,
 )
 from bot.middlewares import AdminOnlyMiddleware
 from bot.states import SignalFlow
@@ -514,53 +515,129 @@ async def _cancel_in_database(database: Database, signal_id: int, reason: str) -
 async def list_signals(
     callback: CallbackQuery,
     database: Database,
-    config: AppConfig,
     tier: SubscriptionTier | None,
     language: str,
     **_: object,
 ) -> None:
+    """Bitta ekran: qaysi signallar bor va qaysi biriga hozir qo'shish mumkin.
+
+    Avval har bir signal alohida uzun kartochka bo'lib kelardi — uchta
+    signal uchta xabar, ular orasida tartib yo'q. Endi ro'yxat tugma
+    shaklida, kartochka esa faqat tanlangan signal uchun ochiladi.
+
+    Kech qolgan signallar (TP1 olingan, zaiflashayotgan) ro'yxatda
+    ko'rinadi, lekin narxlari OCHILMAYDI — sabab `sig:late:` da.
+    """
     if tier is None:
         await callback.answer(t("umumiy.ruxsat_yoq", language), show_alert=True)
         return
 
     async with database.session() as session:
         yozuvlar = await SignalRepository(session).open_signals()
-        kartochkalar = [
-            (
-                yozuv.id,
-                render_signal_card(
-                    yozuv.symbol,
-                    SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2),
-                    decide_entry_plan(
-                        yozuv.price_at_signal or yozuv.entry,
-                        SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2),
-                        config.analysis.entry_order,
-                    ),
-                    quote_asset=config.halal_screening.quote_asset,
-                    language=language,
-                    tp1_close_pct=config.portfolio.tp1_close_pct,
-                    # Holat KARTOCHKA ICHIDA ko'rsatiladi — tashqaridan
-                    # qo'shilsa, u buyurtma turi bilan zid chiqishi mumkin
-                    # (34.1-bo'lim).
-                    status=SignalStatus(yozuv.status),
-                ),
-                SignalStatus(yozuv.status),
-            )
-            for yozuv in yozuvlar
-        ]
 
-    if not kartochkalar:
-        await callback.answer(t("signal.royxat_bosh", language), show_alert=True)
+    kirish_mumkin: list[tuple[int, str]] = []
+    kech: list[tuple[int, str]] = []
+    for yozuv in yozuvlar:
+        holat = SignalStatus(yozuv.status)
+        qisqa = t(f"signal.qisqa_{holat.value}", language)
+        band = (yozuv.id, f"{holat.emoji} {yozuv.symbol} · {qisqa}")
+        (kirish_mumkin if holat.is_enterable else kech).append(band)
+
+    if not kirish_mumkin and not kech:
+        await callback.message.edit_text(
+            t("signal.royxat_bosh", language), reply_markup=back_button(language=language)
+        )
+        await callback.answer()
         return
 
+    matn = t("signal.royxat_sarlavha", language)
+    if kirish_mumkin:
+        matn += t("signal.royxat_ochiq", language, count=len(kirish_mumkin))
+    if kech:
+        matn += t("signal.royxat_kech", language, count=len(kech))
+
+    await callback.message.edit_text(
+        matn, reply_markup=signal_list(kirish_mumkin, kech, language)
+    )
     await callback.answer()
-    for signal_id, kartochka, _status in kartochkalar:
-        # Holat kartochka ichida — bu yerda takror qo'shilmaydi.
-        await callback.message.answer(
-            kartochka,
-            protect_content=True,
-            reply_markup=signal_actions(signal_id, language),
-        )
+
+
+@user_router.callback_query(F.data.startswith("sig:late:"))
+async def late_signal(callback: CallbackQuery, language: str, **_: object) -> None:
+    """Kech qolgan signalning narxlari ko'rsatilmaydi.
+
+    Nima uchun umuman ko'rsatilmaydi: narx allaqachon harakatlanib
+    bo'lgan. Kartochkadagi Entry endi bozor narxidan past, Stop esa
+    o'sha joyda — ya'ni hozir kirilsa xavf o'sha-o'sha qoladi, foyda
+    esa qisqargan bo'ladi. Yangi foydalanuvchi buni ko'z bilan
+    hisoblab o'tirmasligi kerak.
+    """
+    await callback.answer(t("signal.kech_izoh", language), show_alert=True)
+
+
+@user_router.callback_query(F.data.startswith("sig:open:"))
+async def show_signal(
+    callback: CallbackQuery,
+    database: Database,
+    config: AppConfig,
+    tier: SubscriptionTier | None,
+    language: str,
+    candles: CandleProvider | None = None,
+    db_user=None,  # noqa: ANN001 — middleware uzatadi
+    **_: object,
+) -> None:
+    """Tanlangan signal kartochkasi — miqdor shu foydalanuvchi balansidan.
+
+    Narx SIGNAL YARATILGAN paytdagi emas, HOZIRGI narx bo'lishi kerak:
+    kartochkadagi narvon "hozirgi narx" deb yozadi va foydalanuvchi
+    ro'yxatni signal kelganidan ancha keyin ochishi mumkin. Narx
+    olinmasa signal baribir ko'rsatiladi (0.3-band).
+    """
+    if tier is None:
+        await callback.answer(t("umumiy.ruxsat_yoq", language), show_alert=True)
+        return
+
+    signal_id = int(callback.data.rsplit(":", 1)[1])
+    async with database.session() as session:
+        yozuv = await SignalRepository(session).get(signal_id)
+        topildi = yozuv is not None
+        if topildi:
+            symbol = yozuv.symbol
+            holat = SignalStatus(yozuv.status)
+            levels = SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2)
+            narx_signalda = yozuv.price_at_signal or yozuv.entry
+
+    if not topildi:
+        await callback.answer(t("signal.faol_emas", language), show_alert=True)
+        return
+
+    # Holat ro'yxat tuzilgandan keyin o'zgargan bo'lishi mumkin — eski
+    # tugma orqali kech qolgan signalga kirib bo'lmasin.
+    if not holat.is_enterable:
+        await callback.answer(t("signal.kech_izoh", language), show_alert=True)
+        return
+
+    narx = await joriy_narx(
+        candles, symbol, config.analysis.entry_timeframe, narx_signalda
+    )
+    balans = getattr(db_user, "declared_balance_usd", None)
+    kartochka = render_signal_card(
+        symbol,
+        levels,
+        decide_entry_plan(narx, levels, config.analysis.entry_order),
+        suggestion=suggest_size(symbol, levels, balans, config),
+        quote_asset=config.halal_screening.quote_asset,
+        language=language,
+        tp1_close_pct=config.portfolio.tp1_close_pct,
+        # Holat KARTOCHKA ICHIDA ko'rsatiladi — tashqaridan qo'shilsa,
+        # u buyurtma turi bilan zid chiqishi mumkin (34.1-bo'lim).
+        status=holat,
+    )
+
+    await callback.message.edit_text(
+        kartochka, reply_markup=signal_actions(signal_id, language, back_to="menu:signallar")
+    )
+    await callback.answer()
 
 
 @user_router.callback_query(F.data.startswith("sig:why:"))

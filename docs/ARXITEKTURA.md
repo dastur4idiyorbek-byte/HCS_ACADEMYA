@@ -1361,7 +1361,86 @@ ni almashtiradi), shuning uchun shu yerda tuzatildi.
 
 ---
 
-## 35. Bosqichlar holati
+## 36. Signallar ro'yxati: nima uchun kech qolganlar ochilmaydi
+
+### Avvalgi ko'rinish
+
+`menu:signallar` bosilganda har bir ochiq signal ALOHIDA xabar bo'lib
+kelardi. Uchta signal — uchta uzun kartochka, ular orasida hech qanday
+tartib yo'q, suhbat to'lib ketardi. Va eng muhimi: TP1 allaqachon
+olingan signal ham xuddi yangi signaldek to'liq narxlari bilan
+ko'rsatilardi.
+
+### Yangi ko'rinish
+
+Bitta ekran, ikkita guruh:
+
+```
+📡 Signallar
+
+✅ Hozir qo'shilish mumkin — 2 ta
+   [⏳ BTC · kutilmoqda]
+   [🟢 ETH · faol]
+
+⏸ Kech qolindi — 1 ta
+   [🎯 SOL · TP1 olindi]
+```
+
+Birinchi guruhdagi tugma kartochkani ochadi. Ikkinchi guruhdagi tugma
+faqat sababni tushuntiradi — narxlar ko'rsatilmaydi.
+
+### Nima uchun narxlar umuman berilmaydi
+
+Bu qaror **yangi foydalanuvchi** uchun. Tajribali savdogar kech
+kirishning zararini o'zi ko'radi, yangi odam esa ko'rmaydi — u faqat
+"signal bor ekan" deb o'ylaydi.
+
+Narx TP1 ga yetgach vaziyat quyidagicha o'zgaradi:
+
+| | Signal berilganda | TP1 dan keyin |
+|---|---|---|
+| Stop'gacha masofa | 3% | 6% (narx uzoqlashdi) |
+| TP2 gacha masofa | 10% | 6% |
+| Nisbat (R/R) | 1:3.3 | 1:1 |
+
+Stop **o'sha joyda qoladi** — u narx bilan birga ko'tarilmaydi. Ya'ni
+kech kiruvchi bir xil xavfni oladi, lekin foydaning yarmidan
+ko'prog'ini boy bergan. 3.3-bandda butun tizim uchun eng kam nisbat
+1:3 deb belgilangan; kech kirish aynan shu qoidani chetlab o'tadi.
+
+Shuning uchun tanlov: narxni ko'rsatib "ehtiyot bo'ling" deb yozish
+emas, umuman ko'rsatmaslik.
+
+Signal ro'yxatdan OLIB TASHLANMAYDI: foydalanuvchi qanday signallar
+borligini va ular qanday ketayotganini bilishi kerak — bu tizimga
+ishonch beradi. Ochilmaydigani faqat narxlar.
+
+### `is_open` va `is_enterable` farqi
+
+`SignalStatus.is_open` — "signal hali kuzatuvda", `is_enterable` — "bunga
+hozir qo'shilish mumkin". TP1 olingan va zaiflashayotgan signal
+birinchisiga kiradi, ikkinchisiga kirmaydi.
+
+Ikkalasini bitta xususiyat qilib qo'yish oson edi, lekin ular ikki xil
+savolga javob beradi: birinchisi kuzatuv tizimi uchun (narxni
+tekshirishda davom etamizmi), ikkinchisi interfeys uchun (tugmani
+ochamizmi). Bir xil deb hisoblash — 33 va 34-bo'limlarda to'rt marta
+takrorlangan xatoning aynan o'zi.
+
+Holat ro'yxat tuzilgandan keyin ham o'zgarishi mumkin (narx TP1 ga
+yetadi), shuning uchun `sig:open:` handleri tekshiruvni QAYTA bajaradi
+— eski tugma orqali kech qolgan signalga kirib bo'lmaydi.
+
+### Kartochkadagi narx
+
+Kartochka ochilganda joriy narx bozordan qayta olinadi. Avval
+`price_at_signal` ishlatilardi — ya'ni signal yaratilgan paytdagi narx
+"hozirgi narx" deb yozilardi. Ro'yxat signal kelganidan bir necha soat
+keyin ochilishi mumkin, shuning uchun bu raqam yolg'on bo'lib chiqardi.
+
+---
+
+## 37. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

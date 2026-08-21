@@ -25,6 +25,20 @@ class SignalStatus(str, Enum):
         return not self.is_closed
 
     @property
+    def is_enterable(self) -> bool:
+        """Bu signalga HOZIR qo'shilish mumkinmi.
+
+        `is_open` bilan bir xil emas: TP1 olingan yoki zaiflashayotgan
+        signal texnik jihatdan ochiq, lekin unga endi kirish kerak emas.
+        Narx allaqachon harakatlanib bo'lgan — kech kirish eng ko'p
+        uchraydigan zarar sababi, chunki Stop'gacha masofa o'sha-o'sha
+        qoladi, TP'gacha esa qisqargan bo'ladi.
+
+        Yangi foydalanuvchi buni o'zi hisoblab o'tirmasligi kerak.
+        """
+        return self in {SignalStatus.PENDING, SignalStatus.ACTIVE}
+
+    @property
     def emoji(self) -> str:
         return _STATUS_EMOJI[self]
 

@@ -275,3 +275,99 @@ async def test_admin_yuborilgan_signalni_bekor_qiladi(dispatcher, sinov_boti) ->
     javob = await yubor(_admin_bosish("admin:faol_signallar", 204))
     matnlar = " ".join(matn for _, matn, _ in javob)
     assert "ochiq signal yo'q" in matnlar.lower(), matnlar
+
+
+# --------------------------------------------------------------------------- #
+#  Uchidan uchiga: foydalanuvchi signallar ro'yxati
+# --------------------------------------------------------------------------- #
+
+
+async def test_signallar_royxati_kech_qolganlarni_ochmaydi(dispatcher, sinov_boti) -> None:  # noqa: ANN001
+    """Foydalanuvchiga faqat qo'shilish mumkin bo'lgan signal ochiladi.
+
+    TP1 olingan signal ro'yxatda KO'RINADI (foydalanuvchi bilishi kerak),
+    lekin narxlari ochilmaydi: narx allaqachon oldinga ketgan, Stop esa
+    o'sha joyda — kech kirish xavfni kamaytirmasdan foydani qisqartiradi.
+    """
+    from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
+    from core.domain.models import SignalLevels
+    from core.storage.repositories import (
+        SignalRepository,
+        SubscriptionRepository,
+        UserRepository,
+    )
+
+    bot, yozuv = sinov_boti
+
+    async with TEST_DB.session() as session:
+        user = await UserRepository(session).get_or_create(YANGI_FOYDALANUVCHI.id)
+        await SubscriptionRepository(session).create(
+            user.id, SubscriptionTier.PREMIUM, period_days=30, is_trial=False
+        )
+        repo = SignalRepository(session)
+        ochiq = await repo.create(
+            symbol="AAA",
+            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            source=SignalSource.MANUAL,
+        )
+        kechikkan = await repo.create(
+            symbol="BBB",
+            levels=SignalLevels(entry=50.0, stop=48.0, tp1=53.0, tp2=56.0),
+            source=SignalSource.MANUAL,
+        )
+        await repo.apply_event(
+            kechikkan.id, SignalStatus.TP1_HIT, 53.0, datetime.now(UTC), "tp1_hit"
+        )
+        ochiq_id, kech_id = ochiq.id, kechikkan.id
+
+    async def yubor(update: Update) -> list[tuple[str, str, list[str]]]:
+        yozuv.chaqiruvlar.clear()
+        await dispatcher.feed_update(bot, update)
+        return list(yozuv.chaqiruvlar)
+
+    # 1) Ro'yxat — bitta ekran, ikkala signal ham tugma sifatida
+    javob = await yubor(_bosish("menu:signallar", 301))
+    xabarlar = [nom for nom, _, _ in javob if nom in {"SendMessage", "EditMessageText"}]
+    assert xabarlar == ["EditMessageText"], f"ro'yxat bitta ekran bo'lishi kerak: {javob}"
+    tugmalar = [t for _, _, tt in javob for t in tt]
+    assert any("AAA" in t and "faol" not in t for t in tugmalar), tugmalar
+    assert any("BBB" in t and "TP1" in t for t in tugmalar), tugmalar
+
+    # 2) Kirish mumkin bo'lgani ochiladi — narxlar ko'rinadi
+    javob = await yubor(_bosish(f"sig:open:{ochiq_id}", 302))
+    matnlar = " ".join(matn for _, matn, _ in javob)
+    assert "100" in matnlar and "97" in matnlar, matnlar
+
+    # 3) Kech qolgani ochilmaydi — faqat ogohlantirish, kartochka yo'q
+    javob = await yubor(_bosish(f"sig:open:{kech_id}", 303))
+    matnlar = " ".join(matn for _, matn, _ in javob)
+    assert "53" not in matnlar, f"kech qolgan signalning narxi ko'rinmasligi kerak: {matnlar}"
+
+    javob = await yubor(_bosish(f"sig:late:{kech_id}", 304))
+    assert [nom for nom, _, _ in javob] == ["AnswerCallbackQuery"], javob
+
+
+async def test_signallar_obunasiz_korinmaydi(dispatcher, sinov_boti) -> None:  # noqa: ANN001
+    """1.3-band: signal — pullik kontent, ro'yxat ham ochilmaydi."""
+    bot, yozuv = sinov_boti
+    begona = User(id=444333222, is_bot=False, first_name="Begona", full_name="Begona")
+
+    yozuv.chaqiruvlar.clear()
+    await dispatcher.feed_update(
+        bot,
+        Update(
+            update_id=310,
+            callback_query=CallbackQuery(
+                id="310",
+                from_user=begona,
+                chat_instance="ci",
+                data="menu:signallar",
+                message=Message(
+                    message_id=2, date=datetime.now(UTC), chat=SUHBAT, text="menyu"
+                ),
+            ),
+        ),
+    )
+
+    nomlar = [nom for nom, _, _ in yozuv.chaqiruvlar]
+    assert nomlar == ["AnswerCallbackQuery"], "obunasizga kartochka ko'rsatilmaydi"
