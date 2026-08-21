@@ -19,6 +19,7 @@ from core.market_data.binance import BinancePriceStream
 from core.market_data.ranking import (
     CoinGeckoRanking,
     CoinMarketCapRanking,
+    RankingUnavailableError,
     build_ranking_provider,
 )
 
@@ -225,3 +226,100 @@ def test_coingecko_tanlansa_kalit_kerak_emas(monkeypatch) -> None:
     monkeypatch.delenv("CMC_API_KEY", raising=False)
     provider = build_ranking_provider(MarketDataConfig(ranking_source="coingecko"))
     assert isinstance(provider, CoinGeckoRanking)
+
+
+# --------------------------------------------------------------------------- #
+#  Reyting: sahifalash
+# --------------------------------------------------------------------------- #
+
+
+class SoxtaJavob:
+    def __init__(self, payload: list[dict]) -> None:
+        self.status = 200
+        self._payload = payload
+
+    async def json(self) -> list[dict]:
+        return self._payload
+
+    async def __aenter__(self):  # noqa: ANN204
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        pass
+
+
+class SoxtaSession:
+    """Sahifalarni yozib oladigan HTTP sessiya (tarmoqqa chiqmaydi)."""
+
+    def __init__(self, jami: int) -> None:
+        self._jami = jami
+        self.sorovlar: list[tuple[int, int]] = []
+
+    def get(self, url: str, params: dict) -> SoxtaJavob:  # noqa: ARG002
+        sahifa = int(params["page"])
+        per_page = int(params["per_page"])
+        self.sorovlar.append((sahifa, per_page))
+
+        boshi = (sahifa - 1) * per_page
+        yozuvlar = [
+            {
+                "symbol": f"c{i}",
+                "name": f"Coin {i}",
+                "market_cap_rank": i + 1,
+                "market_cap": 1_000_000,
+                "total_volume": 100_000,
+            }
+            for i in range(boshi, min(boshi + per_page, self._jami))
+        ]
+        return SoxtaJavob(yozuvlar)
+
+
+def _coingecko(session: SoxtaSession) -> CoinGeckoRanking:
+    provider = CoinGeckoRanking(MarketDataConfig())
+    provider._session = session
+    provider._get_session = lambda: _tayyor(session)  # type: ignore[assignment]
+    return provider
+
+
+async def _tayyor(qiymat):  # noqa: ANN001, ANN202
+    return qiymat
+
+
+async def test_reyting_bir_sahifadan_kop_yuklanadi() -> None:
+    """250 dan ortiq so'ralganda hammasi kelishi kerak.
+
+    Ilgari kod `min(limit, 250)` deb yozib, faqat birinchi sahifani
+    so'rardi: 500 ta so'ralsa ham 250 tasi kelardi, JIMGINA. Skanerlash
+    chuqurligini oshirish hech qanday ta'sir bermasdi va buni sezish
+    ham qiyin edi — xato yo'q, log "250 ta coin olindi" deb yozardi.
+    """
+    session = SoxtaSession(jami=600)
+    natija = await _coingecko(session).fetch_ranking(500)
+
+    assert len(natija) == 500
+    assert session.sorovlar == [(1, 250), (2, 250)]
+    assert natija[0].symbol == "C0"
+    assert natija[-1].symbol == "C499"
+
+
+async def test_bir_sahifaga_sigsa_ikkinchisi_soralmaydi() -> None:
+    session = SoxtaSession(jami=600)
+    natija = await _coingecko(session).fetch_ranking(30)
+
+    assert len(natija) == 30
+    assert session.sorovlar == [(1, 30)], "ortiqcha so'rov yuborilmasin"
+
+
+async def test_royxat_tugasa_toxtaydi() -> None:
+    """Birja ro'yxati so'ralgandan kalta bo'lsa — bu xato emas."""
+    session = SoxtaSession(jami=310)
+    natija = await _coingecko(session).fetch_ranking(500)
+
+    assert len(natija) == 310
+    assert len(session.sorovlar) == 2, "bo'sh sahifalar cheksiz so'ralmasin"
+
+
+async def test_bosh_reyting_xato_beradi() -> None:
+    """0.3-band: bo'sh ro'yxat bilan davom etish — eski ro'yxatni yo'qotish."""
+    with pytest.raises(RankingUnavailableError):
+        await _coingecko(SoxtaSession(jami=0)).fetch_ranking(150)

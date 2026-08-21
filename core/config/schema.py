@@ -30,8 +30,8 @@ class ProjectConfig:
 
 @dataclass(frozen=True, slots=True)
 class HalalScreeningConfig:
-    target_count: int = 30
-    max_scan_depth: int = 300
+    target_count: int = 150
+    max_scan_depth: int = 500
     min_daily_volume_usd: float = 50_000_000
     quote_asset: str = "USDT"
     exclude_stablecoins: bool = True
@@ -489,6 +489,14 @@ class MarketDataConfig:
     coingecko_base_url: str = "https://api.coingecko.com/api/v3"
     reconnect_backoff_seconds: list[int] = field(default_factory=lambda: [2, 4, 8, 16, 32])
     stale_price_seconds: int = 90
+    #: Bir vaqtda nechta OHLCV so'rovi yuborilsin.
+    #:
+    #: Ilgari chegara umuman yo'q edi: sikl BARCHA coin × BARCHA timeframe
+    #: so'rovini bir zumda yuborardi. 30 ta coinda bu 90 ta parallel so'rov
+    #: — birja chidadi. 150 ta coinda 450 ta bo'ladi va Binance avval 429,
+    #: keyin 418 (IP ban) qaytaradi. Ya'ni ro'yxatni kengaytirish
+    #: chegarasiz ishlamaydi.
+    max_concurrent_candle_requests: int = 8
 
 
 # --------------------------------------------------------------------------- #

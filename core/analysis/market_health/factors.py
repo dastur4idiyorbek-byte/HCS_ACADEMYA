@@ -62,7 +62,7 @@ def btc_dominance_factor(
 
 
 def trend_breadth_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
-    """2-omil: Top-30 Halal coinlarning necha foizi ko'tarilish trendida.
+    """2-omil: Halol ro'yxatdagi coinlarning necha foizi ko'tarilish trendida.
 
     Bu — bozorning "kengligi" (breadth). Bir nechta coin ko'tarilib, qolgani
     tushayotgan bo'lsa, bu haqiqiy ko'tarilish emas.

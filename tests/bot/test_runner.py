@@ -6,6 +6,7 @@ chunki barcha tashqi bog'liqliklar abstraksiya orqali ulangan.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -337,3 +338,64 @@ def test_notanish_timeframe_uchun_standart_oraliq(config) -> None:  # noqa: ANN0
         analysis=dataclasses.replace(config.analysis, entry_timeframe="7m"),
     )
     assert cycle_interval(yangi) == timedelta(minutes=15)
+
+
+# --------------------------------------------------------------------------- #
+#  Kengaytirilgan ro'yxat: parallellik chegarasi
+# --------------------------------------------------------------------------- #
+
+
+class SanovchiCandles(SoxtaCandles):
+    """Bir vaqtda nechta so'rov ochiq turganini o'lchaydi."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.hozir = 0
+        self.eng_kop = 0
+
+    async def fetch_candles(self, symbol: str, timeframe: str, limit: int) -> list[Candle]:
+        self.hozir += 1
+        self.eng_kop = max(self.eng_kop, self.hozir)
+        try:
+            # Boshqa vazifalarga navbat berish uchun — ansiz hech qanday
+            # parallellik yuzaga kelmaydi va test hech narsani o'lchamaydi.
+            await asyncio.sleep(0)
+            return await super().fetch_candles(symbol, timeframe, limit)
+        finally:
+            self.hozir -= 1
+
+
+async def test_sorovlar_soni_chegaralanadi(db: Database, config) -> None:  # noqa: ANN001
+    """150 ta coinda chegarasiz parallellik birjadan IP ban keltiradi.
+
+    Ilgari sikl barcha coin × barcha timeframe so'rovini bir zumda
+    yuborardi: 30 ta coinda 90 ta so'rov (birja chidardi), 150 tada esa
+    450 ta — Binance avval 429, keyin 418 qaytaradi. Ya'ni ro'yxat
+    kengaygani sari tizim ko'proq emas, KAMROQ ma'lumot olardi.
+    """
+    coinlar = [f"C{i}" for i in range(60)]
+    candles = SanovchiCandles()
+    ish = runner(db, config, candles=candles, ranking=SoxtaRanking(coinlar))
+    await ish.refresh_universe()
+
+    shamlar = await ish._load_candles(coinlar)
+
+    chegara = config.market_data.max_concurrent_candle_requests
+    assert candles.eng_kop <= chegara, (
+        f"bir vaqtda {candles.eng_kop} ta so'rov ochilgan, chegara {chegara}"
+    )
+    assert candles.eng_kop > 1, "chegara ishlayapti, lekin parallellik umuman yo'qolmasin"
+    assert len(shamlar) == len(coinlar), "chegara birorta coinni tushirib qoldirmasligi kerak"
+
+
+async def test_bitta_coin_yiqilsa_qolganlari_yuklanadi(db: Database, config) -> None:  # noqa: ANN001
+    """0.3-band: chegara qo'yilgach ham bitta xato siklni to'xtatmasin."""
+    coinlar = [f"C{i}" for i in range(20)]
+    candles = SoxtaCandles(fail_on={"C5"})
+    ish = runner(db, config, candles=candles, ranking=SoxtaRanking(coinlar))
+    await ish.refresh_universe()
+
+    shamlar = await ish._load_candles(coinlar)
+
+    assert shamlar["C5"] == {}, "yiqilgan coin bo'sh qoladi"
+    assert shamlar["C6"], "qolganlari yuklanishi kerak"

@@ -1,4 +1,4 @@
-"""3.4-band: "Top 30 HALOL" mantig'i.
+"""3.4-band: "Halol ro'yxat" mantig'i.
 
     1. Bozor kapitalizatsiyasi bo'yicha reyting olinadi
     2. Ro'yxat 1-o'rindan boshlab PASTGA qarab tekshiriladi

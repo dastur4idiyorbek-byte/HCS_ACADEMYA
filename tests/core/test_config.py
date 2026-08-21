@@ -12,7 +12,7 @@ from core.config.schema import AppConfig
 
 def test_default_yaml_yuklanadi(config: AppConfig) -> None:
     assert config.project.name == "HALOL CRYPTO SAVDO"
-    assert config.halal_screening.target_count == 30
+    assert config.halal_screening.target_count == 150
     assert config.risk_engine.friday_filter.timezone == "Asia/Tashkent"
 
 

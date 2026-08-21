@@ -99,7 +99,7 @@ class PipelineRunner:
     # ------------------------------------------------------------------ #
 
     async def refresh_universe(self) -> UniverseCache:
-        """Top 30 Halal ro'yxatini qayta hisoblaydi."""
+        """Halol coinlar ro'yxatini qayta hisoblaydi."""
         async with self._db.session() as session:
             admin_qarorlari = await CoinRulingRepository(session).all_verdicts()
 
@@ -136,13 +136,28 @@ class PipelineRunner:
     # ------------------------------------------------------------------ #
 
     async def _load_candles(self, symbols: list[str]) -> dict[str, dict[str, list[Candle]]]:
-        """Barcha coinlar uchun kerakli timeframelarni PARALLEL yuklaydi."""
+        """Barcha coinlar uchun kerakli timeframelarni parallel yuklaydi.
+
+        Parallellik CHEGARALANGAN. Ilgari chegara yo'q edi: sikl barcha
+        coin × barcha timeframe so'rovini bir zumda yuborardi. 30 ta
+        coinda bu 90 ta so'rov — birja chidardi. 150 ta coinda 450 ta
+        bo'ladi va Binance avval 429, keyin 418 (IP ban) qaytaradi.
+
+        Ya'ni ro'yxatni kengaytirish chegarasiz ishlamasdi: coinlar soni
+        ortishi bilan tizim ko'proq ma'lumot emas, KAMROQ ma'lumot
+        olardi — barcha so'rov birdaniga rad etilardi.
+        """
         timeframelar = sorted(required_timeframes(self._strategies))
         limit = self._config.analysis.candles_lookback
+        darvoza = asyncio.Semaphore(self._config.market_data.max_concurrent_candle_requests)
+
+        async def bitta(symbol: str, timeframe: str) -> list[Candle]:
+            async with darvoza:
+                return await self._candles.fetch_candles(symbol, timeframe, limit)
 
         async def coin_uchun(symbol: str) -> tuple[str, dict[str, list[Candle]]]:
             natijalar = await asyncio.gather(
-                *(self._candles.fetch_candles(symbol, tf, limit) for tf in timeframelar),
+                *(bitta(symbol, tf) for tf in timeframelar),
                 return_exceptions=True,
             )
             shamlar: dict[str, list[Candle]] = {}

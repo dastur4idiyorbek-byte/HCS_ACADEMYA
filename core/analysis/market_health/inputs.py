@@ -31,7 +31,7 @@ class HealthInputs:
     #: Sutkalik o'zgarish, foiz punktlarida (masalan +0.3 yoki -1.8)
     btc_dominance_change_24h: float | None = None
 
-    # --- 2-omil: Top-30 Halal coinlar trend kengligi ---
+    # --- 2-omil: Halol ro'yxat trend kengligi ---
     #: Har bir halol coin uchun trend yo'nalishi
     universe_trends: dict[str, TrendDirection] = field(default_factory=dict)
 

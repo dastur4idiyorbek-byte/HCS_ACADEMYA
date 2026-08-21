@@ -119,7 +119,7 @@ class Scheduler:
             await self._runner.review_open_signals(natija)
 
     async def _refresh_universe(self) -> None:
-        """3.4-band: Top 30 Halal ro'yxatini yangilash."""
+        """3.4-band: Halol coinlar ro'yxatini yangilash."""
         await self._runner.refresh_universe()
 
     async def _cleanup(self) -> None:

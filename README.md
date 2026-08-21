@@ -32,7 +32,7 @@ core/                          "MIYA" — Telegram'ga bog'liq emas
 ├─ services/                   obuna hayot-sikli                  ✅ tayyor
 ├─ market_data/                WebSocket, OHLCV, reyting          ✅ tayyor
 ├─ signals/                    holat mashinasi (⏳→✅→🎯→🎯🎯/🛑)   ✅ tayyor
-├─ halal_screening/            Top 30 Halal mantig'i              ✅ tayyor
+├─ halal_screening/            Halol ro'yxat mantig'i              ✅ tayyor
 ├─ analysis/
 │   ├─ support_resistance/     S/R zonalari (BIRLAMCHI)           ✅ tayyor
 │   ├─ indicators/             EMA/RSI/MACD/ADX/ATR/hajm          ✅ tayyor

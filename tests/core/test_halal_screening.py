@@ -1,4 +1,4 @@
-"""3.4-band: "Top 30 HALOL" mantig'i.
+"""3.4-band: "Halol ro'yxat" mantig'i.
 
 Asosiy talab: ro'yxat 1-o'rindan pastga qarab tekshiriladi, harom/shubhali
 o'tkazib yuboriladi, va natija ANIQ `target_count` ta halol coin bo'ladi —
@@ -109,13 +109,18 @@ def test_skan_chuqurligi_chegarasi_hurmat_qilinadi() -> None:
     assert not natija.complete
 
 
-def test_haqiqiy_konfiguratsiya_bilan_30_ta_yigiladi(config) -> None:
-    """Loyihaning haqiqiy `seed_haram_symbols` ro'yxati bilan ishlaydimi."""
+def test_haqiqiy_konfiguratsiya_bilan_royxat_toladi(config) -> None:
+    """Loyihaning haqiqiy `seed_haram_symbols` ro'yxati bilan ishlaydimi.
+
+    Son konfiguratsiyadan olinadi, testga yozib qo'yilmaydi: 30 dan 150 ga
+    o'tganda aynan shu joy sinib, o'zgarish to'g'ri yoyilganini ko'rsatdi.
+    """
+    kerak = config.halal_screening.target_count
     registry = StaticRulingRegistry.from_config(config.halal_screening)
     screener = HalalScreener(config.halal_screening, registry)
-    natija = screener.screen(reyting(200, hajm=100_000_000))
+    natija = screener.screen(reyting(kerak + 50, hajm=100_000_000))
 
-    assert natija.count == 30
+    assert natija.count == kerak
     assert natija.complete
 
 

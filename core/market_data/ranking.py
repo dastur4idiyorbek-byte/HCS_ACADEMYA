@@ -95,6 +95,11 @@ class CoinMarketCapRanking(RankingProvider):
 class CoinGeckoRanking(RankingProvider):
     """Zaxira manba — API kaliti talab qilmaydi."""
 
+    #: Bitta so'rovda qaytadigan eng ko'p yozuv (CoinGecko cheklovi)
+    PER_PAGE_MAX = 250
+    #: Cheksiz aylanishdan himoya
+    MAX_PAGES = 10
+
     def __init__(self, config: MarketDataConfig) -> None:
         self._config = config
         self._session = None
@@ -107,35 +112,60 @@ class CoinGeckoRanking(RankingProvider):
         return self._session
 
     async def fetch_ranking(self, limit: int) -> list[MarketRankEntry]:
+        """Reytingni sahifalab yuklaydi.
+
+        CoinGecko bitta so'rovda ko'pi bilan `PER_PAGE_MAX` ta yozuv
+        qaytaradi. Ilgari kod `min(limit, 250)` deb yozardi va faqat
+        birinchi sahifani so'rardi — ya'ni 500 ta so'ralsa ham 250 tasi
+        kelardi, JIMGINA. Skanerlash chuqurligini oshirish hech qanday
+        ta'sir bermasdi va buni bilish ham qiyin edi: xato yo'q, log
+        ham "250 ta coin olindi" deb yozardi.
+        """
+        session = await self._get_session()
+        natija: list[MarketRankEntry] = []
+
+        for sahifa in range(1, self.MAX_PAGES + 1):
+            qolgan = limit - len(natija)
+            if qolgan <= 0:
+                break
+            xom = await self._fetch_page(session, sahifa, min(qolgan, self.PER_PAGE_MAX))
+            if not xom:
+                break
+            natija.extend(self._parse(xom, len(natija)))
+            if len(xom) < self.PER_PAGE_MAX:
+                break  # oxirgi sahifa
+
+        if not natija:
+            raise RankingUnavailableError("CoinGecko bo'sh ro'yxat qaytardi")
+
+        logger.info("CoinGecko reytingi olindi: %d ta coin (so'ralgan: %d)", len(natija), limit)
+        return natija
+
+    async def _fetch_page(self, session, page: int, per_page: int) -> list[dict]:  # noqa: ANN001
         url = f"{self._config.coingecko_base_url}/coins/markets"
         params = {
             "vs_currency": "usd",
             "order": "market_cap_desc",
-            "per_page": str(min(limit, 250)),
-            "page": "1",
+            "per_page": str(per_page),
+            "page": str(page),
         }
-
-        session = await self._get_session()
         async with session.get(url, params=params) as javob:
             if javob.status != 200:
                 raise RankingUnavailableError(f"CoinGecko javobi: {javob.status}")
-            xom = await javob.json()
+            return await javob.json()
 
-        if not xom:
-            raise RankingUnavailableError("CoinGecko bo'sh ro'yxat qaytardi")
-
-        natija = [
+    @staticmethod
+    def _parse(raw: list[dict], offset: int) -> list[MarketRankEntry]:
+        return [
             MarketRankEntry(
-                rank=yozuv.get("market_cap_rank") or index + 1,
+                rank=yozuv.get("market_cap_rank") or offset + index + 1,
                 symbol=yozuv["symbol"].upper(),
                 name=yozuv.get("name", yozuv["symbol"]),
                 market_cap_usd=float(yozuv.get("market_cap") or 0),
                 volume_24h_usd=float(yozuv.get("total_volume") or 0),
             )
-            for index, yozuv in enumerate(xom)
+            for index, yozuv in enumerate(raw)
         ]
-        logger.info("CoinGecko reytingi olindi: %d ta coin", len(natija))
-        return natija
 
     async def close(self) -> None:
         if self._session is not None and not self._session.closed:

@@ -2,7 +2,7 @@
 
 Formula (har sham yopilganda qayta hisoblanadi, 0-100):
     BTC Dominance holati (barqarormi, keskin o'zgaryaptimi)
-  + Top-30 Halal coinlarning umumiy trend yo'nalishi
+  + Halol ro'yxatdagi coinlarning umumiy trend yo'nalishi
   + Volatillik rejimi (ADX)
   + Agregat foydalanuvchi sig'imi (5.2-band)
   + Faol signallar to'yinganlik darajasi

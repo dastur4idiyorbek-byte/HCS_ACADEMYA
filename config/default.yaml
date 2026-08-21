@@ -10,11 +10,21 @@ project:
   default_language: "uz"
   supported_languages: ["uz"]      # kelajakda: ["uz", "ru"]
 
-# --- 3.4-band: Top 30 Halal coin skrining ---
+# --- 3.4-band: halol coin skrining ---
 halal_screening:
-  target_count: 30                 # ro'yxat aynan shuncha halol coinga to'lguncha pastga tushiladi
-  max_scan_depth: 300              # reyting bo'yicha maksimal necha o'ringacha tekshiriladi
-  min_daily_volume_usd: 50_000_000 # likvidlik filtri
+  # Tahlil qilinadigan coinlar soni. 30 dan 150 ga kengaytirildi: sokinlik
+  # dashboardi rad etishlarning 66% i "narx support zonasidan uzoq" ekanini
+  # ko'rsatdi — ya'ni to'siq strategiyada emas, TANLOV DOIRASIDA edi.
+  # Bir vaqtning o'zida nechta signal ochiq turishini bu raqam emas, Risk
+  # Engine belgilaydi (4.2-band), shuning uchun ro'yxatni kengaytirish
+  # signal oqimini toshirib yubormaydi.
+  target_count: 150
+  max_scan_depth: 500              # reyting bo'yicha maksimal necha o'ringacha tekshiriladi
+  # Likvidlik filtri. ATAYLAB pasaytirilmadi: reytingda pastroq turgan
+  # coinlarda kunlik hajm kichik bo'ladi va $500 lik buyurtma ham narxni
+  # surib yuboradi (slippage). Ro'yxat 150 taga to'lmasa — bu nosozlik
+  # emas, shu filtr ishlagani. Haqiqiy son `/panel` -> Halol ro'yxatda.
+  min_daily_volume_usd: 50_000_000
   quote_asset: "USDT"              # spot juftlik kotirovkasi
   exclude_stablecoins: true
   stablecoin_symbols:
@@ -316,7 +326,7 @@ market_data:
   exchange: "binance"              # binance | bybit
   ws_base_url: "wss://stream.binance.com:9443/stream"
   rest_base_url: "https://api.binance.com"
-  # Kapitalizatsiya reytingi manbai (3.4-band, Top 30 Halal uchun).
+  # Kapitalizatsiya reytingi manbai (3.4-band, halol ro'yxat uchun).
   # CoinMarketCap API kalitini talab qiladi -> .env dagi CMC_API_KEY.
   # Kalit yo'q bo'lsa tizim skrining qilmaydi va halol ro'yxat yangilanmaydi
   # (0.3-band fail-safe: eski, tasdiqlangan ro'yxat bilan davom etadi).
@@ -325,6 +335,10 @@ market_data:
   coingecko_base_url: "https://api.coingecko.com/api/v3"   # zaxira manba
   reconnect_backoff_seconds: [2, 4, 8, 16, 32]
   stale_price_seconds: 90          # shundan uzoq yangilanmasa — fail-safe, signal yo'q
+  # Bir vaqtda nechta OHLCV so'rovi ketsin. Chegarasiz bo'lsa 150 coin x 3
+  # timeframe = 450 ta parallel so'rov, Binance esa 429 va keyin 418 (IP ban)
+  # qaytaradi — ya'ni ro'yxat kengaygani sari tizim KAMROQ ma'lumot olardi.
+  max_concurrent_candle_requests: 8
 
 # --- 6.4-band: logging ---
 logging:

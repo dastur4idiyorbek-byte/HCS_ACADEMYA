@@ -91,7 +91,7 @@ class HalalVerdict:
 
 @dataclass(frozen=True, slots=True)
 class ScreeningResult:
-    """3.4-band natijasi — "Top 30 Halal" ro'yxati va uning izohi."""
+    """3.4-band natijasi — halol ro'yxat va uning izohi."""
 
     symbols: list[str]
     verdicts: list[HalalVerdict]

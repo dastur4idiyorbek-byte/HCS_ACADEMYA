@@ -1,7 +1,7 @@
 """3.5-band: ball hisoblash, chegara qo'llash va reytinglash.
 
 Jarayon (spetsifikatsiyadan):
-    1. Top 30 Halal coin parallel tahlil qilinadi
+    1. Halol ro'yxatdagi coinlar parallel tahlil qilinadi
     2. Har biriga yig'indi ball hisoblanadi, reytinglanadi
     3. Minimal ball chegarasi qo'llaniladi — chegara STATIK EMAS, Bozor
        Salomatligi Indeksiga qarab moslashadi

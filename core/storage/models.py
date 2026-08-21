@@ -194,7 +194,7 @@ class CoinRuling(Base, TimestampMixin):
 
 
 class HalalUniverseSnapshot(Base, TimestampMixin):
-    """3.4-band: hisoblangan "Top 30 Halal" ro'yxatining qaydi.
+    """3.4-band: hisoblangan halol ro'yxatning qaydi.
 
     Nima uchun saqlanadi: postmortem (3.8) "o'sha paytda ro'yxat qanday edi"
     degan savolga javob bera olishi kerak.

@@ -1609,7 +1609,92 @@ edi.
 
 ---
 
-## 39. Bosqichlar holati
+## 39. Tahlil doirasi 30 tadan 150 taga kengaytirildi
+
+### Nima uchun
+
+37-bo'limdagi sokinlik dashboardi aniq javob berdi: rad etishlarning
+**66% i "narx support zonasidan uzoq"**. Ya'ni to'siq strategiyada
+emas — strategiya to'g'ri ishlayapti, faqat qaraydigan coini kam edi.
+
+30 ta coinning bir vaqtda support zonasiga yaqin turishi kam
+uchraydi. 150 tada esa xuddi shu ulush besh barobar ko'p imkoniyat
+beradi. Strategiya, chegara, Risk Engine — hech biri o'zgarmaydi.
+
+Signal soni toshib ketmaydi: bir vaqtda nechta signal ochiq
+turishini `target_count` emas, Risk Engine belgilaydi (4.2-band:
+salomatlikka qarab 0/3/5 ta).
+
+### Bu bitta raqam o'zgarishi emas edi
+
+`target_count: 30 -> 150` deb yozib qo'yish tizimni **ishlamas holga**
+keltirardi. Ikkita to'siq bor edi va ikkalasi ham jimgina buzilardi.
+
+#### 1. Chegarasiz parallellik
+
+`_load_candles()` barcha coin × barcha timeframe so'rovini bir zumda
+yuborardi:
+
+| Coinlar | Bir vaqtdagi so'rov | Binance javobi |
+|---|---|---|
+| 30 | 90 | chidaydi |
+| 150 | 450 | 429, keyin 418 (IP ban) |
+
+Ya'ni ro'yxat kengaygani sari tizim ko'proq emas, **kamroq** ma'lumot
+olardi. `max_concurrent_candle_requests` (standart 8) qo'shildi.
+
+Test buni o'lchaydi: chegarasiz kodda 60 ta coinda 300 ta so'rov
+ochiladi, chegara bilan 8 ta.
+
+#### 2. CoinGecko faqat birinchi sahifani so'rardi
+
+```python
+"per_page": str(min(limit, 250)),
+"page": "1",
+```
+
+500 ta so'ralsa ham 250 tasi kelardi — **xatosiz, jimgina**. Log ham
+"250 ta coin olindi" deb yozardi, ya'ni skanerlash chuqurligini
+oshirish hech qanday ta'sir bermasdi va buni sezish qiyin edi. Endi
+sahifalab yuklanadi.
+
+### Likvidlik filtri ATAYLAB pasaytirilmadi
+
+`min_daily_volume_usd` $50M da qoldi. Reytingda pastroq turgan
+coinlarda kunlik hajm kichik bo'ladi va $500 lik buyurtma ham narxni
+surib yuboradi. Pozitsiya hajmi mexanizmi (5.1-band) haqiqiy pul
+bilan ishlaydi — bu yerda "ko'proq coin" degan foyda slippage zarariga
+arzimaydi.
+
+Shuning uchun ro'yxat 150 taga to'lmasligi mumkin. **Bu nosozlik
+emas** — aynan shu filtr ishlagani. Haqiqiy son `/panel` -> 💓 ekranida
+ko'rinadi: "Halol coinlarning 45%i ko'tarilish trendida (87 tadan)".
+
+Bu raqamni bir necha kun kuzatib, keyin qaror qilish kerak: agar u
+90 atrofida tursa, filtrni pasaytirish emas, shunday qoldirish
+to'g'riroq.
+
+### O'lchov shkalasi tekshirildi
+
+32-34 bo'limlardagi takrorlangan xato — bir shkala uchun to'g'ri
+qiymatni boshqasiga qo'llash — shu yerda ham bo'lishi mumkin edi.
+Bozor Salomatligi omillari tekshirildi: `uptrend_ratio`,
+`headroom_ratio`, `saturation_ratio` — hammasi NISBAT, sanoq emas.
+Shuning uchun coinlar soni ortishi ularni buzmaydi, aksincha bozor
+kengligi baholashini aniqlashtiradi (30 ta emas, 150 ta namuna).
+
+### Halol ro'yxat haqida ogohlantirish
+
+Reytingda 30 dan 150 gacha tushish — ilgari umuman ko'rilmagan
+coinlarni ro'yxatga kiritish demakdir. Avtomatik skrining toifa
+bo'yicha ishlaydi va u to'liq kafolat emas.
+
+Ro'yxatni bilimli kishi bilan ko'rib chiqish talabi shu o'zgarishdan
+keyin **kuchayadi**, kamaymaydi.
+
+---
+
+## 40. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

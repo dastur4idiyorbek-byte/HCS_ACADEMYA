@@ -1,7 +1,7 @@
 """15-bosqich: avtomatik signal sikli — barcha modullarni bog'laydi.
 
 Zanjir:
-    Top 30 Halal  ->  strategiyalar (parallel)  ->  ball va reyting
+    Halol ro'yxat  ->  strategiyalar (parallel)  ->  ball va reyting
                   ->  chegara (Bozor Salomatligiga qarab)
                   ->  Risk Engine (majburiy)  ->  signal
 
