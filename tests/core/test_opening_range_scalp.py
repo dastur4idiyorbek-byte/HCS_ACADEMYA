@@ -286,12 +286,28 @@ def test_asosiy_strategiya_chegarasi_ozgarmagan(config) -> None:  # noqa: ANN001
         config.trade_rules.min_tp_distance_pct,
         config.trade_rules.max_tp_distance_pct,
         config.trade_rules.min_risk_reward,
+        config.trade_rules.min_stop_distance_pct,
     )
+
+
+def test_skalping_tor_stop_ishlata_oladi(config) -> None:  # noqa: ANN001
+    """Skalping TABIATAN tor Stop bilan ishlaydi — universal 1% chegara unga tegmasin.
+
+    3.3-band tuzatilgandan keyin universal minimal Stop 1% bo'ldi. Lekin
+    kunlik diapazonning narigi chekkasi odatda 1% dan yaqin — universal
+    chegarani qo'llash bu strategiyani imkonsiz qilardi.
+    """
+    qoida = next(r for r in RiskEngine(config).rules if r.name == "trade_rules")
+
+    _, _, _, skalp_min_stop = qoida._bounds_for(SignalSource.OPENING_RANGE_SCALP)
+    _, _, _, asosiy_min_stop = qoida._bounds_for(SignalSource.CLASSIC_TA)
+
+    assert skalp_min_stop < asosiy_min_stop
 
 
 def test_skalp_chegaralari_konfiguratsiyadan_olinadi(config) -> None:  # noqa: ANN001
     skalp = config.strategies.opening_range_scalp
-    min_tp, max_tp, _ = scalp_trade_rules(skalp)
+    min_tp, max_tp, _, min_stop = scalp_trade_rules(skalp)
 
     assert (min_tp, max_tp) == (skalp.min_move_pct, skalp.max_move_pct)
 

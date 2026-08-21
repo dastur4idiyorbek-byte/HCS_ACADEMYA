@@ -72,11 +72,12 @@ def build_levels(
 
     stop_natija = _build_stop(entry, support.low, zone_map.atr, rules)
     if stop_natija is None:
-        masofa = (entry - support.low) / entry * 100
+        masofa = (entry - support.low - zone_map.atr * STOP_BUFFER_ATR) / entry * 100
+        tomon = "yaqin" if masofa < rules.min_stop_distance_pct else "uzoq"
         return LevelResult(
             None,
-            f"Support zonasi juda uzoq: Stop {masofa:.2f}% da qolardi, "
-            f"chegara {rules.max_stop_distance_pct}%",
+            f"Support zonasi juda {tomon}: Stop {masofa:.2f}% da qolardi, "
+            f"ruxsat {rules.min_stop_distance_pct}–{rules.max_stop_distance_pct}%",
         )
     stop = stop_natija
     stop_masofa_pct = (entry - stop) / entry * 100
@@ -94,7 +95,16 @@ def build_levels(
             )
         # Toza ko'tarilish trendida ustda qarshilik bo'lmaydi — TP1
         # o'lchangan masofa bo'yicha qo'yiladi.
-        tp1_natija = entry * (1 + rules.min_tp_distance_pct / 100)
+        #
+        # Masofa STOP bilan bog'lanadi: TP1 da pozitsiyaning yarmi
+        # yopiladi, shuning uchun uning o'zi ham foydali nisbatda
+        # bo'lishi kerak. Aks holda Stop 5% bo'lganda TP1 3% da qolib,
+        # yarim pozitsiya 1:0.6 nisbatda — zararli savdo bo'lardi.
+        olchangan_pct = max(
+            rules.min_tp_distance_pct,
+            stop_masofa_pct * rules.tp1_min_risk_reward,
+        )
+        tp1_natija = entry * (1 + olchangan_pct / 100)
     tp1 = tp1_natija
 
     tp2_natija = _build_tp2(entry, tp1, stop_masofa_pct, rules)
@@ -127,18 +137,28 @@ def _build_stop(
     atr: float,
     rules: TradeRulesConfig,
 ) -> float | None:
-    """Stop support zonasidan pastda, lekin chegaradan uzoq bo'lmasligi kerak."""
-    tuzilmaviy = support_low - atr * STOP_BUFFER_ATR
-    eng_past_ruxsat = entry * (1 - rules.max_stop_distance_pct / 100)
+    """Stop support zonasidan pastda, ruxsat etilgan oraliqda bo'lishi kerak.
 
-    if tuzilmaviy <= 0:
+    Oraliq IKKI tomonlama (3.3-band tuzatilgan):
+
+    - juda YAQIN (< `min_stop_distance_pct`) — bozor shovqini Stop'ni
+      bekorga yeb qo'yadi;
+    - juda UZOQ (> `max_stop_distance_pct`) — pozitsiya hajmi shunchalik
+      kichrayadiki, savdoning ma'nosi qolmaydi.
+
+    Stop sun'iy ravishda yaqinlashtirilmaydi: bu support zonasi ICHIDA
+    Stop qo'yish demakdir — narx zonaga tegib qaytsa ham Stop ishlardi.
+    """
+    tuzilmaviy = support_low - atr * STOP_BUFFER_ATR
+    if tuzilmaviy <= 0 or tuzilmaviy >= entry:
         return None
-    # Tuzilmaviy Stop chegaradan uzoqda bo'lsa — signal berilmaydi.
-    # Uni sun'iy ravishda yaqinlashtirish support zonasi ichida Stop qo'yish
-    # demakdir: narx zonaga tegib qaytsa ham Stop ishga tushardi.
-    if tuzilmaviy < eng_past_ruxsat:
+
+    masofa_pct = (entry - tuzilmaviy) / entry * 100
+    if masofa_pct < rules.min_stop_distance_pct:
         return None
-    return tuzilmaviy if tuzilmaviy < entry else None
+    if masofa_pct > rules.max_stop_distance_pct:
+        return None
+    return tuzilmaviy
 
 
 def _build_tp1(entry: float, zone_map: ZoneMap, rules: TradeRulesConfig) -> float | None:

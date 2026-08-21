@@ -22,9 +22,13 @@ def test_kartochka_spetsifikatsiya_tuzilishiga_mos() -> None:
     assert "ETH/USDT" in kartochka
     assert "Narx" in kartochka
     assert "OCO" in kartochka, "chiqish buyurtmasi turi aytilishi kerak"
-    assert "foyda imkoniyati" in kartochka, "risk/reward tushunarli tilda aytilishi kerak"
-    for qator in ("🎯 TP1", "🎯 TP2", "🛑 Stop"):
-        assert qator in kartochka
+    assert "OCO" in kartochka and "50%" in kartochka, (
+        "ikkita OCO va ularning ulushi ko'rsatilishi kerak"
+    )
+    # Ikkita OCO: har birida bitta TP va BIR XIL Stop
+    assert kartochka.count("🎯") == 2, "har bir OCO uchun bitta TP"
+    assert kartochka.count("🛑") == 2, "Stop ikkala OCO da ham takrorlanadi"
+    assert "1-OCO" in kartochka and "2-OCO" in kartochka
 
 
 def test_limit_va_market_kartochkada_korinadi() -> None:
@@ -62,7 +66,7 @@ def test_balans_kiritilmagan_bolsa_taklif_korsatiladi() -> None:
 
 def test_stop_manfiy_foiz_bilan_korsatiladi() -> None:
     kartochka = render_signal_card("ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG))
-    stop_qatori = next(q for q in kartochka.splitlines() if "Stop" in q)
+    stop_qatori = next(q for q in kartochka.splitlines() if "🛑" in q)
     assert "-0." in stop_qatori
 
 
@@ -159,4 +163,4 @@ def test_xavf_pul_bilan_korsatiladi() -> None:
     )
 
     assert "2.72" in kartochka
-    assert "zararingiz" in kartochka
+    assert "Stop ishlasa" in kartochka

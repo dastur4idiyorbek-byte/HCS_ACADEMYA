@@ -40,6 +40,7 @@ def render_signal_card(
     quote_asset: str = "USDT",
     language: str = DEFAULT_LANGUAGE,
     range_position: RangePosition | None = None,
+    tp1_close_pct: float = 50.0,
 ) -> str:
     """5.1.0-banddagi signal-kartochkani chiqaradi.
 
@@ -70,7 +71,7 @@ def render_signal_card(
         tp2_pct=format_pct(levels.tp2_distance_pct),
         stop=format_price(levels.stop),
         stop_pct=format_pct(-levels.stop_distance_pct),
-        rr=f"{levels.risk_reward_tp2:.1f}",
+        share=f"{tp1_close_pct:.0f}",
     )
     # Xavfni PUL bilan ko'rsatish — foizdan ko'ra tushunarli. Balans
     # kiritilmagan bo'lsa hisoblab bo'lmaydi, o'shanda qator qo'shilmaydi.

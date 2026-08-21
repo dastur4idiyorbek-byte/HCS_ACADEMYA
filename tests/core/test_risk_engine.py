@@ -38,12 +38,25 @@ def salomatlik(qiymat: float) -> MarketHealth:
     return MarketHealth(value=qiymat, factors=[], computed_at=ODDIY_VAQT)
 
 
-def nomzod(symbol: str = "ETH", stop_pct: float = 0.8, tp2_pct: float = 4.0) -> SignalCandidate:
+def nomzod(
+    symbol: str = "ETH",
+    stop_pct: float = 1.5,
+    tp2_pct: float = 5.0,
+    tp1_pct: float | None = None,
+) -> SignalCandidate:
+    """Sinov nomzodi.
+
+    `tp1_pct` berilmasa TP2 gacha bo'lgan masofaning 70% ida turadi —
+    shunda Stop qanday bo'lishidan qat'i nazar tartib (Stop < Entry <
+    TP1 < TP2) buzilmaydi.
+    """
     entry = 100.0
+    if tp1_pct is None:
+        tp1_pct = max(3.0, tp2_pct * 0.7)
     levels = SignalLevels(
         entry=entry,
         stop=entry * (1 - stop_pct / 100),
-        tp1=entry * 1.03,
+        tp1=entry * (1 + tp1_pct / 100),
         tp2=entry * (1 + tp2_pct / 100),
     )
     return SignalCandidate(
@@ -277,13 +290,44 @@ def test_malumot_yetishmasa_signal_berilmaydi(engine: RiskEngine, yoq: str) -> N
 
 
 def test_stop_juda_uzoq_bolsa_rad_etiladi(engine: RiskEngine) -> None:
-    qaror = engine.evaluate(nomzod(stop_pct=2.5), sog_kontekst())
+    """5% dan uzoq Stop — pozitsiya ma'nosiz kichrayadi."""
+    qaror = engine.evaluate(nomzod(stop_pct=6.0, tp2_pct=19.0), sog_kontekst())
+
     assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
+    assert any("juda uzoq" in izoh for izoh in qaror.details), qaror.details
 
 
-def test_tp_oraliqdan_tashqarida_bolsa_rad_etiladi(engine: RiskEngine) -> None:
-    qaror = engine.evaluate(nomzod(tp2_pct=9.0), sog_kontekst())
+def test_stop_juda_yaqin_bolsa_rad_etiladi(engine: RiskEngine) -> None:
+    """1% dan yaqin Stop — bozor shovqini uni bekorga yeb qo'yadi."""
+    qaror = engine.evaluate(nomzod(stop_pct=0.4), sog_kontekst())
+
     assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
+    assert any("juda yaqin" in izoh for izoh in qaror.details), qaror.details
+
+
+def test_stop_oraliq_ichida_bolsa_otadi(engine: RiskEngine) -> None:
+    """3.3-band tuzatilgan: Stop 1%..5% oralig'ida ERKIN joylashadi.
+
+    Avval qat'iy 1% chegara bor edi — aynan 1% masofada mos S/R zonasi
+    kam uchraydi, shu sababli signal deyarli chiqmasdi.
+    """
+    for stop_pct in (1.0, 2.0, 3.5, 5.0):
+        qaror = engine.evaluate(
+            nomzod(stop_pct=stop_pct, tp2_pct=stop_pct * 3.2), sog_kontekst()
+        )
+        assert qaror.allowed, f"Stop {stop_pct}%: {qaror.details}"
+
+
+def test_nisbat_asosiy_shart(engine: RiskEngine) -> None:
+    """Stop masofasidan QAT'I NAZAR, nisbat 1:3 dan past bo'lsa signal yo'q.
+
+    Bu — tuzatishning mag'zi: chegara masofa emas, NISBAT.
+    """
+    # Stop 2% ruxsat etilgan oraliqda, lekin TP2 atigi 4% -> nisbat 1:2
+    qaror = engine.evaluate(nomzod(stop_pct=2.0, tp2_pct=4.0), sog_kontekst())
+
+    assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
+    assert any("Nisbat yetarli emas" in izoh for izoh in qaror.details), qaror.details
 
 
 def test_past_risk_reward_rad_etiladi(engine: RiskEngine) -> None:

@@ -261,7 +261,7 @@ class PipelineRunner:
         await self._record_rejections(natija, salomatlik)
 
         for nomzod in natija.emitted:
-            await self._emit(nomzod, salomatlik)
+            await self._emit(nomzod, salomatlik, self._joriy_narx(shamlar, nomzod.symbol))
 
         return natija
 
@@ -341,10 +341,29 @@ class PipelineRunner:
             kill_switch_reason=self._watcher.kill_switch_reason,
         )
 
-    async def _emit(self, candidate, health: MarketHealth) -> None:  # noqa: ANN001
-        """Nomzodni bazaga yozadi, kuzatuvga qo'shadi va tarqatadi."""
+    def _joriy_narx(self, candles: dict, symbol: str) -> float | None:  # noqa: ANN001
+        """Kirish timeframedagi oxirgi yopilish narxi."""
+        seriya = candles.get(symbol, {}).get(self._config.analysis.entry_timeframe, [])
+        return seriya[-1].close if seriya else None
+
+    async def _emit(
+        self,
+        candidate,  # noqa: ANN001
+        health: MarketHealth,
+        current_price: float | None = None,
+    ) -> None:
+        """Nomzodni bazaga yozadi, kuzatuvga qo'shadi va tarqatadi.
+
+        `current_price` — BOZORDAGI haqiqiy narx. Avval bu yerga
+        `levels.entry` uzatilardi, ya'ni "joriy narx = kirish narxi" deb
+        hisoblanardi. Natijada buyurtma turi HAR DOIM Market chiqardi,
+        kuzatuvchi esa haqiqiy narxni ko'rib "Kutilmoqda" derdi — bitta
+        xabarda ikkita qarama-qarshi gap.
+        """
         reja = decide_entry_plan(
-            candidate.levels.entry, candidate.levels, self._config.analysis.entry_order
+            current_price if current_price else candidate.levels.entry,
+            candidate.levels,
+            self._config.analysis.entry_order,
         )
 
         async with self._db.session() as session:
@@ -375,6 +394,7 @@ class PipelineRunner:
                 reja,
                 suggestion=self._suggest_size(candidate.symbol, candidate.levels, balans),
                 quote_asset=self._config.halal_screening.quote_asset,
+                tp1_close_pct=self._config.portfolio.tp1_close_pct,
             )
             try:
                 await self._bot.send_message(

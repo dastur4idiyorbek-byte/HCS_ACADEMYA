@@ -1176,7 +1176,118 @@ lekin haqiqiy chaqiruv jonli ishlashda tekshirilishi kerak: `/panel` ->
 
 ---
 
-## 34. Bosqichlar holati
+## 34. Jonli sinovda topilgan beshta xato
+
+Bot haqiqiy foydalanuvchilarga ko'rsatilganda beshta xato aniqlandi.
+Hammasi mavjud mantiqdagi xato — yangi funksiya emas.
+
+### 34.1 Sarlavha va holat bir-biriga zid edi
+
+Bitta xabarda: *"⚡ Hozir oling — narx allaqachon kerakli joyda"* va
+pastida *"⏳ Kutilmoqda — narx kirish nuqtasiga yetmadi"*.
+
+**Sabab.** Buyurtma turini tanlashda joriy narx o'rniga KIRISH narxining
+o'zi uzatilardi:
+
+```python
+reja = decide_entry_plan(levels.entry, levels, ...)   # noto'g'ri
+```
+
+Ya'ni "joriy narx = kirish narxi" — masofa har doim nol, tur har doim
+**Market**. Kuzatuvchi esa haqiqiy narxni ko'rib **Kutilmoqda** derdi.
+
+**Tuzatish.** Ikkala yo'l ham bozordagi haqiqiy narxni oladi: avtomatik
+sikl — oxirgi shamning yopilish narxini, qo'lda yuborish — birjadan
+so'rov orqali. Narx olinmasa eski xatti-harakat qoladi (0.3-band).
+
+### 34.2 Futures terminologiyasi
+
+Bu SPOT savdo. "Pozitsiya ochish/yopish", "long/short" atamalari
+foydalanuvchi matnlaridan olib tashlandi:
+
+| eski | yangi |
+|---|---|
+| ✋ Men kirdim | 🖐 Men sotib oldim |
+| Qancha miqdorda kirdingiz? | Qancha miqdorga sotib oldingiz? |
+| Ochiq pozitsiyalar | Ochiq xaridlar |
+| Faol — pozitsiya ochiq | Faol — sotib olingan |
+
+Ichki kod o'zgaruvchilari o'zgarmadi — faqat ko'rinadigan matn.
+
+### 34.3 OCO mantig'i noto'g'ri tushuntirilgan edi
+
+Kartochka "TP1, TP2, Stop — uchalasi birga OCO" derdi. Bu **texnik
+jihatdan noto'g'ri**: birjada bitta OCO faqat bitta sotish narxi + bitta
+stopdan iborat, ikkita TP ni bitta OCO ichiga qo'yib bo'lmaydi.
+
+To'g'ri mantiq — miqdor ikkiga bo'linadi:
+
+```
+SOTISH — 2 ta OCO buyurtma
+1-OCO (50%)  🎯 123 500  +4.44%
+            🛑 116 500  -1.48%
+2-OCO (50%)  🎯 124 000  +4.86%
+            🛑 116 500  -1.48%
+```
+
+Ulush `portfolio.tp1_close_pct` dan olinadi — ya'ni kartochka va
+5.4-banddagi qismli yopish hisobi BITTA manbadan ishlaydi.
+
+### 34.4 Ortiqcha izohlar
+
+"Uchalasi birga qo'yiladi...", "Har 1 birlik zararga N birlik foyda
+imkoniyati" kabi qatorlar olib tashlandi. Kartochka endi faqat raqam va
+harakatdan iborat; tushuntirish «Nega bu signal?» tugmasi ostida qoladi.
+
+### 34.5 Risk qoidasi noto'g'ri cheklangan edi (ENG MUHIM)
+
+**Eski qoida:** Stop masofasi narxning 1% idan oshmasin.
+
+Bu signal sonini keskin kamaytirardi — aynan 1% masofada mos S/R zonasi
+kam uchraydi. Jonli botda `classic_ta:levels` sababi aynan shundan
+chiqardi.
+
+**Yangi qoida:** Stop **1%..5%** oralig'ida ERKIN joylashadi. Qat'iy
+shart — **NISBAT**:
+
+| Stop | TP2 kamida |
+|---|---|
+| −1% | +3% |
+| −2% | +6% |
+| −5% | +15% |
+
+Nisbat 1:3 dan past bo'lsa signal berilmaydi — Stop foizi kichik yoki
+katta bo'lishidan qat'i nazar.
+
+**Xavf oshmaydi.** Pozitsiya hajmi formulasi (5.1-band) o'zgarmadi:
+
+```
+miqdor = xavf qilinadigan pul / Stop masofasi (%)
+```
+
+Stop kattalashsa miqdor avtomatik kichrayadi. Bu formula allaqachon
+to'g'ri edi — endi Stop erkin bo'lgani uchun u to'liq ishlaydi.
+
+**Uchta qo'shimcha tuzatish shundan kelib chiqdi:**
+
+1. **Stop pastki chegarasi** qo'shildi (1%): juda yaqin Stop'ni bozor
+   shovqini bekorga yeb qo'yadi.
+2. **Skalping alohida chegara oladi.** Universal 1% minimal Stop
+   skalpingni imkonsiz qilardi — kunlik diapazonning narigi chekkasi
+   odatda 1% dan yaqin. `scalp_trade_rules()` endi Stop chegarasini ham
+   qaytaradi.
+3. **Volatillik qoidasi qayta bog'landi.** U `max_stop_distance_pct` ga
+   bog'langandi; u 1% dan 5% ga o'zgarganda qoida ATR dan 5% talab qilib,
+   deyarli har bir signalni to'sardi. Endi `min_stop_distance_pct` ga
+   bog'langan.
+
+**TP1 ham Stop bilan bog'landi** (`tp1_min_risk_reward: 1.5`). Sabab:
+TP1 da xaridning yarmi sotiladi — agar u 1:1 dan past bo'lsa, o'sha yarim
+savdo o'rtacha zarar keltirardi. Stop 4% bo'lsa TP1 kamida 6% da turadi.
+
+---
+
+## 35. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

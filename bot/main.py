@@ -155,6 +155,10 @@ async def run() -> None:
             "CMC_API_KEY yo'q — BTC Dominance omili nol ball oladi "
             "(indeksning 20 bali ishlatilmaydi)"
         )
+    # Qo'lda signal yuborishda ham BOZORDAGI narx kerak — aks holda
+    # buyurtma turi har doim Market chiqib, holat bilan zid bo'lardi.
+    dispatcher["candles"] = candle_provider
+
     runner = PipelineRunner(
         bot, database, config, candle_provider, ranking_provider, watcher, dominance
     )

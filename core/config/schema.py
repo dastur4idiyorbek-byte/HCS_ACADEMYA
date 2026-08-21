@@ -161,10 +161,33 @@ class ScoringConfig:
 
 @dataclass(frozen=True, slots=True)
 class TradeRulesConfig:
-    max_stop_distance_pct: float = 1.0
+    """3.3-band: universal risk qoidasi.
+
+    ASOSIY SHART — NISBAT, masofa emas. Stop 1% dan 5% gacha erkin
+    joylashishi mumkin (S/R zonasi qayerda ekaniga qarab), lekin
+    TP/Stop nisbati kamida `min_risk_reward` bo'lishi SHART.
+
+    Nima uchun shunday: qat'iy 1% chegara narxni majburlab siqardi —
+    aynan 1% masofada mos S/R zonasi bo'ladigan holat kam uchraydi,
+    natijada signal deyarli chiqmasdi. Nisbat esa har qanday masofada
+    ma'noga ega.
+
+    Stop kattalashsa xavf oshmaydi: pozitsiya hajmi
+    (xavf puli / Stop%) avtomatik kichrayadi — 5.1-band.
+    """
+
+    #: Stop shu masofadan yaqin bo'lsa — bozor shovqini uni yeb qo'yadi
+    min_stop_distance_pct: float = 1.0
+    #: Stop shu masofadan uzoq bo'lsa — pozitsiya juda kichrayib ketadi
+    max_stop_distance_pct: float = 5.0
+    #: TP Stop bilan bog'liq: `min_risk_reward` orqali hisoblanadi
     min_tp_distance_pct: float = 3.0
-    max_tp_distance_pct: float = 5.0
+    max_tp_distance_pct: float = 20.0
+    #: QAT'IY SHART: TP2/Stop nisbati shundan past bo'lsa signal yo'q
     min_risk_reward: float = 3.0
+    #: TP1 uchun eng past nisbat. TP1 da pozitsiyaning yarmi yopiladi —
+    #: agar u 1:1 dan past bo'lsa, o'sha yarim savdo o'rtacha zarar keltiradi.
+    tp1_min_risk_reward: float = 1.5
     allow_measured_tp: bool = True
 
 

@@ -310,16 +310,24 @@ class OpeningRangeScalpStrategy(Strategy):
         return None
 
 
-def scalp_trade_rules(config: OpeningRangeScalpConfig) -> tuple[float, float, float]:
-    """3.9-band strategiyasi uchun TP oralig'i va minimal R/R.
+def scalp_trade_rules(
+    config: OpeningRangeScalpConfig,
+) -> tuple[float, float, float, float]:
+    """3.9-band strategiyasi uchun TP oralig'i, minimal R/R va Stop pastki chegarasi.
 
     3.3-banddagi universal qoida TP ni 3–5% deb belgilaydi, skalping esa
     1–2% harakatni kutadi. Ikkalasi bir xil chegara bilan tekshirilsa,
     skalping signallari HAR DOIM rad etilardi.
 
+    Stop pastki chegarasi ham alohida: 3.3-band tuzatilgandan keyin
+    universal minimal Stop 1% bo'ldi, lekin skalping TABIATAN tor Stop
+    bilan ishlaydi — kunlik diapazonning narigi chekkasi odatda 1% dan
+    yaqin. Universal chegarani qo'llash bu strategiyani ham imkonsiz
+    qilardi.
+
     Returns:
-        `(min_tp_pct, max_tp_pct, min_risk_reward)`.
+        `(min_tp_pct, max_tp_pct, min_risk_reward, min_stop_pct)`.
     """
     # Skalpingda Stop diapazon o'rtasida — R/R odatda 1:1..1:3 oralig'ida.
     # 1:3 talab qilish bu strategiyani imkonsiz qilardi.
-    return config.min_move_pct, config.max_move_pct, 1.0
+    return config.min_move_pct, config.max_move_pct, 1.0, 0.0

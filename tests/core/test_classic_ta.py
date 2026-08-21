@@ -136,35 +136,48 @@ def test_muvaffaqiyatli_tahlildan_keyin_rad_tozalanadi(strategy, config) -> None
 
 
 def qaytishli_kotarilish() -> list[Candle]:
-    """Ko'tarilish trendi, oxirida support darajasiga qaytish va burilish.
+    """Ko'tarilish trendi, oxirida support ustiga qaytish va burilish.
 
-    Shakl ataylab shunday: har tsiklda narx ~5% tebranadi va yuqoriga
-    siljiydi (zonalar shakllanishi uchun), oxirida support zonasiga tushib,
-    hajm oshishi bilan qaytishni boshlaydi.
+    Shakl ATAYLAB aniq S/R darajalari bilan qurilgan (tsikllardan hosil
+    qilish o'rniga) — shunda zonalar aniq shakllanadi va sinov natijasi
+    tasodifga bog'liq bo'lmaydi.
+
+    O'lchangan natija: Stop 1.49% (3.3-banddagi 1..5% oralig'ining
+    o'rtasi), zona joylashuvi 36% (aniq Discount), nisbat 1:3.0.
+
+    Fitil kengligi (0.8%) muhim: ATR shundan hisoblanadi, ATR esa
+    "narx zonaga yaqinmi" va Stop masofasini belgilaydi. Juda tor fitil
+    bilan Stop har doim 1% dan yaqin chiqib, signal rad etilardi.
     """
+    SUPPORT, RESISTANCE = 8000.0, 8480.0   # 6% diapazon
+    FITIL = 0.008                          # ATR ~1.6% -> zonalar mazmunli
+    KOTARILISH = 0.005                     # har tsiklda ~0.5% yuqoriga
+    OXIRGI_ULUSH = 0.34                    # diapazonning pastki uchdan biri
+
     shamlar: list[Candle] = []
     i = 0
-    for tsikl in range(11):
-        markaz = 8000.0 + tsikl * 380
-        amplituda = markaz * 0.05
-        for ulush in (0.0, 0.5, 1.0, 0.85, 0.45, 0.1, 0.02):
-            narx = markaz + amplituda * ulush
-            for _ in range(3):
-                shamlar.append(sham(i, narx, narx * 1.0012, narx * 0.9988))
-                i += 1
 
-    markaz = 8000.0 + 10 * 380
-    tayanch = markaz + markaz * 0.05 * 0.02
-    for _ in range(5):
-        shamlar.append(sham(i, tayanch, tayanch * 1.0012, tayanch * 0.9988))
-        i += 1
-    # Burilish: narx support'dan qaytadi, hajm oshadi
-    for j in range(2):
-        narx = tayanch * (1 + (j + 1) * 0.0015)
+    def qoshish(narx: float, hajm: float = 1000.0) -> None:
+        nonlocal i
         shamlar.append(
-            sham(i, narx, narx * 1.0012, narx * 0.9988, volume=2700.0 if j >= 1 else 1500.0)
+            sham(i, narx, narx * (1 + FITIL), narx * (1 - FITIL), volume=hajm)
         )
         i += 1
+
+    for tsikl in range(12):
+        siljish = 1 + tsikl * KOTARILISH
+        for ulush in (0.05, 0.45, 0.95, 0.60, 0.20, 0.05):
+            narx = (SUPPORT + (RESISTANCE - SUPPORT) * ulush) * siljish
+            for _ in range(3):
+                qoshish(narx)
+
+    # Oxirgi qaytish: narx support ustida to'xtaydi, hajm oshib burilish
+    # boshlanadi.
+    siljish = 1 + 11 * KOTARILISH
+    tayanch = (SUPPORT + (RESISTANCE - SUPPORT) * OXIRGI_ULUSH) * siljish
+    for j in range(6):
+        qoshish(tayanch, hajm=2700.0 if j >= 4 else 1200.0)
+
     return shamlar
 
 

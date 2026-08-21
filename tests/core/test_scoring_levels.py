@@ -1,8 +1,10 @@
 """3.1 va 3.3-band: Stop/TP darajalarini S/R va ATR asosida qurish.
 
-Bu ikki band tez-tez ziddiyatga kiradi: haqiqiy support 1% dan uzoqroqda
-bo'lishi mumkin. Bunday holatda daraja MAJBURLAB qurilmaydi — signal
-berilmaydi va sababi qaytariladi.
+3.3-band tuzatilgan: Stop endi 1%..5% oralig'ida ERKIN joylashadi —
+qat'iy 1% chegara emas. Asosiy shart NISBAT: TP2/Stop kamida 1:3.
+
+Daraja hech qachon MAJBURLAB qurilmaydi: support zonasi oraliqdan
+tashqarida bo'lsa signal berilmaydi va sababi qaytariladi.
 """
 
 from __future__ import annotations
@@ -18,18 +20,20 @@ from core.domain.enums import ZoneKind
 from core.domain.models import SRZone
 
 QOIDALAR = TradeRulesConfig(
-    max_stop_distance_pct=1.0,
+    min_stop_distance_pct=1.0,
+    max_stop_distance_pct=5.0,
     min_tp_distance_pct=3.0,
-    max_tp_distance_pct=5.0,
+    max_tp_distance_pct=20.0,
     min_risk_reward=3.0,
+    tp1_min_risk_reward=1.5,
 )
 
 
 def xarita(
     price: float = 100.0,
     atr: float = 0.5,
-    support_low: float = 99.4,
-    support_high: float = 99.8,
+    support_low: float = 98.7,
+    support_high: float = 99.2,
     resistance_low: float = 103.5,
     resistance_high: float = 104.0,
 ) -> ZoneMap:
@@ -54,16 +58,22 @@ def test_darajalar_sr_asosida_quriladi() -> None:
     assert natija.ok, natija.reason
     darajalar = natija.levels
     assert darajalar.entry == 100.0
-    assert darajalar.stop < 99.4, "Stop support zonasidan PASTDA bo'lishi kerak"
+    assert darajalar.stop < 98.7, "Stop support zonasidan PASTDA bo'lishi kerak"
     assert darajalar.tp1 == 103.5, "TP1 — eng yaqin resistance zonasining pasti"
-    assert darajalar.stop_distance_pct <= QOIDALAR.max_stop_distance_pct
-    assert darajalar.risk_reward_tp2 >= QOIDALAR.min_risk_reward
+    assert (
+        QOIDALAR.min_stop_distance_pct
+        <= darajalar.stop_distance_pct
+        <= QOIDALAR.max_stop_distance_pct
+    )
+    assert darajalar.risk_reward_tp2 == pytest.approx(QOIDALAR.min_risk_reward, rel=1e-6)
 
 
 def test_stop_zonaning_ichiga_qoyilmaydi() -> None:
     """Zonaga tegib qaytish ham Stop'ni ishga tushirmasligi kerak."""
-    natija = build_levels(xarita(support_low=99.4, support_high=99.8), QOIDALAR)
-    assert natija.levels.stop < 99.4
+    natija = build_levels(xarita(support_low=98.0, support_high=98.6), QOIDALAR)
+
+    assert natija.ok, natija.reason
+    assert natija.levels.stop < 98.0
 
 
 def test_tp_oraligi_hurmat_qilinadi() -> None:
@@ -80,12 +90,35 @@ def test_tp_oraligi_hurmat_qilinadi() -> None:
 
 
 def test_support_juda_uzoq_bolsa_signal_yoq() -> None:
-    """Support 1% dan uzoqda — Stop chegaradan chiqib ketardi."""
-    natija = build_levels(xarita(support_low=97.0, support_high=97.5), QOIDALAR)
+    """Support 5% dan uzoqda — pozitsiya ma'nosiz kichrayardi."""
+    natija = build_levels(xarita(support_low=94.0, support_high=94.5), QOIDALAR)
 
     assert not natija.ok
     assert "juda uzoq" in natija.reason
-    assert "1.0%" in natija.reason
+
+
+def test_support_juda_yaqin_bolsa_signal_yoq() -> None:
+    """Support 1% dan yaqin — bozor shovqini Stop'ni yeb qo'yardi."""
+    natija = build_levels(xarita(support_low=99.4, support_high=99.8), QOIDALAR)
+
+    assert not natija.ok
+    assert "juda yaqin" in natija.reason
+
+
+def test_stop_oraliq_ichida_erkin_joylashadi() -> None:
+    """3.3-band tuzatilgan: qat'iy 1% emas, 1..5% oralig'i.
+
+    Avval faqat aynan 1% masofadagi support qabul qilinardi — bunday
+    zona kam uchraydi va signal deyarli chiqmasdi.
+    """
+    for support_low, kutilgan_stop in ((98.7, 1.42), (98.0, 2.12), (97.0, 3.12)):
+        natija = build_levels(
+            xarita(support_low=support_low, support_high=support_low + 0.5), QOIDALAR
+        )
+
+        assert natija.ok, f"support {support_low}: {natija.reason}"
+        assert natija.levels.stop_distance_pct == pytest.approx(kutilgan_stop, abs=0.01)
+        assert natija.levels.risk_reward_tp2 >= QOIDALAR.min_risk_reward - 1e-9
 
 
 def test_mos_resistance_yoq_bolsa_olchangan_tp() -> None:
@@ -95,12 +128,17 @@ def test_mos_resistance_yoq_bolsa_olchangan_tp() -> None:
     belgilanadi (`tp_from_structure=False`), aks holda tizim aynan trend
     filtri talab qiladigan sharoitda hech qachon signal bera olmasdi.
     """
-    natija = build_levels(xarita(resistance_low=120.0, resistance_high=121.0), QOIDALAR)
+    natija = build_levels(xarita(resistance_low=150.0, resistance_high=151.0), QOIDALAR)
 
     assert natija.ok
     assert not natija.tp_from_structure
     assert "o'lchangan" in natija.reason
-    assert natija.levels.tp1_distance_pct == pytest.approx(QOIDALAR.min_tp_distance_pct)
+    # O'lchangan TP1 Stop bilan bog'lanadi: max(min_tp, stop x tp1_nisbati)
+    kutilgan = max(
+        QOIDALAR.min_tp_distance_pct,
+        natija.levels.stop_distance_pct * QOIDALAR.tp1_min_risk_reward,
+    )
+    assert natija.levels.tp1_distance_pct == pytest.approx(kutilgan)
 
 
 def test_tuzilmaviy_tp_belgilanadi() -> None:
@@ -115,7 +153,7 @@ def test_tuzilmaviy_tp_belgilanadi() -> None:
 def test_qatiy_rejimda_resistance_yoq_bolsa_signal_yoq() -> None:
     """`allow_measured_tp: false` — faqat tuzilmaviy TP qabul qilinadi."""
     qatiy = dataclasses.replace(QOIDALAR, allow_measured_tp=False)
-    natija = build_levels(xarita(resistance_low=120.0, resistance_high=121.0), qatiy)
+    natija = build_levels(xarita(resistance_low=150.0, resistance_high=151.0), qatiy)
 
     assert not natija.ok
     assert "resistance" in natija.reason.lower()
@@ -139,18 +177,13 @@ def test_support_umuman_yoq_bolsa_signal_yoq() -> None:
 
 
 def test_rr_talabi_bajarilmasa_signal_yoq() -> None:
-    """TP1 topiladi, lekin 1:5 R/R uchun TP2 chegaradan chiqib ketadi.
+    """NISBAT — asosiy shart. U bajarilmasa daraja majburlab qurilmaydi.
 
-    Stop masofasi ~0.73%, 1:5 uchun TP2 ~3.63% da bo'lishi kerak, lekin
-    chegara 3.5%. Daraja majburlab qurilmaydi.
+    Stop ~1.42%, 1:8 uchun TP2 ~11.4% da bo'lishi kerak, lekin chegara
+    5%. Signal berilmaydi.
     """
-    qatiy = TradeRulesConfig(
-        max_stop_distance_pct=1.0,
-        min_tp_distance_pct=3.0,
-        max_tp_distance_pct=3.5,
-        min_risk_reward=5.0,
-    )
-    natija = build_levels(xarita(resistance_low=103.2, resistance_high=103.6), qatiy)
+    qatiy = dataclasses.replace(QOIDALAR, max_tp_distance_pct=5.0, min_risk_reward=8.0)
+    natija = build_levels(xarita(), qatiy)
 
     assert not natija.ok
     assert "R/R" in natija.reason

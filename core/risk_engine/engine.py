@@ -45,9 +45,14 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
     boshida turadi — loglarni o'qishni osonlashtiradi.
     """
     risk = config.risk_engine
-    # Volatillik chegarasi: Stop masofasi ATR ichida mantiqiy joylashishi uchun
-    # ATR kamida Stop masofasi bilan bir xil tartibda bo'lishi kerak.
-    min_atr_pct = config.trade_rules.max_stop_distance_pct
+    # Volatillik chegarasi: ATR kamida ENG KICHIK ruxsat etilgan Stop
+    # masofasi bilan bir xil tartibda bo'lishi kerak — aks holda narx TP
+    # gacha yetib borishi ehtimoli past.
+    #
+    # ENG KATTA emas: Stop 1%..5% oralig'ida erkin joylashadi (3.3-band
+    # tuzatilgan), shuning uchun yuqori chegaraga bog'lash ATR dan 5%
+    # talab qilardi va deyarli har bir signalni to'sardi.
+    min_atr_pct = config.trade_rules.min_stop_distance_pct
 
     return [
         KillSwitchRule(risk),
@@ -63,6 +68,7 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
         FreshDataRule(risk, max_age_seconds=config.market_data.stale_price_seconds),
         HalalRule(),
         TradeRulesRule(
+            min_stop_pct=config.trade_rules.min_stop_distance_pct,
             max_stop_pct=config.trade_rules.max_stop_distance_pct,
             min_tp_pct=config.trade_rules.min_tp_distance_pct,
             max_tp_pct=config.trade_rules.max_tp_distance_pct,

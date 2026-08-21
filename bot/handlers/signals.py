@@ -24,6 +24,7 @@ from core.analysis import decide_entry_plan
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
 from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
+from core.market_data import CandleProvider
 from core.position_sizing import PositionSizer
 from core.storage import Database
 from core.storage.repositories import (
@@ -133,7 +134,12 @@ async def signal_ask_note(
 
 @admin_router.message(SignalFlow.waiting_note)
 async def signal_preview(
-    message: Message, state: FSMContext, config: AppConfig, language: str, **_: object
+    message: Message,
+    state: FSMContext,
+    config: AppConfig,
+    language: str,
+    candles: CandleProvider | None = None,
+    **_: object,
 ) -> None:
     """Darajalar tartibini tekshirib, ko'rib chiqish uchun kartochka chiqaradi."""
     data = await state.get_data()
@@ -149,10 +155,15 @@ async def signal_preview(
         await message.answer(t("admin.signal_tartib_xato", language, detail=str(exc)))
         return
 
-    reja = decide_entry_plan(levels.entry, levels, config.analysis.entry_order)
+    narx = await joriy_narx(
+        candles, data["symbol"], config.analysis.entry_timeframe, levels.entry
+    )
+    reja = decide_entry_plan(narx, levels, config.analysis.entry_order)
     kartochka = render_signal_card(
-        data["symbol"], levels, reja, quote_asset=config.halal_screening.quote_asset,
+        data["symbol"], levels, reja,
+        quote_asset=config.halal_screening.quote_asset,
         language=language,
+        tp1_close_pct=config.portfolio.tp1_close_pct,
     )
 
     # 3.3-band qoidalari qo'lda signalda MAJBURIY emas — admin bilib turib
@@ -215,6 +226,7 @@ async def signal_send(
     database: Database,
     config: AppConfig,
     language: str,
+    candles: CandleProvider | None = None,
     watcher=None,  # noqa: ANN001 — `bot/main.py` dispatcher orqali uzatadi
     **_: object,
 ) -> None:
@@ -223,7 +235,10 @@ async def signal_send(
     levels = SignalLevels(
         entry=data["entry"], stop=data["stop"], tp1=data["tp1"], tp2=data["tp2"]
     )
-    reja = decide_entry_plan(levels.entry, levels, config.analysis.entry_order)
+    narx = await joriy_narx(
+        candles, data["symbol"], config.analysis.entry_timeframe, levels.entry
+    )
+    reja = decide_entry_plan(narx, levels, config.analysis.entry_order)
 
     async with database.session() as session:
         yozuv = await SignalRepository(session).create(
@@ -254,6 +269,30 @@ async def signal_send(
         t("admin.signal_yuborildi", language, sent=yuborildi), reply_markup=admin_panel(language)
     )
     await callback.answer()
+
+
+async def joriy_narx(
+    candles: CandleProvider | None, symbol: str, timeframe: str, fallback: float
+) -> float:
+    """Bozordagi oxirgi narx. Olinmasa `fallback` (kirish narxi).
+
+    Nima uchun kerak: buyurtma turi (Limit/Market) narx Entry zonasiga
+    yetganmi-yo'qmi degan savolga bog'liq. Avval bu yerga Entry narxining
+    o'zi uzatilardi — ya'ni "narx allaqachon joyida" deb hisoblanardi va
+    kartochka HAR DOIM "Hozir oling" derdi, kuzatuvchi esa "Kutilmoqda"
+    derdi. Bitta xabarda ikkita qarama-qarshi gap.
+
+    Narx olinmasa signal to'xtamaydi — eski xatti-harakat qoladi
+    (0.3-band).
+    """
+    if candles is None:
+        return fallback
+    try:
+        seriya = await candles.fetch_candles(symbol, timeframe, limit=1)
+    except Exception:  # noqa: BLE001 — narxsiz ham signal ketaversin
+        logger.warning("Joriy narx olinmadi: %s", symbol, exc_info=True)
+        return fallback
+    return seriya[-1].close if seriya else fallback
 
 
 async def _subscriber_ids(session) -> list[tuple[int, float | None]]:  # noqa: ANN001
@@ -317,6 +356,7 @@ async def _broadcast_signal(  # noqa: PLR0913
             suggestion=suggest_size(symbol, levels, balans, config),
             quote_asset=config.halal_screening.quote_asset,
             language=language,
+            tp1_close_pct=config.portfolio.tp1_close_pct,
         )
         try:
             await bot.send_message(
@@ -364,6 +404,7 @@ async def list_signals(
                     ),
                     quote_asset=config.halal_screening.quote_asset,
                     language=language,
+                    tp1_close_pct=config.portfolio.tp1_close_pct,
                 ),
                 SignalStatus(yozuv.status),
             )
