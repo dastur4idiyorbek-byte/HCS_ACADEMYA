@@ -86,11 +86,18 @@ def volatility_regime_factor(
     inputs: HealthInputs,
     adx_threshold: float,
     weight: float,
+    strong_trend_adx: float = 30.0,
 ) -> HealthFactor:
     """3-omil: bozor trendda mi yoki tekis (sideways).
 
     ADX chegaradan past — tekis bozor, S/R zonalari ishonchsiz ishlaydi.
-    40 va undan yuqori — aniq trend.
+
+    Diqqat, bu yerda o'lchov birligi boshqa: ADX 30 ta coinning
+    O'RTACHASI. Bitta coinda ADX 40 — kuchli trend, lekin 30 ta coin
+    o'rtachasi bunga deyarli chiqmaydi: coinlar har xil vaqtda trendga
+    kiradi va o'rtacha hammasini silliqlaydi. Shu sababli to'liq ball
+    chegarasi bitta coin uchun emas, O'RTACHA uchun sozlanadi
+    (`docs/ARXITEKTURA.md`, 32-bo'lim).
     """
     ortacha = inputs.average_adx
     if ortacha is None:
@@ -99,11 +106,11 @@ def volatility_regime_factor(
     if ortacha <= adx_threshold:
         ball = 0.0
         holat = "tekis (sideways)"
-    elif ortacha >= 40.0:
+    elif ortacha >= strong_trend_adx:
         ball = 1.0
         holat = "kuchli trend"
     else:
-        ball = (ortacha - adx_threshold) / (40.0 - adx_threshold)
+        ball = (ortacha - adx_threshold) / (strong_trend_adx - adx_threshold)
         holat = "trend shakllanmoqda"
 
     return HealthFactor(
@@ -155,12 +162,15 @@ def build_factors(
     weights: MarketHealthWeights,
     dominance_config: BtcDominanceConfig,
     adx_threshold: float,
+    strong_trend_adx: float = 30.0,
 ) -> list[HealthFactor]:
     """Barcha besh omilni hisoblaydi."""
     return [
         btc_dominance_factor(inputs, dominance_config, weights.btc_dominance_stability),
         trend_breadth_factor(inputs, weights.halal_trend_breadth),
-        volatility_regime_factor(inputs, adx_threshold, weights.volatility_regime),
+        volatility_regime_factor(
+            inputs, adx_threshold, weights.volatility_regime, strong_trend_adx
+        ),
         user_capacity_factor(inputs, weights.aggregate_user_capacity),
         saturation_factor(inputs, weights.signal_saturation),
     ]

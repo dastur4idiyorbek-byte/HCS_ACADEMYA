@@ -196,6 +196,11 @@ risk_engine:
 
 # --- 3.7-band: Bozor Salomatligi Indeksi ---
 market_health:
+  # 3-omil to'liq ball oladigan O'RTACHA ADX. Diqqat: bu bitta coinning
+  # ADX'i emas, 30 ta halol coin O'RTACHASI. Bitta coinda ADX 40 kuchli
+  # trend degani, lekin o'rtacha 40 ga deyarli chiqmaydi — coinlar har xil
+  # vaqtda trendga kiradi. Batafsil: docs/ARXITEKTURA.md, 32-bo'lim.
+  strong_trend_adx: 30
   weights:                         # yig'indisi 100 bo'lishi kerak
     btc_dominance_stability: 20
     halal_trend_breadth: 25

@@ -1022,7 +1022,73 @@ egallardi — Oracle Cloud bepul ARM serverida bu sezilarli. Olib tashlandi.
 
 ---
 
-## 32. Bosqichlar holati
+## 32. Volatillik omili o'z shkalasiga chiqa olmasdi
+
+**Belgi.** Jonli botda avtomatik sikl signal bermasdi:
+`Sikl to'xtatildi: Bozor Salomatligi past (39/100)`.
+
+**Tekshiruv.** Indeks eng IDEAL kirish bilan hisoblandi — 30 ta coinning
+hammasi ko'tarilishda, dominance barqaror, ochiq signal yo'q:
+
+| omil | ball | vazn | ulush |
+|---|---|---|---|
+| btc_dominance_stability | 1.00 | 20 | 20.0 |
+| halal_trend_breadth | 1.00 | 25 | 25.0 |
+| **volatility_regime** | **0.50** | 20 | **10.0** |
+| aggregate_user_capacity | 1.00 | 20 | 20.0 |
+| signal_saturation | 1.00 | 15 | 15.0 |
+| | | | **90.0 / 100** |
+
+Ya'ni indeks o'zining eng yaxshi holatida ham 100 ga chiqa olmasdi, chunki
+volatillik omili to'liq ball bermasdi.
+
+**Sabab.** Kodda to'liq ball chegarasi qat'iy `40.0` edi:
+
+```python
+elif ortacha >= 40.0:
+    ball = 1.0
+```
+
+Bu — 27 va 28-bo'limlardagi bilan BIR XIL turdagi xato: bitta o'lchov
+uchun to'g'ri chegara boshqa o'lchovga qo'llanilgan.
+
+ADX 40 — **bitta coin** uchun kuchli trend. Lekin bu yerda o'lchanadigan
+narsa **30 ta coinning o'rtachasi**. Coinlar har xil vaqtda trendga
+kiradi, o'rtacha esa hammasini silliqlaydi — shuning uchun o'rtacha 40 ga
+amalda chiqmaydi.
+
+**Qaror.** Chegara konfiguratsiyaga chiqarildi (6.4-band) va o'rtacha
+uchun mo'ljallangan qiymat qo'yildi:
+
+```yaml
+market_health:
+  strong_trend_adx: 30
+```
+
+Tuzatishdan keyin indeks o'z shkalasini to'liq ishlatadi:
+
+| bozor holati | oldin | keyin |
+|---|---|---|
+| ideal (30/30 UP, ADX 30) | 90.0 | **100.0** |
+| yaxshi (20/30 UP, ADX 25) | 76.7 | **81.7** |
+| o'rtacha (15/30 UP, ADX 20) | 63.5 | 63.5 |
+| zaif (10/30 UP, ADX 15) | 50.0 | 50.0 |
+
+Tekis bozor (ADX chegaradan past) hali ham **nol** ball oladi — bu
+o'zgarmadi. Tuzatish faqat "trend bor" tomonini to'g'riladi.
+
+**Bu signal berishni MAJBURLAMAYDI.** Ball chegarasi (3.5-band) o'z
+o'rnida qoladi: indeks yuqori bo'lsa 70, o'rta bo'lsa 80. Tuzatilgani —
+indeksning o'zi sun'iy ravishda past turishi edi.
+
+**Ochiq qolgan savol.** `strong_trend_adx: 30` qiymati o'lchov bilan emas,
+tahlil bilan tanlandi: bu muhitda haqiqiy bozor ma'lumoti yo'q. Jonli
+ishlashda `/panel` -> 💓 orqali kuzatilishi va kerak bo'lsa
+tuzatilishi kerak.
+
+---
+
+## 33. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

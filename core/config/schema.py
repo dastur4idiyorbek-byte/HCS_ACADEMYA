@@ -291,6 +291,9 @@ class BtcDominanceConfig:
 
 @dataclass(frozen=True, slots=True)
 class MarketHealthConfig:
+    #: 3-omil to'liq ball oladigan O'RTACHA ADX (bitta coin emas, 30 ta
+    #: coinning o'rtachasi — sabab `docs/ARXITEKTURA.md`, 32-bo'lim)
+    strong_trend_adx: float = 30.0
     weights: MarketHealthWeights = field(default_factory=MarketHealthWeights)
     recompute_on_candle_close: bool = True
     daily_preview_utc_hour: int = 0

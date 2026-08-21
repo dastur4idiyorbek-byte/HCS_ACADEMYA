@@ -256,3 +256,68 @@ def test_dashboard_omillarni_ahamiyat_boyicha_tartiblaydi(calculator) -> None:  
     matn = describe(calculator.compute(kirish()))
     qatorlar = [q for q in matn.splitlines() if "▰" in q or "▱" in q]
     assert len(qatorlar) == 5
+
+
+# --------------------------------------------------------------------------- #
+#  Volatillik omili — o'lchov birligi (32-bo'lim)
+# --------------------------------------------------------------------------- #
+
+
+def test_ideal_bozor_toliq_ball_oladi() -> None:
+    """Indeks o'z shkalasini to'liq ishlata olishi kerak.
+
+    Regressiya: to'liq ball uchun 30 ta coinning O'RTACHA ADX'i 40 ga
+    yetishi talab qilinardi. Bitta coinda ADX 40 — kuchli trend, lekin
+    o'rtacha 40 ga deyarli chiqmaydi (coinlar har xil vaqtda trendga
+    kiradi). Natijada eng ideal bozor ham 90/100 dan oshmasdi va
+    volatillik omili amalda hech qachon to'liq ball bermasdi.
+    """
+    from core.analysis.market_health import HealthInputs, MarketHealthCalculator
+    from core.config import load_config
+    from core.domain.enums import TrendDirection
+
+    config = load_config()
+    natija = MarketHealthCalculator(config).compute(
+        HealthInputs(
+            computed_at=datetime(2026, 8, 21, tzinfo=UTC),
+            btc_dominance=54.0,
+            btc_dominance_change_24h=0.2,
+            universe_trends={f"C{i}": TrendDirection.UP for i in range(30)},
+            universe_adx={f"C{i}": config.market_health.strong_trend_adx for i in range(30)},
+            capacity=None,
+            open_signals=0,
+            max_open_signals=5,
+        )
+    )
+
+    assert natija.value == pytest.approx(100.0), natija.describe()
+
+
+def test_volatillik_chegarasi_sozlanadi() -> None:
+    """6.4-band: kodda sehrli raqam bo'lmasin."""
+    from core.analysis.market_health.factors import volatility_regime_factor
+    from core.analysis.market_health.inputs import HealthInputs
+
+    kirish = HealthInputs(
+        computed_at=datetime(2026, 8, 21, tzinfo=UTC),
+        universe_adx={f"C{i}": 30.0 for i in range(30)},
+    )
+
+    past = volatility_regime_factor(kirish, 20.0, 20.0, strong_trend_adx=30.0)
+    baland = volatility_regime_factor(kirish, 20.0, 20.0, strong_trend_adx=40.0)
+
+    assert past.score == 1.0
+    assert baland.score < 1.0
+
+
+def test_tekis_bozorda_volatillik_nol() -> None:
+    """Chegaradan past — S/R zonalari ishonchsiz, ball berilmaydi."""
+    from core.analysis.market_health.factors import volatility_regime_factor
+    from core.analysis.market_health.inputs import HealthInputs
+
+    kirish = HealthInputs(
+        computed_at=datetime(2026, 8, 21, tzinfo=UTC),
+        universe_adx={f"C{i}": 15.0 for i in range(30)},
+    )
+
+    assert volatility_regime_factor(kirish, 20.0, 20.0).score == 0.0

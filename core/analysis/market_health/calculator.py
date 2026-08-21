@@ -39,6 +39,7 @@ class MarketHealthCalculator:
             weights=self._config.market_health.weights,
             dominance_config=self._config.market_health.btc_dominance,
             adx_threshold=self._config.analysis.indicators.adx_trend_threshold,
+            strong_trend_adx=self._config.market_health.strong_trend_adx,
         )
         qiymat = sum(omil.weighted for omil in omillar)
         salomatlik = MarketHealth(
@@ -67,6 +68,7 @@ class MarketHealthCalculator:
             weights=vaznlar,
             dominance_config=self._config.market_health.btc_dominance,
             adx_threshold=self._config.analysis.indicators.adx_trend_threshold,
+            strong_trend_adx=self._config.market_health.strong_trend_adx,
         )[0]
 
         neytral = [
