@@ -147,7 +147,14 @@ class PipelineRunner:
         ortishi bilan tizim ko'proq ma'lumot emas, KAMROQ ma'lumot
         olardi — barcha so'rov birdaniga rad etilardi.
         """
-        timeframelar = sorted(required_timeframes(self._strategies))
+        # Salomatlik kengligi o'z timeframeini talab qiladi va u
+        # strategiyalarnikidan MUSTAQIL. Ansiz `compute_health()` kirish
+        # timeframeiga tushib ketardi: 3.2-band timeframelari qisqarganda
+        # bozor kengligi soatlik o'lchovga aylanib, kun bo'yi tebranardi.
+        timeframelar = sorted(
+            required_timeframes(self._strategies)
+            | {self._config.analysis.market_health_timeframe}
+        )
         limit = self._config.analysis.candles_lookback
         darvoza = asyncio.Semaphore(self._config.market_data.max_concurrent_candle_requests)
 
@@ -178,7 +185,7 @@ class PipelineRunner:
     ) -> MarketHealth:
         """3.7-band: Bozor Salomatligi Indeksini hisoblaydi."""
         indicators = self._config.analysis.indicators
-        kunlik = "1d"
+        kunlik = self._config.analysis.market_health_timeframe
 
         trendlar = {}
         adx_qiymatlari = {}

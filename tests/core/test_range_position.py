@@ -234,3 +234,46 @@ def test_swing_tayanchlari_saqlanadi() -> None:
     assert xarita.swing_low is not None
     assert xarita.swing_high is not None
     assert xarita.swing_low < xarita.swing_high
+
+
+# --------------------------------------------------------------------------- #
+#  Kirish chegarasi — jar emas, sozlanadigan qiymat
+# --------------------------------------------------------------------------- #
+
+
+def test_muvozanatdan_bir_oz_yuqorida_kirish_mumkin() -> None:
+    """Chegara qat'iy 50% bo'lganda JAR hosil bo'lardi.
+
+    Jonli ma'lumotda rad etishlarning 60% i shu bosqichda edi va
+    tafsilotlar "Premium zonada (51%)" deb ko'rsatardi — ya'ni
+    chegaradan bir foiz narida butunlay rad etilardi.
+    """
+    joy = joylashuv(105.4)  # (105.4-96)/18 = 52%
+    assert not joy.is_discount, "bu narx muvozanatdan yuqorida"
+
+    assert joy.allows_entry(price_in_support_zone=True, max_range_pct=55.0)
+    assert not joy.allows_entry(price_in_support_zone=True, max_range_pct=50.0)
+
+
+def test_chegara_berilmasa_eski_xatti_harakat() -> None:
+    """Standart qiymat — muvozanat chizig'i, ya'ni o'zgarishsiz."""
+    joy = joylashuv(105.4)
+    assert joy.allows_entry(price_in_support_zone=True) is joy.is_discount
+
+
+def test_chegaradan_yuqorida_baribir_rad_etiladi() -> None:
+    """Yumshatish — ochib yuborish emas: yuqori qism baribir yopiq."""
+    joy = joylashuv(112)
+    assert not joy.allows_entry(price_in_support_zone=True, max_range_pct=55.0)
+
+
+def test_chegara_yumshatilsa_ham_support_sharti_qoladi() -> None:
+    """Struktura sharti kuchida: narx aynan support zonasida bo'lishi kerak."""
+    assert not joylashuv(105.4).allows_entry(
+        price_in_support_zone=False, max_range_pct=55.0
+    )
+
+
+def test_chegara_yumshatilsa_ham_diapazondan_chiqqan_rad_etiladi() -> None:
+    """0.3-band: qo'llab-quvvatlash buzilgan bo'lsa kirish asosi yo'q."""
+    assert not joylashuv(90).allows_entry(price_in_support_zone=True, max_range_pct=95.0)

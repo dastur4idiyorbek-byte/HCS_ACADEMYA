@@ -89,13 +89,28 @@ class RangePosition:
         """Narx diapazondan chiqib ketganmi (breakdown/breakout)."""
         return not 0.0 <= self.percent <= 100.0
 
-    def allows_entry(self, price_in_support_zone: bool) -> bool:
-        """Kirish uchun qat'iy shart: Support zonasida VA Discount zonada.
+    def allows_entry(
+        self, price_in_support_zone: bool, max_range_pct: float = EQUILIBRIUM_PCT
+    ) -> bool:
+        """Kirish sharti: Support zonasida VA diapazonning pastki qismida.
+
+        Ilgari chegara qat'iy `EQUILIBRIUM_PCT` (50%) edi. Bu JAR
+        yaratardi: 49.9% — ruxsat, 50.1% — butunlay rad. Jonli
+        ma'lumotda rad etishlarning 60% i shu bosqichda edi va
+        tafsilotlar "Premium zonada (51%)" deb ko'rsatardi — ya'ni
+        chegaradan bir foiz narida.
+
+        Ball chuqurlikni allaqachon DARAJALI baholaydi (`depth`), ya'ni
+        chuqurroq qaytish baribir yuqoriroq o'ringa chiqadi. Qat'iy jar
+        esa chetdagi nomzodni butunlay yo'q qilardi.
 
         Args:
             price_in_support_zone: narx aynan support zonasi ichidami.
+            max_range_pct: kirish uchun ruxsat etilgan eng yuqori foiz.
         """
-        return price_in_support_zone and self.is_discount and not self.is_outside_range
+        if not price_in_support_zone or self.is_outside_range:
+            return False
+        return self.percent <= max_range_pct
 
     def describe(self) -> str:
         """Foydalanuvchiga ko'rsatiladigan izoh (3.6-band shaffofligi)."""

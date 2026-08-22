@@ -326,8 +326,13 @@ async def test_obunasiz_foydalanuvchiga_signal_bormaydi(db: Database, config) ->
 
 
 def test_sikl_oraligi_timeframega_mos(config) -> None:  # noqa: ANN001
-    """Sham yopilmaguncha tahlil natijasi o'zgarmaydi — tez-tez ishlash foydasiz."""
-    assert cycle_interval(config) == timedelta(minutes=15)
+    """Sham yopilmaguncha tahlil natijasi o'zgarmaydi — tez-tez ishlash foydasiz.
+
+    Kutilgan qiymat konfiguratsiyadan olinadi: kirish timeframei
+    o'zgarganda bu test jimgina eskirmasligi kerak.
+    """
+    kutilgan = {"15m": 15, "30m": 30, "1h": 60, "4h": 240}[config.analysis.entry_timeframe]
+    assert cycle_interval(config) == timedelta(minutes=kutilgan)
 
 
 def test_notanish_timeframe_uchun_standart_oraliq(config) -> None:  # noqa: ANN001

@@ -103,8 +103,9 @@ class ClassicTaStrategy(Strategy):
             return self._reject("zones", "S/R zonalari aniqlanmadi (ATR yoki sham yetarli emas)")
 
         # 2) Narx Support zonasida VA Discount zonadami
-        if not zona_xaritasi.entry_allowed():
-            return self._reject("zone_position", self._explain_zone(zona_xaritasi))
+        chegara = analysis.support_resistance.entry_max_range_pct
+        if not zona_xaritasi.entry_allowed(chegara):
+            return self._reject("zone_position", self._explain_zone(zona_xaritasi, chegara))
 
         zona = zona_xaritasi.active_zone(ZoneKind.SUPPORT)
         if zona is None:
@@ -202,15 +203,18 @@ class ClassicTaStrategy(Strategy):
             ]
         )
 
-    def _explain_zone(self, zone_map) -> str:  # noqa: ANN001
+    def _explain_zone(self, zone_map, max_range_pct: float) -> str:  # noqa: ANN001
         """Zona sharti nima uchun bajarilmaganini tushuntiradi."""
         joylashuv = zone_map.range_position()
         if joylashuv is None:
             return "Support—Resistance diapazoni qurilmadi (bir tomonda zona yo'q)"
         if joylashuv.is_outside_range:
             return joylashuv.describe()
-        if not joylashuv.is_discount:
-            return f"Narx Premium zonada ({joylashuv.percent:.0f}%) — kirish uchun qimmat"
+        if joylashuv.percent > max_range_pct:
+            return (
+                f"Narx diapazonning yuqori qismida ({joylashuv.percent:.0f}%, "
+                f"ruxsat {max_range_pct:.0f}%) — kirish uchun qimmat"
+            )
         return (
             f"Narx birorta support zonasiga {zone_map.proximity_atr:.1f} ATR masofasida emas"
         )

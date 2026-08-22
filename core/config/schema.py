@@ -52,6 +52,19 @@ class SupportResistanceConfig:
     zone_merge_atr_mult: float = 0.5
     min_touches: int = 2
     proximity_atr_mult: float = 1.0
+    #: Kirish uchun ruxsat etilgan eng yuqori diapazon foizi.
+    #:
+    #: Ilgari chegara qat'iy 50% (muvozanat chizig'i) edi va bu JAR
+    #: yaratardi: 49.9% — ruxsat, 50.1% — butunlay rad. Jonli
+    #: ma'lumotda rad etishlarning 60% i shu bosqichda edi, tafsilotlar
+    #: esa "Premium zonada (51%)" deb ko'rsatardi — ya'ni chegaradan
+    #: bir foiz narida.
+    #:
+    #: Ball allaqachon CHUQURLIKNI darajali baholaydi (`depth`): 50% da
+    #: 0 ball, Support'da to'liq ball. Ya'ni chuqurroq qaytish baribir
+    #: yuqoriroq o'ringa chiqadi. Qat'iy jar esa shunchaki chetdagi
+    #: nomzodlarni butunlay yo'q qilardi.
+    entry_max_range_pct: float = 55.0
     fibonacci_levels: list[float] = field(default_factory=lambda: [0.382, 0.5, 0.618])
 
 
@@ -116,12 +129,24 @@ class AnalysisConfig:
     """3.2-band: asosiy klassik strategiya uchun standart timeframe to'plami."""
 
     timeframes: list[str] = field(
-        default_factory=lambda: ["15m", "30m", "1h", "4h", "1d"]
+        default_factory=lambda: ["1h", "4h", "1d"]
     )
-    entry_timeframe: str = "15m"
+    #: Kirish timeframei. 15m dan 1h ga ko'chirildi — sabab
+    #: `docs/ARXITEKTURA.md` 42-bo'limda: 15m da ATR narxning ~0.5% i
+    #: bo'ladi, ya'ni support zonasigacha masofa ham shuncha. Stop esa
+    #: kamida 1% bo'lishi kerak (3.3-band), shuning uchun darajalar
+    #: tez-tez "Stop juda yaqin" deb rad etilardi. 1h da ATR ~1-2%,
+    #: ya'ni tuzilma va risk qoidasi bir shkalaga tushadi.
+    entry_timeframe: str = "1h"
     htf_confirmation: list[str] = field(
-        default_factory=lambda: ["30m", "1h", "4h", "1d"]
+        default_factory=lambda: ["4h"]
     )
+    #: Bozor Salomatligi kengligi (3.7-band, 2-omil) qaysi timeframeda
+    #: o'lchanadi. Alohida e'lon qilinadi, chunki u `htf_confirmation`
+    #: dan MUSTAQIL: tasdiq timeframelari qisqarganda ham kenglik kunlik
+    #: o'lchovda qolishi kerak — soatlik kenglik kun bo'yi tebranib,
+    #: indeksni ma'nosiz qilib qo'yardi.
+    market_health_timeframe: str = "1d"
     candles_lookback: int = 500
     #: Yuqori timeframelar muvofiqligi signal uchun MAJBURIYmi (3.2-band).
     #:
@@ -435,7 +460,19 @@ class OpeningRangeScalpConfig:
     volume_ma_period: int = 20
     min_move_pct: float = 1.0
     max_move_pct: float = 2.0
-    signal_window_minutes: int = 45
+    #: Ochilishdan keyin signal oynasi necha daqiqa ochiq turadi.
+    #:
+    #: 45 daqiqadan bir kunga (1440) uzaytirildi. Sabab: 45 daqiqa
+    #: kunning 3% i, ya'ni oyna vaqtning 97% ida yopiq turardi va
+    #: dashboardda "Skalping oynasi yopiq" yozuvi hamma narsadan ko'p
+    #: chiqardi (5114 marta).
+    #:
+    #: Diqqat: kech kirish yomonroq kirish. Diapazon kun boshida
+    #: qurilgani uchun kunning oxirida buzilish "eskirgan" diapazonga
+    #: nisbatan o'lchanadi. Buni ball qoplaydi — buzilish kuchi va hajm
+    #: baribir talab qilinadi — lekin bu almashuv ONGLI ravishda
+    #: qabul qilingan.
+    signal_window_minutes: int = 1440
     min_range_pct: float = 0.15
     max_range_pct: float = 1.2
     daily_risk_share_pct: float = 30.0

@@ -129,18 +129,19 @@ class ZoneMap:
         yarim = self.atr * 0.25
         return SRZone(kind=kind, low=level - yarim, high=level + yarim, touches=1)
 
-    def entry_allowed(self) -> bool:
-        """Qat'iy qoida: narx Support zonasida VA Discount zonada bo'lsa kirish.
+    def entry_allowed(self, max_range_pct: float | None = None) -> bool:
+        """Narx Support zonasida VA diapazonning pastki qismidami.
 
-        Support yaqinida turgan narx ham, agar diapazonning yuqori yarmida
-        bo'lsa (oraliq tor yoki narx aslida Premium'da), kirish uchun to'liq
-        kuchga ega emas.
+        `max_range_pct` — kirish uchun ruxsat etilgan eng yuqori foiz.
+        Berilmasa muvozanat chizig'i (50%) olinadi, ya'ni eski xatti-harakat.
         """
         joylashuv = self.range_position()
         if joylashuv is None:
             return False
         support_yaqinida = self.active_zone(ZoneKind.SUPPORT) is not None
-        return joylashuv.allows_entry(support_yaqinida)
+        if max_range_pct is None:
+            return joylashuv.allows_entry(support_yaqinida)
+        return joylashuv.allows_entry(support_yaqinida, max_range_pct)
 
     def distance_in_atr(self, zone: SRZone) -> float:
         """Narxdan zonagacha masofa, ATR birligida."""

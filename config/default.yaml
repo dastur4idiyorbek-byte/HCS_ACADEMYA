@@ -44,9 +44,20 @@ analysis:
   # 3.2-band (tuzatilgan): asosiy klassik strategiya uchun STANDART to'plam.
   # Eski to'plam (1h..1oy) haddan tashqari katta edi va signal chastotasini
   # keskin kamaytirardi.
-  timeframes: ["15m", "30m", "1h", "4h", "1d"]
-  entry_timeframe: "15m"                       # eng pastki TF — S/R + indikatorlar shu yerda tasdiqlanadi
-  htf_confirmation: ["30m", "1h", "4h", "1d"]  # pastki TF yuqorisiga zid bo'lmasligi kerak
+  timeframes: ["1h", "4h", "1d"]
+  # Kirish timeframei 15m dan 1h ga ko'chirildi.
+  #
+  # Sabab o'lchovda: 15m da ATR narxning ~0.5% i bo'ladi, ya'ni support
+  # zonasigacha masofa ham shu tartibda. Stop esa kamida 1% bo'lishi
+  # kerak (3.3-band) — natijada darajalar tez-tez "Stop juda yaqin" deb
+  # rad etilardi. 1h da ATR ~1-2%, ya'ni TUZILMA va RISK QOIDASI bir
+  # shkalaga tushadi. Qo'shimcha foyda: 1h zonalari kamroq shovqinli.
+  entry_timeframe: "1h"
+  htf_confirmation: ["4h"]   # katta rasm; to'siq emas, ballga qo'shiladi
+  # Bozor kengligi (3.7-band, 2-omil) o'z timeframeida qoladi: tasdiq
+  # timeframelari qisqarganda ham u kunlik o'lchovda o'lchanishi kerak,
+  # aks holda indeks kun bo'yi tebranardi.
+  market_health_timeframe: "1d"
   candles_lookback: 500
   # 3.2-band: yuqori timeframelar muvofiqligi MAJBURIYmi.
   #
@@ -76,6 +87,17 @@ analysis:
     zone_merge_atr_mult: 0.5       # yaqin zonalar shu ATR ulushida birlashtiriladi
     min_touches: 2                 # zona "muhim" bo'lishi uchun minimal test soni
     proximity_atr_mult: 1.0        # narx zonaga shu ATR masofasida bo'lsa "zonada"
+    # Kirish uchun ruxsat etilgan eng yuqori diapazon foizi.
+    #
+    # Ilgari chegara qat'iy 50% (muvozanat chizig'i) edi va bu JAR
+    # yaratardi: 49.9% — ruxsat, 50.1% — butunlay rad. Jonli ma'lumotda
+    # rad etishlarning 60% i shu bosqichda edi, tafsilotlar esa "Premium
+    # zonada (51%)" deb ko'rsatardi — chegaradan bir foiz narida.
+    #
+    # Ball chuqurlikni allaqachon darajali baholaydi: 50% da 0 ball,
+    # Support'da to'liq ball. Ya'ni chuqurroq qaytish baribir yuqoriroq
+    # o'ringa chiqadi — qat'iy jar shunchaki chetdagini yo'q qilardi.
+    entry_max_range_pct: 55.0
     fibonacci_levels: [0.382, 0.5, 0.618]
 
   indicators:
@@ -310,7 +332,17 @@ strategies:
     max_move_pct: 2.0
     # Ochilishdan keyin signal qidiriladigan oyna. Undan keyin imkoniyat
     # o'tib ketgan hisoblanadi — kech kirish eng yomon kirish.
-    signal_window_minutes: 45
+    # Ochilishdan keyin signal oynasi necha daqiqa ochiq turadi.
+    #
+    # 45 daqiqadan bir kunga (1440) uzaytirildi: 45 daqiqa kunning 3% i,
+    # ya'ni oyna vaqtning 97% ida yopiq turardi va dashboardda "Skalping
+    # oynasi yopiq" hamma narsadan ko'p chiqardi (5114 marta).
+    #
+    # ALMASHUV: kech kirish yomonroq kirish. Diapazon kun boshida
+    # qurilgani uchun kunning oxiridagi buzilish "eskirgan" diapazonga
+    # nisbatan o'lchanadi. Buzilish kuchi va hajm baribir talab
+    # qilinadi, lekin bu almashuv ongli ravishda qabul qilingan.
+    signal_window_minutes: 1440
     # Diapazon narxning shu foizidan tor bo'lsa — harakat yo'q, o'tkazamiz
     min_range_pct: 0.15
     # Diapazon shu foizdan keng bo'lsa — Stop juda uzoq qolardi

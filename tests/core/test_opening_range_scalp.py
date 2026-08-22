@@ -163,13 +163,50 @@ def test_yorib_otmasa_signal_yoq(strategy, config) -> None:  # noqa: ANN001
     assert strategy.last_rejection.stage == "breakout"
 
 
-def test_signal_oynasi_yopilgach_signal_yoq(strategy, config) -> None:  # noqa: ANN001
-    """Kech kirish eng yomon kirish."""
+def test_signal_oynasi_yopilgach_signal_yoq(config) -> None:  # noqa: ANN001
+    """Oyna yopilgach signal berilmaydi.
+
+    Oyna kengligi konfiguratsiyadan olinadi: standart qiymat bir kunga
+    (1440 daqiqa) uzaytirildi, chunki 45 daqiqalik oyna vaqtning 97% ida
+    yopiq turardi. Bu test mexanizmni sinaydi, aniq qiymatni emas.
+    """
+    import dataclasses
+
+    from core.analysis.strategies.opening_range_scalp import OpeningRangeScalpStrategy
+
+    tor = dataclasses.replace(
+        config,
+        strategies=dataclasses.replace(
+            config.strategies,
+            opening_range_scalp=dataclasses.replace(
+                config.strategies.opening_range_scalp, signal_window_minutes=45
+            ),
+        ),
+    )
+    strategiya = OpeningRangeScalpStrategy(tor)
     kech = KUN + timedelta(minutes=120)
-    natija = strategy.analyze(kirish(config, qator(), now=kech))
+
+    natija = strategiya.analyze(kirish(tor, qator(), now=kech))
 
     assert natija is None
-    assert strategy.last_rejection.stage == "window"
+    assert strategiya.last_rejection.stage == "window"
+
+
+def test_kengaytirilgan_oynada_kech_kirish_ham_qabul_qilinadi(strategy, config) -> None:  # noqa: ANN001
+    """Standart sozlamada oyna bir kun — kunduzgi buzilish ham ko'riladi.
+
+    Almashuv ongli: kech kirish yomonroq kirish, lekin 45 daqiqalik
+    oyna amalda strategiyani butunlay o'chirib qo'yardi.
+    """
+    assert config.strategies.opening_range_scalp.signal_window_minutes == 1440
+
+    kech = KUN + timedelta(minutes=120)
+    strategy.analyze(kirish(config, qator(), now=kech))
+    sabab = strategy.last_rejection
+
+    assert sabab is None or sabab.stage != "window", (
+        f"oyna to'siq bo'lmasligi kerak, sabab: {sabab}"
+    )
 
 
 def test_bugungi_ochilish_yoq_bolsa_signal_yoq(strategy, config) -> None:  # noqa: ANN001

@@ -1929,7 +1929,116 @@ o'zgarishi mumkin.
 
 ---
 
-## 42. Bosqichlar holati
+## 42. Timeframe, support jari va skalping oynasi
+
+Jonli o'lchov (5524 ta tekshiruv, 24 soat) uchta alohida narsani
+ko'rsatdi.
+
+### 1. Ball chegarasi endi ishlayapti, lekin nomzodlar 55 da qotgan
+
+```
+• Ball chegaradan past — 482 marta (9%)
+   ↳ eng yuqori ball 55, o'rtacha 45
+• Risk Engine to'xtatdi — 44 marta (1%)
+```
+
+40 va 41-bo'limlardan keyin nomzodlar soni **47 dan 482 ga** chiqdi va
+44 tasi chegarani o'tib Risk Engine'gacha yetdi. Ya'ni zanjir oxirigacha
+ishlayapti.
+
+Lekin eng yuqori ball **aynan 55** — chegaraning o'zi. Nomzodlar
+chegaraga tegib turibdi, o'tolmayapti.
+
+### 2. Support jari: 60% rad etish bir foizlik farq ustida
+
+Eng katta to'siq — `zone_position`, 3338 marta (60%). Tafsilotlar:
+
+```
+• BTC: Narx Premium zonada (51%) — kirish uchun qimmat
+• ETH: Narx Premium zonada (63%) — kirish uchun qimmat
+```
+
+BTC **51%** da rad etilgan. Chegara — muvozanat chizig'i, ya'ni 50%.
+Bir foiz.
+
+Bu JAR: 49.9% — ruxsat, 50.1% — butunlay rad. Holbuki ball allaqachon
+chuqurlikni **darajali** baholaydi (`depth`: 50% da 0 ball, Support'da
+to'liq ball). Ya'ni chuqurroq qaytish baribir yuqoriroq o'ringa
+chiqadi — qat'iy jar shunchaki chetdagi nomzodni yo'q qilardi.
+
+`entry_max_range_pct: 55.0` qo'shildi. Yumshatish, ochib yuborish emas:
+diapazonning yuqori qismi baribir yopiq, support va diapazondan chiqish
+shartlari kuchida qoladi.
+
+### 3. Timeframe: 15m da tuzilma va risk qoidasi turli shkalada edi
+
+Bu — 32-34, 37 va 40-bo'limlardagi naqshning yana bir ko'rinishi.
+
+| | 15m | 1h |
+|---|---|---|
+| ATR (narxga nisbatan) | ~0.5% | ~1-2% |
+| Support zonasigacha masofa (1 ATR) | ~0.5% | ~1-2% |
+| Talab qilingan Stop (3.3-band) | **kamida 1%** | kamida 1% |
+
+15m da support zonasi narxga shunchalik yaqin ediki, undan qurilgan
+Stop 1% lik eng kam talabga **yetmasdi**. Ya'ni tuzilma bir shkalada,
+risk qoidasi boshqa shkalada ishlardi. Jonli ma'lumotda "Darajalar risk
+qoidasiga sig'madi" 112 marta chiqdi.
+
+1h da ikkalasi bir shkalaga tushadi. Qo'shimcha foyda: 1h zonalari
+kamroq shovqinli.
+
+Yangi to'plam:
+
+```yaml
+entry_timeframe: "1h"
+htf_confirmation: ["4h"]        # to'siq emas, ballga qo'shiladi (41-bo'lim)
+market_health_timeframe: "1d"   # ALOHIDA
+```
+
+**Nima uchun `market_health_timeframe` alohida.** `compute_health()`
+kunlik seriyani `htf_confirmation` orqali olardi. Tasdiq timeframelari
+qisqarganda u kirish timeframeiga tushib ketardi va bozor kengligi
+soatlik o'lchovga aylanardi — indeks kun bo'yi tebranib, ma'nosini
+yo'qotardi. Kenglik "katta rasm" savoli, tasdiq esa "kirish" savoli:
+bir manbadan ikki xil savolga javob so'ralmasligi kerak (34-bo'lim
+naqshi).
+
+Sikl oralig'i ham avtomatik 15 daqiqadan 1 soatga o'tdi — sham
+yopilmaguncha tahlil natijasi o'zgarmaydi.
+
+### 4. Skalping oynasi 45 daqiqadan bir kunga
+
+```
+• Skalping oynasi yopiq — 5114 marta
+```
+
+Oyna kuniga 45 daqiqa, ya'ni kunning **3%** i. Qolgan 97% da strategiya
+umuman ishlamasdi va bu yozuv dashboardda hamma narsadan ko'p chiqardi.
+
+`signal_window_minutes: 45 -> 1440`.
+
+**Almashuv ONGLI.** Kech kirish yomonroq kirish: diapazon kun boshida
+qurilgani uchun kunning oxiridagi buzilish "eskirgan" diapazonga
+nisbatan o'lchanadi. Buzilish kuchi, hajm va risk qoidasi baribir talab
+qilinadi, lekin kech kirishning zarari endi ball orqali emas, umuman
+qoplanmaydi. Postmortem (3.8-band) shu strategiyaning natijasini
+alohida ko'rsatadi — bir-ikki haftadan keyin shu raqamga qarab qaror
+qilish kerak.
+
+### Testlar konfiguratsiyaga bog'landi
+
+Timeframe o'zgarishi 11 ta testni sindirdi va **hammasi bir sababdan**:
+qiymat testga yozib qo'yilgan edi (`== "15m"`, `19_200`,
+`build_dataset(..., ["15m", "1h", "4h", "1d"])`).
+
+Bularning ba'zilari jimgina sinardi: backtest dataseti kerakli
+timeframeni saqlamay, `steps=0` qaytarardi — xato emas, shunchaki bo'sh
+natija. Hammasi endi konfiguratsiyadan hisoblanadi.
+
+---
+
+## 43. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

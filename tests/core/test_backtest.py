@@ -43,6 +43,19 @@ def qator(n: int, daqiqa: int = 15) -> list[Candle]:
     return [sham(i, 100 + i * 0.1, daqiqa) for i in range(n)]
 
 
+def dataset_uchun(config, shamlar: dict[str, list[Candle]], asos: str = "15m") -> Dataset:  # noqa: ANN001
+    """Konfiguratsiya talab qiladigan timeframelar bilan dataset quradi.
+
+    Timeframelar testga yozib qo'yilsa, sozlama o'zgargach dataset
+    kerakli qatorni umuman saqlamaydi va backtest jimgina 0 qadam
+    qaytaradi — xato emas, shunchaki bo'sh natija.
+    """
+    analysis = config.analysis
+    kerakli = {analysis.entry_timeframe, analysis.market_health_timeframe}
+    kerakli.update(analysis.htf_confirmation)
+    return build_dataset(shamlar, asos, sorted(kerakli))
+
+
 # --------------------------------------------------------------------------- #
 #  LOOKAHEAD HIMOYASI — eng muhim
 # --------------------------------------------------------------------------- #
@@ -140,23 +153,33 @@ def test_asosdan_past_timeframe_otkazib_yuboriladi() -> None:
 
 
 def test_isinish_davri_eng_yuqori_timeframega_qarab_hisoblanadi() -> None:
-    """Kunlik EMA200 uchun 200 KUNLIK ma'lumot kerak.
+    """Eng yuqori timeframedagi EMA200 uchun yetarli tarix kerak.
 
     Buni faqat kirish timeframe bo'yicha hisoblash — jimgina buziladigan
-    xato: yuqori timeframelarda trend `FLAT` qaytadi va muvofiqlik HECH
-    QACHON bajarilmaydi. Backtest "signal yo'q" deydi, sabab esa
-    strategiyada emas, ma'lumot yetishmasligida bo'ladi.
+    xato: yuqori timeframelarda EMA hisoblanmaydi, trend `FLAT` qaytadi
+    va muvofiqlik hech qachon bajarilmaydi. Backtest "signal yo'q"
+    deydi, sabab esa strategiyada emas, ma'lumot yetishmasligida.
+
+    Kutilgan qiymat KONFIGURATSIYADAN hisoblanadi. Ilgari bu yerda
+    "19 200" deb yozib qo'yilgan edi (1d / 15m = 96 barobar) — timeframe
+    to'plami o'zgargach test jimgina ma'nosini yo'qotardi.
     """
+    from core.backtest.dataset import TIMEFRAME_MINUTES
+
     config = load_config()
+    analysis = config.analysis
     kerak = Backtester(config)._warmup_steps()
 
-    # 1d / 15m = 96 barobar; EMA200 -> 19 200 qadam
-    assert kerak > 19_000
-    assert kerak == config.analysis.indicators.ema_slow * 96 + 10
+    kirish = TIMEFRAME_MINUTES[analysis.entry_timeframe]
+    eng_yuqori = max(TIMEFRAME_MINUTES[tf] for tf in analysis.htf_confirmation)
+    nisbat = max(1, eng_yuqori // kirish)
+
+    assert nisbat > 1, "tasdiq timeframei kirishdan yuqori bo'lishi kerak"
+    assert kerak == analysis.indicators.ema_slow * nisbat + 10
 
 
 def test_malumot_yetmasa_bosh_natija() -> None:
-    ds = build_dataset({"BTC": qator(500)}, "15m", ["15m", "1h", "4h", "1d"])
+    ds = dataset_uchun(load_config(), {"BTC": qator(500)})
     natija = Backtester(load_config()).run(ds)
 
     assert natija.steps == 0
@@ -167,7 +190,7 @@ def test_max_steps_isinishdan_keyin_qollanadi() -> None:
     """`max_steps` — haqiqiy tahlil qadamlari, tarix emas."""
     config = load_config()
     kerak = Backtester(config)._warmup_steps()
-    ds = build_dataset({"BTC": qator(kerak + 60)}, "15m", ["15m", "1h", "4h", "1d"])
+    ds = dataset_uchun(config, {"BTC": qator(kerak * 4 + 240)})
 
     natija = Backtester(config).run(ds, max_steps=25)
     assert natija.steps == 25
@@ -368,7 +391,16 @@ def tez_config():  # noqa: ANN201
         volume_ma_period=10,
         adx_period=7,
     )
-    analiz = dataclasses.replace(asos.analysis, indicators=ind, htf_confirmation=["30m"])
+    # Kirish timeframei ham 15m ga qaytariladi: sinov qatorlari 15
+    # daqiqalik shamlardan quriladi va bu testlar MEXANIZMNI sinaydi,
+    # sozlamani emas.
+    analiz = dataclasses.replace(
+        asos.analysis,
+        indicators=ind,
+        entry_timeframe="15m",
+        htf_confirmation=["30m"],
+        market_health_timeframe="30m",
+    )
     chegaralar = dataclasses.replace(
         asos.scoring.thresholds, threshold_high_health=35.0, threshold_mid_health=45.0
     )
@@ -423,7 +455,7 @@ def test_zanjir_signal_chiqarib_savdoni_yopadi() -> None:
     KUZATILISHI — umuman tekshirilmagan bo'lardi.
     """
     config = tez_config()
-    dataset = build_dataset({"BTC": savdo_beradigan_qator()}, "15m", ["15m", "30m"])
+    dataset = dataset_uchun(config, {"BTC": savdo_beradigan_qator()})
 
     natija = Backtester(config, label="zanjir").run(dataset, max_steps=900)
 
@@ -443,7 +475,7 @@ def test_stop_zarari_universal_chegaradan_oshmaydi() -> None:
     u Stop DARAJASIDA bajariladi, shamning chekkasida emas.
     """
     config = tez_config()
-    dataset = build_dataset({"BTC": savdo_beradigan_qator()}, "15m", ["15m", "30m"])
+    dataset = dataset_uchun(config, {"BTC": savdo_beradigan_qator()})
 
     natija = Backtester(config, label="stop chegarasi").run(dataset, max_steps=900)
     stoplar = [t for t in natija.trades if t.outcome == "stop"]
@@ -474,7 +506,7 @@ def test_backtest_jonli_kuzatuvchini_ishlatadi() -> None:
 
     config = load_config()
     kerak = Backtester(config)._warmup_steps()
-    ds = build_dataset({"BTC": qator(kerak + 30)}, "15m", ["15m", "1h", "4h", "1d"])
+    ds = dataset_uchun(config, {"BTC": qator(kerak * 4 + 240)})
 
     # `run` ichida SignalTracker yaratiladi — importi mavjudligini tekshiramiz
     assert SignalTracker is not None
