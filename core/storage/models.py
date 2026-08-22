@@ -301,6 +301,12 @@ class RiskBlock(Base, TimestampMixin):
     reason: Mapped[str] = mapped_column(String(48), index=True, nullable=False)
     detail: Mapped[str | None] = mapped_column(Text)
     market_health: Mapped[float | None] = mapped_column(Float)
+    #: Nomzod olgan ball (bo'lsa). Bu ustunsiz "chegara juda balandmi yoki
+    #: nomzodlar haqiqatan zaifmi" degan savolga javob berib bo'lmasdi:
+    #: dashboard faqat "chegaradan past" deb yozardi, qanchalik past
+    #: ekanini esa hech kim ko'rmasdi. Aynan shu ko'rlik sababli chegara
+    #: 48 soat davomida erishib bo'lmas darajada balandligi sezilmadi.
+    score: Mapped[float | None] = mapped_column(Float)
 
 
 class RiskConfigEntry(Base, TimestampMixin):

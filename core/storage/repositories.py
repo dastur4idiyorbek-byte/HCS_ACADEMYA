@@ -838,13 +838,17 @@ class RiskBlockRepository:
 
     async def record_many(
         self,
-        rejections: list[tuple[str | None, str, str | None]],
+        rejections: list[tuple[str | None, str, str | None, float | None]],
         market_health: float | None = None,
     ) -> int:
         """Bir siklning barcha rad etishlarini yozadi.
 
         Args:
-            rejections: `(symbol, reason, detail)` uchliklari.
+            rejections: `(symbol, reason, detail, score)` to'rtliklari.
+                `score` — nomzod olgan ball (bo'lsa). Ilgari u yozilmasdi:
+                `RejectedCandidate` uni tashib yurardi, lekin bu yerda
+                tashlab ketilardi. Natijada dashboard "chegaradan past"
+                deb yozardi-yu, QANCHALIK past ekanini ko'rsatolmasdi.
             market_health: o'sha paytdagi indeks — sabablarni keyinroq
                 "past salomatlikda" va "normal bozorda" deb ajratish uchun.
 
@@ -854,17 +858,45 @@ class RiskBlockRepository:
         if not rejections:
             return 0
 
-        for symbol, reason, detail in rejections:
+        for symbol, reason, detail, score in rejections:
             self._session.add(
                 RiskBlock(
                     symbol=symbol,
                     reason=reason[:48],
                     detail=detail,
                     market_health=market_health,
+                    score=score,
                 )
             )
         await self._session.flush()
         return len(rejections)
+
+    async def score_stats_since(
+        self, since: datetime, reason: str
+    ) -> tuple[int, float, float] | None:
+        """Bitta sabab bo'yicha ball statistikasi: `(soni, eng yuqori, o'rtacha)`.
+
+        Nima uchun kerak: "chegaradan past" degan xabar o'zi hech narsa
+        aytmaydi. Nomzodlar 78 ball olib 80 chegaradan qaytayotgan
+        bo'lsa — chegara bir oz baland. 55 ball olib qaytayotgan
+        bo'lsa — chegara umuman erishib bo'lmas. Ikkovi butunlay
+        boshqa muammo, lekin dashboardda bir xil ko'rinardi.
+
+        `None` — bu sabab bo'yicha ballli yozuv yo'q.
+        """
+        stmt = select(
+            func.count(RiskBlock.id),
+            func.max(RiskBlock.score),
+            func.avg(RiskBlock.score),
+        ).where(
+            RiskBlock.created_at >= since,
+            RiskBlock.reason == reason,
+            RiskBlock.score.is_not(None),
+        )
+        soni, eng_yuqori, ortacha = (await self._session.execute(stmt)).one()
+        if not soni:
+            return None
+        return int(soni), float(eng_yuqori), float(ortacha)
 
     async def summary_since(
         self, since: datetime, limit: int = 10

@@ -294,7 +294,7 @@ class PipelineRunner:
             return
 
         qatorlar = [
-            (None if rad.symbol == "*" else rad.symbol, rad.stage, rad.detail)
+            (None if rad.symbol == "*" else rad.symbol, rad.stage, rad.detail, rad.score)
             for rad in result.rejected
         ]
         try:

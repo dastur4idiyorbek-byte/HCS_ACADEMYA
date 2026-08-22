@@ -640,6 +640,10 @@ def _render_health(record) -> str:  # noqa: ANN001
 #: Sokinlik hisoboti qancha vaqtni qamrab oladi
 SOKINLIK_SOATLARI = 24
 
+#: Ball chegarasida to'xtagan nomzodlar bosqichi — ular uchun ball
+#: statistikasi ko'rsatiladi (qolgan sabablarda ball bo'lmaydi).
+THRESHOLD_STAGE = "threshold"
+
 
 @router.callback_query(F.data == "admin:sokinlik")
 async def silence_dashboard(
@@ -660,6 +664,7 @@ async def silence_dashboard(
         repo = RiskBlockRepository(session)
         xulosa = await repo.summary_since(boshlanish)
         oxirgilar = await repo.latest(limit=3)
+        ball_stat = await repo.score_stats_since(boshlanish, THRESHOLD_STAGE)
 
     if not xulosa:
         await callback.message.edit_text(
@@ -670,7 +675,7 @@ async def silence_dashboard(
         return
 
     matn = t("admin.sokinlik_sarlavha", language, hours=SOKINLIK_SOATLARI)
-    matn += _render_silence(xulosa, language)
+    matn += _render_silence(xulosa, language, ball_stat)
 
     matn += _render_latest(oxirgilar, language)
 
@@ -678,7 +683,11 @@ async def silence_dashboard(
     await callback.answer()
 
 
-def _render_silence(summary: list[tuple[str, int, bool]], language: str) -> str:
+def _render_silence(
+    summary: list[tuple[str, int, bool]],
+    language: str,
+    score_stats: tuple[int, float, float] | None = None,
+) -> str:
     """Rad etish sabablarini UCH GURUHGA ajratib ko'rsatadi.
 
     Nima uchun bitta ro'yxat yetarli emas edi: yozuvlar bir xil
@@ -713,6 +722,14 @@ def _render_silence(summary: list[tuple[str, int, bool]], language: str) -> str:
         for sabab, soni in tahlil:
             ulush = _xavfsiz(_ulush(soni, jami))
             matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta ({ulush})\n"
+            if sabab == THRESHOLD_STAGE and score_stats is not None:
+                _, eng_yuqori, ortacha = score_stats
+                matn += t(
+                    "admin.sokinlik_ball",
+                    language,
+                    best=f"{eng_yuqori:.0f}",
+                    average=f"{ortacha:.0f}",
+                )
 
     if sikl:
         matn += t("admin.sokinlik_sikl", language)

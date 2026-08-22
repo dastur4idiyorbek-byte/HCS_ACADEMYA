@@ -126,7 +126,12 @@ def test_yuqori_ballli_nomzod_chiqadi(config) -> None:  # noqa: ANN001
 
 
 def test_past_ballli_nomzod_chegaradan_otmaydi(config) -> None:  # noqa: ANN001
-    ballar = {"BTC": 55.0}
+    # Ball ikkala chegaradan ham pastroq qilib QURILADI — aniq raqam
+    # yozib qo'yilsa, chegara o'zgargach test jimgina ma'nosini
+    # yo'qotardi (aynan shu 70/80 bilan sodir bo'lgan edi).
+    chegaralar = config.scoring.thresholds
+    eng_past = min(chegaralar.threshold_high_health, chegaralar.threshold_mid_health)
+    ballar = {"BTC": eng_past - 5}
     sikl = SignalCycle(config, [SoxtaStrategiya(ballar)])
 
     natija = sikl.run(kirish(config, ballar))
@@ -183,14 +188,17 @@ def test_salomatlik_hisoblanmagan_bolsa_signal_yoq(config) -> None:  # noqa: ANN
 
 
 def test_chegara_salomatlikka_qarab_ozgaradi(config) -> None:  # noqa: ANN001
-    ballar = {"BTC": 75.0}
+    """Ikki chegara ORASIDAGI ball: yuqori salomatlikda o'tadi, o'rtada yo'q."""
+    chegaralar = config.scoring.thresholds
+    orasida = (chegaralar.threshold_high_health + chegaralar.threshold_mid_health) / 2
+    ballar = {"BTC": orasida}
     sikl = SignalCycle(config, [SoxtaStrategiya(ballar)])
 
     yuqori = sikl.run(kirish(config, ballar, market_health=salomatlik(90.0)))
     ortacha = sikl.run(kirish(config, ballar, market_health=salomatlik(55.0)))
 
     assert yuqori.threshold < ortacha.threshold
-    assert yuqori.emitted_count == 1, "yuqori salomatlikda 75 ball yetarli"
+    assert yuqori.emitted_count == 1, "yuqori salomatlikda bu ball yetarli"
     assert ortacha.emitted_count == 0, "o'rtacha salomatlikda chegara balandroq"
 
 

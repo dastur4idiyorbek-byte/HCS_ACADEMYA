@@ -141,12 +141,26 @@ def test_salomatlik_hisoblanmagan_bolsa_signal_berilmaydi(engine: RiskEngine) ->
     assert BlockReason.MARKET_HEALTH_LOW in qaror.reasons
 
 
-def test_ball_chegarasi_salomatlikka_qarab_moslashadi(engine: RiskEngine) -> None:
-    """3.5-band: chegara statik EMAS."""
-    assert engine.score_threshold(90) == 70
-    assert engine.score_threshold(60) == 80
-    assert engine.score_threshold(20) is None
-    assert engine.score_threshold(None) is None
+def test_ball_chegarasi_salomatlikka_qarab_moslashadi(
+    engine: RiskEngine, config
+) -> None:  # noqa: ANN001
+    """3.5-band: chegara statik EMAS.
+
+    Aniq raqamlar konfiguratsiyadan olinadi, testga yozib qo'yilmaydi:
+    ilgari bu yerda 70 va 80 turardi va aynan shu raqamlar erishib
+    bo'lmas darajada baland ekani hech qanday testda ko'rinmasdi
+    (`test_chegara_erishiladi.py` ga qarang).
+    """
+    chegaralar = config.scoring.thresholds
+
+    assert engine.score_threshold(90) == chegaralar.threshold_high_health
+    assert engine.score_threshold(60) == chegaralar.threshold_mid_health
+    assert engine.score_threshold(20) is None, "past indeksda signal umuman yo'q"
+    assert engine.score_threshold(None) is None, "0.3-band: hisoblanmasa — yo'q"
+
+    assert engine.score_threshold(60) >= engine.score_threshold(90), (
+        "bozor zaiflashsa talab oshishi kerak"
+    )
 
 
 # --------------------------------------------------------------------------- #

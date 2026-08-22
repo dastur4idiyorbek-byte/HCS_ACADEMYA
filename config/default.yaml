@@ -131,8 +131,22 @@ scoring:
   thresholds:
     health_high_min: 80            # indeks >= 80 -> "yashil" rejim
     health_mid_min: 40             # indeks >= 40 -> "sariq" rejim
-    threshold_high_health: 70
-    threshold_mid_health: 80
+    # O'LCHAB tanlangan chegaralar. Ilgari 70 va 80 edi — bu raqamlar 100
+    # ballik shkalada mantiqiy ko'rinadi, lekin ball funksiyasi amalda
+    # 100 ga chiqmaydi: omillarning bir qismi bu strategiyada bir vaqtda
+    # to'liq bo'la olmaydi (support'da xarid qilinsa MACD hali kesmagan
+    # bo'ladi, RSI o'rta zonada bo'ladi, R/R aynan eng kam talabda
+    # bo'ladi). `python -m scripts.kalibrlash` 27 ta turli sozlamada
+    # o'lchadi: ENG YUQORI ball 59.7. Ya'ni 80 chegarasi bilan birorta
+    # signal chiqishi mumkin emas edi — bot 48 soat jim turdi.
+    #
+    # Yangi qiymatlar o'sha taqsimotdan olingan:
+    #   55 -> nomzodlarning eng yaxshi 33% i
+    #   50 -> eng yaxshi 67% i
+    # Chegarani o'zgartirishdan oldin `/panel` -> 🔇 dagi "eng yuqori
+    # ball" qatoriga qarang: u haqiqiy bozordagi taqsimotni ko'rsatadi.
+    threshold_high_health: 50      # bozor kuchli — chegara pastroq
+    threshold_mid_health: 55       # bozor o'rtacha — talab qattiqroq
     # indeks < health_mid_min bo'lsa yangi signal umuman berilmaydi
 
 # --- 3.3-band: universal risk qoidasi ---

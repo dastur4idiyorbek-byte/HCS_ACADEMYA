@@ -1694,7 +1694,126 @@ keyin **kuchayadi**, kamaymaydi.
 
 ---
 
-## 40. Bosqichlar holati
+## 40. Bot 48 soat jim turdi: chegara erishib bo'lmas edi
+
+### Belgi
+
+Ro'yxat 150 taga kengaytirilgach ham signal chiqmadi. Dashboard:
+
+```
+📊 Coin tahlili — 4737 ta tekshiruv
+• Narx support zonasidan uzoq — 2996 (63%)
+• Timeframelar bir-biriga zid  — 1506 (32%)
+• Ochilish diapazoni mos emas  —  135 (3%)
+• Ball chegaradan past         —   47 (1%)
+...
+```
+
+47 ta nomzod butun zanjirni o'tib, oxirgi darvozagacha yetgan. Va
+**47 tasidan bittasi ham o'tmagan**. Oxirgi darvozada 100% rad etish —
+bu tasodif emas.
+
+### O'lchov
+
+`scripts/kalibrlash.py` yozildi: 27 ta turli sifatdagi sozlama
+quriladi (chuqur/o'rta/sayoz qaytish × past/yaxshi/kuchli hajm ×
+sust/o'rta/kuchli trend) va har biriga ball hisoblanadi.
+
+```
+Nomzod chiqdi   : 12
+Eng yuqori ball : 59.7
+O'rtacha        : 50.9
+
+  chegara 80: 0/12 (0%)   <- joriy (o'rta salomatlik)
+  chegara 70: 0/12 (0%)   <- joriy (yuqori salomatlik)
+  chegara 60: 0/12 (0%)
+  chegara 55: 4/12 (33%)
+  chegara 50: 8/12 (67%)
+```
+
+**Erishish mumkin bo'lgan eng yuqori ball — 59.7. Chegara — 80.**
+Ya'ni bot signal chiqara olmasdi. Umuman. Hech qanday bozorda.
+
+### Nima uchun 100 ball chiqmaydi
+
+Ball funksiyasi darajali, va omillarning bir qismi bu strategiyada
+**bir vaqtda to'liq bo'la olmaydi**. "Ideal" sozlamaning tafsiloti:
+
+| Omil | Ball | Sabab |
+|---|---|---|
+| S/R | 18.7/25 | zonaga 0.02 ATR, 18 marta sinalgan — deyarli mukammal |
+| Hajm | 15/15 | o'rtachadan 2.4× |
+| RSI | 7.5/15 | RSI 51 — o'rta zona |
+| R/R | 7.5/15 | 1:3.0 — aynan eng kam talab |
+| Trend | 6.4/20 | ADX 13 |
+| MACD | **0/10** | signal chizig'idan pastda |
+
+Oxirgi ikki qator muhim. **Support'da xarid qilish MACD kesishidan
+OLDIN sodir bo'ladi** — kesish keyinroq keladi. Ya'ni "support'da ol"
+va "MACD tasdiqlasin" bir-biriga zid talab. Xuddi shunday, R/R aynan
+3.0 bo'lsa (qoida talab qilgan eng kam qiymat) faqat yarim ball
+beriladi.
+
+100 ball — nazariy cho'qqi, amaliy emas.
+
+### Xatoning turi: yana o'sha
+
+32-34 va 37-bo'limlarda bir xil xato besh marta topilgan edi: **bir
+shkala uchun to'g'ri qiymat boshqasiga qo'llangan**. Bu — oltinchisi
+va eng qimmati. "Signal uchun 80 ball kerak" degan gap 0-100 shkalada
+tabiiy eshitiladi; ball funksiyasining HAQIQIY shkalasi esa 0-60.
+
+### Nima uchun hech qanday test tutmadi
+
+Barcha testlar ballni tashqaridan berardi (`{"BTC": 95.0}`) yoki
+chegarani raqam bilan yozardi (`assert threshold == 80`). Ya'ni
+"chegara qo'yilgani" sinalgan, "chegaraga yetish mumkinmi" hech qachon
+sinalmagan. Ikkisi orasidagi bo'shliqda bot 48 soat jim turdi.
+
+`tests/core/test_chegara_erishiladi.py` aynan shu bo'shliqni yopadi:
+u strategiyani haqiqiy sham ma'lumotida ishga tushirib, chiqqan
+ballni chegara bilan solishtiradi. Eski konfiguratsiyada bu test
+yiqiladi va sababini aytadi:
+
+```
+chegara 80.0, lekin eng yuqori ball 59.7 — birorta signal chiqmaydi
+```
+
+Teskari xavf ham qo'riqlanadi: nomzodlarning 60% dan ko'pi o'tsa,
+chegara ma'nosini yo'qotgan deb hisoblanadi.
+
+### Yangi qiymatlar
+
+| | Eski | Yangi | Taqsimotdagi o'rni |
+|---|---|---|---|
+| Yuqori salomatlik | 70 | **50** | eng yaxshi 67% |
+| O'rta salomatlik | 80 | **55** | eng yaxshi 33% |
+
+3.5-banddagi mantiq saqlandi: bozor zaiflashsa talab OSHADI. Chegaradan
+keyin Risk Engine'ning 13 qoidasi ham turibdi.
+
+### Ko'rlik tuzatildi
+
+`RejectedCandidate.score` allaqachon mavjud edi, lekin `record_many()`
+uni yozishda tashlab ketardi — "e'lon qilingan, lekin ulanmagan"
+naqshining navbatdagi ko'rinishi (31-bo'lim). Shu sababli dashboard
+"Ball chegaradan past" deb yozardi-yu, QANCHALIK past ekanini
+ko'rsatolmasdi.
+
+78 ball olib 80 dan qaytish va 44 ball olib 80 dan qaytish — butunlay
+boshqa muammo, lekin ekranda bir xil ko'rinardi. Endi:
+
+```
+• Ball chegaradan past — 47 marta (1%)
+   ↳ eng yuqori ball 58, o'rtacha 44
+```
+
+Chegarani keyingi safar o'zgartirish kerak bo'lsa, qaror shu qatordan
+olinadi — taxmindan emas.
+
+---
+
+## 41. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

@@ -144,8 +144,12 @@ class ScoreWeights:
 class ScoreThresholds:
     health_high_min: float = 80
     health_mid_min: float = 40
-    threshold_high_health: float = 70
-    threshold_mid_health: float = 80
+    #: Chegaralar O'LCHAB tanlangan — `scripts/kalibrlash.py` ga qarang.
+    #: 70/80 qiymatlari 100 ballik shkalaga mo'ljallangan edi, lekin ball
+    #: funksiyasi amalda 60 dan oshmaydi (omillar bir vaqtda to'liq bo'la
+    #: olmaydi). Natijada birorta signal chiqmasdi.
+    threshold_high_health: float = 50
+    threshold_mid_health: float = 55
 
 
 @dataclass(frozen=True, slots=True)

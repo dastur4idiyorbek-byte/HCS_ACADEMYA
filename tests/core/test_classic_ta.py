@@ -235,21 +235,32 @@ def test_qatiy_tasdiq_talabida_signal_chiqmaydi(config) -> None:  # noqa: ANN001
     assert strategiya.last_rejection.stage == "confirmation"
 
 
-def test_zaif_nomzod_ball_chegarasidan_otmaydi(config) -> None:  # noqa: ANN001
-    """Zona sharti bajarilsa ham, zaif tasdiq past ball beradi.
+def test_tasdiqlanmagan_omil_ballni_tushiradi(config) -> None:  # noqa: ANN001
+    """Indikatorlar qattiq to'siq EMAS — ularning yo'qligi ballni tushiradi.
 
-    Bu — arxitekturaning asosiy himoyasi: indikatorlar qattiq to'siq emas,
-    lekin ularning yo'qligi ballni tushiradi va chegara signalni to'xtatadi.
+    Bu test ilgari boshqacha yozilgan edi: "MACD tasdiqlamagan nomzod eng
+    past chegaradan ham o'tmasligi kerak". Talab mantiqiy eshitilardi,
+    lekin u ikkita faktni birga hisobga olmasdi:
+
+      • support zonasida xarid qilinganda MACD deyarli HAR DOIM signal
+        chizig'idan pastda bo'ladi (kesish keyinroq keladi);
+      • ya'ni bu talab "support'da hech qachon xarid qilinmasin" degani
+        bilan barobar edi.
+
+    Chegara 80 bo'lgani uchun test o'tib turardi va muammo ko'rinmasdi.
+    Endi u ASL xususiyatni tekshiradi: tasdiq yo'qligi ball tafsilotida
+    ochiq ko'rinadi va yig'indini kamaytiradi.
     """
-    from core.risk_engine import RiskEngine
-
     natija = ClassicTaStrategy(config).analyze(kirish(config, qaytishli_kotarilish()))
     assert natija is not None
 
-    chegara = RiskEngine(config).score_threshold(85)  # yuqori salomatlik = eng past chegara
-    if natija.breakdown.component("macd").earned == 0:
-        assert natija.score < chegara, (
-            "MACD tasdiqlamagan nomzod eng past chegaradan ham o'tmasligi kerak"
+    macd = natija.breakdown.component("macd")
+    assert macd is not None
+
+    if macd.earned == 0:
+        assert "tasdiq yo'q" in macd.explanation, "sabab ko'rinib turishi kerak"
+        assert natija.score < natija.breakdown.maximum - macd.maximum + 0.01, (
+            "tasdiqlanmagan omil yig'indiga qo'shilib qolmasligi kerak"
         )
 
 
