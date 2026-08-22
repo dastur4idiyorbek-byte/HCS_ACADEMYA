@@ -48,6 +48,15 @@ analysis:
   entry_timeframe: "15m"                       # eng pastki TF — S/R + indikatorlar shu yerda tasdiqlanadi
   htf_confirmation: ["30m", "1h", "4h", "1d"]  # pastki TF yuqorisiga zid bo'lmasligi kerak
   candles_lookback: 500
+  # 3.2-band: yuqori timeframelar muvofiqligi MAJBURIYmi.
+  #
+  # `false` — muvofiqlik BALLGA qo'shiladi, signalni to'xtatmaydi.
+  # Sabab: kunlik EMA200 — 200 kunlik o'rtacha, ya'ni eng sekin
+  # kechikuvchi o'lchov. Narx support zonasiga qaytganda katta rasm hali
+  # o'zgarmagan bo'ladi; uni majburiy qilish burilish nuqtasidagi har
+  # qanday kirishni to'sadi. Jonli o'lchov: rad etishlarning 32% i aynan
+  # shu to'siqda edi.
+  require_htf_alignment: false
   # Istisno: kelajakda alohida "uzoq muddatli/pozitsion" strategiya qo'shilsa,
   # u yuqori timeframelarni O'ZI e'lon qiladi (`Strategy.required_timeframes()`
   # orqali) — asosiy strategiyaga taalluqli emas, konfiguratsiya o'zgarmaydi.
@@ -117,6 +126,22 @@ analysis:
     # Zona sharti (S/R + Discount) baribir MAJBURIY bo'lib qoladi —
     # "yolg'iz indikator-asosli signal yo'q" qoidasi buzilmaydi.
     min_confirmations: 2            # 4 = qat'iy "hammasi tasdiqlasin" varianti
+    # Indikator tasdig'i signal uchun MAJBURIYmi.
+    #
+    # `false` — indikatorlar faqat BALLGA ta'sir qiladi, ya'ni ko'p coin
+    # ichidan TANLASH uchun ishlatiladi, "mumkin/mumkin emas" qarori
+    # uchun emas.
+    #
+    # Sabab: indikatorlar tabiatan KECHIKADI — ular narx harakatidan
+    # keyin tasdiqlaydi. Narx support zonasiga qaytganda MACD hali
+    # kesmagan, RSI hali qaytmagan. Ular tasdiqlaguncha narx arzon
+    # zonadan chiqib ketadi. Ya'ni "indikator tasdiqlasin" talabi amalda
+    # "arzon paytda olma, qimmatlashgach ol" degani.
+    #
+    # Qaror STRUKTURAGA (S/R zonasi) va RISK QOIDASIGA (3.3-band)
+    # qoladi. Bu ikkisi kechikmaydi — ular narxning hozirgi joylashuvi
+    # haqida gapiradi.
+    require_confirmation: false
 
 # --- 3.5-band: ball tizimi ---
 scoring:

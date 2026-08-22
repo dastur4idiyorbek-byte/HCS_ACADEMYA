@@ -61,20 +61,35 @@ def score_support_resistance(
     return ScoreComponent("support_resistance", xom * weight, weight, izoh)
 
 
+#: Trend balli uchun uch qismning ulushi. Yuqori timeframelar eng katta
+#: ulushni oladi: kirish timeframedagi trend qaytish paytida deyarli har
+#: doim pastga qaragan bo'ladi (aynan shu sababli narx Discount zonasiga
+#: tushgan), katta rasm esa o'sha paytda ham ko'tarilishda bo'lishi mumkin.
+TREND_ULUSHLARI = {"ema": 0.30, "adx": 0.30, "htf": 0.40}
+
+
 def score_trend(
     snapshot: IndicatorSnapshot,
     confirmation: Confirmation,
     config: IndicatorConfig,
     weight: float,
+    htf_alignment: float | None = None,
 ) -> ScoreComponent:
-    """Trend kuchi — EMA ajralishi va ADX birgalikda (20 ball)."""
-    omil = confirmation.factor("trend")
-    if omil is None or not omil.confirmed:
-        return ScoreComponent(
-            "trend", 0.0, weight, omil.explanation if omil else "Trend: tasdiq yo'q"
-        )
+    """Trend kuchi — EMA ajralishi, ADX va yuqori timeframelar (20 ball).
 
-    ema_kuchi = omil.strength
+    Ilgari bu funksiya trend tasdiqlanmagan bo'lsa DARHOL 0 qaytarardi.
+    Bu kechikish muammosini ballga ham olib kirardi: narx support
+    zonasiga qaytganda kirish timeframedagi trend deyarli har doim
+    pastga qaragan bo'ladi — aynan shuning uchun narx pastga tushgan.
+    Ya'ni "yaxshi qaytish" holati 20 balldan 0 olardi.
+
+    Endi uch qism alohida baholanadi va qo'shiladi. Yuqori timeframe
+    ko'tarilishda bo'lsa, kirish timeframedagi vaqtinchalik pasayish
+    ballni butunlay yo'q qilmaydi.
+    """
+    omil = confirmation.factor("trend")
+    ema_kuchi = omil.strength if omil is not None else 0.0
+    ema_matn = "EMA muvofiq" if omil is not None and omil.confirmed else "EMA muvofiq emas"
 
     # ADX trend KUCHINI o'lchaydi: chegaradan pastda — tekis bozor.
     adx_qiymati = snapshot.adx
@@ -85,8 +100,28 @@ def score_trend(
         adx_kuchi = _taper_up(adx_qiymati, zero=config.adx_trend_threshold, full=40.0)
         adx_matn = f"ADX {adx_qiymati:.0f}"
 
-    xom = ema_kuchi * 0.5 + adx_kuchi * 0.5
-    return ScoreComponent("trend", xom * weight, weight, f"Trend: EMA muvofiq, {adx_matn}")
+    ulush = dict(TREND_ULUSHLARI)
+    if htf_alignment is None:
+        # Yuqori timeframe hisoblanmagan — uning ulushi qolgan ikkitasiga
+        # taqsimlanadi. Aks holda hisoblab bo'lmagan narsa jazoga aylanardi
+        # (0.3-band: noaniqlik jarima emas).
+        qoshimcha = ulush.pop("htf") / 2
+        ulush["ema"] += qoshimcha
+        ulush["adx"] += qoshimcha
+        htf_matn = "yuqori TF hisoblanmadi"
+        htf_kuchi = 0.0
+    else:
+        htf_kuchi = htf_alignment
+        htf_matn = f"yuqori TF {htf_alignment:.0%} ko'tarilishda"
+
+    xom = (
+        ema_kuchi * ulush["ema"]
+        + adx_kuchi * ulush["adx"]
+        + htf_kuchi * ulush.get("htf", 0.0)
+    )
+    return ScoreComponent(
+        "trend", xom * weight, weight, f"Trend: {ema_matn}, {adx_matn}, {htf_matn}"
+    )
 
 
 def score_rsi(
@@ -149,11 +184,12 @@ def build_components(
     weights: ScoreWeights,
     indicators: IndicatorConfig,
     rules: TradeRulesConfig,
+    htf_alignment: float | None = None,
 ) -> list[ScoreComponent]:
     """Barcha omillarni bitta ro'yxatga yig'adi."""
     return [
         score_support_resistance(zone_map, zone, range_position, weights.support_resistance),
-        score_trend(snapshot, confirmation, indicators, weights.trend),
+        score_trend(snapshot, confirmation, indicators, weights.trend, htf_alignment),
         score_rsi(snapshot, confirmation, weights.rsi),
         score_volume(confirmation, weights.volume),
         score_macd(confirmation, weights.macd),

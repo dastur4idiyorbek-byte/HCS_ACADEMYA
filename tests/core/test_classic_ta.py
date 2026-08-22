@@ -219,20 +219,44 @@ def test_darajalar_uchinchi_band_chegaralariga_mos(config) -> None:  # noqa: ANN
     assert darajalar.risk_reward_tp2 >= qoidalar.min_risk_reward
 
 
-def test_qatiy_tasdiq_talabida_signal_chiqmaydi(config) -> None:  # noqa: ANN001
-    """4/4 talab qilinganda ikki oyna kesishmaydi — o'lchangan xatti-harakat.
-
-    Sabab `docs/ARXITEKTURA.md` 22-bo'limida: MACD kechikuvchi indikator,
-    u tasdiqlaganda narx allaqachon Discount zonasidan chiqib ketgan bo'ladi.
-    """
-    indikatorlar = dataclasses.replace(config.analysis.indicators, min_confirmations=4)
-    qatiy = dataclasses.replace(
+def _bayroq_bilan(config, **indikator_maydonlari):  # noqa: ANN001, ANN201
+    """Indikator sozlamasi o'zgartirilgan konfiguratsiya nusxasi."""
+    indikatorlar = dataclasses.replace(config.analysis.indicators, **indikator_maydonlari)
+    return dataclasses.replace(
         config, analysis=dataclasses.replace(config.analysis, indicators=indikatorlar)
     )
+
+
+def test_tasdiq_talab_qilinsa_signal_toxtaydi(config) -> None:  # noqa: ANN001
+    """Eski xatti-harakat `require_confirmation` orqali qaytariladi.
+
+    4/4 talab qilinganda ikki oyna kesishmaydi — o'lchangan xatti-harakat
+    (`docs/ARXITEKTURA.md` 22-bo'lim): MACD kechikuvchi indikator, u
+    tasdiqlaganda narx allaqachon Discount zonasidan chiqib ketgan bo'ladi.
+    """
+    qatiy = _bayroq_bilan(config, min_confirmations=4, require_confirmation=True)
     strategiya = ClassicTaStrategy(qatiy)
 
     assert strategiya.analyze(kirish(qatiy, qaytishli_kotarilish())) is None
     assert strategiya.last_rejection.stage == "confirmation"
+
+
+def test_standart_sozlamada_tasdiq_signalni_toxtatmaydi(config) -> None:  # noqa: ANN001
+    """Indikator tasdig'i QAROR uchun emas, REYTING uchun.
+
+    4/4 tasdiq talabi bilan ham nomzod chiqishi kerak: tasdiq yo'qligi
+    ballni tushiradi, lekin signalni to'sib qo'ymaydi. Indikatorlar
+    kechikadi — ular tasdiqlaguncha narx arzon zonadan chiqib ketadi.
+    """
+    yumshoq = _bayroq_bilan(config, min_confirmations=4)
+    assert yumshoq.analysis.indicators.require_confirmation is False, "standart holat"
+
+    strategiya = ClassicTaStrategy(yumshoq)
+    natija = strategiya.analyze(kirish(yumshoq, qaytishli_kotarilish()))
+
+    assert natija is not None, (
+        f"tasdiq to'siq bo'lmasligi kerak, rad sababi: {strategiya.last_rejection}"
+    )
 
 
 def test_tasdiqlanmagan_omil_ballni_tushiradi(config) -> None:  # noqa: ANN001
@@ -313,8 +337,13 @@ def test_htf_bayrogi_strategiyada_qollaniladi(config) -> None:  # noqa: ANN001
     qatiy_ind = dataclasses.replace(
         config.analysis.indicators, htf_trend_requires_price_above_fast=True
     )
+    # To'siq faqat `require_htf_alignment` yoqilganda ishlaydi — standart
+    # holatda yuqori timeframe BALLGA qo'shiladi, signalni to'xtatmaydi.
     qatiy = dataclasses.replace(
-        config, analysis=dataclasses.replace(config.analysis, indicators=qatiy_ind)
+        config,
+        analysis=dataclasses.replace(
+            config.analysis, indicators=qatiy_ind, require_htf_alignment=True
+        ),
     )
     kiruvchi_shamlar = qaytishli_kotarilish()
     yuqori_shamlar = qaytishdagi_kotarilish()
@@ -347,3 +376,74 @@ def test_strategiya_kerakli_timeframelarni_elon_qiladi(strategy, config) -> None
 def test_strategiya_yoqilganligini_bildiradi(strategy) -> None:  # noqa: ANN001
     assert strategy.enabled is True
     assert strategy.name == "classic_ta"
+
+
+# --------------------------------------------------------------------------- #
+#  Indikatorlar QAROR uchun emas, REYTING uchun
+# --------------------------------------------------------------------------- #
+
+
+def test_yuqori_timeframe_zid_bolsa_ham_nomzod_chiqadi(config) -> None:  # noqa: ANN001
+    """Kunlik EMA200 — 200 kunlik o'rtacha, eng sekin kechikuvchi o'lchov.
+
+    Uni majburiy qilish burilish nuqtasidagi HAR QANDAY kirishni to'sadi:
+    narx pastdan qaytayotganda kunlik trend hali pastga qaragan bo'ladi.
+    Endi bu ballga ta'sir qiladi, to'siq bo'lmaydi.
+    """
+    assert config.analysis.require_htf_alignment is False, "standart holat"
+
+    strategiya = ClassicTaStrategy(config)
+    natija = strategiya.analyze(
+        kirish(config, qaytishli_kotarilish(), htf=qaytishdagi_kotarilish())
+    )
+
+    sabab = strategiya.last_rejection
+    assert sabab is None or sabab.stage != "timeframes", (
+        f"yuqori timeframe to'siq bo'lmasligi kerak, sabab: {sabab}"
+    )
+    assert natija is not None
+
+
+def pasayish(n: int = 260) -> list[Candle]:
+    """Aniq tushish trendi — EMA50 EMA200 dan past."""
+    return [sham(i, 200 - i * 0.4) for i in range(n)]
+
+
+def test_yuqori_timeframe_moslikka_qarab_ball_ozgaradi(config) -> None:  # noqa: ANN001
+    """Ma'lumot yo'qolmaydi: to'siq o'rniga DARAJA bo'lib ballga kiradi.
+
+    Bu muhim — to'siqni olib tashlab, o'rniga hech narsa qo'ymaslik
+    yuqori timeframe ma'lumotini butunlay yo'qotardi. U endi
+    reytingda ishtirok etadi: tushayotgan katta rasm ballni pasaytiradi,
+    lekin signalni to'sib qo'ymaydi.
+    """
+    strategiya = ClassicTaStrategy(config)
+
+    mos = strategiya.analyze(kirish(config, qaytishli_kotarilish()))
+    zid = strategiya.analyze(kirish(config, qaytishli_kotarilish(), htf=pasayish()))
+
+    assert mos is not None and zid is not None
+    mos_trend = mos.breakdown.component("trend")
+    zid_trend = zid.breakdown.component("trend")
+
+    assert zid_trend.earned < mos_trend.earned, (
+        "yuqori timeframe zid bo'lsa trend balli pastroq bo'lishi kerak"
+    )
+    assert zid.score < mos.score, "yig'indi ball ham pastroq bo'lishi kerak"
+
+
+def test_indikator_tasdigi_bolmasa_ham_daraja_quriladi(config) -> None:  # noqa: ANN001
+    """Qaror strukturaga va risk qoidasiga qoladi.
+
+    Nomzod chiqqan ekan, uning darajalari 3.3-banddagi qoidaga mos
+    bo'lishi SHART — indikator to'sig'i olib tashlangani risk
+    qoidasini yumshatmaydi.
+    """
+    natija = ClassicTaStrategy(config).analyze(kirish(config, qaytishli_kotarilish()))
+    assert natija is not None
+
+    qoidalar = config.trade_rules
+    darajalar = natija.levels
+    assert qoidalar.min_stop_distance_pct <= darajalar.stop_distance_pct
+    assert darajalar.stop_distance_pct <= qoidalar.max_stop_distance_pct
+    assert darajalar.risk_reward_tp2 >= qoidalar.min_risk_reward

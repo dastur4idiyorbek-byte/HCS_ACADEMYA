@@ -1,17 +1,30 @@
 """3.1-band: asosiy strategiya — Support/Resistance BIRINCHI, indikatorlar ikkinchi.
 
-To'g'ri tartib (spetsifikatsiyaning markaziy arxitektura tuzatishi):
+To'g'ri tartib:
 
     1. AVVAL: muhim S/R zonalari aniqlanadi
     2. Narx Support zonasida VA Discount zonadami (3.1-band davomi)
-    3. Ko'p timeframe muvofiqligi: pastki TF yuqorisiga zid emasmi (3.2)
-    4. KEYIN: indikatorlar shu holatni tasdiqlaydimi
-    5. Stop/TP darajalari S/R va ATR asosida quriladi (3.3 chegaralari bilan)
-    6. Ball hisoblanadi (3.5)
+    3. Stop/TP darajalari S/R va ATR asosida quriladi (3.3 chegaralari bilan)
+    4. KEYIN: indikatorlar va yuqori timeframelar BALLGA qo'shiladi
+
+KIM QAROR QILADI. "Signal berilsinmi" degan savolga STRUKTURA (S/R
+zonasi) va RISK QOIDASI (3.3-band) javob beradi. Indikatorlar esa
+"ko'p coin ichidan qaysi biri" degan savolga javob beradi — ya'ni
+reyting uchun.
+
+Nima uchun shunday. Indikatorlar tabiatan KECHIKADI: ular narx
+harakatidan keyin tasdiqlaydi. Narx support zonasiga qaytganda MACD
+hali kesmagan, RSI hali qaytmagan, kunlik EMA200 esa 200 kunlik
+o'rtacha — eng sekin o'lchov. Ular tasdiqlaguncha narx Discount
+zonasidan chiqib ketadi. Ya'ni "indikator tasdiqlasin" talabi amalda
+"arzon paytda olma, qimmatlashgach ol" degani — strategiyaning o'z
+maqsadiga zid.
+
+Bu xatti-harakat `analysis.require_htf_alignment` va
+`analysis.indicators.require_confirmation` orqali qaytarilishi mumkin.
 
 Har bir bosqichda "yo'q" javobi olinsa, `analyze()` `None` qaytaradi. Bu
-XATO EMAS — 0.2-band bo'yicha normal holat: "hozir signal berish to'g'ri
-emas".
+XATO EMAS — 0.2-band bo'yicha normal holat.
 """
 
 from __future__ import annotations
@@ -101,22 +114,23 @@ class ClassicTaStrategy(Strategy):
                 "masofasida emas",
             )
 
-        # 3) Ko'p timeframe muvofiqligi (3.2-band)
+        # 3) Ko'p timeframe muvofiqligi (3.2-band) — endi BALL uchun
         korinish = self._timeframe_view(data)
-        if not korinish.all_aligned(TrendDirection.UP):
+        moslik = korinish.alignment_ratio(TrendDirection.UP)
+        if analysis.require_htf_alignment and not korinish.all_aligned(TrendDirection.UP):
             zid = [t.timeframe for t in korinish.trends if t.direction is not TrendDirection.UP]
             return self._reject(
                 "timeframes",
                 f"Timeframelar zid: {', '.join(zid)} ko'tarilishni tasdiqlamadi",
             )
 
-        # 4) Indikatorlar tasdig'i
+        # 4) Indikatorlar — TASDIQ EMAS, BAHO
         holat = build_snapshot(shamlar, analysis.indicators)
         if holat is None or not holat.is_complete:
             return self._reject("indicators", "Indikatorlar to'liq hisoblanmadi")
 
         hukm = confirm(holat, analysis.indicators, zone_ready=True)
-        if not hukm.is_confirmed:
+        if analysis.indicators.require_confirmation and not hukm.is_confirmed:
             rad_etganlar = [o.name for o in hukm.factors if not o.confirmed]
             return self._reject(
                 "confirmation",
@@ -137,6 +151,7 @@ class ClassicTaStrategy(Strategy):
             snapshot=holat,
             confirmation=hukm,
             levels=daraja_natijasi.levels,
+            htf_alignment=moslik,
         )
 
         logger.info(

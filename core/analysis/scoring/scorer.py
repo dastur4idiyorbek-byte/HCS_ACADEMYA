@@ -54,8 +54,14 @@ class Scorer:
         snapshot: IndicatorSnapshot,
         confirmation: Confirmation,
         levels: SignalLevels,
+        htf_alignment: float | None = None,
     ) -> ScoreBreakdown:
-        """Bitta nomzod uchun ball tafsilotini quradi."""
+        """Bitta nomzod uchun ball tafsilotini quradi.
+
+        `htf_alignment` — yuqori timeframelarning qanchasi ko'tarilishda
+        (0..1). Ilgari bu TO'SIQ edi; endi ball ichida hisobga olinadi
+        (`analysis.require_htf_alignment`).
+        """
         komponentlar = build_components(
             zone_map=zone_map,
             zone=zone,
@@ -66,6 +72,7 @@ class Scorer:
             weights=self._config.scoring.weights,
             indicators=self._config.analysis.indicators,
             rules=self._config.trade_rules,
+            htf_alignment=htf_alignment,
         )
         return ScoreBreakdown(symbol=symbol, components=komponentlar)
 

@@ -78,7 +78,25 @@ class IndicatorConfig:
     atr_period: int = 14
     adx_period: int = 14
     adx_trend_threshold: float = 20.0
+    #: Nechta indikator tasdiqlasa "tasdiqlangan" deb hisoblanadi. Endi bu
+    #: faqat KO'RSATISH uchun — `require_confirmation` `False` bo'lgani
+    #: uchun signalni to'xtatmaydi.
     min_confirmations: int = 2
+    #: Indikator tasdig'i signal uchun MAJBURIYmi.
+    #:
+    #: `False` — indikatorlar faqat ballga ta'sir qiladi, ya'ni ko'p coin
+    #: ichidan TANLASH uchun ishlatiladi, "mumkin/mumkin emas" degan
+    #: qaror uchun emas.
+    #:
+    #: Sabab: indikatorlar tabiatan KECHIKADI. Ular narx harakatidan
+    #: keyin tasdiqlaydi, o'sha paytda narx allaqachon Discount zonasidan
+    #: chiqib ketgan bo'ladi. Ya'ni "indikator tasdiqlasin" talabi
+    #: "arzon paytda olma, qimmatlashgach ol" degani bilan barobar —
+    #: strategiyaning o'z maqsadiga zid.
+    #:
+    #: Qaror strukturaga (S/R zonasi) va risk qoidasiga (3.3-band)
+    #: qoldiriladi; indikatorlar reytingni belgilaydi.
+    require_confirmation: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -105,6 +123,14 @@ class AnalysisConfig:
         default_factory=lambda: ["30m", "1h", "4h", "1d"]
     )
     candles_lookback: int = 500
+    #: Yuqori timeframelar muvofiqligi signal uchun MAJBURIYmi (3.2-band).
+    #:
+    #: `False` — muvofiqlik ball ichida hisobga olinadi, lekin signalni
+    #: to'xtatmaydi. Sabab `require_confirmation` bilan bir xil, faqat
+    #: kuchliroq: kunlik EMA200 — 200 kunlik o'rtacha, ya'ni eng sekin
+    #: kechikuvchi o'lchov. Uni majburiy qilish burilish nuqtasidagi har
+    #: qanday kirishni to'sadi.
+    require_htf_alignment: bool = False
     #: Kelajakdagi pozitsion strategiya uchun zaxira — asosiy strategiya
     #: ishlatmaydi (u o'z timeframelarini `required_timeframes()` da e'lon qiladi).
     positional_timeframes: list[str] = field(

@@ -166,6 +166,21 @@ class MultiTimeframeView:
     def all_aligned(self, direction: TrendDirection) -> bool:
         return bool(self.trends) and all(t.direction is direction for t in self.trends)
 
+    def alignment_ratio(self, direction: TrendDirection) -> float | None:
+        """Timeframelarning qanchasi shu yo'nalishda (0..1).
+
+        `all_aligned()` "hammasi yoki hech biri" deb javob beradi — bu
+        to'siq uchun mos edi. Ball uchun esa DARAJA kerak: 4 tadan 3 tasi
+        ko'tarilishda bo'lsa, bu 4 tadan 0 tasi bilan bir xil emas
+        (3.5-band: "bor/yo'q" emas, darajali).
+
+        `None` — timeframe umuman yo'q, ya'ni hisoblab bo'lmaydi.
+        """
+        if not self.trends:
+            return None
+        mos = sum(1 for t in self.trends if t.direction is direction)
+        return mos / len(self.trends)
+
 
 # --------------------------------------------------------------------------- #
 #  3.5 — Ball tizimi

@@ -1813,7 +1813,123 @@ olinadi — taxmindan emas.
 
 ---
 
-## 41. Bosqichlar holati
+## 41. Indikatorlar to'siq bo'lishdan to'xtadi
+
+### Talab
+
+"Indikatorlar doim kech qolib yuradi, bu bizning ishimizga teskari.
+Indikator faqat ball uchun bo'lsin — qaysi coinni olish mumkin, qaysini
+mumkin emas degan qarorga aloqasi bo'lmasin. U shunchaki ko'p
+kriptovalyuta ichidan tanlash uchun bo'lsin."
+
+### Talab to'g'ri, va buni kod o'zi tan olgan edi
+
+`confirmation.py` dagi izoh allaqachon shunday yozilgan:
+
+> MACD kechikuvchi indikator — u faqat narx ko'tarilgandan keyin
+> tasdiqlaydi, o'sha paytda narx Discount zonasidan chiqib ketgan
+> bo'ladi.
+
+Bu kuzatuvdan chiqarilgan xulosa esa yarim edi: 4/4 talab 2/4 ga
+tushirilgan, lekin to'siqning O'ZI qolgan. Bir xil mantiq qolgan
+indikatorlarga ham tegishli.
+
+Ziddiyat quyidagicha ko'rinadi:
+
+| Strategiya nima qiladi | Indikator nima talab qiladi |
+|---|---|
+| narx arzon zonaga tushganda oladi | narx ko'tarila boshlaganini kutadi |
+| ya'ni pasayish oxirida | ya'ni ko'tarilish boshida |
+
+"Indikator tasdiqlasin" talabi amalda "arzon paytda olma,
+qimmatlashgach ol" degani — strategiyaning o'z maqsadiga zid.
+
+Kunlik EMA200 bunda eng yomoni: u 200 kunlik o'rtacha, ya'ni mavjud
+o'lchovlarning eng sekini. Jonli ma'lumotda rad etishlarning **32% i**
+aynan shu to'siqda edi.
+
+### Kim nimaga javob beradi
+
+```
+QAROR (to'siq)              REYTING (ball)
+─────────────────────      ──────────────────
+S/R zonasi + Discount      EMA / ADX / yuqori TF
+Risk qoidasi (3.3)         RSI
+Halol ro'yxat              Hajm
+Risk Engine (4-bo'lim)     MACD
+                           R/R sifati
+```
+
+Chap ustun **kechikmaydi**: narxning hozirgi joylashuvi va nisbatlar
+haqida gapiradi. O'ng ustun kechikadi — shuning uchun u faqat "ko'p
+nomzod ichidan qaysi biri" degan savolga javob beradi.
+
+### To'siq olib tashlandi, ma'lumot emas
+
+Muhim farq. To'siqni olib tashlab o'rniga hech narsa qo'ymaslik yuqori
+timeframe ma'lumotini butunlay yo'qotardi — u holda kunlik tushishda
+ham signal berilaverardi.
+
+`MultiTimeframeView.alignment_ratio()` qo'shildi: `all_aligned()`
+"hammasi yoki hech biri" deb javob beradi (to'siq uchun mos edi),
+`alignment_ratio()` esa daraja qaytaradi — 4 tadan 3 tasi ko'tarilishda
+bo'lishi 0 tasi bilan bir xil emas (3.5-band: darajali baho).
+
+### `score_trend` qayta yozildi
+
+Ilgari:
+
+```python
+if omil is None or not omil.confirmed:
+    return ScoreComponent("trend", 0.0, ...)   # DARHOL nol
+xom = ema_kuchi * 0.5 + adx_kuchi * 0.5
+```
+
+Bu kechikish muammosini **ballga ham** olib kirardi: narx support
+zonasiga qaytganda kirish timeframedagi trend deyarli har doim pastga
+qaragan bo'ladi — aynan shuning uchun narx pastga tushgan. Ya'ni "yaxshi
+qaytish" holati 20 balldan 0 olardi.
+
+Endi uch qism qo'shiladi: EMA 0.30, ADX 0.30, **yuqori TF 0.40**. Katta
+rasm eng katta ulushni oladi, chunki u vaqtinchalik pasayishga
+aldanmaydi. Yuqori TF hisoblanmasa uning ulushi qolgan ikkitasiga
+taqsimlanadi — hisoblab bo'lmagan narsa jarimaga aylanmasligi kerak
+(0.3-band).
+
+### Qayta kalibrlash
+
+Ball taqsimoti o'zgardi, shuning uchun chegara QAYTA o'lchandi
+(40-bo'limdagi xato takrorlanmasligi uchun):
+
+| | Avval | Keyin |
+|---|---|---|
+| Nomzod chiqdi | 12/27 | **15/27** |
+| Eng yuqori ball | 59.7 | **63.7** |
+| Mediana | 53.0 | 58.1 |
+
+Chegaralar (50 / 55) **o'zgarmadi**: taqsimot 51 va 58 orasida tekis,
+ya'ni bu oraliqdagi har qanday qiymat bir xil natija beradi. Sun'iy
+ma'lumotdagi 15 ta nuqtaga moslab raqamni surish — o'sha ma'lumotga
+moslashib qolish bo'lardi. Haqiqiy taqsimot `/panel` -> 🔇 dagi "eng
+yuqori ball" qatorida ko'rinadi.
+
+### Ortga qaytarish
+
+Ikkala to'siq ham konfiguratsiyada qoldi va yoqilishi mumkin:
+
+```yaml
+analysis:
+  require_htf_alignment: false
+  indicators:
+    require_confirmation: false
+```
+
+Kod o'chirilmadi, chunki qaror o'lchovga tayanadi va o'lchov
+o'zgarishi mumkin.
+
+---
+
+## 42. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
