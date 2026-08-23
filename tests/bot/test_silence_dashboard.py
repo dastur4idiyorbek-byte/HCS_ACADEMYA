@@ -106,3 +106,71 @@ def test_faqat_vaqt_shartlari_bolsa_tahlil_bolimi_chiqmaydi() -> None:
     matn = _matn([("opening_range_scalp:window", 900, False)])
     assert "📊" not in matn, "bo'sh tahlil sarlavhasi ko'rsatilmasligi kerak"
     assert "Skalping oynasi yopiq — 900 marta" in matn
+
+
+# --------------------------------------------------------------------------- #
+#  Vaqt sharti matni sozlamaga ergashishi kerak
+# --------------------------------------------------------------------------- #
+
+
+def _config_oyna(daqiqa: int):  # noqa: ANN202
+    import dataclasses
+
+    from core.config import load_config
+
+    asos = load_config()
+    return dataclasses.replace(
+        asos,
+        strategies=dataclasses.replace(
+            asos.strategies,
+            opening_range_scalp=dataclasses.replace(
+                asos.strategies.opening_range_scalp, signal_window_minutes=daqiqa
+            ),
+        ),
+    )
+
+
+def test_oyna_matni_sozlamadan_olinadi() -> None:
+    """Matn i18n faylida "45 daqiqa" deb QOTIB yozilgan edi.
+
+    Oyna bir kunga uzaytirilgach ekran eski raqamni ko'rsatishda davom
+    etdi va "skalping nega yana yopiq?" degan savolni tug'dirdi:
+    sozlama o'zgargan, matn esa o'zgarmagan.
+    """
+    band = [("opening_range_scalp:window", 900, False)]
+
+    kun = _matn_config(band, _config_oyna(1440))
+    assert "kun bo'yi" in kun
+    assert "45 daqiqa" not in kun
+
+    tor = _matn_config(band, _config_oyna(45))
+    assert "45 daqiqa" in tor
+
+    soat = _matn_config(band, _config_oyna(240))
+    assert "4 soat" in soat
+
+
+def test_konfiguratsiyasiz_ekran_yiqilmaydi() -> None:
+    """0.3-band: qiymat noma'lum bo'lsa ham ekran ochilishi kerak."""
+    matn = _matn([("opening_range_scalp:window", 900, False)])
+    assert "Vaqt shartlari" in matn
+
+
+def _matn_config(summary: list[tuple[str, int, bool]], config) -> str:  # noqa: ANN001
+    import re
+
+    return re.sub(r"</?b>", "", _render_silence(summary, TIL, None, config))
+
+
+def test_ball_qatori_chegaraga_yaqinlikni_bildiradi() -> None:
+    """Bu ustun faqat RAD ETILGANLARNI sanaydi.
+
+    Ya'ni qiymat chegaradan doim past chiqadi — "eng yuqori ball" deb
+    yozish "ball shu yerda to'xtab qolgan" degan noto'g'ri xulosaga
+    olib borardi.
+    """
+    matn = re.sub(
+        r"</?b>", "", _render_silence([("threshold", 400, False)], TIL, (400, 54.0, 44.0))
+    )
+    assert "eng yuqori ball" not in matn
+    assert "chegaraga eng yaqini 54" in matn

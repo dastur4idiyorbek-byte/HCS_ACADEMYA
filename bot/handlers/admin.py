@@ -644,11 +644,16 @@ SOKINLIK_SOATLARI = 24
 #: statistikasi ko'rsatiladi (qolgan sabablarda ball bo'lmaydi).
 THRESHOLD_STAGE = "threshold"
 
+#: Vaqt birliklari — oyna kengligini matnga aylantirish uchun
+MINUTES_PER_HOUR = 60
+MINUTES_PER_DAY = 1440
+
 
 @router.callback_query(F.data == "admin:sokinlik")
 async def silence_dashboard(
     callback: CallbackQuery,
     database: Database,
+    config: AppConfig,
     language: str,
     **_: object,
 ) -> None:
@@ -675,7 +680,7 @@ async def silence_dashboard(
         return
 
     matn = t("admin.sokinlik_sarlavha", language, hours=SOKINLIK_SOATLARI)
-    matn += _render_silence(xulosa, language, ball_stat)
+    matn += _render_silence(xulosa, language, ball_stat, config)
 
     matn += _render_latest(oxirgilar, language)
 
@@ -687,6 +692,7 @@ def _render_silence(
     summary: list[tuple[str, int, bool]],
     language: str,
     score_stats: tuple[int, float, float] | None = None,
+    config: AppConfig | None = None,
 ) -> str:
     """Rad etish sabablarini UCH GURUHGA ajratib ko'rsatadi.
 
@@ -737,7 +743,7 @@ def _render_silence(
             matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta\n"
 
     if vaqt:
-        matn += t("admin.sokinlik_vaqt", language)
+        matn += t("admin.sokinlik_vaqt", language, window=_oyna_matni(config))
         for sabab, soni in vaqt:
             matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta\n"
 
@@ -763,6 +769,24 @@ def _render_latest(records: list, language: str) -> str:  # noqa: ANN001
         tafsilot = (yozuv.detail or "")[:120]
         matn += f"• {_xavfsiz(coin)}: {_xavfsiz(tafsilot)}\n"
     return matn
+
+
+def _oyna_matni(config: AppConfig | None) -> str:
+    """Skalping oynasi kengligini odam o'qiydigan shaklda beradi.
+
+    Ilgari bu matn i18n faylida "45 daqiqa" deb QOTIB yozilgan edi.
+    Oyna bir kunga uzaytirilgach ekran eski raqamni ko'rsatishda davom
+    etdi va "skalping nega yana yopiq?" degan savolni tug'dirdi —
+    sozlama o'zgargan, matn esa o'zgarmagan edi.
+    """
+    if config is None:
+        return "—"
+    daqiqa = config.strategies.opening_range_scalp.signal_window_minutes
+    if daqiqa >= MINUTES_PER_DAY:
+        return "kun bo'yi"
+    if daqiqa >= MINUTES_PER_HOUR and daqiqa % MINUTES_PER_HOUR == 0:
+        return f"{daqiqa // MINUTES_PER_HOUR} soat"
+    return f"{daqiqa} daqiqa"
 
 
 def _ulush(count: int, total: int) -> str:

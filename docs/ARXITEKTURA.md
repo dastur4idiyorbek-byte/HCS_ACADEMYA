@@ -2038,7 +2038,74 @@ natija. Hammasi endi konfiguratsiyadan hisoblanadi.
 
 ---
 
-## 43. Bosqichlar holati
+## 43. "Skalping nega yana yopiq?" — ekran sozlamadan orqada qolgan edi
+
+### Savol
+
+Oyna 45 daqiqadan bir kunga uzaytirilgandan keyin ham ekranda shu
+turardi:
+
+```
+⏱ Vaqt shartlari
+Skalping oynasi kuniga atigi 45 daqiqa ochiq...
+• Skalping oynasi yopiq — 2247 marta
+```
+
+### Javob: o'zgarish ishlagan, MATN o'zgarmagan
+
+Izoh matni `bot/i18n/uz.json` da **qotib** yozilgan edi: "kuniga atigi
+45 daqiqa". Sozlama 1440 ga o'tdi, matn esa 45 da qoldi. Ya'ni ekran
+eski dunyoni tasvirlab turardi.
+
+O'zgarish ishlaganini raqamlar isbotlaydi — `window` dan KEYINGI barcha
+bosqichlar keskin o'sdi:
+
+| Bosqich | Oldin | Keyin |
+|---|---|---|
+| `range` (diapazon mos emas) | 135 | **913** |
+| `volume` (hajm yetarli emas) | 30 | **210** |
+| `breakout` (buzilmagan) | 3 | **36** |
+
+Bu sonlar faqat `window` dan o'tilganda o'sishi mumkin.
+
+Qolgan 2247 ta yozuv esa — joylashtirishdan OLDINGI davrga tegishli
+(hisobot 24 soatni qamraydi). `_find_session_open()` faqat BUGUNGI
+ochilish shamini qaytaradi, ya'ni `opened_at + 1440` doim ertangi
+kunga tushadi va shart hech qachon bajarilmaydi.
+
+Endi matn sozlamadan quriladi: `kun bo'yi`, `4 soat`, `45 daqiqa`.
+
+### Ikkinchi topilma: "eng yuqori ball" chalg'itardi
+
+```
+• Ball chegaradan past — 955 marta
+   ↳ eng yuqori ball 55, o'rtacha 44
+```
+
+Chegara ham 55. Ya'ni "ball aynan chegarada to'xtab qolgan" degan
+xulosa chiqadi — va aynan shu xulosa noto'g'ri tuzatishga olib borishi
+mumkin edi (yana chegarani pasaytirish).
+
+Sabab oddiy: bu ustun **faqat RAD ETILGANLARNI** sanaydi
+(`reason == "threshold"`). Rad etilganlarning bali ta'rifiga ko'ra
+chegaradan past. Ya'ni ko'rsatilgan qiymat hech qachon chegaradan
+oshmaydi — u "shift" emas, **shipning o'zi**.
+
+Haqiqiy holat qo'shni qatorda edi: `Risk Engine to'xtatdi — 103 marta`.
+Ya'ni 103 ta nomzod chegarani O'TGAN va keyingi qatlamda to'xtagan.
+
+Matn tuzatildi: "chegaraga eng yaqini". Raqam o'sha, ma'nosi to'g'ri.
+
+### Naqsh
+
+Ikkalasi ham bir xil xatoning ko'rinishi: **o'lchov va uning izohi
+turli manbadan**. 34-bo'limda sarlavha va holat ikki manbadan kelib
+bir-biriga zid chiqqan edi; bu yerda raqam sozlamadan, izoh esa qo'lda
+yozilgan matndan kelgan. Raqam to'g'ri, izoh yolg'on.
+
+---
+
+## 44. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
