@@ -2105,7 +2105,95 @@ yozilgan matndan kelgan. Raqam to'g'ri, izoh yolg'on.
 
 ---
 
-## 44. Bosqichlar holati
+## 44. DEADLOCK: tizim birinchi signalini chiqara olmasdi
+
+72 soat, birorta signal yo'q. Dashboard oxirgi to'siqni ko'rsatdi:
+
+```
+• Risk Engine to'xtatdi — 103 marta (2%)
+```
+
+103 ta nomzod butun zanjirni o'tib, oxirgi qatlamda to'xtagan. Qaysi
+qoida to'xtatgani esa ko'rinmasdi.
+
+### Zanjir
+
+```
+Ochiq signal yo'q
+      ↓
+SignalWatcher._sync_subscription() -> stream.subscribe(ochiq signallar coinlari)
+      ↓
+obuna BO'SH  ->  WebSocket hech narsa yubormaydi
+      ↓
+PriceCache bo'sh  ->  age_seconds("BTC") = None
+      ↓
+_build_input():  yosh None -> price_ages ga coin UMUMAN qo'shilmaydi
+      ↓
+FreshDataRule:  "Narx oqimi holati noma'lum" -> BLOKLAYDI
+      ↓
+Yangi signal yo'q  ->  Ochiq signal yo'q
+```
+
+Aylana yopiq. Tizim bir marta 0 ta ochiq signalga tushsa, **abadiy
+shu yerda qoladi**. Ya'ni u birinchi signalini hech qachon chiqara
+olmasdi — 47 ta nomzod ham, 482 ta ham, 955 ta ham farq qilmasdi.
+
+### Nima uchun bu 0.3-bandning to'g'ri qo'llanishiga o'xshab turardi
+
+`FreshDataRule` fail-safe qoida: "narx holati noma'lum bo'lsa signal
+berma". Mantiq to'g'ri. Xato — **qaysi ma'lumot tekshirilayotganida**.
+
+| Qatlam | Qaror uchun nima ishlatiladi | Nima tekshirilardi |
+|---|---|---|
+| Sikl (signal berish) | **sham** (`_joriy_narx()` oxirgi sham yopilishi) | tik oqimi |
+| Kuzatuvchi (TP/Stop) | tik oqimi | tik oqimi ✓ |
+
+Kuzatuvchida tekshiruv to'g'ri va ishlaydi — u yerda signal ochiq
+bo'lgani uchun obuna ham bor. Siklda esa **ishlatilmaydigan
+ma'lumotning holati** so'ralardi.
+
+### Yechim
+
+Har qatlam O'ZI ISHLATADIGAN ma'lumotni tekshiradi. Sikl uchun narx
+yoshi shamdan hisoblanadi (tik bor bo'lsa u afzal — aniqroq).
+
+Chegara ham to'g'rilandi. `stale_price_seconds: 90` tik uchun
+mo'ljallangan; 1 soatlik sham esa **tabiatan** 1 soatgacha "eski"
+bo'ladi. 90 soniyalik chegarani unga qo'llash — har doim "eskirgan"
+degani. Endi chegara timeframedan hisoblanadi:
+`entry_timeframe × stale_candle_multiplier` (1h × 2 = 2 soat).
+
+### Ko'rinmagan to'siqni tuzatib bo'lmaydi
+
+Dashboard 13 ta qoidani bitta "Risk Engine to'xtatdi" qatoriga
+yig'ardi. Endi bosqich nomiga sabab qo'shiladi:
+
+```
+• Korrelyatsiya: shu guruhda signal bor (4.3) — 61 marta
+• Bozor tekis — trend yo'q (4.4) — 28 marta
+• Narx ma'lumoti eskirgan (0.3) — 14 marta
+```
+
+`test_stage_labels.py` skaneri `BlockReason` ni ham qamrab oladi:
+yangi qoida qo'shilib nomi unutilsa, test darhol aytadi.
+
+### "Bugungi ochilish shami hali yo'q" — bu xato EMAS
+
+`_find_session_open()` faqat BUGUNGI 00:00 shamini qaytaradi. UTC
+yarim tunidan keyingi birinchi siklda o'sha sham hali yo'q — 49 ta
+yozuv aynan shu bitta siklga to'g'ri keladi (24 sikl × ~74 coin
+ichidan bittasi). Kun davomida strategiya normal ishlaydi.
+
+### Naqsh
+
+Yana bir marta: **bir manba ikki xil savolga javob berishga
+majburlangan**. 34-bo'limda sarlavha va holat, 42-bo'limda kenglik va
+tasdiq, bu yerda esa tik oqimi ham kuzatuv, ham signal qarori uchun
+ishlatilgan. Har safar yechim bir xil: savolni to'g'ri manbadan so'rash.
+
+---
+
+## 45. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

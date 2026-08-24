@@ -346,7 +346,7 @@ class PipelineRunner:
                 atr = atr_pct(seriya, indicators.atr_period)
                 if atr is not None:
                     atr_qiymatlari[symbol] = atr
-            yosh = self._watcher.prices.age_seconds(symbol)
+            yosh = self._narx_yoshi(symbol, seriya)
             if yosh is not None:
                 narx_yoshlari[symbol] = yosh
 
@@ -362,6 +362,39 @@ class PipelineRunner:
             kill_switch_active=self._watcher.kill_switch_active,
             kill_switch_reason=self._watcher.kill_switch_reason,
         )
+
+    def _narx_yoshi(self, symbol: str, series: list[Candle]) -> float | None:
+        """Shu coin uchun eng so'nggi narx kuzatuvining yoshi (soniyada).
+
+        DEADLOCK TUZATILDI. Ilgari bu faqat tik keshidan olinardi:
+
+            yosh = self._watcher.prices.age_seconds(symbol)
+
+        Tik keshini esa `SignalWatcher` to'ldiradi va u FAQAT OCHIQ
+        SIGNALLAR coinlariga obuna bo'ladi. Ya'ni:
+
+            0 ta ochiq signal -> obuna bo'sh -> kesh bo'sh -> yosh None
+            -> `FreshDataRule` bloklaydi -> yangi signal yo'q
+            -> 0 ta ochiq signal
+
+        Tizim birinchi signalini HECH QACHON chiqara olmasdi. Jonli
+        o'lchovda bu 72 soat davomida "Risk Engine to'xtatdi" bo'lib
+        ko'rinardi.
+
+        To'g'ri manba — SHAM. Signal qarori shamdan olingan narxga
+        tayanadi (`_joriy_narx()`), tik oqimi esa kuzatuvchining ishi:
+        u yerda signal ochiq bo'lgani uchun obuna ham bor va tekshiruv
+        haqiqatan ishlaydi. Har qatlam O'ZI ISHLATADIGAN ma'lumotni
+        tekshiradi.
+
+        Tik mavjud bo'lsa u afzal — u aniqroq.
+        """
+        tik = self._watcher.prices.age_seconds(symbol)
+        if tik is not None:
+            return tik
+        if not series:
+            return None
+        return max(0.0, (utc_now() - series[-1].open_time).total_seconds())
 
     def _joriy_narx(self, candles: dict, symbol: str) -> float | None:  # noqa: ANN001
         """Kirish timeframedagi oxirgi yopilish narxi."""

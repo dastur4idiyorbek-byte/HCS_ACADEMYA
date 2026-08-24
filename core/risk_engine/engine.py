@@ -34,6 +34,7 @@ from core.risk_engine.rules import (
     VolatilityRule,
 )
 from core.utils.logging_setup import get_logger
+from core.utils.time_utils import timeframe_minutes
 
 logger = get_logger(__name__)
 
@@ -65,7 +66,7 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
         BtcMarketRule(risk),
         MarketRegimeRule(risk),
         VolatilityRule(risk, min_atr_pct=min_atr_pct),
-        FreshDataRule(risk, max_age_seconds=config.market_data.stale_price_seconds),
+        FreshDataRule(risk, max_age_seconds=_max_candle_age_seconds(config)),
         HalalRule(),
         TradeRulesRule(
             min_stop_pct=config.trade_rules.min_stop_distance_pct,
@@ -82,6 +83,19 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
             },
         ),
     ]
+
+
+def _max_candle_age_seconds(config: AppConfig) -> float:
+    """Sham ma'lumoti necha soniyagacha eski bo'lishi mumkin.
+
+    Nima uchun `stale_price_seconds` emas: u TIK oqimi uchun (90 soniya)
+    va kuzatuvchida to'g'ri ishlaydi. Signal QARORI esa shamdan olingan
+    narxga tayanadi, sham esa tabiatan o'z timeframei qadar "eski"
+    bo'ladi. 1 soatlik shamga 90 soniyalik chegarani qo'llash — har doim
+    "eskirgan" degani.
+    """
+    daqiqa = timeframe_minutes(config.analysis.entry_timeframe)
+    return daqiqa * 60 * config.market_data.stale_candle_multiplier
 
 
 class RiskEngine:

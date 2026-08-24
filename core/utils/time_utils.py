@@ -115,3 +115,29 @@ def is_within_daily_window(
     if not in_window:
         return False
     return weekday is None or day_of_window == weekday
+
+
+# --------------------------------------------------------------------------- #
+#  Timeframe o'lchovlari
+# --------------------------------------------------------------------------- #
+
+#: Timeframe nomidan daqiqaga. YAGONA manba — ilgari bu jadval uch joyda
+#: (backtest, runner, risk_engine) alohida yozilgan edi va biri
+#: yangilanmay qolsa jimgina ajralib ketardi.
+TIMEFRAME_MINUTES: dict[str, int] = {
+    "1m": 1,
+    "5m": 5,
+    "15m": 15,
+    "30m": 30,
+    "1h": 60,
+    "4h": 240,
+    "1d": 1440,
+}
+
+#: Noma'lum timeframe uchun ehtiyotkor standart
+DEFAULT_TIMEFRAME_MINUTES = 15
+
+
+def timeframe_minutes(timeframe: str) -> int:
+    """Timeframe necha daqiqa. Noma'lum bo'lsa ehtiyotkor standart."""
+    return TIMEFRAME_MINUTES.get(timeframe, DEFAULT_TIMEFRAME_MINUTES)

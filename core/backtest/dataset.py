@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from core.domain.models import Candle
+from core.utils.time_utils import TIMEFRAME_MINUTES
 
 
 @dataclass(slots=True)
@@ -104,15 +105,7 @@ class Dataset:
 
 
 #: Timeframe nomi -> daqiqalar. Yig'ish uchun kerak.
-TIMEFRAME_MINUTES: dict[str, int] = {
-    "1m": 1,
-    "5m": 5,
-    "15m": 15,
-    "30m": 30,
-    "1h": 60,
-    "4h": 240,
-    "1d": 1440,
-}
+
 
 
 def aggregate(candles: list[Candle], source_minutes: int, target_minutes: int) -> list[Candle]:

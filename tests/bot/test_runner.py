@@ -404,3 +404,50 @@ async def test_bitta_coin_yiqilsa_qolganlari_yuklanadi(db: Database, config) -> 
 
     assert shamlar["C5"] == {}, "yiqilgan coin bo'sh qoladi"
     assert shamlar["C6"], "qolganlari yuklanishi kerak"
+
+
+# --------------------------------------------------------------------------- #
+#  Deadlock: 0 ta ochiq signal -> narx yo'q -> signal yo'q
+# --------------------------------------------------------------------------- #
+
+
+async def test_ochiq_signalsiz_ham_narx_yoshi_bor(db: Database, config) -> None:  # noqa: ANN001
+    """Tizim BIRINCHI signalini chiqara olishi kerak.
+
+    Narx yoshi faqat tik keshidan olinardi, tik keshini esa kuzatuvchi
+    to'ldiradi va u FAQAT ochiq signallar coinlariga obuna bo'ladi:
+
+        0 ochiq signal -> obuna bo'sh -> kesh bo'sh -> yosh None
+        -> FreshDataRule bloklaydi -> yangi signal yo'q -> 0 ochiq signal
+
+    Jonli o'lchovda bu 72 soat davomida "Risk Engine to'xtatdi" bo'lib
+    ko'rinardi. Endi shamdan hisoblanadi — signal qarori baribir
+    shamdan olingan narxga tayanadi.
+    """
+    ish = runner(db, config, ranking=SoxtaRanking(["BTC"]))
+    await ish.refresh_universe()
+
+    assert ish._watcher.prices.price_of("BTC") is None, "tik keshi bo'sh (obuna yo'q)"
+
+    shamlar = await ish._load_candles(["BTC"])
+    seriya = shamlar["BTC"][config.analysis.entry_timeframe]
+
+    yosh = ish._narx_yoshi("BTC", seriya)
+    assert yosh is not None, "sham bor ekan, yosh hisoblanishi kerak"
+
+
+async def test_tik_mavjud_bolsa_undan_olinadi(db: Database, config) -> None:  # noqa: ANN001
+    """Tik aniqroq — bor bo'lsa u afzal."""
+    from core.domain.models import PriceTick
+
+    ish = runner(db, config)
+    ish._watcher.prices.update(PriceTick("BTC", 100.0, datetime.now(UTC)))
+
+    yosh = ish._narx_yoshi("BTC", [])
+    assert yosh is not None
+    assert yosh < 5, "yangi tik — yosh kichik bo'lishi kerak"
+
+
+async def test_sham_ham_tik_ham_bolmasa_none(db: Database, config) -> None:  # noqa: ANN001
+    """0.3-band: hech narsa yo'q bo'lsa — noaniqlik, signal berilmaydi."""
+    assert runner(db, config)._narx_yoshi("BTC", []) is None

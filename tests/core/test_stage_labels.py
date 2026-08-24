@@ -47,8 +47,24 @@ def _sikl_bosqichlari() -> set[str]:
     return set(nomli) | set(pozitsion)
 
 
+def _risk_bosqichlari() -> set[str]:
+    """`risk_engine:{sabab}` — sikl `BlockReason` dan quradi."""
+    from core.domain.enums import BlockReason
+
+    matn = (ILDIZ / "core" / "pipeline" / "cycle.py").read_text(encoding="utf-8")
+    if 'f"risk_engine:{' not in matn:
+        return set()
+
+    bosqichlar = {f"risk_engine:{sabab.value}" for sabab in BlockReason}
+    # Sabab ro'yxati bo'sh bo'lsa sikl oddiy "risk_engine" yozadi —
+    # zaxira yo'l ham nomlanishi kerak.
+    if '"risk_engine"' in matn:
+        bosqichlar.add("risk_engine")
+    return bosqichlar
+
+
 def _barcha_bosqichlar() -> set[str]:
-    return _strategiya_bosqichlari() | _sikl_bosqichlari()
+    return _strategiya_bosqichlari() | _sikl_bosqichlari() | _risk_bosqichlari()
 
 
 def test_bosqichlar_topildi() -> None:
@@ -57,6 +73,10 @@ def test_bosqichlar_topildi() -> None:
     assert len(bosqichlar) > 15, f"skaner juda kam bosqich topdi: {bosqichlar}"
     assert "classic_ta:zone_position" in bosqichlar
     assert "threshold" in bosqichlar
+    assert "risk_engine:correlation" in bosqichlar, (
+        "Risk Engine sabablari ham nomlanishi kerak — aks holda dashboard "
+        "13 ta qoidani bitta qatorga yig'ib, sababni yashiradi"
+    )
 
 
 @pytest.mark.parametrize("bosqich", sorted(_barcha_bosqichlar()))

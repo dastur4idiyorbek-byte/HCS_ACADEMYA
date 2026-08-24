@@ -217,7 +217,7 @@ def test_risk_engine_signalni_toxtata_oladi(config) -> None:  # noqa: ANN001
     )
 
     assert natija.emitted_count == 0
-    assert any(r.stage == "risk_engine" for r in natija.rejected)
+    assert any(r.stage.startswith("risk_engine") for r in natija.rejected)
 
 
 def test_juma_namozi_vaqtida_signal_yoq(config) -> None:  # noqa: ANN001
@@ -244,7 +244,7 @@ def test_bir_siklda_korrelyatsiya_qoidasi_buzilmaydi(config) -> None:  # noqa: A
 
     chiqqanlar = {n.symbol for n in natija.emitted}
     assert len(chiqqanlar) == 1, f"faqat bittasi chiqishi kerak: {chiqqanlar}"
-    assert any(r.stage == "risk_engine" for r in natija.rejected)
+    assert any(r.stage.startswith("risk_engine") for r in natija.rejected)
 
 
 def test_ochiq_signallar_limiti_hurmat_qilinadi(config) -> None:  # noqa: ANN001

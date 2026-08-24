@@ -99,10 +99,17 @@ class SignalCycle:
             qaror = self._risk_engine.evaluate(nomzod, kontekst)
 
             if not qaror.allowed:
+                # Bosqich nomiga QAYSI qoida to'xtatgani qo'shiladi.
+                # Ilgari hammasi bitta "risk_engine" qatoriga yig'ilardi:
+                # dashboard "Risk Engine to'xtatdi — 103 marta" derdi va
+                # 13 ta qoidadan qaysi biri ekanini aytmasdi. Sababi
+                # ko'rinmagan to'siqni tuzatib ham bo'lmaydi (3.7-band).
                 rad_etilganlar.append(
                     RejectedCandidate(
                         symbol=nomzod.symbol,
-                        stage="risk_engine",
+                        stage=f"risk_engine:{qaror.reasons[0].value}"
+                        if qaror.reasons
+                        else "risk_engine",
                         detail="; ".join(qaror.details),
                         score=nomzod.score,
                     )

@@ -564,6 +564,15 @@ class MarketDataConfig:
     #: keyin 418 (IP ban) qaytaradi. Ya'ni ro'yxatni kengaytirish
     #: chegarasiz ishlamaydi.
     max_concurrent_candle_requests: int = 8
+    #: Sham ma'lumoti necha "timeframe" gacha eski bo'lishi mumkin.
+    #:
+    #: `stale_price_seconds` (90s) TIK oqimi uchun — u kuzatuvchida
+    #: ishlatiladi va u yerda to'g'ri. Lekin SIGNAL QARORI shamdan
+    #: olingan narxga tayanadi (`_joriy_narx()` oxirgi sham yopilishini
+    #: qaytaradi), shuning uchun bu yerda sham yoshi o'lchanadi. 1
+    #: soatlik sham tabiatan 1 soatgacha "eski" bo'ladi — 90 soniyalik
+    #: chegara unga umuman to'g'ri kelmaydi.
+    stale_candle_multiplier: float = 2.0
 
 
 # --------------------------------------------------------------------------- #

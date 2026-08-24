@@ -283,9 +283,43 @@ def test_past_volatillikda_signal_yoq(engine: RiskEngine) -> None:
     assert BlockReason.LOW_VOLATILITY in qaror.reasons
 
 
-def test_eskirgan_narx_malumoti_signalni_toxtatadi(engine: RiskEngine) -> None:
-    qaror = engine.evaluate(nomzod(), sog_kontekst(price_age_seconds=600))
+def test_eskirgan_narx_malumoti_signalni_toxtatadi(engine: RiskEngine, config) -> None:  # noqa: ANN001
+    """Chegara KONFIGURATSIYADAN hisoblanadi, testga yozib qo'yilmaydi.
+
+    Ilgari bu yerda `600` turardi — 90 soniyalik tik chegarasiga
+    mos edi. Chegara sham timeframeiga bog'lanishi bilan (1 soatlik
+    shamda 2 soat) bu qiymat "eskirgan" bo'lishdan to'xtadi va test
+    jimgina ma'nosini yo'qotardi.
+    """
+    from core.risk_engine.engine import _max_candle_age_seconds
+
+    chegara = _max_candle_age_seconds(config)
+    qaror = engine.evaluate(nomzod(), sog_kontekst(price_age_seconds=chegara + 1))
     assert BlockReason.STALE_MARKET_DATA in qaror.reasons
+
+    yangi_qaror = engine.evaluate(nomzod(), sog_kontekst(price_age_seconds=chegara - 1))
+    assert BlockReason.STALE_MARKET_DATA not in yangi_qaror.reasons
+
+
+def test_sham_yoshi_chegarasi_timeframega_bogliq(config) -> None:  # noqa: ANN001
+    """1 soatlik sham tabiatan 1 soatgacha "eski" bo'ladi.
+
+    Unga 90 soniyalik tik chegarasini qo'llash — har doim "eskirgan"
+    degani, ya'ni birorta signal chiqmasligi.
+    """
+    import dataclasses
+
+    from core.risk_engine.engine import _max_candle_age_seconds
+    from core.utils.time_utils import timeframe_minutes
+
+    for tf in ("15m", "1h", "4h"):
+        yangi = dataclasses.replace(
+            config, analysis=dataclasses.replace(config.analysis, entry_timeframe=tf)
+        )
+        chegara = _max_candle_age_seconds(yangi)
+        assert chegara > timeframe_minutes(tf) * 60, (
+            f"{tf} shamiga chegara sham uzunligidan katta bo'lishi kerak"
+        )
 
 
 @pytest.mark.parametrize(

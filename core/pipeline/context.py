@@ -124,6 +124,23 @@ STAGE_LABELS: dict[str, str] = {
     "market_health": "Bozor Salomatligi past",
     "threshold": "Ball chegaradan past",
     "risk_engine": "Risk Engine to'xtatdi",
+    # 4-bo'lim: qaysi qoida to'xtatgani. Bularsiz dashboard 13 ta
+    # qoidani bitta qatorga yig'ib, sababni yashirardi.
+    "risk_engine:daily_loss_limit": "Kunlik zarar chegarasi (4.1)",
+    "risk_engine:max_open_signals": "Ochiq signallar chegarasi (4.2)",
+    "risk_engine:correlation": "Korrelyatsiya: shu guruhda signal bor (4.3)",
+    "risk_engine:sideways_market": "Bozor tekis — trend yo'q (4.4)",
+    "risk_engine:btc_market_filter": "BTC tushmoqda (4.5)",
+    "risk_engine:low_volatility": "Volatillik past (4.6)",
+    "risk_engine:kill_switch": "Favqulodda to'xtash yoqilgan (4.7)",
+    "risk_engine:friday_prayer": "Juma namozi vaqti (4.8)",
+    "risk_engine:market_health_low": "Bozor Salomatligi past (4.9)",
+    "risk_engine:consecutive_losses": "Ketma-ket zararlar (4.10)",
+    "risk_engine:score_below_threshold": "Ball chegaradan past (3.5)",
+    "risk_engine:not_halal": "Halol emas (3.4)",
+    "risk_engine:risk_rules_violated": "Darajalar risk qoidasiga sig'madi (3.3)",
+    "risk_engine:stale_market_data": "Narx ma'lumoti eskirgan (0.3)",
+    "risk_engine:internal_error": "Qoida tekshirilmadi — ichki xato (0.3)",
     # 3.1 — klassik texnik tahlil
     "classic_ta:halal": "Halol ro'yxatda emas",
     "classic_ta:data": "Sham ma'lumoti yetarli emas",
