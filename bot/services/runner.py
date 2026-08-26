@@ -44,9 +44,12 @@ from core.storage.repositories import (
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
-from core.utils.time_utils import utc_now
+from core.utils.time_utils import timeframe_minutes, utc_now
 
 logger = get_logger(__name__)
+
+#: Bir kundagi daqiqalar — 24 soatlik o'zgarishni hisoblash uchun
+MINUTES_PER_DAY = 1440
 
 
 @dataclass(slots=True)
@@ -279,7 +282,13 @@ class PipelineRunner:
             logger.warning("Halol ro'yxat bo'sh — sikl o'tkazib yuborildi")
             return None
 
-        shamlar = await self._load_candles(self._universe.symbols)
+        # BTC halol ro'yxatda bo'lmasligi mumkin (masalan likvidlik
+        # filtri yoki admin qarori bilan), lekin 4.5-band filtri unga
+        # tayanadi. Shamlari yuklanmasa filtr "BTC holati noma'lum" deb
+        # HAMMA NARSANI bloklaydi — shuning uchun u alohida qo'shiladi.
+        etalon = self._config.risk_engine.btc_filter.reference_symbol.upper()
+        yuklanadigan = list(dict.fromkeys([*self._universe.symbols, etalon]))
+        shamlar = await self._load_candles(yuklanadigan)
 
         async with self._db.session() as session:
             repo = SignalRepository(session)
@@ -372,6 +381,7 @@ class PipelineRunner:
             adx_values=adx_qiymatlari,
             atr_values=atr_qiymatlari,
             price_ages=narx_yoshlari,
+            btc_change_24h_pct=self._btc_ozgarishi(candles),
             consecutive_stops=consecutive_stops,
             kill_switch_active=self._watcher.kill_switch_active,
             kill_switch_reason=self._watcher.kill_switch_reason,
@@ -409,6 +419,43 @@ class PipelineRunner:
         if not series:
             return None
         return max(0.0, (utc_now() - series[-1].open_time).total_seconds())
+
+    def _btc_ozgarishi(self, candles: dict) -> float | None:  # noqa: ANN001
+        """BTC ning 24 soatlik o'zgarishi, foizda (4.5-band filtri uchun).
+
+        E'LON QILINGAN, LEKIN ULANMAGAN edi. `BtcMarketRule` bor,
+        `BtcFilterConfig` bor, `CycleInput.btc_change_24h_pct` maydoni
+        ham bor — lekin uni HECH KIM to'ldirmasdi. Qiymat doim `None`
+        bo'lib qolardi va qoida fail-safe tarmog'iga tushardi:
+
+            "BTC holati noma'lum — umumiy bozor filtri tekshirilmadi."
+
+        Ya'ni ball chegarasidan o'tgan HAR BIR nomzod shu yerda
+        to'xtardi. Jonli o'lchovda: 119 tadan 119 tasi.
+
+        Timeframe konfiguratsiyadan olinadi, lekin u yuklanmagan bo'lsa
+        kirish timeframeiga tushiladi — aks holda sozlama o'zgarganda
+        filtr yana jimgina "noma'lum" holatiga qaytardi.
+        """
+        filtr = self._config.risk_engine.btc_filter
+        tf_shamlar = candles.get(filtr.reference_symbol.upper(), {})
+        if not tf_shamlar:
+            return None
+
+        timeframe = (
+            filtr.timeframe
+            if filtr.timeframe in tf_shamlar
+            else self._config.analysis.entry_timeframe
+        )
+        seriya = tf_shamlar.get(timeframe, [])
+        kerak = max(1, MINUTES_PER_DAY // timeframe_minutes(timeframe))
+        if len(seriya) <= kerak:
+            return None
+
+        avvalgi = seriya[-1 - kerak].close
+        if avvalgi <= 0:
+            return None
+        return (seriya[-1].close - avvalgi) / avvalgi * 100
 
     def _joriy_narx(self, candles: dict, symbol: str) -> float | None:  # noqa: ANN001
         """Kirish timeframedagi oxirgi yopilish narxi."""

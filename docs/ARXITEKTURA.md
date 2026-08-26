@@ -2450,7 +2450,85 @@ Matn aniqlashtirildi: endi bu qator qachon chiqishi ochiq yozilgan.
 
 ---
 
-## 48. Bosqichlar holati
+## 48. BTC filtri hech qachon ulanmagan edi — bir haftalik sukunatning sababi
+
+Per-qoida nomlari qo'shilgach dashboard nihoyat oxirgi to'siqni
+ko'rsatdi:
+
+```
+• BTC tushmoqda (4.5) — 119 marta (4%)
+```
+
+Voronka to'liq:
+
+| Bosqich | Kirdi | Rad | O'tdi | O'tish |
+|---|---|---|---|---|
+| Zona joylashuvi | 1428 | 603 | 825 | 57.8% |
+| Darajalar | 825 | 299 | 526 | 63.8% |
+| Ball chegarasi | 526 | 407 | 119 | 22.6% |
+| **BTC filtri (4.5)** | **119** | **119** | **0** | **0.0%** |
+
+**Chegaradan o'tgan 119 ta nomzodning hammasi bitta qoida bilan
+to'xtatilgan.**
+
+### Sabab: e'lon qilingan, lekin ulanmagan
+
+`BtcMarketRule` bor. `BtcFilterConfig` bor.
+`CycleInput.btc_change_24h_pct` maydoni ham bor. Lekin uni
+**hech kim to'ldirmasdi** — runner `CycleInput` ni yig'ayotganda bu
+maydonni umuman uzatmasdi.
+
+Qiymat doim `None` bo'lib qolardi va qoida fail-safe tarmog'iga
+tushardi:
+
+> "BTC holati noma'lum — umumiy bozor filtri tekshirilmadi."
+
+Fail-safe to'g'ri yozilgan (0.3-band: noaniqlikda signal berma). Lekin
+noaniqlik **doimiy** edi, ya'ni qoida hech qachon o'z ishini
+qilmasdi — u shunchaki hamma narsani bloklardi.
+
+### Nima uchun bir hafta ko'rinmadi
+
+Uchta qatlam uni yashirdi:
+
+1. **Ball chegarasi erishib bo'lmas edi** (40-bo'lim) — nomzodlar bu
+   yergacha yetmasdi.
+2. **Deadlock** (44-bo'lim) — `FreshDataRule` birinchi bo'lib
+   bloklardi.
+3. **Dashboard 13 ta qoidani bitta qatorga yig'ardi** — "Risk Engine
+   to'xtatdi" deb yozardi, qaysi biri ekanini aytmasdi.
+
+Har uch to'siq olib tashlangandan keyingina asl sabab ko'rindi.
+
+### Naqsh: sakkizinchi marta
+
+"E'lon qilingan, lekin ulanmagan" naqshi bu loyihada sakkizinchi marta
+uchradi: `python-dotenv`, `alembic`, `numpy/pandas`, `risk_blocks`
+jadvali, `suggestion=` parametri, BTC dominance, `RejectedCandidate.score`,
+va endi `btc_change_24h_pct`.
+
+Har safar bir xil: tip bor, konfiguratsiya bor, ishlatuvchi kod bor —
+faqat qiymatni **hisoblab beruvchi** qism yo'q. Va har safar natija
+jimgina: xato yo'q, log toza, tizim shunchaki ishlamaydi.
+
+### Tuzatish
+
+24 soatlik o'zgarish shamlardan hisoblanadi. Timeframe
+konfiguratsiyadan olinadi, lekin u yuklanmagan bo'lsa kirish
+timeframeiga tushiriladi — aks holda sozlama o'zgarganda filtr yana
+jimgina "noma'lum" holatiga qaytardi (bu allaqachon sodir bo'lgan edi:
+`btc_filter.timeframe: "1h"`, kirish timeframei esa 4h ga o'tgan).
+
+BTC shamlari **kafolatlangan**: u halol ro'yxatda bo'lmasa ham alohida
+yuklanadi. Aks holda likvidlik filtri yoki admin qarori filtrni
+jimgina o'chirib qo'yishi mumkin edi.
+
+Test tuzatishsiz yiqiladi: `CycleInput.btc_change_24h_pct` `None`
+bo'lsa, "4.5-band filtri hamma signalni bloklaydi" deb aytadi.
+
+---
+
+## 49. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

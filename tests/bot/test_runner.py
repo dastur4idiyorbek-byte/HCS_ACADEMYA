@@ -451,3 +451,47 @@ async def test_tik_mavjud_bolsa_undan_olinadi(db: Database, config) -> None:  # 
 async def test_sham_ham_tik_ham_bolmasa_none(db: Database, config) -> None:  # noqa: ANN001
     """0.3-band: hech narsa yo'q bo'lsa — noaniqlik, signal berilmaydi."""
     assert runner(db, config)._narx_yoshi("BTC", []) is None
+
+
+# --------------------------------------------------------------------------- #
+#  4.5 — BTC filtri: e'lon qilingan, lekin ulanmagan edi
+# --------------------------------------------------------------------------- #
+
+
+async def test_btc_ozgarishi_siklga_uzatiladi(db: Database, config) -> None:  # noqa: ANN001
+    """`BtcMarketRule` bor edi, lekin uni to'ldiradigan kod YO'Q edi.
+
+    `CycleInput.btc_change_24h_pct` doim `None` bo'lib qolardi va qoida
+    fail-safe tarmog'iga tushardi ("BTC holati noma'lum"). Ya'ni ball
+    chegarasidan o'tgan HAR BIR nomzod shu yerda to'xtardi — jonli
+    o'lchovda 119 tadan 119 tasi.
+    """
+    ish = runner(db, config, ranking=SoxtaRanking(["BTC", "ETH"]))
+    await ish.refresh_universe()
+
+    shamlar = await ish._load_candles(["BTC", "ETH"])
+    kirish = ish._build_input(shamlar, salomatlik(75.0), [], 0)
+
+    assert kirish.btc_change_24h_pct is not None, (
+        "BTC o'zgarishi hisoblanmasa, 4.5-band filtri hamma signalni bloklaydi"
+    )
+
+
+async def test_btc_shamlari_royxatda_bolmasa_ham_yuklanadi(db: Database, config) -> None:  # noqa: ANN001
+    """BTC halol ro'yxatda bo'lmasligi mumkin, lekin filtr unga tayanadi."""
+    ish = runner(db, config, ranking=SoxtaRanking(["ETH", "SOL"]))
+    await ish.refresh_universe()
+    assert "BTC" not in ish._universe.symbols
+
+    natija = await ish.run_once()
+
+    assert natija is not None
+    # Filtr "noma'lum" tarmog'iga tushmasligi kerak
+    noaniq = [r for r in natija.rejected if "BTC holati noma'lum" in (r.detail or "")]
+    assert not noaniq, f"BTC shamlari yuklanmagan: {noaniq[:2]}"
+
+
+def salomatlik(qiymat: float):  # noqa: ANN201
+    from core.domain.models import MarketHealth
+
+    return MarketHealth(value=qiymat, factors=[], computed_at=datetime.now(UTC))
