@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from core.analysis.indicators import Confirmation, IndicatorSnapshot
 from core.analysis.scoring.factors import build_components
 from core.analysis.support_resistance import ZoneMap
-from core.config.schema import AppConfig
+from core.config.schema import AppConfig, TradeRulesConfig
 from core.domain.models import ScoreBreakdown, SignalCandidate, SignalLevels, SRZone
 from core.utils.logging_setup import get_logger
 
@@ -55,12 +55,23 @@ class Scorer:
         confirmation: Confirmation,
         levels: SignalLevels,
         htf_alignment: float | None = None,
+        rules: TradeRulesConfig | None = None,
     ) -> ScoreBreakdown:
         """Bitta nomzod uchun ball tafsilotini quradi.
 
         `htf_alignment` — yuqori timeframelarning qanchasi ko'tarilishda
         (0..1). Ilgari bu TO'SIQ edi; endi ball ichida hisobga olinadi
         (`analysis.require_htf_alignment`).
+
+        `rules` — STRATEGIYANING savdo qoidalari. Berilmasa global
+        qiymatlar olinadi.
+
+        Nima uchun uzatilishi SHART: nisbat endi strategiya darajasida
+        (mean reversion 1:1.5, global 1:3). Darajalar 1:1.5 bo'yicha
+        quriladi, lekin ball global 1:3 bo'yicha hisoblansa, R/R
+        komponenti "minimaldan past" deb 0 qaytaradi — 15 balldan
+        ayrilish esa chegaradan o'tishni imkonsiz qiladi. Ya'ni
+        3-tuzatish jimgina bekor bo'lardi.
         """
         komponentlar = build_components(
             zone_map=zone_map,
@@ -71,7 +82,7 @@ class Scorer:
             levels=levels,
             weights=self._config.scoring.weights,
             indicators=self._config.analysis.indicators,
-            rules=self._config.trade_rules,
+            rules=rules if rules is not None else self._config.trade_rules,
             htf_alignment=htf_alignment,
         )
         return ScoreBreakdown(symbol=symbol, components=komponentlar)

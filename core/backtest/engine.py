@@ -57,6 +57,11 @@ class BacktestTrade:
         return (self.closed_at - self.opened_at).total_seconds() / 3600
 
 
+#: R/R ni foizdan nisbatga aylantirish uchun shartli birlik — 1% harakat
+#: bir "R" deb olinadi, chunki backtest har savdoga teng miqdor qo'yadi.
+_RR_BIRLIGI = 1.0
+
+
 @dataclass(slots=True)
 class BacktestResult:
     """Backtest natijasi."""
@@ -129,6 +134,59 @@ class BacktestResult:
         if not self.trades:
             return None
         return sum(t.holding_hours for t in self.trades) / len(self.trades)
+
+    @property
+    def profit_factor(self) -> float | None:
+        """Yalpi foyda / yalpi zarar.
+
+        Win-rate o'zi yetarli emas: 80% g'alaba, lekin har zarar
+        g'alabadan uch barobar katta bo'lsa strategiya zarar keltiradi.
+        Profit factor ikkalasini bitta raqamga jamlaydi (>1 — foydali).
+
+        `None` — zarar umuman bo'lmagan (bo'lishga bo'lish).
+        """
+        foyda = sum(t.result_pct for t in self.trades if t.result_pct > 0)
+        zarar = -sum(t.result_pct for t in self.trades if t.result_pct < 0)
+        if zarar <= 0:
+            return None
+        return foyda / zarar
+
+    @property
+    def average_realised_rr(self) -> float | None:
+        """HAQIQATDA olingan o'rtacha R/R.
+
+        Rejalashtirilgan nisbat (masalan 1:1.5) va bajarilgani boshqa
+        narsa: savdolarning bir qismi Stop bilan yopiladi. Bu raqam
+        rejaning amalda nimaga aylanganini ko'rsatadi.
+        """
+        if not self.trades:
+            return None
+        return sum(t.result_pct for t in self.trades) / len(self.trades) / _RR_BIRLIGI
+
+    def funnel(self) -> list[tuple[str, int, int, int, float]]:
+        """Voronka: `(bosqich, kirdi, rad etildi, o'tdi, o'tish %)`.
+
+        Rad etishlar bosqichma-bosqich yig'ilgani uchun har bosqichga
+        kirganlar soni — undan keyingi barcha rad etishlar va chiqqan
+        signallar yig'indisi.
+        """
+        tartib = ["zone_position", "levels", "threshold", "risk_engine"]
+        yigilgan: dict[str, int] = {}
+        for bosqich, soni in self.rejections.items():
+            kalit = next((t for t in tartib if t in bosqich), None)
+            if kalit is not None:
+                yigilgan[kalit] = yigilgan.get(kalit, 0) + soni
+
+        qolgan = sum(yigilgan.values()) + self.signals_emitted
+        qatorlar = []
+        for bosqich in tartib:
+            rad = yigilgan.get(bosqich, 0)
+            if qolgan <= 0:
+                break
+            otdi = qolgan - rad
+            qatorlar.append((bosqich, qolgan, rad, otdi, otdi / qolgan * 100))
+            qolgan = otdi
+        return qatorlar
 
     def top_rejections(self, limit: int = 5) -> list[tuple[str, int]]:
         return sorted(self.rejections.items(), key=lambda kv: kv[1], reverse=True)[:limit]

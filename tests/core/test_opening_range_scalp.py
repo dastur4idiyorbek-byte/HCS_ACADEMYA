@@ -315,16 +315,25 @@ def test_skalp_signali_risk_engine_dan_otadi(strategy, config) -> None:  # noqa:
     assert qaror.allowed, qaror.details
 
 
-def test_asosiy_strategiya_chegarasi_ozgarmagan(config) -> None:  # noqa: ANN001
-    """Skalping uchun yumshatish asosiy strategiyaga ta'sir qilmasligi kerak."""
+def test_asosiy_strategiya_ozining_nisbatiga_ega(config) -> None:  # noqa: ANN001
+    """Har bir strategiya o'z chegarasiga ega — biri ikkinchisiga tegmaydi.
+
+    Skalping uchun yumshatish asosiy strategiyaga ta'sir qilmaydi va
+    aksincha: `classic_ta` mean reversion nisbatini (1:1.5) oladi,
+    skalping esa o'zinikini (1:1).
+    """
     qoida = next(r for r in RiskEngine(config).rules if r.name == "trade_rules")
 
     assert qoida._bounds_for(SignalSource.CLASSIC_TA) == (
         config.trade_rules.min_tp_distance_pct,
         config.trade_rules.max_tp_distance_pct,
-        config.trade_rules.min_risk_reward,
+        config.strategies.classic_ta.min_risk_reward,
         config.trade_rules.min_stop_distance_pct,
     )
+
+    skalp = qoida._bounds_for(SignalSource.OPENING_RANGE_SCALP)
+    klassik = qoida._bounds_for(SignalSource.CLASSIC_TA)
+    assert skalp != klassik, "ikki strategiya bir xil chegara olmasligi kerak"
 
 
 def test_skalping_tor_stop_ishlata_oladi(config) -> None:  # noqa: ANN001

@@ -129,7 +129,7 @@ class AnalysisConfig:
     """3.2-band: asosiy klassik strategiya uchun standart timeframe to'plami."""
 
     timeframes: list[str] = field(
-        default_factory=lambda: ["1h", "4h", "1d"]
+        default_factory=lambda: ["4h", "1d", "1w"]
     )
     #: Kirish timeframei. 15m dan 1h ga ko'chirildi — sabab
     #: `docs/ARXITEKTURA.md` 42-bo'limda: 15m da ATR narxning ~0.5% i
@@ -137,16 +137,16 @@ class AnalysisConfig:
     #: kamida 1% bo'lishi kerak (3.3-band), shuning uchun darajalar
     #: tez-tez "Stop juda yaqin" deb rad etilardi. 1h da ATR ~1-2%,
     #: ya'ni tuzilma va risk qoidasi bir shkalaga tushadi.
-    entry_timeframe: str = "1h"
+    entry_timeframe: str = "4h"
     htf_confirmation: list[str] = field(
-        default_factory=lambda: ["4h"]
+        default_factory=lambda: ["1d"]
     )
     #: Bozor Salomatligi kengligi (3.7-band, 2-omil) qaysi timeframeda
     #: o'lchanadi. Alohida e'lon qilinadi, chunki u `htf_confirmation`
     #: dan MUSTAQIL: tasdiq timeframelari qisqarganda ham kenglik kunlik
     #: o'lchovda qolishi kerak — soatlik kenglik kun bo'yi tebranib,
     #: indeksni ma'nosiz qilib qo'yardi.
-    market_health_timeframe: str = "1d"
+    market_health_timeframe: str = "1w"
     candles_lookback: int = 500
     #: Yuqori timeframelar muvofiqligi signal uchun MAJBURIYmi (3.2-band).
     #:
@@ -232,6 +232,17 @@ class TradeRulesConfig:
     """
 
     #: Stop shu masofadan yaqin bo'lsa — bozor shovqini uni yeb qo'yadi
+    #: Stop masofasi = ATR × shu ko'paytma.
+    #:
+    #: Qat'iy foiz BARCHA coinlarga bir xil qo'llanardi, holbuki Stopning
+    #: maqsadi bozor shovqinidan himoya — shovqin esa ATR bilan
+    #: o'lchanadi. 1% stop BTC uchun ~1.2 ATR (mantiqiy), volatil
+    #: altcoin uchun ~0.3 ATR (shovqin yeb qo'yadi), barqaror coin
+    #: uchun ~3 ATR (keraksiz keng, yaxshi setuplarni rad etadi).
+    stop_atr_mult: float = 1.75
+    #: Ikkinchi darajali xavfsizlik chegarasi. ATR asosidagi Stop shu
+    #: oraliqdan chiqsa signal rad etiladi — juda tor yoki juda keng
+    #: bo'lib qolmasin.
     min_stop_distance_pct: float = 1.0
     #: Stop shu masofadan uzoq bo'lsa — pozitsiya juda kichrayib ketadi
     max_stop_distance_pct: float = 5.0
@@ -426,6 +437,16 @@ class PositionSizingConfig:
 @dataclass(frozen=True, slots=True)
 class ClassicTaConfig:
     enabled: bool = True
+    #: Mean reversion uchun eng kam TP2/Stop nisbati.
+    #:
+    #: Global 1:3 qiymati trend/breakout strategiyalariga xos. Mean
+    #: reversion tabiiy ravishda diapazon o'rtasiga yoki resistance'ga
+    #: qaytganda yopiladi — bu odatda 1:1..1:1.5 beradi. 1:3 talab qilish
+    #: bu strategiya uchun deyarli hech qachon bajarilmaydigan shart edi.
+    #:
+    #: Qiymat STRATEGIYA darajasida: boshqa turdagi strategiya qo'shilsa,
+    #: u o'zining tabiiy nisbatini saqlaydi.
+    min_risk_reward: float = 1.5
 
 
 @dataclass(frozen=True, slots=True)

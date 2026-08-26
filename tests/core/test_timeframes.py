@@ -7,11 +7,10 @@ from core.config.schema import AppConfig
 from core.domain.enums import TrendDirection
 from core.domain.models import MultiTimeframeView, TimeframeTrend
 
-#: Joriy to'plam. 15m/30m olib tashlandi: 15m da ATR narxning ~0.5% i,
-#: ya'ni support zonasigacha masofa ham shuncha — Stop esa kamida 1%
-#: bo'lishi kerak (3.3-band). Tuzilma va risk qoidasi turli shkalada
-#: qolib, darajalar tez-tez rad etilardi (42-bo'lim).
-STANDART = ["1h", "4h", "1d"]
+#: Joriy to'plam. `classic_ta` — mean reversion strategiyasi va 1 soatlik
+#: grafik unga shovqinli: soxta signal ko'p beradi. Keng tarqalgan
+#: amaliyot mean reversion uchun 4h/1d (44-bo'lim).
+STANDART = ["4h", "1d", "1w"]
 
 
 def test_standart_toplam_ishlatiladi(config: AppConfig) -> None:
@@ -20,13 +19,13 @@ def test_standart_toplam_ishlatiladi(config: AppConfig) -> None:
 
 def test_kirish_timeframe_eng_pastki(config: AppConfig) -> None:
     """S/R + indikatorlar eng pastki timeframeda hisoblanadi."""
-    assert config.analysis.entry_timeframe == "1h"
+    assert config.analysis.entry_timeframe == "4h"
     assert config.analysis.entry_timeframe == config.analysis.timeframes[0]
 
 
 def test_tasdiqlovchi_timeframelar_qolganlari(config: AppConfig) -> None:
-    """Katta rasm — 4h. Kunlik bu yerda emas: u salomatlik kengligi uchun."""
-    assert config.analysis.htf_confirmation == ["4h"]
+    """Katta rasm — 1d. Haftalik bu yerda emas: u salomatlik kengligi uchun."""
+    assert config.analysis.htf_confirmation == ["1d"]
 
 
 def test_salomatlik_timeframei_alohida(config: AppConfig) -> None:
@@ -35,7 +34,7 @@ def test_salomatlik_timeframei_alohida(config: AppConfig) -> None:
     Ansiz `compute_health()` kirish timeframeiga tushib ketardi va
     bozor kengligi soatlik o'lchovga aylanib, kun bo'yi tebranardi.
     """
-    assert config.analysis.market_health_timeframe == "1d"
+    assert config.analysis.market_health_timeframe == "1w"
     assert config.analysis.market_health_timeframe not in config.analysis.htf_confirmation
 
 
@@ -46,13 +45,12 @@ def test_kirish_timeframe_tasdiqlovchilar_orasida_yoq(config: AppConfig) -> None
 
 def test_pozitsion_timeframelar_zaxirada(config: AppConfig) -> None:
     """Yuqori TF'lar kelajakdagi pozitsion strategiya uchun saqlanadi."""
-    assert "1w" in config.analysis.positional_timeframes
     assert "1M" in config.analysis.positional_timeframes
-    assert "1w" not in config.analysis.timeframes
+    assert "1M" not in config.analysis.timeframes
 
 
 def test_klassik_strategiya_kirish_va_tasdiqni_soraydi(config: AppConfig) -> None:
-    assert ClassicTaStrategy(config).required_timeframes() == ["1h", "4h"]
+    assert ClassicTaStrategy(config).required_timeframes() == ["4h", "1d"]
 
 
 def test_barcha_timeframelar_bir_xil_trendda_bolishi_tekshiriladi() -> None:

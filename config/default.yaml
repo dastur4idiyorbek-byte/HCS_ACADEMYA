@@ -44,20 +44,22 @@ analysis:
   # 3.2-band (tuzatilgan): asosiy klassik strategiya uchun STANDART to'plam.
   # Eski to'plam (1h..1oy) haddan tashqari katta edi va signal chastotasini
   # keskin kamaytirardi.
-  timeframes: ["1h", "4h", "1d"]
-  # Kirish timeframei 15m dan 1h ga ko'chirildi.
+  timeframes: ["4h", "1d", "1w"]
+  # Kirish timeframei 1h dan 4h ga ko'chirildi (mean reversion tuzatishi).
   #
-  # Sabab o'lchovda: 15m da ATR narxning ~0.5% i bo'ladi, ya'ni support
-  # zonasigacha masofa ham shu tartibda. Stop esa kamida 1% bo'lishi
-  # kerak (3.3-band) — natijada darajalar tez-tez "Stop juda yaqin" deb
-  # rad etilardi. 1h da ATR ~1-2%, ya'ni TUZILMA va RISK QOIDASI bir
-  # shkalaga tushadi. Qo'shimcha foyda: 1h zonalari kamroq shovqinli.
-  entry_timeframe: "1h"
-  htf_confirmation: ["4h"]   # katta rasm; to'siq emas, ballga qo'shiladi
+  # `classic_ta` — mean reversion strategiyasi ("arzon zonaga qaytganda
+  # ol"). 1 soatlik grafik bunday strategiya uchun shovqinli: soxta
+  # signal ko'p beradi. Keng tarqalgan amaliyot — mean reversion uchun
+  # 4h/1d.
+  #
+  # `opening_range_scalp` bunga tegishli emas: u o'zining kunlik
+  # ochilish mantig'i bilan 15m da ishlaydi.
+  entry_timeframe: "4h"
+  htf_confirmation: ["1d"]   # katta rasm; to'siq emas, ballga qo'shiladi
   # Bozor kengligi (3.7-band, 2-omil) o'z timeframeida qoladi: tasdiq
   # timeframelari qisqarganda ham u kunlik o'lchovda o'lchanishi kerak,
   # aks holda indeks kun bo'yi tebranardi.
-  market_health_timeframe: "1d"
+  market_health_timeframe: "1w"
   candles_lookback: 500
   # 3.2-band: yuqori timeframelar muvofiqligi MAJBURIYmi.
   #
@@ -198,6 +200,12 @@ scoring:
 
 # --- 3.3-band: universal risk qoidasi ---
 trade_rules:
+  # Stop masofasi ATR ko'paytmasi bilan hisoblanadi (2-tuzatish).
+  # Qat'iy foiz barcha coinlarga bir xil qo'llanardi, holbuki Stopning
+  # maqsadi bozor shovqinidan himoya — shovqin esa ATR bilan o'lchanadi.
+  # 1%-5% oralig'i YO'QOLMADI: u ikkinchi darajali xavfsizlik cheklovi
+  # sifatida qoladi (juda tor yoki juda keng bo'lib qolmasin).
+  stop_atr_mult: 1.75
   # ASOSIY SHART — NISBAT, masofa emas.
   #
   # Stop S/R zonasi qayerda ekaniga qarab 1%..5% oralig'ida erkin
@@ -321,6 +329,16 @@ position_sizing:
 strategies:
   classic_ta:
     enabled: true
+    # Mean reversion uchun eng kam TP2/Stop nisbati (3-tuzatish).
+    #
+    # Global 1:3 trend/breakout strategiyalariga xos. Mean reversion
+    # tabiiy ravishda diapazon o'rtasiga yoki resistance'ga qaytganda
+    # yopiladi — bu odatda 1:1..1:1.5 beradi. 1:3 talab qilish bu
+    # strategiya uchun deyarli hech qachon bajarilmaydigan shart edi.
+    #
+    # STRATEGIYA darajasida: boshqa turdagi strategiya qo'shilsa, u
+    # o'zining tabiiy nisbatini (1:2-1:5) saqlaydi.
+    min_risk_reward: 1.5
   opening_range_scalp:
     enabled: true
     session_open_utc: "00:00"

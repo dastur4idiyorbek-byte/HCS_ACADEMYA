@@ -79,7 +79,16 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
             overrides={
                 SignalSource.OPENING_RANGE_SCALP: scalp_trade_rules(
                     config.strategies.opening_range_scalp
-                )
+                ),
+                # Mean reversion o'z nisbatiga ega (3-tuzatish). Darajalar
+                # `classic_ta_rules()` bilan quriladi — tekshiruv ham
+                # AYNAN shu qiymatga tayanishi shart.
+                SignalSource.CLASSIC_TA: (
+                    config.trade_rules.min_tp_distance_pct,
+                    config.trade_rules.max_tp_distance_pct,
+                    config.strategies.classic_ta.min_risk_reward,
+                    config.trade_rules.min_stop_distance_pct,
+                ),
             },
         ),
     ]

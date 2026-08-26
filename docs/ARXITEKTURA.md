@@ -2193,7 +2193,102 @@ ishlatilgan. Har safar yechim bir xil: savolni to'g'ri manbadan so'rash.
 
 ---
 
-## 45. Bosqichlar holati
+## 45. Mean reversion o'z qiymatlariga qaytarildi
+
+Bir hafta jonli ishlagan bot 0 ta signal berdi. Tashqi maslahatdan keyin
+sabab aniqlandi va u sozlamada emas, **strategiya turi bilan qoidalar
+turi o'rtasidagi nomuvofiqlikda** edi.
+
+`classic_ta` — **mean reversion** ("arzon zonaga qaytganda ol"). Unga
+qo'yilgan qoidalar esa **trend/breakout** strategiyalariga xos edi:
+
+| Qoida | Qiymat | Kimga xos |
+|---|---|---|
+| Kirish timeframei | 1 soat | skalping/intraday |
+| Stop | qat'iy 1–5% | universal, coinga bog'liq emas |
+| Nisbat | majburiy 1:3 | trend following |
+
+### Uchta tuzatish
+
+**1. Timeframe: 1h → 4h (tasdiq 4h → 1d, salomatlik 1d → 1w).**
+1 soatlik grafik mean reversion uchun shovqinli. `opening_range_scalp`
+tegilmadi — u o'zining kunlik ochilish mantig'i bilan 15m da ishlaydi.
+
+**2. Stop: qat'iy foiz → ATR ko'paytmasi.**
+Stopning maqsadi bozor shovqinidan himoya, shovqin esa ATR bilan
+o'lchanadi. 1% stop BTC uchun ~1.2 ATR (mantiqiy), volatil altcoin
+uchun ~0.3 ATR (shovqin yeydi), barqaror coin uchun ~3 ATR (keraksiz
+keng, yaxshi setuplarni rad etadi).
+
+Endi `stop_atr_mult: 1.75`. Foiz oralig'i (1–5%) **yo'qolmadi** —
+ikkinchi darajali xavfsizlik cheklovi sifatida qoladi.
+
+Tuzilmaviy himoya ham saqlandi: Stop ATR masofasi va support
+zonasidan pastdagi nuqta — **ikkalasidan uzoqrog'i**. Zona ichida
+qolgan Stop narx support'ga tegib qaytganda ham ishlardi, ya'ni
+strategiyaning o'z asosini buzardi.
+
+**3. Nisbat: global 1:3 → strategiya darajasida 1:1.5.**
+Mean reversion tabiiy ravishda diapazon o'rtasiga qaytganda yopiladi —
+bu 1:1..1:1.5 beradi. 1:3 talab qilish bu strategiya uchun deyarli hech
+qachon bajarilmaydigan shart edi. Qiymat endi `ClassicTaConfig` da:
+boshqa turdagi strategiya qo'shilsa, u o'zinikini saqlaydi.
+
+### Yo'l-yo'lakay topilgan ikkita tuzoq
+
+Ikkalasi ham tuzatishlarni **jimgina bekor qilardi**.
+
+**A. Ball hisobi eski nisbatni ko'rardi.**
+
+`Scorer` global `trade_rules` ni olardi. Ya'ni darajalar 1:1.5 bo'yicha
+quriladi, ball esa 1:3 bo'yicha hisoblanadi:
+
+```
+haqiqiy R/R 1:1.50
+  global qoidalar    -> 0.0/15 ball  "R/R 1:1.5 — minimal 1:3 dan past"
+  classic_ta qoidalari -> 7.5/15 ball
+```
+
+15 balldan ayrilish chegaradan (55) o'tishni imkonsiz qiladi. Endi
+qurish, ball va tekshiruv — **uchalasi bir manbadan** (`classic_ta_rules()`).
+
+**B. Haftalik salomatlik indeksi bozor kengligini o'ldirardi.**
+
+`timeframe_trend()` sham soni EMA davridan kam bo'lsa `FLAT` qaytaradi —
+ya'ni "aniqlab bo'lmadi" va "ko'tarilishda emas" bir xil javob beradi.
+
+Haftalik timeframeda EMA200 uchun **200 hafta (~3.8 yil)** kerak. Ko'p
+altcoinlarda bunday tarix yo'q — ular jimgina "ko'tarilishda emas" deb
+sanalardi, bozor kengligi sun'iy ravishda tushardi va indeks 40 dan
+pastga o'tib **signalni butunlay to'xtatardi**. Ya'ni bir hafta
+sukunatdan keyin yana sukunat, faqat boshqa eshikdan.
+
+0.3-band: noaniqlik dalil emas. Aniqlab bo'lmagan coin hisobga umuman
+kirmaydi.
+
+### Backtest hisoboti to'ldirildi
+
+Tuzatishlarni tekshirish uchun so'ralgan jadval endi backtest chiqishida
+bor: **voronka** (bosqich / kirdi / rad / o'tdi / o'tish %), **profit
+factor** va **haqiqatda olingan o'rtacha R/R**.
+
+Win-rate o'zi yetarli emas: 80% g'alaba, lekin har zarar g'alabadan uch
+barobar katta bo'lsa strategiya zarar keltiradi.
+
+### Nima o'lchanmadi
+
+**Backtest bu muhitda yurgizilmadi** — tashqi bozor ma'lumoti bloklangan
+(`403 Forbidden`). Ya'ni prompt talab qilgan bosqichma-bosqich
+tekshiruv (0→1→2→3 qadam) **serverda bajarilishi kerak**.
+
+Mavjud dalil: 1038 ta test yashil va kalibrlash skripti chegaralar
+erishiladigan ekanini tasdiqlaydi (eng yuqori ball 63.8, chegara 55).
+Bu **strategiya foydali** degani emas — faqat "zanjir yopiq emas"
+degani.
+
+---
+
+## 46. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

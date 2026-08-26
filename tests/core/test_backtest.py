@@ -190,7 +190,7 @@ def test_max_steps_isinishdan_keyin_qollanadi() -> None:
     """`max_steps` — haqiqiy tahlil qadamlari, tarix emas."""
     config = load_config()
     kerak = Backtester(config)._warmup_steps()
-    ds = dataset_uchun(config, {"BTC": qator(kerak * 4 + 240)})
+    ds = dataset_uchun(config, {"BTC": qator(kerak * 20 + 2000)})
 
     natija = Backtester(config).run(ds, max_steps=25)
     assert natija.steps == 25
@@ -401,6 +401,10 @@ def tez_config():  # noqa: ANN201
         htf_confirmation=["30m"],
         market_health_timeframe="30m",
     )
+    # Stop ko'paytmasi kichraytiriladi: bu testlar MEXANIZMNI sinaydi
+    # (chiqish narxi to'g'ri yozilyaptimi), stop kengligini emas. Keng
+    # stop bilan sinov qatorida umuman stop sodir bo'lmasdi.
+    savdo_qoidalari = dataclasses.replace(asos.trade_rules, stop_atr_mult=0.5)
     chegaralar = dataclasses.replace(
         asos.scoring.thresholds, threshold_high_health=35.0, threshold_mid_health=45.0
     )
@@ -413,6 +417,7 @@ def tez_config():  # noqa: ANN201
     return dataclasses.replace(
         asos,
         analysis=analiz,
+        trade_rules=savdo_qoidalari,
         scoring=dataclasses.replace(asos.scoring, thresholds=chegaralar),
         strategies=strategiyalar,
     )
@@ -481,6 +486,8 @@ def test_stop_zarari_universal_chegaradan_oshmaydi() -> None:
     stoplar = [t for t in natija.trades if t.outcome == "stop"]
 
     assert stoplar, "test uchun kamida bitta stop kerak"
+    # Backtest `tez_config()` bilan ishlaydi va uning nisbati boshqacha;
+    # chegara AYNAN o'sha konfiguratsiyadan olinadi.
     chegara = config.trade_rules.max_stop_distance_pct
     for savdo_natijasi in stoplar:
         assert savdo_natijasi.result_pct >= -chegara - 1e-9, (
@@ -506,7 +513,7 @@ def test_backtest_jonli_kuzatuvchini_ishlatadi() -> None:
 
     config = load_config()
     kerak = Backtester(config)._warmup_steps()
-    ds = dataset_uchun(config, {"BTC": qator(kerak * 4 + 240)})
+    ds = dataset_uchun(config, {"BTC": qator(kerak * 20 + 2000)})
 
     # `run` ichida SignalTracker yaratiladi — importi mavjudligini tekshiramiz
     assert SignalTracker is not None

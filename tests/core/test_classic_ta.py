@@ -208,11 +208,19 @@ def test_nomzod_uchta_qatlamdan_otadi(config) -> None:  # noqa: ANN001
 
 
 def test_darajalar_uchinchi_band_chegaralariga_mos(config) -> None:  # noqa: ANN001
-    """3.3-band: Stop <= 1%, TP 3-5%, TP2 kamida 1:3 R/R."""
+    """3.3-band chegaralari, STRATEGIYA qiymatlari bilan.
+
+    Nisbat endi strategiya darajasida: mean reversion 1:1.5, global 1:3.
+    Darajalarni qurish va tekshirish AYNAN bir xil qiymatga tayanishi
+    kerak, aks holda TP2 bir nisbat bo'yicha quriladi, boshqasi bo'yicha
+    rad etiladi.
+    """
+    from core.analysis.strategies.classic_ta import classic_ta_rules
+
     natija = ClassicTaStrategy(config).analyze(kirish(config, qaytishli_kotarilish()))
     assert natija is not None
 
-    qoidalar = config.trade_rules
+    qoidalar = classic_ta_rules(config)
     darajalar = natija.levels
     assert darajalar.stop_distance_pct <= qoidalar.max_stop_distance_pct
     assert qoidalar.min_tp_distance_pct <= darajalar.tp1_distance_pct <= qoidalar.max_tp_distance_pct
@@ -442,7 +450,9 @@ def test_indikator_tasdigi_bolmasa_ham_daraja_quriladi(config) -> None:  # noqa:
     natija = ClassicTaStrategy(config).analyze(kirish(config, qaytishli_kotarilish()))
     assert natija is not None
 
-    qoidalar = config.trade_rules
+    from core.analysis.strategies.classic_ta import classic_ta_rules
+
+    qoidalar = classic_ta_rules(config)
     darajalar = natija.levels
     assert qoidalar.min_stop_distance_pct <= darajalar.stop_distance_pct
     assert darajalar.stop_distance_pct <= qoidalar.max_stop_distance_pct

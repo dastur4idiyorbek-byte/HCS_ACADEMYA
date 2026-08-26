@@ -132,6 +132,7 @@ TIMEFRAME_MINUTES: dict[str, int] = {
     "1h": 60,
     "4h": 240,
     "1d": 1440,
+    "1w": 10_080,
 }
 
 #: Noma'lum timeframe uchun ehtiyotkor standart

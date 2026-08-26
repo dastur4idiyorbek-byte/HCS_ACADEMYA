@@ -195,6 +195,20 @@ class PipelineRunner:
             )
             if not seriya:
                 continue
+            # Tarix YETARLIMI. `timeframe_trend()` sham soni EMA davridan
+            # kam bo'lsa `FLAT` qaytaradi — ya'ni "aniqlab bo'lmadi" va
+            # "ko'tarilishda emas" bir xil javob beradi.
+            #
+            # Bu haftalik timeframeda halokatli: EMA200 uchun 200 hafta
+            # (~3.8 yil) kerak, ko'p altcoinlarda esa bunday tarix yo'q.
+            # Ular jimgina "ko'tarilishda emas" deb sanalardi, bozor
+            # kengligi sun'iy ravishda tushardi va indeks 40 dan pastga
+            # o'tib SIGNALNI BUTUNLAY to'xtatardi.
+            #
+            # 0.3-band: noaniqlik dalil emas. Aniqlab bo'lmagan coin
+            # hisobga umuman kirmaydi.
+            if len(seriya) < indicators.ema_slow:
+                continue
             # 3.7-band, 2-omil: bozor KENGLIGI — "katta rasm ko'tarilishdami".
             # Bu rejim savoli, kirish qarori emas, shuning uchun tuzilma
             # qoidasi ishlatiladi (EMA50 > EMA200), qat'iy "narx EMA50 dan

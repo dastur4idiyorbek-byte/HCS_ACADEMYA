@@ -72,11 +72,12 @@ def build_levels(
 
     stop_natija = _build_stop(entry, support.low, zone_map.atr, rules)
     if stop_natija is None:
-        masofa = (entry - support.low - zone_map.atr * STOP_BUFFER_ATR) / entry * 100
+        masofa = (entry - _stop_narxi(entry, support.low, zone_map.atr, rules)) / entry * 100
         tomon = "yaqin" if masofa < rules.min_stop_distance_pct else "uzoq"
         return LevelResult(
             None,
-            f"Support zonasi juda {tomon}: Stop {masofa:.2f}% da qolardi, "
+            f"Stop juda {tomon}: {masofa:.2f}% da qolardi "
+            f"(ATR×{rules.stop_atr_mult} va support tuzilmasidan), "
             f"ruxsat {rules.min_stop_distance_pct}–{rules.max_stop_distance_pct}%",
         )
     stop = stop_natija
@@ -149,16 +150,38 @@ def _build_stop(
     Stop sun'iy ravishda yaqinlashtirilmaydi: bu support zonasi ICHIDA
     Stop qo'yish demakdir — narx zonaga tegib qaytsa ham Stop ishlardi.
     """
-    tuzilmaviy = support_low - atr * STOP_BUFFER_ATR
-    if tuzilmaviy <= 0 or tuzilmaviy >= entry:
+    stop = _stop_narxi(entry, support_low, atr, rules)
+    if stop <= 0 or stop >= entry:
         return None
 
-    masofa_pct = (entry - tuzilmaviy) / entry * 100
+    masofa_pct = (entry - stop) / entry * 100
     if masofa_pct < rules.min_stop_distance_pct:
         return None
     if masofa_pct > rules.max_stop_distance_pct:
         return None
-    return tuzilmaviy
+    return stop
+
+
+def _stop_narxi(
+    entry: float, support_low: float, atr: float, rules: TradeRulesConfig
+) -> float:
+    """Stop narxi: ATR masofasi VA support tuzilmasi — ikkalasidan uzoqrog'i.
+
+    ATR qismi (`stop_atr_mult`) bozor shovqinidan himoya qiladi: shovqin
+    foizda emas, ATR birligida o'lchanadi. Qat'iy foiz barcha coinlarga
+    bir xil qo'llanardi va barqaror coinda keraksiz keng, volatilda esa
+    juda tor bo'lardi.
+
+    Tuzilmaviy qism (support zonasidan past) saqlanadi: Stop zona ICHIDA
+    qolsa, narx zonaga tegib qaytganda ham Stop ishlardi — ya'ni
+    strategiyaning o'z asosini buzardi.
+
+    Shuning uchun ikkalasidan UZOQROG'I olinadi: shovqin uchun ham joy
+    bor, tuzilma ham himoyalangan.
+    """
+    atr_stop = entry - atr * rules.stop_atr_mult
+    tuzilmaviy = support_low - atr * STOP_BUFFER_ATR
+    return min(atr_stop, tuzilmaviy)
 
 
 def _build_tp1(entry: float, zone_map: ZoneMap, rules: TradeRulesConfig) -> float | None:

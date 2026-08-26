@@ -366,22 +366,46 @@ def test_stop_oraliq_ichida_bolsa_otadi(engine: RiskEngine) -> None:
         assert qaror.allowed, f"Stop {stop_pct}%: {qaror.details}"
 
 
-def test_nisbat_asosiy_shart(engine: RiskEngine) -> None:
-    """Stop masofasidan QAT'I NAZAR, nisbat 1:3 dan past bo'lsa signal yo'q.
+def test_nisbat_asosiy_shart(engine: RiskEngine, config) -> None:  # noqa: ANN001
+    """Stop masofasidan QAT'I NAZAR, nisbat chegaradan past bo'lsa signal yo'q.
 
-    Bu — tuzatishning mag'zi: chegara masofa emas, NISBAT.
+    Bu — chegara masofa emas, NISBAT ekanining sinovi.
+
+    Kutilgan qiymat KONFIGURATSIYADAN olinadi: nisbat endi STRATEGIYA
+    darajasida sozlanadi (mean reversion 1:1.5, skalping 1:1), shuning
+    uchun testga raqam yozib qo'yish uni jimgina eskirtirardi.
     """
-    # Stop 2% ruxsat etilgan oraliqda, lekin TP2 atigi 4% -> nisbat 1:2
-    qaror = engine.evaluate(nomzod(stop_pct=2.0, tp2_pct=4.0), sog_kontekst())
+    kerak = config.strategies.classic_ta.min_risk_reward
+    # Stop kattaroq olinadi, aks holda chegaradan past TP2 TP1 dan ham
+    # past tushib, darajalar tartibi buzilardi (Stop < Entry < TP1 < TP2).
+    stop_pct = 4.0
+    past_tp2 = stop_pct * kerak * 0.7  # chegaradan aniq past
+
+    qaror = engine.evaluate(nomzod(stop_pct=stop_pct, tp2_pct=past_tp2), sog_kontekst())
 
     assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
     assert any("Nisbat yetarli emas" in izoh for izoh in qaror.details), qaror.details
 
 
-def test_past_risk_reward_rad_etiladi(engine: RiskEngine) -> None:
-    """TP2 kamida 1:3 R/R ta'minlashi kerak."""
+def test_nisbat_strategiya_darajasida(config) -> None:  # noqa: ANN001
+    """Har bir strategiya o'z tabiiy nisbatiga ega bo'lishi kerak.
+
+    Mean reversion diapazon o'rtasiga qaytganda yopiladi (1:1..1:1.5),
+    trend/breakout esa uzoqroq yuradi. Global qat'iy 1:3 mean reversion
+    uchun deyarli hech qachon bajarilmaydigan shart edi.
+    """
+    assert config.strategies.classic_ta.min_risk_reward < config.trade_rules.min_risk_reward, (
+        "mean reversion global qiymatdan pastroq nisbatga ega bo'lishi kerak"
+    )
+
+
+def test_past_risk_reward_rad_etiladi(engine: RiskEngine, config) -> None:  # noqa: ANN001
+    """TP2 strategiyaning eng kam nisbatini ta'minlashi kerak."""
+    kerak = config.strategies.classic_ta.min_risk_reward
     entry = 100.0
-    levels = SignalLevels(entry=entry, stop=99.0, tp1=103.0, tp2=103.5)  # R/R 3.5 -> TP2 masofa 3.5%
+    # Stop 1%, TP2 kerakli nisbatdan yuqori
+    tp2 = entry * (1 + 1.0 * (kerak + 1.0) / 100)
+    levels = SignalLevels(entry=entry, stop=99.0, tp1=103.0, tp2=max(tp2, 103.5))
     kandidat = SignalCandidate(
         symbol="ETH",
         levels=levels,
@@ -391,7 +415,12 @@ def test_past_risk_reward_rad_etiladi(engine: RiskEngine) -> None:
     )
     assert engine.evaluate(kandidat, sog_kontekst()).allowed
 
-    tor = SignalLevels(entry=entry, stop=98.6, tp1=103.0, tp2=103.5)  # R/R ~2.5
+    # Nisbat chegaradan past: Stop keng, TP2 esa yaqin.
+    tor_stop_pct = 4.0
+    tor = SignalLevels(
+        entry=entry, stop=entry * (1 - tor_stop_pct / 100), tp1=103.0, tp2=103.5
+    )
+    assert tor.risk_reward_tp2 < kerak, "test sozlamasi noto'g'ri"
     kandidat_tor = SignalCandidate(
         symbol="ETH",
         levels=tor,

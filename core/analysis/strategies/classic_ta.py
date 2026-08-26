@@ -29,13 +29,14 @@ XATO EMAS — 0.2-band bo'yicha normal holat.
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 
 from core.analysis.indicators import build_snapshot, confirm
 from core.analysis.scoring import Scorer, build_levels
 from core.analysis.strategies.base import Strategy, StrategyInput
 from core.analysis.support_resistance import SupportResistanceDetector
-from core.config.schema import AppConfig
+from core.config.schema import AppConfig, TradeRulesConfig
 from core.domain.enums import SignalSource, TrendDirection, ZoneKind
 from core.domain.models import MultiTimeframeView, SignalCandidate, TimeframeTrend
 from core.utils.logging_setup import get_logger
@@ -49,6 +50,24 @@ class RejectionReason:
 
     stage: str
     detail: str
+
+
+def classic_ta_rules(config: AppConfig) -> TradeRulesConfig:
+    """`classic_ta` uchun amaldagi savdo qoidalari.
+
+    Global `min_risk_reward` (1:3) trend/breakout strategiyalariga xos.
+    Mean reversion tabiiy ravishda diapazon o'rtasiga qaytganda yopiladi —
+    bu odatda 1:1..1:1.5 beradi.
+
+    YAGONA MANBA bo'lishi shart: darajalarni QURISH (`build_levels`) va
+    ularni TEKSHIRISH (`TradeRulesRule`) bir xil nisbatga tayanishi kerak.
+    Ikkisi ajralib qolsa, TP2 bir qiymat bo'yicha quriladi, boshqasi
+    bo'yicha rad etiladi.
+    """
+    return dataclasses.replace(
+        config.trade_rules,
+        min_risk_reward=config.strategies.classic_ta.min_risk_reward,
+    )
 
 
 class ClassicTaStrategy(Strategy):
@@ -140,7 +159,8 @@ class ClassicTaStrategy(Strategy):
             )
 
         # 5) Darajalar (3.3-band chegaralari bilan)
-        daraja_natijasi = build_levels(zona_xaritasi, self._config.trade_rules)
+        qoidalar = classic_ta_rules(self._config)
+        daraja_natijasi = build_levels(zona_xaritasi, qoidalar)
         if not daraja_natijasi.ok:
             return self._reject("levels", daraja_natijasi.reason)
 
@@ -153,6 +173,7 @@ class ClassicTaStrategy(Strategy):
             confirmation=hukm,
             levels=daraja_natijasi.levels,
             htf_alignment=moslik,
+            rules=qoidalar,
         )
 
         logger.info(

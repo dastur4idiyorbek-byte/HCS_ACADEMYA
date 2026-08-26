@@ -27,12 +27,15 @@ def render(result: BacktestResult) -> str:
         qatorlar.append("   Savdo bo'lmadi. Rad etish sabablari:")
         for bosqich, soni in result.top_rejections():
             qatorlar.append(f"     {soni:>6} × {bosqich}")
+        qatorlar += _voronka_qatorlari(result)
         qatorlar += _near_miss_qatorlari(result)
         return "\n".join(qatorlar)
 
     qatorlar += [
         "",
         f"   Win-rate:        {result.win_rate:.1%}",
+        f"   Profit factor:   {_raqam(result.profit_factor)}",
+        f"   O'rtacha R/R:    {_raqam(result.average_realised_rr)}  (haqiqatda olingan)",
         f"   TP2 gacha:       {result.tp2_rate:.1%}",
         f"   O'rtacha natija: {result.average_result_pct:+.2f}%",
         f"   Umumiy natija:   {result.total_return_pct:+.1f}%",
@@ -53,9 +56,41 @@ def render(result: BacktestResult) -> str:
         qatorlar += ["", "   Eng ko'p rad etish sabablari:"]
         for bosqich, soni in result.top_rejections():
             qatorlar.append(f"     {soni:>6} × {bosqich}")
+    qatorlar += _voronka_qatorlari(result)
     qatorlar += _near_miss_qatorlari(result)
 
     return "\n".join(qatorlar)
+
+
+def _raqam(qiymat: float | None) -> str:
+    """Hisoblab bo'lmagan qiymat "0.00" bo'lib ko'rinmasligi kerak."""
+    return "—" if qiymat is None else f"{qiymat:.2f}"
+
+
+def _voronka_qatorlari(result: BacktestResult) -> list[str]:
+    """Bosqichma-bosqich voronka — qaysi filtr nechta nomzodni to'xtatdi.
+
+    Yagona raqam ("0 signal") sabab haqida hech narsa aytmaydi. Voronka
+    esa aynan qaysi bosqichda yo'qotish borligini ko'rsatadi va shu
+    sababli sozlashda eng foydali jadval.
+    """
+    qatorlar = result.funnel()
+    if not qatorlar:
+        return []
+
+    natija = [
+        "",
+        "   Voronka:",
+        "   {:<22}{:>8}{:>8}{:>8}{:>9}".format(
+            "Bosqich", "Kirdi", "Rad", "O'tdi", "O'tish"
+        ),
+    ]
+    for bosqich, kirdi, rad, otdi, ulush in qatorlar:
+        natija.append(f"   {bosqich:<22}{kirdi:>8}{rad:>8}{otdi:>8}{ulush:>8.1f}%")
+    natija.append(
+        "   {:<22}{:>8}{:>8}{:>8}".format("-> SIGNAL", "", "", result.signals_emitted)
+    )
+    return natija
 
 
 def _near_miss_qatorlari(result: BacktestResult) -> list[str]:
