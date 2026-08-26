@@ -193,7 +193,20 @@ class ScoreWeights:
 
 @dataclass(frozen=True, slots=True)
 class ScoreThresholds:
-    health_high_min: float = 80
+    #: YUQORI band chegarasi. 80 dan 70 ga tushirildi — O'LCHOV asosida.
+    #:
+    #: Salomatlik indeksining shifti bozor KENGLIGIGA bog'liq: kenglik
+    #: omili 25 ball turadi, ya'ni kenglik 5% bo'lsa indeks 76 dan
+    #: yuqoriga chiqa OLMAYDI (qolgan omillar mukammal bo'lsa ham).
+    #: Jonli botda kenglik 5% edi va indeks 70-77 oralig'ida yurdi —
+    #: ya'ni o'z shiftida.
+    #:
+    #: Natijada 80 lik chegara bir marta ham ishlamadi:
+    #: `threshold_high_health` (50) hech qachon qo'llanilmadi va
+    #: "moslashuvchi chegara" amalda doim 55 bo'lib qoldi.
+    #:
+    #: 70 — kuzatilgan 8 ta o'lchovning hammasini qamraydi.
+    health_high_min: float = 70
     health_mid_min: float = 40
     #: Chegaralar O'LCHAB tanlangan — `scripts/kalibrlash.py` ga qarang.
     #: 70/80 qiymatlari 100 ballik shkalaga mo'ljallangan edi, lekin ball

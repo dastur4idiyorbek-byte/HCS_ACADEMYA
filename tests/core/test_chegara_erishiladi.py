@@ -102,3 +102,78 @@ def test_past_salomatlikda_signal_yoq() -> None:
     motor = RiskEngine(config)
     past = config.scoring.thresholds.health_mid_min - 1
     assert motor.score_threshold(past) is None
+
+
+# --------------------------------------------------------------------------- #
+#  Salomatlik BANDI ham erishiladigan bo'lishi kerak
+# --------------------------------------------------------------------------- #
+#
+# Bu — "erishib bo'lmas chegara" xatosining ikkinchi ko'rinishi, faqat
+# bir daraja yuqorida. Ball chegarasi (40-bo'lim) erishib bo'lmas edi;
+# keyin ma'lum bo'ldiki, uni TANLAYDIGAN salomatlik bandi ham erishib
+# bo'lmas ekan.
+#
+# Jonli botda indeks 70-77 oralig'ida yurdi, YUQORI band esa 80 talab
+# qilardi. Natijada `threshold_high_health` bir marta ham qo'llanilmadi
+# va "moslashuvchi chegara" amalda doim bitta qiymat bo'lib qoldi.
+
+
+def _salomatlik_shifti(config, breadth_ratio: float) -> float:
+    """Berilgan bozor kengligida indeks eng ko'pi bilan qancha bo'la oladi.
+
+    Qolgan barcha omillar MUKAMMAL deb hisoblanadi.
+    """
+    vazn = config.market_health.weights.halal_trend_breadth
+    return (100.0 - vazn) + vazn * breadth_ratio
+
+
+def test_yuqori_band_kengliksiz_ham_erishiladi(config) -> None:  # noqa: ANN001
+    """Bitta omil butun bandni qulflab qo'ymasligi kerak.
+
+    Kenglik omili 25 ball turadi. Ya'ni kenglik nolga yaqin bo'lsa,
+    indeks 75 dan yuqoriga chiqa OLMAYDI — qolgan hamma narsa mukammal
+    bo'lsa ham. 80 lik band shunda butunlay yopiq bo'lardi.
+    """
+    shift = _salomatlik_shifti(config, breadth_ratio=0.0)
+    chegara = config.scoring.thresholds.health_high_min
+
+    assert chegara <= shift, (
+        f"YUQORI band {chegara}, lekin kenglik nolga yaqin bo'lganda indeks "
+        f"{shift:.0f} dan oshmaydi — band hech qachon ochilmaydi"
+    )
+
+
+def test_kuzatilgan_oraliq_yuqori_bandga_tushadi(config) -> None:  # noqa: ANN001
+    """Jonli botda o'lchangan qiymatlar bandga tushishi kerak.
+
+    Bu raqamlar HAQIQIY: bir hafta ishlagan botning `/panel` -> 💓
+    ekranidan olingan.
+    """
+    kuzatilgan = [70, 70, 71, 71, 71, 71, 73, 77]
+    chegara = config.scoring.thresholds.health_high_min
+
+    yuqorida = [q for q in kuzatilgan if q >= chegara]
+    assert yuqorida, (
+        f"kuzatilgan {kuzatilgan} qiymatlarning birortasi ham YUQORI bandga "
+        f"({chegara}) tushmayapti — moslashuvchi chegara ishlamaydi"
+    )
+
+
+def test_bandlar_tartibi_saqlanadi(config) -> None:  # noqa: ANN001
+    """Yuqori band o'rtadan baland, o'rta esa "signal yo'q" dan baland."""
+    t = config.scoring.thresholds
+    assert t.health_high_min > t.health_mid_min
+
+
+def test_yuqori_bandda_chegara_yengilroq(config) -> None:  # noqa: ANN001
+    """3.5-band mantig'i: bozor kuchli bo'lsa talab pasayadi."""
+    from core.risk_engine import RiskEngine
+
+    motor = RiskEngine(config)
+    t = config.scoring.thresholds
+
+    yuqori = motor.score_threshold(t.health_high_min)
+    orta = motor.score_threshold(t.health_mid_min)
+
+    assert yuqori is not None and orta is not None
+    assert yuqori <= orta, "kuchli bozorda talab qattiqroq bo'lmasligi kerak"

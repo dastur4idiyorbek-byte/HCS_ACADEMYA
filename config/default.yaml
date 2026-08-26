@@ -178,7 +178,16 @@ scoring:
     risk_reward: 15
   # 3.5-band: chegara statik EMAS — Bozor Salomatligi Indeksiga qarab moslashadi
   thresholds:
-    health_high_min: 80            # indeks >= 80 -> "yashil" rejim
+    # YUQORI band chegarasi 80 dan 70 ga tushirildi — o'lchov asosida.
+    #
+    # Indeksning shifti bozor KENGLIGIGA bog'liq: kenglik omili 25 ball
+    # turadi, ya'ni kenglik 5% bo'lsa indeks 76 dan yuqoriga chiqa
+    # olmaydi (qolgan omillar mukammal bo'lsa ham). Jonli botda kenglik
+    # 5% edi va indeks 70-77 da yurdi — o'z shiftida.
+    #
+    # Natijada 80 lik chegara BIR MARTA HAM ishlamadi va "moslashuvchi
+    # chegara" amalda doim 55 bo'lib qoldi.
+    health_high_min: 70            # indeks >= 70 -> "yashil" rejim
     health_mid_min: 40             # indeks >= 40 -> "sariq" rejim
     # O'LCHAB tanlangan chegaralar. Ilgari 70 va 80 edi — bu raqamlar 100
     # ballik shkalada mantiqiy ko'rinadi, lekin ball funksiyasi amalda

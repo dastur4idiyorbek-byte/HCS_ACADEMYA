@@ -2288,7 +2288,94 @@ degani.
 
 ---
 
-## 46. Bosqichlar holati
+## 46. Salomatlik BANDI ham erishib bo'lmas edi
+
+Admin savol berdi: "77 ball bo'lganda ham signal bermayapti". Savol
+ikkita narsani ochdi.
+
+### 1. Panelda ikkita 0–100 raqam bor va ular chalkashadi
+
+| Raqam | Nima qiladi |
+|---|---|
+| **Bozor Salomatligi: 77/100** | qaysi CHEGARA ishlashini tanlaydi |
+| **Nomzod bali: 0..~64** | ana o'sha chegara bilan TAQQOSLANADI |
+
+"77/100 — signal beriladi, lekin ehtiyotkorroq" degani "ball 77" emas.
+Ikkalasi ham `/100` ko'rinishida yozilgani uchun farqni ko'rish qiyin.
+
+### 2. Asosiy topilma: YUQORI band hech qachon ochilmagan
+
+Jonli botda indeks: `70 → 70 → 71 → 71 → 71 → 71 → 73 → 77`.
+YUQORI band esa **80** talab qilardi.
+
+Ya'ni `threshold_high_health: 50` sozlamasi **bir marta ham
+qo'llanilmadi**, "moslashuvchi chegara" amalda doim **55** bo'lib
+qoldi.
+
+### Nima uchun indeks 80 ga chiqmaydi — arifmetika
+
+Kenglik omili **25 ball** turadi. Jonli holatda kenglik **5%** edi:
+
+```
+kenglik omili       :  1.2 / 25   ->  23.8 ball YO'QOTILDI
+qolgan 4 omil       : 75.8 / 75   ->  deyarli MUKAMMAL
+                      ─────────
+                        77 = SHIFT
+```
+
+Indeks o'z matematik shiftida turgan — qolgan omillar to'liq ishlagan,
+ko'proq chiqarib bo'lmasdi.
+
+| Bozor kengligi | Erishish mumkin bo'lgan max |
+|---|---|
+| 0% | 75.0 |
+| 5% (jonli holat) | 76.2 |
+| 20% | 80.0 |
+| 50% | 87.5 |
+
+**YUQORI band uchun 74 ta coinning kamida 20% i ko'tarilishda bo'lishi
+kerak.** Hozir — 5%, ya'ni ~4 tasi.
+
+### Naqsh: bitta omil butun bandni qulflaydi
+
+Bu — 40-bo'limdagi "erishib bo'lmas chegara" xatosining ikkinchi
+ko'rinishi, bir daraja yuqorida:
+
+- 40-bo'lim: ball chegarasi (80) ball funksiyasining shiftidan (64) baland
+- bu yer: salomatlik bandi (80) indeksning shiftidan (76) baland
+
+Ikkalasida ham sabab bir xil: **chegara o'lchovdan emas, "mantiqiy
+eshitilgani uchun" tanlangan.**
+
+`health_high_min: 80 → 70`. 70 — kuzatilgan sakkizta o'lchovning
+hammasini qamraydi.
+
+### Test bu xatoni uchinchi marta takrorlanishiga yo'l qo'ymaydi
+
+`test_chegara_erishiladi.py` ga ikkita invariant qo'shildi:
+
+1. **Kengliksiz ham erishiladi.** Bitta omil (25 ball) butun bandni
+   qulflab qo'ymasligi kerak: kenglik nolga yaqin bo'lganda ham indeks
+   75 ga chiqadi, ya'ni band chegarasi shundan past bo'lishi shart.
+2. **Kuzatilgan oraliq bandga tushadi.** Jonli botdan olingan haqiqiy
+   qiymatlar (70..77) YUQORI bandga tushishi kerak.
+
+Eski qiymat (80) bilan ikkala test ham yiqiladi.
+
+### Ochiq qolgan savol
+
+Kenglik 5% — bu **haqiqatan zaif bozor**: 74 coindan atigi 4 tasi
+ko'tarilish trendida. Va aynan bunday bozorda "arzon paytda ol"
+strategiyasi eng xavfli: har bir support zonasi buzilishi mumkin.
+
+Ya'ni signal chiqmasligining bir qismi nosozlik emas, **tizim to'g'ri
+ehtiyot bo'lgani**. Chegarani pasaytirish signal beradi, lekin
+tushayotgan bozorda xarid qilish xavfini ham oshiradi. Buni faqat
+backtest hal qila oladi.
+
+---
+
+## 47. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
