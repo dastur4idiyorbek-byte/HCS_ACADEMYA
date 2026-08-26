@@ -162,7 +162,7 @@ class ClassicTaStrategy(Strategy):
         qoidalar = classic_ta_rules(self._config)
         daraja_natijasi = build_levels(zona_xaritasi, qoidalar)
         if not daraja_natijasi.ok:
-            return self._reject("levels", daraja_natijasi.reason)
+            return self._reject(daraja_natijasi.stage, daraja_natijasi.reason)
 
         # 6) Ball
         tafsilot = self._scorer.score(

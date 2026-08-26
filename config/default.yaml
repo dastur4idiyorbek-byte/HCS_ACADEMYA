@@ -187,7 +187,7 @@ scoring:
     #
     # Natijada 80 lik chegara BIR MARTA HAM ishlamadi va "moslashuvchi
     # chegara" amalda doim 55 bo'lib qoldi.
-    health_high_min: 70            # indeks >= 70 -> "yashil" rejim
+    health_high_min: 65            # indeks >= 70 -> "yashil" rejim
     health_mid_min: 40             # indeks >= 40 -> "sariq" rejim
     # O'LCHAB tanlangan chegaralar. Ilgari 70 va 80 edi — bu raqamlar 100
     # ballik shkalada mantiqiy ko'rinadi, lekin ball funksiyasi amalda
@@ -224,7 +224,13 @@ trade_rules:
   # Stop kattalashsa xavf OSHMAYDI: pozitsiya hajmi (xavf puli / Stop%)
   # avtomatik kichrayadi — 5.1-band formulasi.
   min_stop_distance_pct: 1.0       # bundan yaqin — bozor shovqini yeb qo'yadi
-  max_stop_distance_pct: 5.0       # bundan uzoq — pozitsiya juda kichrayadi
+  # 5% dan 8% ga ko'tarildi. Arifmetika: stop_atr_mult=1.75 bo'lganda
+  # ATR 2.86% dan oshsa Stop avtomatik 5% dan chiqib rad etilardi.
+  # 4 soatlik grafikda altcoin ATR'i bundan tez-tez oshadi — ya'ni
+  # "ikkinchi darajali" cheklov ASOSIY filtrga aylanib, ATR tuzatishini
+  # bekor qilardi (jonli o'lchov: 146 -> 299 rad etish).
+  # Pozitsiya hajmi avtomatik kichrayadi, ya'ni xavf oshmaydi (5.1-band).
+  max_stop_distance_pct: 8.0
   min_tp_distance_pct: 3.0
   max_tp_distance_pct: 20.0        # Stop 5% bo'lsa TP 15% bo'lishi mumkin
   min_risk_reward: 3.0             # QAT'IY: TP2/Stop nisbati kamida 1:3

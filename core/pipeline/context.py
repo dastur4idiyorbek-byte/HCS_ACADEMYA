@@ -150,6 +150,8 @@ STAGE_LABELS: dict[str, str] = {
     "classic_ta:indicators": "Indikatorlar hisoblanmadi",
     "classic_ta:confirmation": "Indikatorlar tasdiqlamadi",
     "classic_ta:levels": "Darajalar risk qoidasiga sig'madi",
+    "classic_ta:levels:stop_too_close": "Stop juda YAQIN — support zonasi yaqin",
+    "classic_ta:levels:stop_too_far": "Stop juda UZOQ — ATR keng, shift 5% da",
     "classic_ta:no_setup": "Shart bajarilmadi",
     "classic_ta:error": "Strategiya ichki xatosi",
     # 3.9 — kunlik sham ochilishi skalping

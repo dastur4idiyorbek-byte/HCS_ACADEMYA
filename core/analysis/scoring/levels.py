@@ -40,6 +40,11 @@ class LevelResult:
 
     levels: SignalLevels | None
     reason: str
+    #: Rad etish bosqichi. Ilgari hammasi bitta "levels" edi va dashboard
+    #: "Darajalar risk qoidasiga sig'madi" deb yozardi — Stop JUDA YAQIN
+    #: bo'lgani uchunmi yoki JUDA UZOQ bo'lgani uchunmi, ko'rinmasdi.
+    #: Ikkalasi qarama-qarshi tuzatish talab qiladi.
+    stage: str = "levels"
     #: TP1 haqiqiy resistance zonasidan olinganmi (tuzilmaviy) yoki
     #: o'lchangan masofadan (qarshilik topilmaganda). Bu farq signal
     #: tafsilotida ko'rsatiladi — 3.6-band shaffofligi.
@@ -73,12 +78,14 @@ def build_levels(
     stop_natija = _build_stop(entry, support.low, zone_map.atr, rules)
     if stop_natija is None:
         masofa = (entry - _stop_narxi(entry, support.low, zone_map.atr, rules)) / entry * 100
-        tomon = "yaqin" if masofa < rules.min_stop_distance_pct else "uzoq"
+        yaqinmi = masofa < rules.min_stop_distance_pct
+        tomon = "yaqin" if yaqinmi else "uzoq"
         return LevelResult(
             None,
             f"Stop juda {tomon}: {masofa:.2f}% da qolardi "
             f"(ATR×{rules.stop_atr_mult} va support tuzilmasidan), "
             f"ruxsat {rules.min_stop_distance_pct}–{rules.max_stop_distance_pct}%",
+            stage="levels:stop_too_close" if yaqinmi else "levels:stop_too_far",
         )
     stop = stop_natija
     stop_masofa_pct = (entry - stop) / entry * 100

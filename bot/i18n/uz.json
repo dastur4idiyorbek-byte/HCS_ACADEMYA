@@ -179,7 +179,7 @@
     "signal_bekor_sabab": "Signal admin tomonidan bekor qilindi.",
     "sokinlik_tahlil": "\n📊 <b>Coin tahlili</b> — {total} ta tekshiruv\n",
     "sokinlik_sikl": "\n⏸ <b>Butun sikl to'xtagan</b>\nBunda birorta coin umuman ko'rilmaydi — ya'ni bitta yozuv o'sha sikldagi hamma coinni to'xtatgan.\n",
-    "sokinlik_vaqt": "\n⏱ <b>Vaqt shartlari</b> — foiz hisobiga kirmaydi\nSkalping kunlik ochilish shamiga bog'liq; signal oynasi: <b>{window}</b>.\nBu yozuvlar nosozlik emas — strategiya ishlamaydigan paytni bildiradi.\n",
+    "sokinlik_vaqt": "\n⏱ <b>Vaqt shartlari</b> — foiz hisobiga kirmaydi\nSkalping diapazoni kunlik ochilish shamidan quriladi; signal oynasi: <b>{window}</b>.\nQuyidagi yozuv faqat UTC yarim tunidan keyingi birinchi siklda chiqadi — o'sha sham hali shakllanmagan payt.\n",
     "sokinlik_ball": "   ↳ chegaraga eng yaqini {best}, o'rtacha {average}\n"
   },
   "qoidabuzarlik": {

@@ -63,8 +63,27 @@ def _risk_bosqichlari() -> set[str]:
     return bosqichlar
 
 
+def _daraja_bosqichlari() -> set[str]:
+    """`levels:*` — `build_levels()` qaytaradigan aniqlashtirilgan bosqichlar."""
+    import re as _re
+
+    matn = (ILDIZ / "core" / "analysis" / "scoring" / "levels.py").read_text(encoding="utf-8")
+    # Barcha `"levels:*"` satrlari — shartli ifodaning ikkala tarmog'i ham
+    # topilishi kerak (`A if shart else B`).
+    topilgan = set(_re.findall(r'"(levels:[a-z_]+)"', matn))
+    # `LevelResult.stage` ning standart qiymati ham ishlatiladi: support
+    # topilmagan yoki TP qurilmagan holatlar uni o'zgartirmaydi.
+    topilgan.add("levels")
+    return {f"classic_ta:{b}" for b in topilgan}
+
+
 def _barcha_bosqichlar() -> set[str]:
-    return _strategiya_bosqichlari() | _sikl_bosqichlari() | _risk_bosqichlari()
+    return (
+        _strategiya_bosqichlari()
+        | _sikl_bosqichlari()
+        | _risk_bosqichlari()
+        | _daraja_bosqichlari()
+    )
 
 
 def test_bosqichlar_topildi() -> None:

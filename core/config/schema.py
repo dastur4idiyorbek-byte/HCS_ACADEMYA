@@ -205,8 +205,10 @@ class ScoreThresholds:
     #: `threshold_high_health` (50) hech qachon qo'llanilmadi va
     #: "moslashuvchi chegara" amalda doim 55 bo'lib qoldi.
     #:
-    #: 70 — kuzatilgan 8 ta o'lchovning hammasini qamraydi.
-    health_high_min: float = 70
+    #: 70 qo'yilgan edi, lekin haftalik timeframega o'tgach indeks
+    #: 69 ga tushdi — band yana bir ball bilan yopiq qoldi. Kuzatilgan
+    #: oraliq: 69..77. 65 — pastki chetdan zaxira bilan.
+    health_high_min: float = 65
     health_mid_min: float = 40
     #: Chegaralar O'LCHAB tanlangan — `scripts/kalibrlash.py` ga qarang.
     #: 70/80 qiymatlari 100 ballik shkalaga mo'ljallangan edi, lekin ball

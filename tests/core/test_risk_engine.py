@@ -337,9 +337,18 @@ def test_malumot_yetishmasa_signal_berilmaydi(engine: RiskEngine, yoq: str) -> N
 # --------------------------------------------------------------------------- #
 
 
-def test_stop_juda_uzoq_bolsa_rad_etiladi(engine: RiskEngine) -> None:
-    """5% dan uzoq Stop — pozitsiya ma'nosiz kichrayadi."""
-    qaror = engine.evaluate(nomzod(stop_pct=6.0, tp2_pct=19.0), sog_kontekst())
+def test_stop_juda_uzoq_bolsa_rad_etiladi(engine: RiskEngine, config) -> None:  # noqa: ANN001
+    """Shiftdan uzoq Stop — pozitsiya ma'nosiz kichrayadi.
+
+    Chegara KONFIGURATSIYADAN olinadi: u ATR ko'paytmasiga bog'liq
+    ravishda o'zgaradi (5% -> 8%), testga raqam yozib qo'yilsa jimgina
+    eskirardi.
+    """
+    shift = config.trade_rules.max_stop_distance_pct
+    stop_pct = shift + 1.0
+    qaror = engine.evaluate(
+        nomzod(stop_pct=stop_pct, tp2_pct=stop_pct * 3.0), sog_kontekst()
+    )
 
     assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
     assert any("juda uzoq" in izoh for izoh in qaror.details), qaror.details

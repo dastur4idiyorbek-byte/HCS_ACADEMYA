@@ -2375,7 +2375,82 @@ backtest hal qila oladi.
 
 ---
 
-## 47. Bosqichlar holati
+## 47. ATR tuzatishi o'z shiftiga urildi
+
+Yangi sozlamalar bilan birinchi kun. Ikkita yangi to'siq va bitta
+chalkashlik.
+
+### 1. "Darajalar risk qoidasiga sig'madi" 146 dan 299 ga chiqdi
+
+ATR asosli Stop joriy qilindi (`stop_atr_mult: 1.75`), lekin foiz
+oralig'i (1–5%) o'zgarmadi. Arifmetika shafqatsiz:
+
+```
+Stop = ATR × 1.75
+5% shift  ->  ATR 2.86% dan oshsa Stop AVTOMATIK rad etiladi
+```
+
+4 soatlik grafikda altcoin ATR'i 2.86% dan tez-tez oshadi. Ya'ni
+"ikkinchi darajali xavfsizlik cheklovi" **asosiy filtrga aylanib, ATR
+tuzatishining o'zini bekor qilardi**.
+
+`max_stop_distance_pct: 5.0 → 8.0`. Endi ATR 4.57% gacha ruxsat.
+
+Xavf oshmaydi: pozitsiya hajmi `xavf puli / Stop%` formulasi bilan
+avtomatik kichrayadi (5.1-band). Keng Stop — kichik pozitsiya.
+
+### 2. Salomatlik bandi yana bir ball bilan yopiq qoldi
+
+46-bo'limda band 80 dan 70 ga tushirilgan edi. Haftalik timeframega
+o'tgach indeks **69** ga tushdi:
+
+```
+76 → 76 → 76 → 76 → 76 → 77 → 69 → 69
+                                  ↑ band 70, ya'ni YOPIQ
+```
+
+Sabab: haftalik o'lchovda namuna o'zgardi — 74 coindan atigi **21 tasi**
+200 haftalik tarixga ega. Boshqa namuna, boshqa qiymat.
+
+`health_high_min: 70 → 65`. Kuzatilgan oraliq 69..77, ya'ni pastki
+chetdan zaxira bor.
+
+**Naqsh:** chegarani kuzatilgan oraliqning aynan chetiga qo'yish —
+xato. Bir o'lchov surилsa band yana yopiladi. Zaxira qoldirish kerak.
+
+### 3. Diagnostika: qaysi tomonga sig'madi?
+
+"Darajalar risk qoidasiga sig'madi" — Stop juda **yaqin** bo'lgani
+uchunmi yoki juda **uzoq** bo'lgani uchunmi? Ikkalasi qarama-qarshi
+tuzatish talab qiladi, dashboard esa ikkalasini bitta qatorga
+yig'ardi.
+
+Endi bosqich ajratilgan:
+
+```
+• Stop juda YAQIN — support zonasi yaqin
+• Stop juda UZOQ — ATR keng, shift 8% da
+```
+
+Bu safar men shiftni arifmetika bilan hisoblab tuzatdim. Keyingi safar
+raqam dashboardda turadi — taxmin qilish shart bo'lmaydi.
+
+### 4. Skalping matni chalkash edi
+
+Admin savol berdi: "skalping kunlik sham ochilishiga bog'liq deyapti,
+biz uni olib tashlagan edik-ku". Bu tushunmovchilik, xato emas — lekin
+matn aybdor.
+
+Biz **oynani** kengaytirdik (45 daqiqa → kun bo'yi). Strategiyaning
+o'zi esa kunlik ochilish shamiga tayanadi — u shu shamdan diapazon
+quradi, bu uning ta'rifi. "Bugungi ochilish shami hali yo'q" yozuvi
+faqat UTC yarim tunidan keyingi birinchi siklda chiqadi.
+
+Matn aniqlashtirildi: endi bu qator qachon chiqishi ochiq yozilgan.
+
+---
+
+## 48. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
