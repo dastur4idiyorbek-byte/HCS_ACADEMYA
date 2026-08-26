@@ -273,7 +273,7 @@ risk_engine:
   btc_filter:
     reference_symbol: "BTC"
     max_drop_pct_24h: -5.0         # BTC 24 soatda shundan ko'p tushsa — signal yo'q
-    timeframe: "1h"
+    timeframe: "4h"           # kirish timeframei bilan mos bo'lishi SHART
   # 4.7 — favqulodda to'xtash (kill switch)
   kill_switch:
     price_spike_pct: 5.0           # 1 daqiqada ±5% dan ortiq harakat

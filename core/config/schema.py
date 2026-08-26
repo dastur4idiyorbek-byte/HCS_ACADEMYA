@@ -294,7 +294,13 @@ class CorrelationGroup:
 class BtcFilterConfig:
     reference_symbol: str = "BTC"
     max_drop_pct_24h: float = -5.0
-    timeframe: str = "1h"
+    #: Qaysi timeframedagi shamlardan 24 soatlik o'zgarish hisoblanadi.
+    #:
+    #: Kirish timeframei bilan mos bo'lishi kerak — aks holda bu seriya
+    #: umuman yuklanmaydi. "1h" qolib ketgan edi va kirish 4h ga
+    #: o'tgach filtr jimgina "BTC holati noma'lum" holatiga tushardi
+    #: (`test_timeframe_izchilligi` shu sinfni qulflaydi).
+    timeframe: str = "4h"
 
 
 @dataclass(frozen=True, slots=True)

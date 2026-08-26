@@ -495,3 +495,75 @@ def salomatlik(qiymat: float):  # noqa: ANN201
     from core.domain.models import MarketHealth
 
     return MarketHealth(value=qiymat, factors=[], computed_at=datetime.now(UTC))
+
+
+# --------------------------------------------------------------------------- #
+#  4.1 — Kunlik zarar chegarasi: e'lon qilingan, lekin ulanmagan edi
+# --------------------------------------------------------------------------- #
+
+
+async def test_kunlik_zarar_siklga_uzatiladi(db: Database, config) -> None:  # noqa: ANN001
+    """`DailyLossLimitRule` bor edi, lekin qiymat HECH QACHON hisoblanmasdi.
+
+    `daily_loss_pct` standart `0.0` bo'lib qolardi, ya'ni chegara hech
+    qachon to'lmasdi — strategiya qancha zarar keltirsa ham signal
+    berishda davom etardi. Bu signal to'smaydi, lekin HIMOYANI
+    o'chirib qo'yadi.
+    """
+    from core.domain.enums import SignalSource, SignalStatus
+    from core.domain.models import SignalLevels
+    from core.storage.repositories import SignalRepository
+
+    async with db.session() as session:
+        repo = SignalRepository(session)
+        for i in range(2):
+            yozuv = await repo.create(
+                symbol=f"C{i}",
+                levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+                source=SignalSource.MANUAL,
+            )
+            # Har biri -2% zarar bilan yopiladi
+            await repo.apply_event(
+                yozuv.id, SignalStatus.STOPPED, 98.0, datetime.now(UTC), "stopped"
+            )
+
+    async with db.session() as session:
+        kunlik, haftalik = await PipelineRunner._zarar_ulushlari(SignalRepository(session))
+
+    assert kunlik > 0, "kunlik zarar hisoblanmasa 4.1-band qoidasi o'lik"
+    assert haftalik >= kunlik
+    assert kunlik == pytest.approx(4.0, abs=0.1), "ikkita -2% savdo -> 4% zarar"
+
+
+async def test_foydali_kun_zarar_deb_hisoblanmaydi(db: Database, config) -> None:  # noqa: ANN001
+    """Kun +5% va -2% bilan o'tgan bo'lsa, kun yomon o'tmagan.
+
+    Gross zarar bilan hisoblash foydali kunni ham to'xtatib qo'yardi.
+    """
+    from core.domain.enums import SignalSource, SignalStatus
+    from core.domain.models import SignalLevels
+    from core.storage.repositories import SignalRepository
+
+    async with db.session() as session:
+        repo = SignalRepository(session)
+        yutuq = await repo.create(
+            symbol="WIN",
+            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            source=SignalSource.MANUAL,
+        )
+        await repo.apply_event(
+            yutuq.id, SignalStatus.TP2_HIT, 105.0, datetime.now(UTC), "tp2_hit"
+        )
+        zarar = await repo.create(
+            symbol="LOSS",
+            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            source=SignalSource.MANUAL,
+        )
+        await repo.apply_event(
+            zarar.id, SignalStatus.STOPPED, 98.0, datetime.now(UTC), "stopped"
+        )
+
+    async with db.session() as session:
+        kunlik, _ = await PipelineRunner._zarar_ulushlari(SignalRepository(session))
+
+    assert kunlik == 0.0, "sof natija musbat — zarar chegarasi ishlamasligi kerak"

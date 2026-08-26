@@ -2528,7 +2528,71 @@ bo'lsa, "4.5-band filtri hamma signalni bloklaydi" deb aytadi.
 
 ---
 
-## 49. Bosqichlar holati
+## 49. Tizimli sweep: yana ikkita "ulanmagan" topildi
+
+BTC filtri sakkizinchi marta bo'lgach, tasodifiy qidirish o'rniga
+**tizimli tekshiruv** yozildi: `CycleInput` va `RiskContext` ning har
+bir maydoni uchun "uni kim to'ldiradi?" degan savol.
+
+### Natija
+
+| Maydon | Standart | To'ldiriladimi | Oqibat |
+|---|---|---|---|
+| `btc_change_24h_pct` | `None` | ❌ (48-bo'lim) | HAMMA signalni bloklardi |
+| `daily_loss_pct` | `0.0` | ❌ | himoya o'lik |
+| `weekly_loss_pct` | `0.0` | ❌ | himoya o'lik |
+| `consecutive_stop_until` | `None` | ❌ | qo'shimcha pauza ishlamaydi |
+| qolgan 10 ta | — | ✅ | — |
+
+`RiskContext` to'liq ulangan — bo'shliq faqat runner chegarasida edi.
+
+### Teskari muammo: fail-open
+
+BTC filtri **fail-safe** edi (noaniqlik → blokla). Kunlik zarar
+chegarasi esa **fail-open**: standart `0.0` "bugun zarar yo'q" degani,
+ya'ni qoida hech qachon ishlamaydi.
+
+Bu signal to'smaydi — shuning uchun uni sezish ham qiyin. Lekin
+oqibati jiddiyroq: `daily_loss_limit_pct: 3.0` sozlamasi bor, admin
+uni ko'radi va himoya bor deb o'ylaydi. Amalda **strategiya qancha
+zarar keltirsa ham signal berishda davom etardi**.
+
+Endi yopilgan signallarning SOF natijasidan hisoblanadi. Sof, faqat
+zararlar emas: kun +5% va −4% bilan o'tgan bo'lsa, kun yomon o'tmagan
+— gross hisob foydali kunni ham to'xtatib qo'yardi.
+
+`consecutive_stop_until` ataylab qoldirildi: asosiy himoya
+(`consecutive_stops`) ishlaydi, bu esa qo'shimcha vaqtli pauza. Uni
+ulash uchun holat saqlanishi kerak — alohida ish.
+
+### Ikkinchi sinf: sozlama yuklanmaydigan timeframega ishora qiladi
+
+`btc_filter.timeframe: "1h"` qolib ketgan edi. Kirish 4h ga o'tgach bu
+seriya umuman yuklanmay qoldi va filtr jimgina fail-safe holatiga
+tushdi. Men 48-bo'limda zaxira yo'l qo'ygandim (kirish timeframeiga
+tushish), lekin sozlamaning o'zi hamon **yolg'on** gapirardi.
+
+`test_timeframe_izchilligi.py` bu sinfni qulflaydi: sozlamadagi har
+bir timeframe yuklanadigan to'plamda bo'lishi shart. Eski qiymat
+bilan test yiqiladi.
+
+Bu — o'sha "bir manba, ikki haqiqat" naqshi: sozlama bir narsani
+aytadi, yuklovchi boshqasini qiladi.
+
+### Nima uchun bu sweep muhim
+
+Sakkizta "ulanmagan" holatning har biri **jimgina** buzilardi: xato
+yo'q, log toza, testlar yashil. Faqat tizim ishlamaydi.
+
+Endi ikkita test bu sinfni doimiy qo'riqlaydi:
+- `test_btc_ozgarishi_siklga_uzatiladi` va `test_kunlik_zarar_siklga_uzatiladi`
+  — qiymat haqiqatda to'ldirilyaptimi
+- `test_sozlamadagi_timeframe_yuklanadi` — sozlama mavjud ma'lumotga
+  ishora qilyaptimi
+
+---
+
+## 50. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

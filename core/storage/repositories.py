@@ -558,6 +558,27 @@ class SignalRepository:
             soni += 1
         return soni
 
+    async def net_result_pct_since(self, since: datetime) -> float:
+        """Shu vaqtdan beri yopilgan signallarning SOF natijasi, foizda.
+
+        4.1-band (kunlik/haftalik zarar chegarasi) shu raqamga tayanadi.
+        Ilgari u umuman hisoblanmasdi: `CycleInput.daily_loss_pct`
+        standart `0.0` bo'lib qolardi va qoida HECH QACHON ishlamasdi —
+        ya'ni strategiya qancha zarar keltirsa ham signal berishda davom
+        etardi.
+
+        SOF natija olinadi, faqat zararlar emas: kun +5% va -4% bilan
+        o'tgan bo'lsa, kun yomon o'tmagan. Gross zarar bilan hisoblash
+        foydali kunni ham to'xtatib qo'yardi.
+        """
+        stmt = select(func.sum(SignalRecord.result_pct)).where(
+            SignalRecord.closed_at.is_not(None),
+            SignalRecord.closed_at >= since,
+            SignalRecord.result_pct.is_not(None),
+        )
+        yigindi = (await self._session.execute(stmt)).scalar()
+        return float(yigindi or 0.0)
+
     async def closed_since(self, since: datetime) -> list[ClosedSignal]:
         """3.8-band: postmortem uchun yopilgan signallar va ularning konteksti.
 

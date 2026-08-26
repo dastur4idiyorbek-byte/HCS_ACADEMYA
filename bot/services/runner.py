@@ -295,12 +295,15 @@ class PipelineRunner:
             ochiq_yozuvlar = await repo.open_signals()
             ochiq_signallar = [SignalRepository.to_domain(y) for y in ochiq_yozuvlar]
             ketma_ket_stop = await repo.consecutive_stops()
+            zararlar = await self._zarar_ulushlari(repo)
 
         salomatlik = await self.compute_health(shamlar, len(ochiq_signallar))
         async with self._db.session() as session:
             await MarketHealthRepository(session).record(salomatlik)
 
-        kirish = self._build_input(shamlar, salomatlik, ochiq_signallar, ketma_ket_stop)
+        kirish = self._build_input(
+            shamlar, salomatlik, ochiq_signallar, ketma_ket_stop, zararlar
+        )
         natija = self._cycle.run(kirish)
 
         await self._record_rejections(natija, salomatlik)
@@ -339,6 +342,7 @@ class PipelineRunner:
         health: MarketHealth,
         open_signals: list,  # noqa: ANN001
         consecutive_stops: int,
+        losses: tuple[float, float] = (0.0, 0.0),
     ) -> CycleInput:
         indicators = self._config.analysis.indicators
         entry_tf = self._config.analysis.entry_timeframe
@@ -382,6 +386,8 @@ class PipelineRunner:
             atr_values=atr_qiymatlari,
             price_ages=narx_yoshlari,
             btc_change_24h_pct=self._btc_ozgarishi(candles),
+            daily_loss_pct=losses[0],
+            weekly_loss_pct=losses[1],
             consecutive_stops=consecutive_stops,
             kill_switch_active=self._watcher.kill_switch_active,
             kill_switch_reason=self._watcher.kill_switch_reason,
@@ -419,6 +425,27 @@ class PipelineRunner:
         if not series:
             return None
         return max(0.0, (utc_now() - series[-1].open_time).total_seconds())
+
+    @staticmethod
+    async def _zarar_ulushlari(repo: SignalRepository) -> tuple[float, float]:
+        """4.1-band: `(kunlik zarar %, haftalik zarar %)`.
+
+        E'LON QILINGAN, LEKIN ULANMAGAN edi: `DailyLossLimitRule` bor,
+        `daily_loss_limit_pct: 3.0` sozlamasi bor, lekin qiymat hech
+        qachon hisoblanmasdi va standart `0.0` bo'lib qolardi. Ya'ni
+        chegara HECH QACHON to'lmasdi — strategiya qancha zarar
+        keltirsa ham signal berishda davom etardi.
+
+        Zarar MUSBAT son sifatida qaytariladi (qoida shunday kutadi).
+        Kun foyda bilan tugagan bo'lsa — nol.
+        """
+        hozir = utc_now()
+        kun_boshi = hozir.replace(hour=0, minute=0, second=0, microsecond=0)
+        hafta_boshi = hozir - timedelta(days=7)
+
+        kunlik = await repo.net_result_pct_since(kun_boshi)
+        haftalik = await repo.net_result_pct_since(hafta_boshi)
+        return max(0.0, -kunlik), max(0.0, -haftalik)
 
     def _btc_ozgarishi(self, candles: dict) -> float | None:  # noqa: ANN001
         """BTC ning 24 soatlik o'zgarishi, foizda (4.5-band filtri uchun).
