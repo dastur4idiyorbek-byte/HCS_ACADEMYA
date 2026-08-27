@@ -24,7 +24,17 @@ export async function GET(request: NextRequest) {
   }
 
   const toliqIsm = [login.first_name, login.last_name].filter(Boolean).join(" ") || null;
-  foydalanuvchiniYozib(login.id, login.username ?? null, toliqIsm, adminIds.has(login.id));
+
+  // Bazaga yozish ALOHIDA o'ralgan: bu — so'rovdagi birinchi baza
+  // murojaati, ya'ni sozlama xatolari (fayl yo'q, ruxsat yo'q, mahalliy
+  // modul yiqildi) aynan shu yerda chiqadi. Ushlamasak, foydalanuvchi
+  // sababsiz oq ekran ko'radi.
+  try {
+    foydalanuvchiniYozib(login.id, login.username ?? null, toliqIsm, adminIds.has(login.id));
+  } catch (e) {
+    console.error("[kirish] Bazaga yozib bo'lmadi:", e);
+    return yonaltir("/kirish?xato=baza");
+  }
 
   const { token } = sessiyaYarat(login.id, botToken);
   const javob = yonaltir("/bosh");

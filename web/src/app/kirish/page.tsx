@@ -40,7 +40,7 @@ export default async function Kirish({
 
         {xato && (
           <p className="border-past/60 text-past rounded-kichik mt-4 border px-3 py-2 text-sm">
-            {t("kirish.xato")}
+            {xato === "baza" ? t("kirish.baza_xatosi") : t("kirish.xato")}
           </p>
         )}
 

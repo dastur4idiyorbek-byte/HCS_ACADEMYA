@@ -33,7 +33,8 @@
     "muddat": "Sessiya 6 kun (144 soat) amal qiladi — shu muddat ichida qayta tasdiqlash so'ralmaydi.",
     "xato": "Tasdiqlash o'tmadi. Qaytadan urinib ko'ring.",
     "kerak": "Bu bo'limni ko'rish uchun kirishingiz kerak.",
-    "chiqdingiz": "Sessiya yakunlandi."
+    "chiqdingiz": "Sessiya yakunlandi.",
+    "baza_xatosi": "Ma'lumotlar bazasiga ulanib bo'lmadi. Bu sozlama xatosi — administrator loglardan sababni ko'radi."
   },
   "salomatlik": {
     "sarlavha": "Bozor Salomatligi",
