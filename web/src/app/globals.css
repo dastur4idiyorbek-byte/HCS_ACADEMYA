@@ -106,3 +106,35 @@ body {
 .raqam {
   font-variant-numeric: tabular-nums;
 }
+
+/* ===========================================================================
+   Signal himoyasi (`components/Himoya.tsx`)
+   ---------------------------------------------------------------------------
+   Vebda `protect_content` ning ekvivalenti YO'Q. Bu yerdagi qoidalar
+   skrinshotni to'sib qo'ymaydi — ular nusxalashning eng oson yo'llarini
+   yopadi va tarqalgan skrinshotda kimning IDsi turganini ko'rsatadi.
+   =========================================================================== */
+
+.himoya {
+  /* Uzun bosish menyusi (mobil) va matnni belgilab olish */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Suv belgisi: takrorlanuvchi qiya matn. `content` atributdan olinadi,
+   ya'ni har bir foydalanuvchi O'Z IDsini ko'radi. */
+.suv-belgisi {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+/* Chop etish (Ctrl+P) orqali PDF ga saqlashning oldini olamiz */
+@media print {
+  .himoya {
+    display: none !important;
+  }
+}

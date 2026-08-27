@@ -2706,6 +2706,33 @@ Bot ildizdan, sayt esa `web/` dan ishga tushadi. Bir xil
 bildirardi va sayt jimgina zaxira qiymatlarga o'tib ketardi. Endi nisbiy
 yo'l doim loyiha ildiziga nisbatan hisoblanadi.
 
+### Signal himoyasi: nima MUMKIN va nima MUMKIN EMAS
+
+Telegramda `protect_content=True` bor — signalni nusxalash va boshqa
+chatga yuborish to'silgan. Vebda bunday narsa **yo'q**: bu brauzer
+imkoniyati emas, operatsion tizim darajasidagi cheklov. Yonidagi
+ikkinchi telefon bilan ekranni suratga olishni esa hech qanday
+texnologiya to'xtata olmaydi.
+
+Shuning uchun `components/Himoya.tsx` da uchta QATLAM bor, har biri
+boshqa ishni bajaradi:
+
+| Qatlam | Nimani tutadi | Nimani tutmaydi |
+|---|---|---|
+| Fokus yo'qolganda xiralashtirish | `Win+Shift+S`, `Cmd+Shift+4`, telefonda boshqa ilovaga o'tish — hammasi sahifadan fokusni oladi | `PrintScreen` tugmasi (fokusni olmaydi) |
+| Suv belgisi (Telegram ID) | Tarqalgan skrinshotda kimning IDsi turgani ko'rinadi | Nusxalashning o'zini to'xtatmaydi |
+| Nusxalash / chop etishni bloklash | `Ctrl+C`, `Ctrl+P`, uzun bosish menyusi | Skrinshotni |
+
+Eng kuchli to'siq — uchinchisi emas, **ikkinchisi**: pullik signal
+xizmatlarida tarqatgan odamni aniqlash imkoniyati texnik to'siqdan ko'ra
+ko'proq ish beradi. Shuning uchun izoh ham foydalanuvchiga ochiq
+yoziladi: "narxlar ustida sizning IDingiz turadi".
+
+Suv belgisi dastlab CSS `content` bilan qilingan edi va **umuman
+ko'rinmadi**: kafel o'lchami (300x120) kartochka balandligidan katta
+bo'lib, bitta qator ham sig'magan. Endi u SVG kafel — o'lchami matn
+burchagiga moslangan va `tests/himoya.test.ts` uni tekshiradi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |

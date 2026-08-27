@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
+import { Himoya } from "@/components/Himoya";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
@@ -17,7 +18,7 @@ export default async function SignalSahifasi({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { til, tarif } = await kirim();
+  const { til, tarif, foydalanuvchi } = await kirim();
   const t = tarjimon(til);
   if (!tarifQamraydi(tarif, "lite")) redirect("/signallar");
 
@@ -31,6 +32,8 @@ export default async function SignalSahifasi({
   if (!kirishMumkin(signal.status)) redirect("/signallar");
 
   const rr = riskFoyda(signal.entry, signal.stop, signal.tp2);
+  // Suv belgisida ID turadi: skrinshot tarqalsa, u kimdan chiqqani ko'rinadi
+  const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
   const buyurtma = signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
 
   return (
@@ -48,19 +51,25 @@ export default async function SignalSahifasi({
       />
 
       <div className="space-y-5">
-        <Card variant="urgu">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            <Qiymat nom={t("signal.entry")} qiymat={narx(signal.entry)} />
-            <Qiymat nom={t("signal.stop")} qiymat={narx(signal.stop)} tone="past" />
-            <Qiymat nom={t("signal.tp1")} qiymat={narx(signal.tp1)} tone="yaxshi" />
-            <Qiymat nom={t("signal.tp2")} qiymat={narx(signal.tp2)} tone="yaxshi" />
-          </dl>
-          <div className="mt-4 border-t border-white/10 pt-3">
-            <p className="text-sm">
-              {signal.entryOrderType === "market" ? "⚡" : "📌"} {t(buyurtma)}
-            </p>
-          </div>
-        </Card>
+<Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
+          <Card variant="urgu">
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+              <Qiymat nom={t("signal.entry")} qiymat={narx(signal.entry)} />
+              <Qiymat nom={t("signal.stop")} qiymat={narx(signal.stop)} tone="past" />
+              <Qiymat nom={t("signal.tp1")} qiymat={narx(signal.tp1)} tone="yaxshi" />
+              <Qiymat nom={t("signal.tp2")} qiymat={narx(signal.tp2)} tone="yaxshi" />
+            </dl>
+            <div className="mt-4 border-t border-white/10 pt-3">
+              <p className="text-sm">
+                {signal.entryOrderType === "market" ? "⚡" : "📌"} {t(buyurtma)}
+              </p>
+            </div>
+          </Card>
+        </Himoya>
+
+        <p className="text-matn-past px-1 text-xs leading-relaxed">
+          🔒 {t("signal.himoya_izoh")}
+        </p>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Card>

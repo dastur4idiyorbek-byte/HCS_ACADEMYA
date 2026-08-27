@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Himoya } from "@/components/Himoya";
 import { Qulf } from "@/components/ui/Qulf";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,7 +15,7 @@ import { kirim } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export default async function Signallar() {
-  const { til, tarif } = await kirim();
+  const { til, tarif, foydalanuvchi } = await kirim();
   const t = tarjimon(til);
 
   // Obuna tekshiruvi ma'lumot O'QILISHIDAN OLDIN: qulflangan sahifaning
@@ -29,6 +30,7 @@ export default async function Signallar() {
   }
 
   const royxat = signallar(100);
+  const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
   const ochiladigan = royxat.filter((s) => kirishMumkin(s.status));
   const kech = royxat.filter((s) => !kirishMumkin(s.status) && !yopilgan(s.status));
   const arxiv = royxat.filter((s) => yopilgan(s.status));
@@ -55,6 +57,8 @@ export default async function Signallar() {
 
       <div className="space-y-6">
         <Guruh sarlavha={t("signal.faol")} bosh>
+          <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
+          <div className="space-y-2">
           {ochiladigan.map((s) => (
             <Link
               key={s.id}
@@ -80,6 +84,8 @@ export default async function Signallar() {
               </span>
             </Link>
           ))}
+          </div>
+          </Himoya>
           {ochiladigan.length === 0 && (
             <p className="text-matn-past text-sm">{t("signal.yoq")}</p>
           )}

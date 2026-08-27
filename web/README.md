@@ -72,6 +72,14 @@ scripts/          — ranglar va kontrast tekshiruvi (build qismi emas)
 Ranglar qanday olingani va nima uchun aynan shunday ekani —
 [`DIZAYN.md`](./DIZAYN.md).
 
+## Signal himoyasi
+
+Vebda `protect_content` ning ekvivalenti **yo'q** — skrinshotni to'liq
+to'sib bo'lmaydi. `components/Himoya.tsx` uchta qatlam beradi: fokus
+yo'qolganda narxlar xiralashadi, ustida foydalanuvchining Telegram IDsi
+suv belgisi bo'lib turadi, nusxalash va chop etish bloklangan. Batafsil:
+`docs/ARXITEKTURA.md`, 50-bo'lim.
+
 ## Holati
 
 | Bosqich | Holat |

@@ -71,7 +71,9 @@
     "ball_sabab": "Nega bu signal?",
     "buyurtma": "Buyurtma turi",
     "limit": "Buyurtma qoldiring — narx shu yerga kelganda ochiladi",
-    "market": "Hozir oling — narx allaqachon kerakli joyda"
+    "market": "Hozir oling — narx allaqachon kerakli joyda",
+    "himoya": "Narxlar vaqtincha yashirildi. Sahifaga qayting.",
+    "himoya_izoh": "Signal narxlari ustida sizning Telegram IDingiz turadi. Skrinshotni tarqatsangiz, u kimdan chiqqani ko'rinadi va obuna to'xtatiladi (1.3-band)."
   },
   "statistika": {
     "sarlavha": "Statistika",
