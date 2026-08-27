@@ -150,6 +150,9 @@ class Content(Base, TimestampMixin):
     title: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     file_id: Mapped[str | None] = mapped_column(String(256))
+    # Saytga yuklangan fayl NOMI (to'liq yo'l emas). Jild doimiy diskda,
+    # baza fayli yonida — shuning uchun disk ko'chsa yozuv buzilmaydi.
+    video_path: Mapped[str | None] = mapped_column(String(256))
     min_tier: Mapped[str] = mapped_column(String(16), nullable=False)
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

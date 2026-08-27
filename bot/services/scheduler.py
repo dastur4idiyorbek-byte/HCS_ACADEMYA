@@ -18,7 +18,9 @@ from collections.abc import Awaitable, Callable
 from datetime import timedelta
 
 from aiogram import Bot
+from aiogram.types import FSInputFile
 
+from bot.hosting import video_dir
 from bot.i18n import DEFAULT_LANGUAGE, t
 from bot.services.broadcast import broadcast_signal, obunachilar
 from bot.services.runner import PipelineRunner, cycle_interval
@@ -30,6 +32,7 @@ from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.repositories import (
     AuditReportRepository,
+    ContentRepository,
     PaymentRepository,
     RiskBlockRepository,
     SignalRepository,
@@ -83,6 +86,7 @@ class Scheduler:
         self._config = config
         self._runner = runner
         self._admin_ids = admin_ids
+        self._video_dir = video_dir()
         self._tasks: list[asyncio.Task] = []
 
     def start(self) -> None:
@@ -106,6 +110,16 @@ class Scheduler:
                 timedelta(minutes=1),
                 self._pickup_web_signals,
                 timedelta(seconds=20),
+            ),
+            # Saytga yuklangan video darsliklarni Telegramga chiqarish.
+            # Oraliq uzunroq: dars — kunlar davomida yashaydigan kontent,
+            # signal kabi daqiqasiga bog'liq emas. Har yuklash bir necha
+            # yuz megabaytlik yuborish demak, tez-tez urinish shart emas.
+            (
+                "web-videos",
+                timedelta(minutes=5),
+                self._pickup_web_videos,
+                timedelta(minutes=1),
             ),
         ]
 
@@ -219,6 +233,67 @@ class Scheduler:
             logger.info(
                 "Veb-paneldagi signal tarqatildi: id=%s symbol=%s -> %d ta",
                 signal_id, symbol, yuborildi,
+            )
+
+    async def _pickup_web_videos(self) -> None:
+        """Saytga yuklangan video darsliklarni Telegramga chiqaradi.
+
+        NIMA UCHUN KERAK: sayt video faylni doimiy diskka yozadi va uni
+        o'zi o'ynatadi. Bot esa faylni yo'ldan emas, Telegram `file_id`
+        dan yuboradi — `file_id` faqat fayl BIR MARTA Telegramga
+        yuborilganda paydo bo'ladi.
+
+        Bu qadam bo'lmasa, saytdan qo'shilgan dars botda ko'rinmay
+        qolardi: bitta ro'yxat ikki joyda ikki xil bo'lib qolardi.
+
+        Fayl adminning shaxsiy chatiga yuboriladi — bu texnik yuborish,
+        maqsadi faqat `file_id` olish. Admin yo'q bo'lsa qadam
+        o'tkazib yuboriladi va dars faqat saytda qoladi (bu — xato
+        emas, shunchaki sozlanmagan holat).
+        """
+        if not self._admin_ids:
+            return
+
+        qabul_qiluvchi = min(self._admin_ids)
+        async with self._db.session() as session:
+            kutayotganlar = await ContentRepository(session).pending_upload()
+            tayyor = [(k.id, k.title, k.video_path) for k in kutayotganlar]
+
+        for content_id, sarlavha, nom in tayyor:
+            if not nom:
+                continue
+            yol = self._video_dir / nom
+            if not yol.exists():
+                logger.warning(
+                    "Dars videosi diskda yo'q: id=%s fayl=%s", content_id, nom
+                )
+                continue
+            try:
+                xabar = await self._bot.send_video(
+                    qabul_qiluvchi,
+                    FSInputFile(yol),
+                    caption=f"🎬 {sarlavha}\n\n(texnik yuborish — Telegram nusxasi tayyorlanmoqda)",
+                    protect_content=True,
+                )
+            except Exception:  # noqa: BLE001
+                # Sabab har xil bo'lishi mumkin: fayl juda katta, tarmoq
+                # uzildi, Telegram cheklovi. Keyingi urinishda qayta
+                # sinaladi — yozuv o'zgarmagani uchun ro'yxatda qoladi.
+                logger.warning(
+                    "Dars videosi Telegramga chiqmadi: id=%s", content_id, exc_info=True
+                )
+                continue
+
+            if xabar.video is None:
+                logger.warning("Javobda video yo'q: id=%s", content_id)
+                continue
+
+            async with self._db.session() as session:
+                await ContentRepository(session).set_file_id(
+                    content_id, xabar.video.file_id
+                )
+            logger.info(
+                "Dars videosi Telegramga chiqdi: id=%s sarlavha=%s", content_id, sarlavha
             )
 
     async def _weekly_report(self) -> None:

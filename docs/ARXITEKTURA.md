@@ -3051,7 +3051,109 @@ kerak, chunki bloklovchi so'rovni jimgina bekor qilsa `onerror`
 kelmaydi. Ikkalasidan biri ishlasa — tushuntirish matni chiqadi va
 signal narxlari grafikka bog'liq emasligi aytiladi.
 
-## 52. Bosqichlar holati
+## 52. Video darsliklar saytda: Telegramning 20 MB devori
+
+Video Telegramda `file_id` sifatida yotardi va saytda ko'rsatib
+bo'lmasdi. Sabab texnik va qat'iy: Bot API `getFile` orqali bot
+**faqat 20 MB gacha** faylni yuklab olishi mumkin. Video darslik esa
+odatda bundan katta — ya'ni "Telegramdan olib ko'rsatamiz" yo'li
+darslarning ko'pchiligi uchun UMUMAN ishlamasdi.
+
+Uch yo'ldan biri tanlanishi kerak edi va bu — texnik emas, egalik
+qarori: Telegramdan oqim (tekin, lekin 20 MB), YouTube/Vimeo (tekin va
+cheklovsiz, lekin havola tarqalsa obunasiz odam ham ko'radi), yoki
+faylni o'zimizning diskimizda saqlash (disk pullik, lekin kirish
+nazorati bizda qoladi). Tanlangan yo'l — uchinchisi.
+
+### 52.1. Jild qoidasi ikki tilda yozilgan — va shu narsa xavf
+
+Fayllar baza fayli YONIDAGI `video/` jildida turadi. Bu qoida ikki
+joyda amalga oshirilgan: `web/src/lib/media.ts` (`videoJildi()`) va
+`bot/hosting.py` (`video_dir()`). Ikkalasi bir xil jildni ko'rsatishi
+SHART — ayrilib ketsa, sayt yozgan faylni bot topa olmaydi va dars
+botda jimgina ko'rinmay qoladi.
+
+Shuning uchun ikkala tomonda ham aynan bir xil qiymatni tekshiradigan
+test bor (`web/tests/media.test.ts` va `tests/bot/test_video_dir.py`):
+`sqlite+aiosqlite:////data/hcs.db` -> `/data/video`.
+
+Alohida muhit o'zgaruvchisi ATAYLAB qo'yilmadi: u ikki xizmatda
+boshqa-boshqa qo'yilishi mumkin edi va xato faqat "video ochilmayapti"
+bo'lib ko'rinardi. Bazadan hisoblansa, doimiy disk ko'chganda ikkalasi
+birga ko'chadi.
+
+### 52.2. Fayl xotiraga YIG'ILMAYDI
+
+Yuklashda `multipart/form-data` ishlatilmadi: uni ajratish uchun butun
+fayl xotiraga tushardi — yuz megabaytlik dars uchun yuz megabayt
+operativ xotira, bepul serverda esa bu jarayonning o'limi.
+
+O'rniga so'rov tanasining O'ZI fayl (`?nom=` da faqat kengaytma uchun
+asl nom). Tana to'g'ridan-to'g'ri diskka oqiziladi, xotirada bir vaqtda
+faqat kichik bo'lak turadi.
+
+Hajm ikki joyda tekshiriladi: `content-length` sarlavhasi VA haqiqatda
+oqib kelgan baytlar. Birinchisi yolg'on bo'lishi mumkin, ikkinchisi —
+bo'lmaydi. Chegaradan oshsa yarim yozilgan fayl O'CHIRILADI: u diskda
+joy egallaydi va hech qachon o'ynatilmaydi.
+
+### 52.3. `Range` — bu bezak emas
+
+Berish marshrutida `Accept-Ranges` va 206 javobi bor. Usiz brauzer
+videoni faqat boshidan ketma-ket yuklaydi va O'RTAGA SAKRASH ishlamaydi
+— uzun darsda bu darrov seziladi.
+
+Range tahlilidagi eng adashtiradigan joy alohida testga olingan:
+`bytes=-500` — bu "0 dan 500 gacha" EMAS, bu OXIRGI 500 bayt.
+
+### 52.4. Fayl statik emas — har so'rov tekshiriladi
+
+Video oddiy statik fayl bo'lsa, manzilini bilgan har kim ko'rardi va
+obuna tekshiruvi chetlab o'tilardi. Shuning uchun har bir so'rov
+`/api/video/[id]` dan o'tadi: sessiya, tarif va darsning chop etilgani
+tekshiriladi.
+
+Yo'l xavfsizligi ikki qavat: avval fayl nomining o'zi (`/`, `\`, `..`
+rad etiladi), keyin natija jild ichida ekani ALOHIDA tasdiqlanadi.
+Birinchisi o'tkazib yuborsa, ikkinchisi tutadi.
+
+### 52.5. Bot ham shu darsni ko'rishi kerak — yana bir "pickup"
+
+Saytga yuklangan dars botda ko'rinmay qolsa, bitta ro'yxat ikki joyda
+ikki xil bo'lardi — foydalanuvchi uchun eng chalkash holat, va aynan
+shu 49-bo'limdagi signal muammosining takrori.
+
+Yechim ham o'sha naqsh bo'yicha: `web-videos` fon vazifasi (5 daqiqada
+bir) `video_path` bor-u `file_id` yo'q darslarni topadi, faylni
+adminning chatiga yuboradi va javobdagi `file_id` ni saqlaydi. Shundan
+keyin bot uni avvalgidek `file_id` orqali tarqatadi.
+
+Fayl adminning chatiga yuboriladi, chunki `file_id` faqat fayl BIR
+MARTA Telegramga yuborilganda paydo bo'ladi — bu Telegram cheklovi,
+bizning tanlovimiz emas.
+
+### 52.6. Videoda xiralashtirish YO'Q — ataylab
+
+Signal narxlarida fokus yo'qolganda ekran xiralashadi (50-bo'lim).
+Videoda bu qatlam ATAYLAB yoqilmadi: darsni tinglab turib boshqa
+oynaga o'tish odatiy hol, har safar ekranni yopish himoya emas,
+xalaqit. Suv belgisi (foydalanuvchi IDsi) esa qoladi — u yozib olingan
+nusxa kimdan chiqqanini ko'rsatadi.
+
+### 52.7. WAL: test bazani eskisicha ko'rgan edi
+
+Yangi ustun qo'shilgach testlar "no such column: video_path" berdi —
+holbuki migratsiya muvaffaqiyatli o'tgan va ustun bazada bor edi.
+
+Sabab: baza WAL rejimida. Yangi yozuvlar avval `hcs.db-wal` fayliga
+tushadi, asosiy faylga esa keyinroq ko'chadi. Test esa faqat `hcs.db`
+ni nusxalar edi — ya'ni migratsiyani KO'RMASDI.
+
+Bu jimgina adashtiradi: baza to'g'ri, kod to'g'ri, xato esa kodda
+izlanadi. Endi nusxalash bitta joyda (`web/tests/nusxa.ts`) va u
+`-wal` bilan `-shm` ni ham oladi.
+
+## 53. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

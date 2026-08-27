@@ -1,3 +1,4 @@
+import { VideoPleyer } from "@/components/VideoPleyer";
 import { Qulf } from "@/components/ui/Qulf";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
@@ -10,7 +11,7 @@ import { kirim } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export default async function Video() {
-  const { til, tarif } = await kirim();
+  const { til, tarif, foydalanuvchi } = await kirim();
   const t = tarjimon(til);
   const botUsername = env().botUsername;
 
@@ -43,11 +44,27 @@ export default async function Video() {
                 🎬 {d.title}
               </CardTitle>
               {d.description && <CardHint>{d.description}</CardHint>}
-              <div className="mt-3">
-                <Button href={botHavolasi(botUsername, "start")} variant="ikkilamchi">
-                  {t("kontent.botda_koring")}
-                </Button>
-              </div>
+
+              {/* Video saytga yuklangan bo'lsa — shu yerda o'ynaydi.
+                  Yuklanmagan darslar uchun botga havola qoladi: eski
+                  darslar faqat Telegramda, ular ko'rinmay qolmasin. */}
+              {d.videoPath ? (
+                <div className="mt-3">
+                  <VideoPleyer
+                    darsId={d.id}
+                    belgi={`HCS · ${foydalanuvchi?.telegramId ?? "—"}`}
+                  />
+                  <p className="text-matn-past mt-2 text-xs leading-relaxed">
+                    🔒 {t("kontent.himoya_izoh")}
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <Button href={botHavolasi(botUsername, "start")} variant="ikkilamchi">
+                    {t("kontent.botda_koring")}
+                  </Button>
+                </div>
+              )}
             </Card>
           ))}
         </div>

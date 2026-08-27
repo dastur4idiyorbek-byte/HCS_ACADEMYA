@@ -13,6 +13,7 @@ deganda bilib qolasiz.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 from core.utils.logging_setup import get_logger
@@ -103,3 +104,37 @@ def warn_if_data_is_temporary(database_url: str) -> bool:
         "=" * 64,
     )
     return True
+
+
+def sqlite_file(database_url: str | None = None) -> Path | None:
+    """SQLAlchemy manzilidan SQLite fayl yo'lini ajratadi.
+
+    SQLAlchemy qoidasi: sxemadan keyin ATIGI BITTA qiyshiq chiziq
+    olib tashlanadi, ya'ni `sqlite:///a.db` -> nisbiy, `sqlite:////a.db`
+    -> mutlaq.
+
+    Returns:
+        Fayl yo'li, yoki `None` — manzil SQLite emas.
+    """
+    xom = (database_url if database_url is not None else os.getenv("DATABASE_URL")) or ""
+    xom = xom.strip()
+    if not xom.startswith("sqlite"):
+        return None
+    keyin = re.sub(r"^sqlite(\+\w+)?://", "", xom)
+    return Path(keyin[1:] if keyin.startswith("/") else keyin)
+
+
+def video_dir(database_url: str | None = None) -> Path:
+    """Saytga yuklangan video darsliklar jildi.
+
+    Baza fayli YONIDA turadi va alohida sozlama talab qilmaydi: doimiy
+    disk boshqa joyga ulansa, baza bilan birga ko'chadi. Konteyner
+    diskida saqlash mumkin emas — u har yangilanishda tozalanadi.
+
+    NUSXASI SAYTDA: `web/src/lib/media.ts` -> `videoJildi()`. Ikkalasi
+    BIR XIL jildni ko'rsatishi shart, aks holda sayt yozgan faylni bot
+    topa olmaydi. Qoida bitta: "baza fayli yonidagi `video` jildi".
+    """
+    baza = sqlite_file(database_url)
+    asos = baza.resolve().parent if baza is not None else Path("data").resolve()
+    return asos / "video"

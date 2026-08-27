@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
-import { copyFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
 
-const vaqtinchalik = path.join(mkdtempSync(path.join(tmpdir(), "hcs-sig-")), "test.db");
-copyFileSync(path.resolve(process.cwd(), "..", "data", "hcs.db"), vaqtinchalik);
+import { bazadanNusxa } from "./nusxa.ts";
+
+const vaqtinchalik = bazadanNusxa("hcs-sig-");
 process.env.DATABASE_URL = `sqlite+aiosqlite:///${vaqtinchalik}`;
 
 const { db } = await import("../src/lib/db.ts");

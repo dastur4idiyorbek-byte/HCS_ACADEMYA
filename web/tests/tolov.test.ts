@@ -1,15 +1,13 @@
 import assert from "node:assert/strict";
-import { copyFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { test } from "node:test";
+
+import { bazadanNusxa } from "./nusxa.ts";
 
 /* Baza yo'li import'dan OLDIN o'rnatiladi: `db()` ulanishni birinchi
    chaqiruvda ochib, keshlab qo'yadi. Sxemani qo'lda yozmaymiz — haqiqiy
    bazadan NUSXA olamiz, aks holda test sxemasi asl sxemadan sezilmasdan
    uzoqlashib ketadi. */
-const vaqtinchalik = path.join(mkdtempSync(path.join(tmpdir(), "hcs-test-")), "test.db");
-copyFileSync(path.resolve(process.cwd(), "..", "data", "hcs.db"), vaqtinchalik);
+const vaqtinchalik = bazadanNusxa("hcs-test-");
 process.env.DATABASE_URL = `sqlite+aiosqlite:///${vaqtinchalik}`;
 
 const { db, vaqtSatri } = await import("../src/lib/db.ts");

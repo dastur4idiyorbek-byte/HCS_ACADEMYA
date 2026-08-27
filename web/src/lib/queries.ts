@@ -134,6 +134,8 @@ export type Kontent = {
   description: string | null;
   minTier: Tarif;
   position: number;
+  /** Saytga yuklangan fayl nomi. `null` — video hali yuklanmagan. */
+  videoPath: string | null;
 };
 
 export type Narx = {
@@ -452,7 +454,7 @@ export function ballStatistikasi(
 export function kontent(): Kontent[] {
   const qatorlar = db()
     .prepare(
-      `select id, kind, title, description, min_tier, position
+      `select id, kind, title, description, min_tier, position, video_path
          from content where is_published = 1
         order by position asc, id asc`,
     )
@@ -464,6 +466,7 @@ export function kontent(): Kontent[] {
     description: (q.description as string) ?? null,
     minTier: q.min_tier as Tarif,
     position: Number(q.position),
+    videoPath: (q.video_path as string) ?? null,
   }));
 }
 
@@ -1015,7 +1018,8 @@ export type DarsKirish = {
 export function darslar(): (Kontent & { fileId: string | null; published: boolean })[] {
   const qatorlar = db()
     .prepare(
-      `select id, kind, title, description, min_tier, position, file_id, is_published
+      `select id, kind, title, description, min_tier, position, file_id,
+              video_path, is_published
          from content order by position asc, id asc`,
     )
     .all() as Qator[];
@@ -1027,6 +1031,7 @@ export function darslar(): (Kontent & { fileId: string | null; published: boolea
     minTier: q.min_tier as Tarif,
     position: songaAylantir(q.position),
     fileId: (q.file_id as string) ?? null,
+    videoPath: (q.video_path as string) ?? null,
     published: Boolean(q.is_published),
   }));
 }
@@ -1075,6 +1080,52 @@ export function darsSaqla(
 
 export function darsOchir(id: number): boolean {
   return db().prepare(`delete from content where id = ?`).run(id).changes > 0;
+}
+
+/** Bitta dars — yuklangan videoni berishdan oldin tekshirish uchun.
+ *
+ * `is_published` ham qaytariladi: chop etilmagan darsning videosini
+ * manzilni qo'lda yozib olib bo'lmasin. */
+export function dars(id: number): {
+  id: number;
+  title: string;
+  minTier: Tarif;
+  videoPath: string | null;
+  published: boolean;
+} | null {
+  const q = db()
+    .prepare(
+      `select id, title, min_tier, video_path, is_published
+         from content where id = ?`,
+    )
+    .get(id) as Qator | undefined;
+  if (!q) return null;
+  return {
+    id: songaAylantir(q.id),
+    title: q.title as string,
+    minTier: q.min_tier as Tarif,
+    videoPath: (q.video_path as string) ?? null,
+    published: Boolean(q.is_published),
+  };
+}
+
+/** Yuklangan videoni darsga biriktiradi va ESKI fayl nomini qaytaradi.
+ *
+ * Eski nom qaytariladi, o'chirilmaydi: faylni o'chirish — disk amali,
+ * bu esa baza qatlami. Chaqiruvchi bazani yangilagach eski faylni
+ * o'chiradi. Teskarisi bo'lsa (avval fayl) yozuv yiqilganda dars
+ * videosiz qolardi. */
+export function videoBiriktir(
+  id: number,
+  nom: string | null,
+  hozir = new Date(),
+): { ok: boolean; eskiNom: string | null } {
+  const oldingi = dars(id);
+  if (!oldingi) return { ok: false, eskiNom: null };
+  db()
+    .prepare(`update content set video_path = ?, updated_at = ? where id = ?`)
+    .run(nom, vaqtSatri(hozir), id);
+  return { ok: true, eskiNom: oldingi.videoPath === nom ? null : oldingi.videoPath };
 }
 
 // --------------------------------------------------------------------------- //

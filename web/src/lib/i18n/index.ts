@@ -47,3 +47,28 @@ export function tarjima(til: Til, kalit: string): string {
 export function tarjimon(til: Til) {
   return (kalit: string) => tarjima(til, kalit);
 }
+
+/** Kalkulyator va grafik matnlari — BITTA joyda.
+ *
+ * Bu ro'yxat ikki sahifada kerak: signallar ro'yxatida va signal
+ * sahifasida. Ikki nusxa qilinsa, yangi kalit qo'shilganda biri
+ * yangilanib ikkinchisi qolib ketardi — bu loyihada allaqachon
+ * uchragan xato turi.
+ */
+export function kalkulyatorMatnlari(t: (kalit: string) => string) {
+  return {
+    ochish: t("signal.ochish"),
+    himoya: t("signal.himoya"),
+    grafik_xato: t("signal.grafik_xato"),
+    sarlavha: t("signal.kalk_sarlavha"),
+    summa: t("signal.kalk_summa"),
+    kirish: t("signal.kalk_kirish"),
+    stop: t("signal.kalk_stop"),
+    ulush: t("signal.kalk_ulush"),
+    umumiy: t("signal.kalk_umumiy"),
+    stop_agar: t("signal.kalk_stop_agar"),
+    jami: t("signal.kalk_jami"),
+    ulush_xato: t("signal.kalk_ulush_xato"),
+    ogohlantirish: t("signal.kalk_ogohlantirish"),
+  };
+}

@@ -16,8 +16,14 @@ qarang) — alohida nusxa saqlanmaydi:
 | `ADMIN_IDS` | Kim admin — botdagi bilan bir xil manba |
 | `DATABASE_URL` | Bot bazasiga yo'l (SQLite) |
 | `HCS_CONFIG_FILE` | Ixtiyoriy. Nisbiy bo'lsa loyiha ILDIZIGA nisbatan hisoblanadi |
+| `VIDEO_MAX_MB` | Ixtiyoriy, standarti 512. Yuklanadigan video darslikning eng katta hajmi |
 
 Mahalliy ishlash uchun `web/.env.local` yarating.
+
+Video darsliklar `DATABASE_URL` dagi baza fayli YONIDAGI `video/`
+jildiga yoziladi (Railway'da bu — doimiy disk). Alohida sozlama yo'q:
+qoida botda ham xuddi shunday (`bot/hosting.py` -> `video_dir()`), shu
+sababli disk ko'chsa ikkalasi birga ko'chadi.
 
 ## Ishga tushirish
 

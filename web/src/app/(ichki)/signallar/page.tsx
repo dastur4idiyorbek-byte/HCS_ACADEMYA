@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Himoya } from "@/components/Himoya";
+import { SignalOchish } from "@/components/SignalOchish";
 import { Qulf } from "@/components/ui/Qulf";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +9,7 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
-import { tarjimon } from "@/lib/i18n";
+import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
 import { kirishMumkin, signallar, tarifQamraydi, yopilgan } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
@@ -42,7 +43,7 @@ export default async function Signallar() {
         <Card>
           <CardTitle>🤫 {t("signal.yoq")}</CardTitle>
           <div className="mt-4">
-            <Button href="/sokinlik" variant="ikkilamchi">
+            <Button href="/salomatlik" variant="ikkilamchi">
               {t("signal.nega_yoq")}
             </Button>
           </div>
@@ -57,35 +58,50 @@ export default async function Signallar() {
 
       <div className="space-y-6">
         <Guruh sarlavha={t("signal.faol")} bosh>
-          <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
-          <div className="space-y-2">
+          {/* Har bir faol signal — o'z kartochkasi. Grafik va kalkulyator
+              SHU YERDA ochiladi: avval ular faqat signal ichiga kirilganda
+              ko'rinardi va topilmay qolardi. Yopiq holatda widget DOM da
+              yo'q — uchta signal uchta iframe yuklamasin. */}
           {ochiladigan.map((s) => (
-            <Link
+            <div
               key={s.id}
-              href={`/signallar/${s.id}`}
-              className="border-ramka bg-panel rounded-kartochka hover:bg-panel-yorqin flex items-center gap-3 border p-3.5 transition"
+              className="border-ramka bg-panel rounded-kartochka border p-3.5"
             >
-              <span aria-hidden className="text-lg">
-                {HOLAT_BELGISI[s.status]}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="text-sarlavha block font-semibold">{s.symbol}</span>
-                <span className="text-matn-past raqam block text-xs">
-                  {t("signal.entry")} {narx(s.entry)} · {holatNomi(s.status, til)}
-                </span>
-              </span>
-              {s.score !== null && (
-                <Badge tone="yaxshi">
-                  {s.score.toFixed(0)} {t("umumiy.ball")}
-                </Badge>
-              )}
-              <span aria-hidden className="text-matn-past">
-                ›
-              </span>
-            </Link>
+              <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
+                <Link
+                  href={`/signallar/${s.id}`}
+                  className="hover:bg-panel-yorqin rounded-tugma -m-1.5 flex items-center gap-3 p-1.5 transition"
+                >
+                  <span aria-hidden className="text-lg">
+                    {HOLAT_BELGISI[s.status]}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="text-sarlavha block font-semibold">{s.symbol}</span>
+                    <span className="text-matn-past raqam block text-xs">
+                      {t("signal.entry")} {narx(s.entry)} · {holatNomi(s.status, til)}
+                    </span>
+                  </span>
+                  {s.score !== null && (
+                    <Badge tone="yaxshi">
+                      {s.score.toFixed(0)} {t("umumiy.ball")}
+                    </Badge>
+                  )}
+                  <span aria-hidden className="text-matn-past">
+                    ›
+                  </span>
+                </Link>
+              </Himoya>
+
+              <SignalOchish
+                symbol={s.symbol}
+                entry={s.entry}
+                stop={s.stop}
+                tpNarxlari={[s.tp1, s.tp2]}
+                belgi={suvBelgisi}
+                matnlar={kalkulyatorMatnlari(t)}
+              />
+            </div>
           ))}
-          </div>
-          </Himoya>
           {ochiladigan.length === 0 && (
             <p className="text-matn-past text-sm">{t("signal.yoq")}</p>
           )}

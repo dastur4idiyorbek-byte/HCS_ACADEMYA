@@ -1,3 +1,4 @@
+import { VideoYuklash } from "@/components/VideoYuklash";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
@@ -45,9 +46,32 @@ export default async function Darslar() {
                   <Badge tone={d.published ? "yaxshi" : "neytral"}>
                     {d.published ? t("admin.chop_etilgan") : "—"}
                   </Badge>
-                  {!d.fileId && <Badge tone="past">{t("admin.video_yoq")}</Badge>}
+                  {d.videoPath ? (
+                    <Badge tone="yaxshi">{t("admin.video_saytda")}</Badge>
+                  ) : d.fileId ? (
+                    <Badge tone="neytral">{t("admin.video_botda")}</Badge>
+                  ) : (
+                    <Badge tone="past">{t("admin.video_yoq")}</Badge>
+                  )}
                 </span>
               </div>
+
+              {/* Video FAYLI shu yerdan yuklanadi — dars formasidan
+                  alohida. Sabab: forma serverga bir zumda yuboriladi,
+                  fayl esa daqiqalab yuklanadi. Bittaga qo'shilsa,
+                  sarlavhani tuzatish uchun ham videoni kutish kerak
+                  bo'lardi. */}
+              <VideoYuklash
+                darsId={d.id}
+                bormi={Boolean(d.videoPath)}
+                matnlar={{
+                  yukla: t("admin.video_yukla"),
+                  almashtir: t("admin.video_almashtir"),
+                  yuklanmoqda: t("admin.video_yuklanmoqda"),
+                  tarmoq_xatosi: t("admin.video_tarmoq_xatosi"),
+                }}
+              />
+
               <DarsFormasi t={t} dars={d} />
             </Card>
           ))

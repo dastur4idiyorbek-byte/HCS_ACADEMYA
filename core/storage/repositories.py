@@ -339,6 +339,31 @@ class ContentRepository:
         )
         return list((await self._session.execute(stmt)).scalars())
 
+    async def pending_upload(self, limit: int = 5) -> list[Content]:
+        """Saytga yuklangan, lekin Telegramga hali chiqmagan darslar.
+
+        Sayt video faylni doimiy diskka yozadi va `video_path` ni
+        to'ldiradi. Telegram `file_id` esa faqat fayl BOTGA yuborilganda
+        paydo bo'ladi — bu Telegram cheklovi. Shu so'rov o'sha "diskda
+        bor, Telegramda yo'q" darslarni topadi.
+
+        Usiz saytdan qo'shilgan dars botda ko'rinmay qolardi: ikki
+        joyda ikki xil ro'yxat — foydalanuvchi uchun eng chalkash holat.
+        """
+        stmt = (
+            select(Content)
+            .where(Content.video_path.is_not(None), Content.file_id.is_(None))
+            .order_by(Content.id)
+            .limit(limit)
+        )
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def set_file_id(self, content_id: int, file_id: str) -> None:
+        """Telegramga chiqqan darsning `file_id` sini saqlaydi."""
+        yozuv = await self._session.get(Content, content_id)
+        if yozuv is not None:
+            yozuv.file_id = file_id
+
     async def add(
         self,
         kind: str,

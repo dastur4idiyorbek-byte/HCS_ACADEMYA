@@ -9,7 +9,7 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { botHavolasi, env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx, riskFoyda, sana } from "@/lib/format";
-import { tarjimon } from "@/lib/i18n";
+import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
 import { kirishMumkin, signalOl, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
@@ -116,18 +116,7 @@ export default async function SignalSahifasi({
             entry={signal.entry}
             stop={signal.stop}
             tpNarxlari={[signal.tp1, signal.tp2]}
-            matnlar={{
-              sarlavha: t("signal.kalk_sarlavha"),
-              summa: t("signal.kalk_summa"),
-              kirish: t("signal.kalk_kirish"),
-              stop: t("signal.kalk_stop"),
-              ulush: t("signal.kalk_ulush"),
-              umumiy: t("signal.kalk_umumiy"),
-              stop_agar: t("signal.kalk_stop_agar"),
-              jami: t("signal.kalk_jami"),
-              ulush_xato: t("signal.kalk_ulush_xato"),
-              ogohlantirish: t("signal.kalk_ogohlantirish"),
-            }}
+            matnlar={kalkulyatorMatnlari(t)}
           />
         </Himoya>
 
