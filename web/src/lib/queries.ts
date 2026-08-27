@@ -1076,3 +1076,109 @@ export function darsSaqla(
 export function darsOchir(id: number): boolean {
   return db().prepare(`delete from content where id = ?`).run(id).changes > 0;
 }
+
+// --------------------------------------------------------------------------- //
+//  Ijtimoiy tarmoqlar (bosh sahifa pastida)
+// --------------------------------------------------------------------------- //
+
+/** Ruxsat etilgan ikonkalar. Ixtiyoriy matn EMAS: noma'lum qiymat kelsa
+ *  sayt bo'sh joy ko'rsatardi va sabab ko'rinmasdi. */
+export const IKONKALAR = ["telegram", "instagram", "youtube", "web"] as const;
+export type Ikonka = (typeof IKONKALAR)[number];
+
+export type Havola = {
+  id: number;
+  title: string;
+  url: string;
+  icon: Ikonka;
+  position: number;
+  active: boolean;
+};
+
+function havolagaAylantir(q: Qator): Havola {
+  const icon = q.icon as string;
+  return {
+    id: songaAylantir(q.id),
+    title: q.title as string,
+    url: q.url as string,
+    icon: (IKONKALAR as readonly string[]).includes(icon) ? (icon as Ikonka) : "web",
+    position: songaAylantir(q.position),
+    active: Boolean(q.is_active),
+  };
+}
+
+/** Saytda ko'rinadigan havolalar. */
+export function havolalar(): Havola[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, title, url, icon, position, is_active from social_links
+        where is_active = 1 order by position asc, id asc`,
+    )
+    .all() as Qator[];
+  return qatorlar.map(havolagaAylantir);
+}
+
+/** Admin ro'yxati — o'chirilganlari ham ko'rinadi. */
+export function barchaHavolalar(): Havola[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, title, url, icon, position, is_active from social_links
+        order by position asc, id asc`,
+    )
+    .all() as Qator[];
+  return qatorlar.map(havolagaAylantir);
+}
+
+export type HavolaNatijasi = { ok: true; id: number } | { ok: false; sabab: string };
+
+/** Havolani saqlaydi.
+ *
+ * URL faqat `http`/`https` bo'lishi mumkin: `javascript:` manzili
+ * havolaga qo'yilsa, uni bosgan foydalanuvchining brauzerida ixtiyoriy
+ * kod ishga tushardi.
+ */
+export function havolaSaqla(
+  id: number | null,
+  kirish: { title: string; url: string; icon: string; position: number; active: boolean },
+  hozir = new Date(),
+): HavolaNatijasi {
+  const title = kirish.title.trim();
+  if (!title) return { ok: false, sabab: "Nom yozilishi shart" };
+
+  const url = kirish.url.trim();
+  let tekshirilgan: URL;
+  try {
+    tekshirilgan = new URL(url);
+  } catch {
+    return { ok: false, sabab: "Havola to'liq manzil bo'lishi kerak (https://...)" };
+  }
+  if (tekshirilgan.protocol !== "http:" && tekshirilgan.protocol !== "https:") {
+    return { ok: false, sabab: "Faqat http yoki https manzillari qabul qilinadi" };
+  }
+
+  const icon = (IKONKALAR as readonly string[]).includes(kirish.icon) ? kirish.icon : "web";
+  const baza = db();
+  const vaqtNow = vaqtSatri(hozir);
+
+  if (id !== null) {
+    baza
+      .prepare(
+        `update social_links set title = ?, url = ?, icon = ?, position = ?,
+                                 is_active = ?, updated_at = ? where id = ?`,
+      )
+      .run(title, url, icon, kirish.position, kirish.active ? 1 : 0, vaqtNow, id);
+    return { ok: true, id };
+  }
+
+  const natija = baza
+    .prepare(
+      `insert into social_links (title, url, icon, position, is_active, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(title, url, icon, kirish.position, kirish.active ? 1 : 0, vaqtNow, vaqtNow);
+  return { ok: true, id: songaAylantir(natija.lastInsertRowid) };
+}
+
+export function havolaOchir(id: number): boolean {
+  return db().prepare(`delete from social_links where id = ?`).run(id).changes > 0;
+}

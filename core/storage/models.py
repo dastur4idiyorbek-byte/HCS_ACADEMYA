@@ -2,7 +2,8 @@
 
 Jadvallar: users, subscriptions, payments, signals, signal_events, content,
 violations, price_config, risk_config, coin_rulings (haram/mashbooh),
-user_positions, daily_stats, market_health_log, risk_blocks, audit_reports.
+user_positions, daily_stats, market_health_log, risk_blocks, audit_reports,
+social_links.
 
 MUHIM: bu modul `aiogram` ga bog'liq emas — `core/` qoidasi (0.1-band).
 """
@@ -396,6 +397,28 @@ class DailyStat(Base, TimestampMixin):
     avg_risk_reward: Mapped[float | None] = mapped_column(Float)
     total_participants: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_volume_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+
+class SocialLink(Base, TimestampMixin):
+    """Saytning pastki qismidagi ijtimoiy tarmoq havolalari.
+
+    Nima uchun bazada, koddagi ro'yxatda emas: yangi kanal qo'shish yoki
+    havolani almashtirish uchun har safar kod o'zgartirib, qayta
+    joylashtirish kerak bo'lardi. Admin panelda esa bu bir daqiqalik ish.
+
+    `icon` — belgilangan ro'yxatdan tanlanadi (`telegram`, `instagram`,
+    `youtube`, `web`). Ixtiyoriy matn emas: noma'lum qiymat kelsa sayt
+    bo'sh joy ko'rsatardi va sabab ko'rinmasdi.
+    """
+
+    __tablename__ = "social_links"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(64), nullable=False)
+    url: Mapped[str] = mapped_column(String(512), nullable=False)
+    icon: Mapped[str] = mapped_column(String(32), default="web", nullable=False)
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
 class AuditReport(Base, TimestampMixin):

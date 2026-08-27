@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
+import { Grafik } from "@/components/Grafik";
 import { Himoya } from "@/components/Himoya";
+import { Kalkulyator } from "@/components/Kalkulyator";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
@@ -94,6 +96,40 @@ export default async function SignalSahifasi({
             </p>
           </Card>
         </div>
+
+        <Card>
+          <CardTitle>📈 {t("signal.grafik")}</CardTitle>
+          <div className="mt-3">
+            <Grafik
+              symbol={`BINANCE:${signal.symbol}`}
+              xatoMatni={t("signal.grafik_xato")}
+            />
+          </div>
+        </Card>
+
+        {/* Kalkulyator HIMOYA ICHIDA: unda kirish, Stop va TP narxlari
+            turadi — ya'ni signalning o'zi. Grafik esa tashqarida, chunki
+            u ochiq bozor ma'lumoti. */}
+        <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
+          <Kalkulyator
+            symbol={signal.symbol}
+            entry={signal.entry}
+            stop={signal.stop}
+            tpNarxlari={[signal.tp1, signal.tp2]}
+            matnlar={{
+              sarlavha: t("signal.kalk_sarlavha"),
+              summa: t("signal.kalk_summa"),
+              kirish: t("signal.kalk_kirish"),
+              stop: t("signal.kalk_stop"),
+              ulush: t("signal.kalk_ulush"),
+              umumiy: t("signal.kalk_umumiy"),
+              stop_agar: t("signal.kalk_stop_agar"),
+              jami: t("signal.kalk_jami"),
+              ulush_xato: t("signal.kalk_ulush_xato"),
+              ogohlantirish: t("signal.kalk_ogohlantirish"),
+            }}
+          />
+        </Himoya>
 
         <Card>
           <CardTitle>{t("signal.ball_sabab")}</CardTitle>

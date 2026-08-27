@@ -21,9 +21,9 @@
     "kurs": "Onlayn kurs",
     "statistika": "Statistika",
     "portfel": "Mening portfelim",
-    "sokinlik": "Nega signal yo'q?",
     "profil": "Profil / Obunam",
-    "admin": "Admin panel"
+    "admin": "Admin panel",
+    "salomatlik": "Bozor Salomatligi"
   },
   "kirish": {
     "sarlavha": "Telegram orqali kiring",
@@ -48,7 +48,11 @@
     "dominatsiya": "BTC dominatsiyasi",
     "volatillik": "Volatillik",
     "sigim": "Foydalanuvchi sig'imi",
-    "toyinganlik": "To'yinganlik"
+    "toyinganlik": "To'yinganlik",
+    "sahifa_kirish": "Bozor Salomatligi — bu tizimning yuragi. Har bir signal berilishidan oldin tizim bozorning umumiy holatini — yo'nalishini, kuchini va xavfsizligini — baholaydi. Quyidagi shkala shu bahoni ko'rsatadi: bozor qanchalik sog'lom bo'lsa, signal imkoniyati shunchalik ortadi.",
+    "voronka_sarlavha": "Nega bugun signal kam yoki yo'q?",
+    "voronka_kirish": "Signal berish — ko'p bosqichli tekshiruvdan iborat. Har bir bosqich nomzodlarni saralaydi, faqat eng munosib holatlar signalga aylanadi. Quyida aniq raqamlar: qaysi bosqichda qancha nomzod to'xtagani va sabab nimada.",
+    "tarix": "Oxirgi qiymatlar"
   },
   "signal": {
     "sarlavha": "Signallar",
@@ -74,7 +78,19 @@
     "limit": "Buyurtma qoldiring — narx shu yerga kelganda ochiladi",
     "market": "Hozir oling — narx allaqachon kerakli joyda",
     "himoya": "Narxlar vaqtincha yashirildi. Sahifaga qayting.",
-    "himoya_izoh": "Signal narxlari ustida sizning Telegram IDingiz turadi. Skrinshotni tarqatsangiz, u kimdan chiqqani ko'rinadi va obuna to'xtatiladi (1.3-band)."
+    "himoya_izoh": "Signal narxlari ustida sizning Telegram IDingiz turadi. Skrinshotni tarqatsangiz, u kimdan chiqqani ko'rinadi va obuna to'xtatiladi (1.3-band).",
+    "kalk_sarlavha": "Trading kalkulyatori",
+    "kalk_summa": "Sarflanadigan summa (USDT)",
+    "kalk_kirish": "Kirish narxi",
+    "kalk_stop": "Stop narxi",
+    "kalk_ulush": "Ulush",
+    "kalk_umumiy": "Umumiy miqdor",
+    "kalk_stop_agar": "Agar Stop'ga borsa",
+    "kalk_jami": "Barcha TP bajarilsa jami",
+    "kalk_ulush_xato": "Ulushlar yig'indisi 100% bo'lishi kerak — hozir {jami}%.",
+    "kalk_ogohlantirish": "Bu — faqat hisob-kitob, moliyaviy maslahat emas.",
+    "grafik": "Bozor grafigi",
+    "grafik_xato": "Grafik yuklanmadi — brauzerdagi reklama bloklovchi TradingView'ga ruxsat bermayotgan bo'lishi mumkin. Signal narxlari pastda, ular grafikka bog'liq emas."
   },
   "statistika": {
     "sarlavha": "Statistika",
@@ -226,6 +242,29 @@
     "video_yoq": "Video biriktirilmagan",
     "yangi_dars": "Yangi dars",
     "dars_yoq": "Hali dars qo'shilmagan.",
-    "signal_izoh_maydoni": "Izoh (ixtiyoriy)"
+    "signal_izoh_maydoni": "Izoh (ixtiyoriy)",
+    "havolalar": "Ijtimoiy tarmoqlar",
+    "havola_izoh": "Bu havolalar bosh sahifaning pastida ko'rinadi. Yangi tarmoq qo'shish uchun kodga tegish shart emas.",
+    "havola_nomi": "Nomi",
+    "havola_url": "Havola (https://...)",
+    "havola_ikonka": "Ikonka",
+    "havola_faol": "Saytda ko'rsatilsin",
+    "yangi_havola": "Yangi havola",
+    "havola_yoq": "Hali havola qo'shilmagan."
+  },
+  "bosh": {
+    "shior": "Halol kripto spot savdo signallari",
+    "tavsif_sarlavha": "Loyiha haqida",
+    "tavsif": "HALOL CRYPTO SAVDO — kripto bozorida spot savdo uchun signal tizimi. Tizim bozorni uzluksiz kuzatadi, har bir nomzodni ko'p bosqichli tekshiruvdan o'tkazadi va faqat shartlarga to'liq javob berganini signal qilib beradi. Shart bajarilmasa — signal berilmaydi, va bu xato emas.",
+    "kimga_sarlavha": "Kimga mo'ljallangan",
+    "kimga": "Kripto bozorida ehtiyotkorlik bilan, tushunib ish yuritmoqchi bo'lganlar uchun. Har bir signal ochiq tushuntiriladi: nima uchun berilgani, ball tafsiloti va tanlangan coin qanday tekshiruvdan o'tgani ko'rinadi.",
+    "nega_halol_sarlavha": "Nima uchun \"halol\"",
+    "nega_halol": "Tizim faqat SPOT savdo bilan ishlaydi: qarz ham, kredit yelkasi (leverage) ham, foiz (riba) ham yo'q — siz faqat o'zingizdagi mablag'ga sotib olasiz. Coinlar ro'yxati alohida tekshiruvdan o'tkaziladi: shubhali (mashbooh) deb belgilangani ham harom kabi chetlab o'tiladi.",
+    "diniy_sarlavha": "Diniy asos",
+    "diniy_holat": "TASDIQLASH KUTILMOQDA",
+    "diniy_placeholder": "Bu yerda savdo ahkomlarini bilish zarurligi haqidagi diniy asos joylashtiriladi — hozircha tasdiqlanish jarayonida.",
+    "diniy_izoh": "Matn bilimdon kishi (muftiy yoki olim) tasdiqlagandan keyin kiritiladi. Diniy da'volar bu loyihada hech qachon tekshirilmasdan nashr etilmaydi — bu halollik tekshiruvi tamoyilining o'zi.",
+    "tarmoqlar": "Biz bilan aloqada",
+    "tarmoqlar_yoq": "Havolalar hali qo'shilmagan."
   }
 }

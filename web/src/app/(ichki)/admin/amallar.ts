@@ -11,6 +11,8 @@ import {
   coinQaroriniOchir,
   darsOchir,
   darsSaqla,
+  havolaOchir,
+  havolaSaqla,
   narxniYangila,
   signalYarat,
   tolovniRadEt,
@@ -168,4 +170,31 @@ export async function darsOchirish(forma: FormData): Promise<void> {
   darsOchir(Number(forma.get("id")));
   revalidatePath("/admin/darslar");
   revalidatePath("/video");
+}
+
+
+// --------------------------------------------------------------------------- //
+//  Ijtimoiy tarmoqlar
+// --------------------------------------------------------------------------- //
+
+export async function havolaSaqlash(forma: FormData): Promise<void> {
+  await adminTekshir();
+  const xomId = String(forma.get("id") ?? "").trim();
+
+  havolaSaqla(xomId ? Number(xomId) : null, {
+    title: String(forma.get("title") ?? ""),
+    url: String(forma.get("url") ?? ""),
+    icon: String(forma.get("icon") ?? "web"),
+    position: Number(String(forma.get("position") ?? "0")) || 0,
+    active: forma.get("active") === "on",
+  });
+  revalidatePath("/admin/havolalar");
+  revalidatePath("/bosh");
+}
+
+export async function havolaOchirish(forma: FormData): Promise<void> {
+  await adminTekshir();
+  havolaOchir(Number(forma.get("id")));
+  revalidatePath("/admin/havolalar");
+  revalidatePath("/bosh");
 }

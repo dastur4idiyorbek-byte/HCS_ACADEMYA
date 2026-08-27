@@ -2969,7 +2969,89 @@ Tahrirlashda bo'sh `file_id` mavjud videoni O'CHIRMAYDI (`coalesce`) —
 aks holda sarlavhani tuzatgan admin darsni ham buzib qo'yardi. Buni
 `tests/signal.test.ts` tekshiradi.
 
-## 51. Bosqichlar holati
+## 51. Veb: bosh sahifa, Bozor Salomatligi sahifasi va kalkulyator
+
+Uchta mustaqil o'zgarish, lekin har biri bitta xatoga qarshi qurilgan.
+
+### 51.1. Diniy iqtibos YOZILMADI — placeholder qo'yildi
+
+Bosh sahifada savdo ahkomlarini bilish zarurligi haqidagi diniy asos
+turishi kerak. Uning aniq lafzi **yozilmadi**: manba tekshirilmagan.
+Uning o'rnida `[TASDIQLASH KUTILMOQDA]` belgisi va nima kutilayotganini
+aytadigan matn turadi.
+
+Nega bu shunchalik muhim: bu — loyihaning 1.4-bandidagi halollik
+tekshiruvi tamoyilining o'ziga tegishli. Tekshirilmagan diniy da'voni
+"vaqtincha" qo'yib, keyin unutish — halol savdo haqidagi loyihada eng
+yomon xato bo'lardi. Belgi ko'zga tashlanadigan qilib qo'yilgan
+(`Badge tone="ortacha"`), ya'ni uni tasodifan e'tibordan qoldirib
+bo'lmaydi. Matnni muftiy/olim tasdiqlagach almashtiriladi.
+
+### 51.2. Ijtimoiy tarmoqlar — kod emas, baza
+
+Havolalar `social_links` jadvalida, admin panelidan boshqariladi.
+Sabab oddiy: yangi tarmoq qo'shish uchun deploy kutish kerak
+bo'lmasin. Ikonka turi ham tanlovdan — ya'ni ro'yxat kengaysa, sayt
+kodi o'zgarmaydi.
+
+### 51.3. "Nega signal yo'q?" alohida bo'lib qololmasdi
+
+Bozor Salomatligi shkalasi bosh sahifadan `/salomatlik` ga ko'chdi va
+voronka ("Nega bugun signal kam?") **shu sahifaga qo'shildi**, alohida
+menyu bandi olib tashlandi.
+
+Bu — dizayn emas, mazmun masalasi. Ikkalasi bitta savolga javob
+beradi: "bugun nega jim?". Ular ikki bandda turganda foydalanuvchi
+shkalani ko'rib "bozor 66/100, yaxshi-ku" deb ketardi va voronkadagi
+haqiqiy sababni (masalan ball chegarasidan hech kim o'tmagani) umuman
+ko'rmasdi. 37-bo'limdagi sokinlik dashboardining o'zi ham aynan shu
+uchun qurilgan edi.
+
+Eski `/sokinlik` manzili o'chirilmadi — `/salomatlik` ga yo'naltiradi.
+Foydalanuvchida saqlangan havola sinmasin.
+
+### 51.4. Kalkulyator — sof funksiya, keyin ekran
+
+Hisob-kitob `web/src/lib/kalkulyator.ts` da: React'siz, DOM'siz sof
+funksiya, test bilan qoplangan (11 ta). Komponent faqat maydonlarni
+ko'rsatadi va natijani chizadi.
+
+Nega bunday bo'lindi: bu yerda foydalanuvchi O'Z PULINI hisoblaydi.
+Hisobdagi xato — ekrandagi xato emas, u odamning qaroriga ta'sir
+qiladi. Testlar orasida topshiriqdagi aniq misol ham bor ($1000,
+kirish 100, stop 97, TP 103/106/109 — 50/30/20%), ya'ni raqamlar
+kutilgani bilan solishtiriladi, "ishlayotganga o'xshaydi" bilan emas.
+
+TP soni **qattiq yozilmagan**: komponent massiv qabul qiladi. Signalda
+uchinchi TP paydo bo'lsa, kalkulyatorda hech narsa o'zgarmaydi.
+Ulushlar yig'indisi 100% bo'lmasa ogohlantirish chiqadi, lekin hisob
+to'xtatilmaydi — foydalanuvchi qismini sotmoqchi bo'lishi ham mumkin.
+
+### 51.5. Grafik himoyadan TASHQARIDA, kalkulyator ICHIDA
+
+| Element | Joyi | Sabab |
+|---|---|---|
+| TradingView grafigi | `Himoya` dan tashqarida | ochiq bozor ma'lumoti, bizniki emas |
+| Kalkulyator | `Himoya` ichida | maydonlarida kirish, Stop va TP narxlari turadi — ya'ni signalning O'ZI |
+
+Agar kalkulyator tashqarida qolsa, suv belgisi va xiralashtirish
+qatlamlari aylanib o'tilardi: narxlar himoyalangan kartochkada
+yashirin, lekin kalkulyator maydonida ochiq turardi.
+
+### 51.6. Uchinchi tomon skripti tushib qolishi HISOBGA olingan
+
+TradingView widget'i tashqi domendan skript tortadi. Reklama
+bloklovchi (uBlock va shunga o'xshash) uni bemalol to'sadi. Zaxirasiz
+foydalanuvchi 420px bo'sh quti ko'rardi va saytni buzilgan deb
+o'ylardi.
+
+Shuning uchun ikkita tekshiruv bor: skriptning `onerror` hodisasi VA
+6 soniyadan keyin natijaning o'zi (`iframe` paydo bo'lganmi). Ikkinchisi
+kerak, chunki bloklovchi so'rovni jimgina bekor qilsa `onerror`
+kelmaydi. Ikkalasidan biri ishlasa — tushuntirish matni chiqadi va
+signal narxlari grafikka bog'liq emasligi aytiladi.
+
+## 52. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

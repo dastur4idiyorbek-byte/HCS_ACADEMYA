@@ -1,114 +1,80 @@
-import { SalomatlikShkalasi, SalomatlikYoq } from "@/components/Salomatlik";
+import Image from "next/image";
+
+import { Tarmoqlar } from "@/components/Tarmoqlar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
-import { Sarlavha } from "@/components/ui/Sarlavha";
-import { salomatlikBandlari } from "@/lib/config";
 import { tarjimon } from "@/lib/i18n";
-import { kirimMumkinSignallar } from "@/lib/sahifa";
-import { salomatlikOxirgi } from "@/lib/queries";
+import { havolalar } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function Bosh() {
-  const { til, foydalanuvchi, tarif } = await kirim();
+  const { til } = await kirim();
   const t = tarjimon(til);
-  const salomatlik = salomatlikOxirgi();
-  const bandlar = salomatlikBandlari();
-  const { faol, jami } = kirimMumkinSignallar(tarif);
-
-  const omillar = salomatlik
-    ? [
-        { kalit: "salomatlik.kenglik", qiymat: salomatlik.trendBreadthScore },
-        { kalit: "salomatlik.dominatsiya", qiymat: salomatlik.btcDominanceScore },
-        { kalit: "salomatlik.volatillik", qiymat: salomatlik.volatilityScore },
-        { kalit: "salomatlik.sigim", qiymat: salomatlik.userCapacityScore },
-        { kalit: "salomatlik.toyinganlik", qiymat: salomatlik.saturationScore },
-      ].filter((o) => o.qiymat !== null)
-    : [];
+  const tarmoqlar = havolalar();
 
   return (
-    <>
-      <Sarlavha
-        matn={
-          foydalanuvchi?.fullName
-            ? `${t("menyu.bosh")} — ${foydalanuvchi.fullName}`
-            : t("menyu.bosh")
-        }
-      />
+    <div className="space-y-5">
+      <header className="flex flex-col items-center py-6 text-center">
+        <Image
+          src="/logo.jpg"
+          alt="HCS — Halol Crypto Savdo"
+          width={96}
+          height={96}
+          className="rounded-kartochka"
+          priority
+        />
+        <h1 className="text-sarlavha mt-4 text-2xl font-bold tracking-wide sm:text-3xl">
+          HALOL CRYPTO SAVDO
+        </h1>
+        <p className="text-matn-past mt-1 text-sm">{t("bosh.shior")}</p>
+      </header>
 
-      <div className="space-y-5">
-        <Card variant="urgu">
-          <CardTitle>{t("salomatlik.sarlavha")}</CardTitle>
-          <CardHint>{t("salomatlik.izoh")}</CardHint>
-          <div className="mt-4">
-            {salomatlik ? (
-              <SalomatlikShkalasi
-                qiymat={salomatlik.value}
-                band={salomatlik.band}
-                bandlar={bandlar}
-                til={til}
-              />
-            ) : (
-              <SalomatlikYoq til={til} />
-            )}
-          </div>
-          {salomatlik?.createdAt && (
-            <p className="text-matn-past mt-3 text-center text-xs">
-              {t("umumiy.yangilangan")}: {salomatlik.createdAt.toISOString().slice(0, 16).replace("T", " ")} UTC
-            </p>
-          )}
+      <Card>
+        <CardTitle>{t("bosh.tavsif_sarlavha")}</CardTitle>
+        <p className="mt-2 text-sm leading-relaxed">{t("bosh.tavsif")}</p>
+      </Card>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Card>
+          <CardTitle>{t("bosh.kimga_sarlavha")}</CardTitle>
+          <p className="mt-2 text-sm leading-relaxed">{t("bosh.kimga")}</p>
         </Card>
 
-        {omillar.length > 0 && (
-          <Card>
-            <CardTitle>{t("salomatlik.omillar")}</CardTitle>
-            <ul className="mt-3 space-y-2">
-              {omillar.map((o) => (
-                <li key={o.kalit} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 text-sm">{t(o.kalit)}</span>
-                  <span className="bg-fon h-2 flex-1 overflow-hidden rounded-full">
-                    <span
-                      className="bg-yaxshi block h-full rounded-full"
-                      style={{ width: `${Math.min(100, Math.max(0, o.qiymat!))}%` }}
-                    />
-                  </span>
-                  <span className="raqam text-matn-past w-10 text-right text-xs">
-                    {o.qiymat!.toFixed(0)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Card>
-            <CardTitle>{t("signal.sarlavha")}</CardTitle>
-            <p className="raqam text-sarlavha mt-2 text-3xl font-bold">{faol}</p>
-            <CardHint>
-              {t("signal.faol")} · {t("umumiy.jami")}: {jami}
-            </CardHint>
-            <div className="mt-4">
-              <Button href="/signallar" variant="ikkilamchi">
-                {t("menyu.signallar")}
-              </Button>
-            </div>
-          </Card>
-
-          <Card>
-            <CardTitle>{t("sokinlik.sarlavha")}</CardTitle>
-            <CardHint>{t("sokinlik.izoh")}</CardHint>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button href="/sokinlik" variant="ikkilamchi">
-                {t("signal.nega_yoq")}
-              </Button>
-              <Badge>{t("sokinlik.davr")}</Badge>
-            </div>
-          </Card>
-        </div>
+        <Card>
+          <CardTitle>{t("bosh.nega_halol_sarlavha")}</CardTitle>
+          <p className="mt-2 text-sm leading-relaxed">{t("bosh.nega_halol")}</p>
+        </Card>
       </div>
-    </>
+
+      {/* Diniy asos — matn ATAYLAB yozilmagan.
+          Iqtibosning aniq lafzi bilimdon kishi tasdiqlagandan keyin
+          kiritiladi. Bu joy dizayn jihatdan tayyor: matn almashtirilsa
+          kifoya, boshqa hech narsa o'zgarmaydi. */}
+      <Card variant="urgu">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>☪️ {t("bosh.diniy_sarlavha")}</CardTitle>
+          <Badge tone="ortacha">{t("bosh.diniy_holat")}</Badge>
+        </div>
+        <p className="text-matn-past mt-3 text-sm leading-relaxed italic">
+          {t("bosh.diniy_placeholder")}
+        </p>
+        <CardHint className="mt-3">{t("bosh.diniy_izoh")}</CardHint>
+      </Card>
+
+      <Card>
+        <CardTitle>{t("menyu.salomatlik")}</CardTitle>
+        <CardHint>{t("salomatlik.izoh")}</CardHint>
+        <div className="mt-4">
+          <Button href="/salomatlik" variant="ikkilamchi">
+            {t("menyu.salomatlik")}
+          </Button>
+        </div>
+      </Card>
+
+      <Tarmoqlar havolalar={tarmoqlar} til={til} />
+    </div>
   );
 }
