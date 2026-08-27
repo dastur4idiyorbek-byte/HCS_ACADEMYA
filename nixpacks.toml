@@ -6,11 +6,15 @@
 [phases.setup]
 # "..." — nixpacks o'zi topgan paketlarni saqlaydi, ustiga qo'shamiz.
 #
-# nodejs_24: baza `node:sqlite` orqali o'qiladi, u esa Node 22.5 dan
-# boshlab bor. `nodejs_22` nomi nixpkgs ning qaysi surati ishlatilishiga
-# qarab 22.0-22.4 ni ham berishi mumkin — o'shanda modul topilmaydi.
-# 24 — bu chegaradan ancha yuqori, ya'ni taxminga o'rin qolmaydi.
-nixPkgs = ["...", "nodejs_24"]
+# `nodejs_24` SINAB KO'RILDI VA YO'Q: Railway ishlatadigan nixpkgs surati
+# 2025-yil apreliga tegishli, Node 24 esa o'sha paytda hali chiqmagan edi
+# ("error: undefined variable 'nodejs_24'"). Shu suratdagi eng yangi Node —
+# `nodejs_22`, va u 22.5 dan yuqori bo'lishi kerak, ya'ni `node:sqlite`
+# unda bor. Qurish buyrug'idagi `node --version` buni logda tasdiqlaydi.
+#
+# gcc/gnumake olib tashlandi: ular faqat `better-sqlite3` ni yig'ish uchun
+# kerak edi, u esa endi ishlatilmaydi.
+nixPkgs = ["...", "nodejs_22"]
 
 # Nima uchun `build` deb nomlangan (masalan `veb` emas): `build` —
 # nixpacks ning STANDART bosqichi va u har doim `start` dan oldin
