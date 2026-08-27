@@ -8,7 +8,14 @@
 # gcc/gnumake — `better-sqlite3` uchun (tayyor ikkilik topilmasa o'zi yig'ilsin).
 nixPkgs = ["...", "nodejs_22", "gcc", "gnumake"]
 
-[phases.veb]
-# Python o'rnatilgandan keyin ishlaydi
+# Nima uchun `build` deb nomlangan (masalan `veb` emas): `build` — nixpacks
+# ning STANDART bosqichi va u har doim `start` dan oldin bajariladi.
+# O'zimiz o'ylab topgan nomdagi bosqich esa grafikka kirmay qolishi va
+# jimgina o'tkazib yuborilishi mumkin — sayt esa yig'ilmagan holda
+# ishga tushardi.
+#
+# Python provayderida `build` bosqichi bo'sh, ya'ni biz hech narsani
+# bosib o'tmayapmiz.
+[phases.build]
 dependsOn = ["install"]
 cmds = ["cd web && npm ci && npm run build"]
