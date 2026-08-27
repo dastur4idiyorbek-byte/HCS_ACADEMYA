@@ -2592,7 +2592,50 @@ Endi ikkita test bu sinfni doimiy qo'riqlaydi:
 
 ---
 
-## 50. Bosqichlar holati
+## 50. Veb-sayt qatlami: ranglar TAXMIN qilinmadi
+
+`web/` — Next.js sayti, botning **qo'shimcha interfeysi**. `core/` (miya)
+unga umuman tegmaydi: sayt bazani o'qiydi, hisoblash logikasi joyida qoladi.
+
+Dizayn tizimida bitta qoida qat'iy bajarildi: **birorta rang "ko'zga
+chiroyli" deb tanlanmadi**. Hammasi `web/public/logo.jpg` faylidan aniq
+koordinatalar bo'yicha o'lchandi — `web/scripts/logo_ranglari.py` shuni
+qayta ishlab beradi (9x9 kvadrat MEDIANASI: JPEG siqilishi bitta pikselni
+buzishi mumkin, mediana esa chidamli).
+
+Logotipda yo'q bo'lgan uchta rang alohida belgilandi — sahifa foni
+(qoraytirilgan), uzun matn toni va qizil. Ular "hisoblangan" deb
+yozilgani muhim: keyinchalik kimdir "bu ham logotipdan-ku" deb
+o'ylamasligi kerak.
+
+### 4-naqsh yana urinib ko'rdi
+
+`docs/ARXITEKTURA.md` da qayd etilgan to'rtinchi naqsh — "testdagi qattiq
+yozilgan qiymat jimgina eskiradi" — bu yerda ham paydo bo'ldi. Men
+kontrast nisbatlarini hujjatga QO'LDA yozdim va to'rttasi ham noto'g'ri
+chiqdi: hisoblashda `#123772` ni ishlatgan edim, CSS da esa `#133C7C`
+turardi.
+
+Shuning uchun `web/scripts/kontrast.py` yozildi — u raqamlarni
+`globals.css` NING O'ZIDAN o'qiydi (`var(...)` zanjirini ham yechadi) va
+WCAG bo'yicha tekshiradi. Birinchi ishga tushirishdayoq u haqiqiy
+kamchilikni tutdi:
+
+    XATO  past holat yorlig'i    2.55 : 1  (kerak 3.0)
+
+Ya'ni "🔴 Past" yorlig'i **ko'rinardi-yu, o'qib bo'lmasdi**. Bu ekranga
+qarab sezilmaydigan xato — chunki rang "qizil" ekani ko'rinib turadi,
+matn esa to'q ko'k fonda yo'qoladi. Natijada qizil ikkiga ajratildi:
+
+| O'zgaruvchi | Vazifasi |
+|---|---|
+| `--rang-past-toq` | Bozor Salomatligi shkalasi — katta grafik, to'yingan bo'lishi kerak |
+| `--rang-past` | Matn va yorliq — ochroq, chunki o'qilishi kerak |
+
+Bu — 3-naqshning ("bitta manba, ikki xil ma'no") rang darajasidagi
+ko'rinishi: bitta qizil ikkita boshqa savolga javob berayotgan edi.
+
+## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   HALOL CRYPTO SAVDO — dizayn tizimi
+   ---------------------------------------------------------------------------
+   BARCHA asosiy ranglar `public/logo.jpg` faylidan PIKSEL DARAJASIDA
+   o'lchangan. Ularni qayta tekshirish uchun:  python3 scripts/logo_ranglari.py
+   Har bir qiymat yonida — o'lchov koordinatasi. Taxmin qilingan rang yo'q;
+   hisoblab chiqarilgan (masalan qoraytirilgan) ranglar ALOHIDA belgilangan.
+
+   Rang rollari — texnik topshiriqning 1-bo'limidagi qoida:
+     "S" (to'q ko'k)  -> FON     (sahifa va kartochkalar foni)
+     "C" (apelsin)    -> RAMKA   (har kartochka atrofidagi ingichka chiziq)
+     "H" (turkuaz)    -> MATN    (sarlavhalar, asosiy urg'u)
+   =========================================================================== */
+
+:root {
+  /* --- Logotipdan o'lchangan xom ranglar ------------------------------- */
+  --logo-h-turkuaz: #01aac1;       /* H ustuni            (210, 300) */
+  --logo-h-turkuaz-och: #00bcd5;   /* H ko'ndalang chizig'i (270, 318) */
+  --logo-c-apelsin: #f47f16;       /* C yoyi              (420, 185) */
+  --logo-s-kok: #10469c;           /* S yoyi              (440, 370) */
+  --logo-s-kok-toq: #133c7c;       /* past-chap shakl     ( 55, 590) */
+  --logo-sariq: #f0b02a;           /* tepa-o'ng shakl     (600,  25) */
+  --logo-oq: #f9f9f9;              /* logotip foni        (560, 120) */
+
+  /* --- Interfeys rollari ----------------------------------------------- */
+  /* Sahifa foni: --logo-s-kok-toq dan HISOBLAB qoraytirilgan (~x0.62).
+     Nima uchun: kartochka logotipning haqiqiy ko'k rangida qolishi, lekin
+     fondan ajralib turishi kerak. Ikkalasi bir xil rang bo'lsa, kartochka
+     "suzib" ketadi va faqat ramka ushlab turadi. */
+  --rang-fon: #0a2450;
+  --rang-panel: var(--logo-s-kok-toq);   /* kartochka foni */
+  --rang-panel-yorqin: var(--logo-s-kok); /* hover / ko'tarilgan holat */
+
+  --rang-ramka: var(--logo-c-apelsin);
+  /* Ingichka chiziq "qichqirmasligi" uchun oddiy kartochkada shaffofroq */
+  --rang-ramka-yumshoq: color-mix(in srgb, var(--logo-c-apelsin) 62%, transparent);
+
+  --rang-sarlavha: var(--logo-h-turkuaz-och);
+  /* Uzun matn uchun turkuaz charchatadi — logotip ko'kining OCH TONI
+     (hisoblangan tint), kontrast 7.7:1 */
+  --rang-matn: #c7d4ea;
+  --rang-matn-past: #9ab0d2;      /* hisoblangan, ikkinchi darajali matn */
+  --rang-oq: var(--logo-oq);
+
+  /* --- Ma'noviy ranglar (Bozor Salomatligi shkalasi, holatlar) ---------- */
+  --rang-yaxshi: var(--logo-h-turkuaz-och);  /* to'yingan ko'k-yashil */
+  --rang-ortacha: var(--logo-sariq);
+  /* Qizil logotipda yo'q — apelsin ohangiga moslab HISOBLANGAN.
+     Ikkita variant kerak, chunki ikki xil ish bajaradi:
+       --rang-past-toq  — Bozor Salomatligi shkalasining chap uchi. Bu KATTA
+                          grafik element, "to'yingan qizil" bo'lishi shart.
+       --rang-past      — MATN va yorliq uchun ochroq toni. To'yingan qizil
+                          to'q ko'k ustida 2.6:1 beradi — o'qib bo'lmaydi. */
+  --rang-past-toq: #e2402f;
+  --rang-past: #f2695a;
+
+  /* --- O'lchamlar ------------------------------------------------------- */
+  --radius-kartochka: 14px;   /* topshiriq: 12-16px, keskin ham, dumaloq ham emas */
+  --radius-kichik: 10px;
+  --radius-tugma: 12px;
+}
+
+@theme inline {
+  --color-fon: var(--rang-fon);
+  --color-panel: var(--rang-panel);
+  --color-panel-yorqin: var(--rang-panel-yorqin);
+  --color-ramka: var(--rang-ramka);
+  --color-ramka-yumshoq: var(--rang-ramka-yumshoq);
+  --color-sarlavha: var(--rang-sarlavha);
+  --color-matn: var(--rang-matn);
+  --color-matn-past: var(--rang-matn-past);
+  --color-oq: var(--rang-oq);
+  --color-sariq: var(--rang-sariq);
+  --color-yaxshi: var(--rang-yaxshi);
+  --color-ortacha: var(--rang-ortacha);
+  --color-past: var(--rang-past);
+  --color-past-toq: var(--rang-past-toq);
+
+  --radius-kartochka: var(--radius-kartochka);
+  --radius-kichik: var(--radius-kichik);
+  --radius-tugma: var(--radius-tugma);
+
+  --font-sans: var(--font-inter);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--rang-fon);
+  color: var(--rang-matn);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Klaviatura bilan yurish ko'rinib tursin — ramka rangida */
+:focus-visible {
+  outline: 2px solid var(--rang-ramka);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Uzun raqamlar (narx, ball) ustunlarda tekis tursin */
+.raqam {
+  font-variant-numeric: tabular-nums;
+}
