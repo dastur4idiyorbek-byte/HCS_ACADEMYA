@@ -1,21 +1,23 @@
 # Railway uchun sozlama.
 #
-# Nima uchun bu fayl kerak: Railway kodni o'zi topib yig'adi, lekin uni
-# QANDAY ishga tushirishni bilmaydi. Bu bot veb-server emas — u fon
-# jarayoni (worker), shuning uchun port ochmaydi.
+# Bu xizmat ichida IKKITA jarayon ishlaydi (`scripts/start.sh`):
+#   1. bot   — fon jarayoni (port ochmaydi)
+#   2. sayt  — Next.js, `$PORT` da
+#
+# Nima uchun ikkalasi bitta xizmatda: Railway'da doimiy disk faqat bitta
+# xizmatga ulanadi, baza esa o'sha diskdagi SQLite fayli. Sayt uni
+# to'g'ridan-to'g'ri o'qishi kerak — demak, ular bir joyda yashashi shart.
 
 [build]
 builder = "NIXPACKS"
 
 [deploy]
-# Uch qadam ketma-ket:
-#   1. alembic  — jadvallarni yaratadi yoki yangilaydi
-#   2. seed     — boshlang'ich narxlar va coin qarorlari (takroriy xavfsiz)
-#   3. bot.main — botning o'zi
-#
-# Birinchi ikkisi yiqilsa bot ham ishga tushmaydi — bu ATAYLAB shunday:
-# yarim sozlangan baza bilan ishlagandan ko'ra to'xtagan yaxshi (0.3-band).
-startCommand = "alembic upgrade head && python -m scripts.seed && python -m bot.main"
+startCommand = "bash scripts/start.sh"
 
-# Bot yiqilsa Railway uni qayta ko'taradi (serverdagi systemd kabi).
+# Jarayonlardan biri yiqilsa skript butun konteynerni to'xtatadi,
+# Railway esa uni qayta ko'taradi.
 restartPolicyType = "ALWAYS"
+
+# Sayt tayyor bo'lgunicha Railway trafik yubormasin
+healthcheckPath = "/kirish"
+healthcheckTimeout = 120

@@ -1,0 +1,14 @@
+# Railway qurilishi: bitta konteynerda Python (bot) va Node (sayt).
+#
+# Nixpacks o'zi faqat Python loyihasini ko'radi — `package.json` ildizda
+# emas, `web/` ichida. Shuning uchun Node qadamlari qo'lda qo'shilgan.
+
+[phases.setup]
+# "..." — nixpacks o'zi topgan paketlarni saqlaydi, ustiga qo'shamiz.
+# gcc/gnumake — `better-sqlite3` uchun (tayyor ikkilik topilmasa o'zi yig'ilsin).
+nixPkgs = ["...", "nodejs_22", "gcc", "gnumake"]
+
+[phases.veb]
+# Python o'rnatilgandan keyin ishlaydi
+dependsOn = ["install"]
+cmds = ["cd web && npm ci && npm run build"]

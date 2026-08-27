@@ -56,12 +56,19 @@ def create_engine(url: str | None = None, echo: bool = False) -> AsyncEngine:
     if resolved.startswith("sqlite"):
         # WAL — bot va tahlil sikli bir vaqtda yozganda bloklanishni kamaytiradi.
         # foreign_keys — SQLite'da standart o'chirilgan, yoqish SHART.
+        #
+        # busy_timeout — endi bazaga IKKINCHI JARAYON ham tegadi: veb-sayt
+        # (`web/`) bot bilan bitta serverda, bitta faylni o'qiydi va admin
+        # paneli orqali yozadi ham. Busiz SQLite qulf band bo'lsa darhol
+        # "database is locked" xatosini beradi; 5 soniya kutish esa oddiy
+        # to'qnashuvlarni butunlay yo'q qiladi.
         @event.listens_for(engine.sync_engine, "connect")
         def _sqlite_pragmas(dbapi_connection, _record):  # noqa: ANN001
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA busy_timeout=5000")
             cursor.close()
 
     return engine

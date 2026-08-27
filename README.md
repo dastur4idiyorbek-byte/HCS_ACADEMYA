@@ -214,3 +214,11 @@ Bu tizim **moliyaviy maslahat bermaydi**. Bot hech qachon haqiqiy hisobga
 ulanmaydi, pulni ushlab turmaydi va "shuncha oling/soting" demaydi — pozitsiya
 hajmi moduli faqat hisob-kitob yordamchisi. Hech qachon "X% aniqlik" da'vosi
 qilinmaydi; faqat real statistika ko'rsatiladi.
+
+## Veb-sayt
+
+`web/` — Telegram botning qo'shimcha interfeysi (Next.js). Botni
+almashtirmaydi: `core/` (miya) tegilmaydi, sayt bazani o'qiydi va pullik
+amallar uchun foydalanuvchini botga yo'naltiradi. Bot bilan BITTA
+Railway xizmatida ishlaydi — batafsil: [`web/README.md`](web/README.md),
+ranglar esa [`web/DIZAYN.md`](web/DIZAYN.md).

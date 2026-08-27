@@ -2635,6 +2635,77 @@ matn esa to'q ko'k fonda yo'qoladi. Natijada qizil ikkiga ajratildi:
 Bu — 3-naqshning ("bitta manba, ikki xil ma'no") rang darajasidagi
 ko'rinishi: bitta qizil ikkita boshqa savolga javob berayotgan edi.
 
+### Sayt bazani QANDAY o'qiydi
+
+Sayt bot bilan bir xil SQLite faylini ochadi va shu sababli bot bilan
+**bitta Railway xizmatida** ishlaydi (`scripts/start.sh`). Sabab oddiy:
+Railway'da doimiy disk faqat bitta xizmatga ulanadi. Saytni alohida
+xizmatga yoki Vercel'ga qo'ysak, u faylni umuman ko'rmaydi.
+
+Shu qaror ikkita o'zgarishni talab qildi:
+
+- `core/storage/database.py` ga `PRAGMA busy_timeout=5000` qo'shildi.
+  Endi bazaga IKKINCHI jarayon ham yozadi (admin paneli), busiz SQLite
+  qulf band bo'lsa darhol "database is locked" beradi.
+- `scripts/start.sh` baza manzilini BIR MARTA hisoblab, ikkala jarayonga
+  eksport qiladi. `bot/hosting.py` uni Python jarayoni ICHIDA
+  o'rnatardi — Node jarayoni buni ko'rmasdi.
+
+### Yana uchta "ikki joyda bir xil qiymat" xavfi
+
+Saytda bir nechta qiymat botdan takrorlanishi mumkin edi. Har birida
+nusxa o'rniga MANBAGA murojaat qilindi:
+
+| Qiymat | Manba | Nima uchun nusxa emas |
+|---|---|---|
+| Obuna muddati (1 / 30 kun) | `config/default.yaml` | Sayt eski qiymat bilan obuna ochsa, bir xil to'lov ikki xil muddat berardi |
+| Bosqich nomlari (40+ ta) | `core/pipeline/context.py` | Yangi strategiya qo'shilsa saytda xom kod (`classic_ta:zones`) ko'rinardi |
+| Salomatlik bandlari | `config/default.yaml` | Shkaladagi belgilar botning haqiqiy chegarasidan siljib ketardi |
+
+Bosqich nomlari uchun Python fayli ish paytida o'qiladi va tahlil
+qilinadi. Bu "g'alati" ko'rinadi, lekin muqobili — 40 qatorlik ro'yxatni
+ikkinchi marta yozib qo'yish, ya'ni 1-naqshning o'zi.
+
+### Testlar yana ikkita xatoni tutdi
+
+**1. Baza yo'li — xato TEST TUFAYLI YASHIRINGAN edi.**
+
+`sqliteYoli()` da shunday yozilgan edi:
+
+```ts
+const [, , yol] = xom.split(":///");   // massivda atigi 2 element bor!
+```
+
+Uchinchi element yo'q, ya'ni natija DOIM `undefined` edi va zaxira yo'lga
+tushardi. Zaxira yo'l esa MUTLAQ manzillar uchun tasodifan to'g'ri
+ishlardi — testda aynan mutlaq manzil (`/tmp/...`) ishlatilgani uchun
+test yashil bo'lib turdi. Xato faqat brauzerda ochganda ko'rindi:
+
+    TypeError: Cannot open database because the directory does not exist
+
+SQLAlchemy'da `:///` nisbiy, `:////` mutlaq yo'lni bildiradi. Endi
+`tests/env.test.ts` ikkala shaklni ham tekshiradi.
+
+**2. Voronka tartibi teskari edi.**
+
+`STAGE_LABELS` Python'da o'qish qulayligi uchun guruhlab yozilgan: avval
+sikl darajasidagi bosqichlar (`threshold`, `risk_engine:*`), keyin
+strategiyalar. Voronkani shu tartibda chizganda ekranda "Ball chegaradan
+past" BIRINCHI o'rinda turdi — holbuki nomzod unga eng oxirida yetib
+boradi.
+
+Tuzatish ro'yxatni ko'chirib olish emas, QOIDA yozish bo'ldi
+(`voronkaTartibi`): guruh bosqich kodining prefiksidan aniqlanadi
+(strategiya -> ball -> risk engine). Yangi strategiya qo'shilsa, u
+avtomatik to'g'ri joyga tushadi.
+
+**3. `HCS_CONFIG_FILE` nisbiy yo'li.**
+
+Bot ildizdan, sayt esa `web/` dan ishga tushadi. Bir xil
+`config/default.yaml` qiymati ikkalasi uchun boshqa-boshqa faylni
+bildirardi va sayt jimgina zaxira qiymatlarga o'tib ketardi. Endi nisbiy
+yo'l doim loyiha ildiziga nisbatan hisoblanadi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |
