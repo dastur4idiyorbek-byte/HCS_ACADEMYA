@@ -2878,6 +2878,48 @@ ko'rinmay qolardi.
 `lastInsertRowid` BigInt qaytishi mumkin, shuning uchun bitta joyda
 (`songaAylantir`) oddiy songa aylantiriladi.
 
+### Qurish: Node 22.10 va `node:sqlite` bayrog'i
+
+`better-sqlite3` dan `node:sqlite` ga o'tgach qurish yiqildi. Uch urinish
+ketdi va faqat oxirgisi to'g'ri chiqdi — chunki faqat oxirgisi
+O'LCHOVGA tayandi.
+
+1. **Taxmin:** "nixpacks eski Node berayotgandir" -> `nodejs_24`.
+   Natija: `error: undefined variable 'nodejs_24'`. Railway ishlatadigan
+   nixpkgs surati 2025-yil apreliga tegishli, Node 24 esa o'shanda hali
+   chiqmagan edi.
+2. **`nodejs_22` ga qaytarildi** va qurish buyrug'ining birinchi qatoriga
+   `node --version` qo'yildi.
+3. **O'lchov:** log `v22.10.0` deb yozdi va aniq xatoni ko'rsatdi:
+
+       ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite
+         at module evaluation (src/lib/db.ts:2:1)
+
+`node:sqlite` Node **22.5** da qo'shilgan, lekin **22.13** gacha BAYROQ
+ostida turgan. Mahalliy mashinada 22.22 bo'lgani uchun hammasi bayroqsiz
+ishlardi — ya'ni bu xatoni bu yerda hech qachon ko'rib bo'lmasdi.
+
+Yechim — `NODE_OPTIONS=--experimental-sqlite`:
+
+| Qayerda | Nima uchun |
+|---|---|
+| `nixpacks.toml` `[variables]` | `next build` sahifalarni tahlil qilayotib modullarni ISHGA TUSHIRADI, ya'ni modul qurish paytida ham kerak |
+| `scripts/start.sh` | ishlash payti; mavjud qiymat saqlanadi, bosib o'tilmaydi |
+
+### Nima uchun importni kechiktirib bo'lmadi
+
+Avval boshqa yo'l sinaldi: `node:sqlite` ni faqat ishlash paytida
+yuklash, shunda qurish muhitidagi Node versiyasi ahamiyatsiz bo'lardi.
+Ikki usul ham rad etildi:
+
+    createRequire(import.meta.url)("node:sqlite")   -> Turbopack rad etadi
+    require("node:sqlite")                          -> Turbopack rad etadi
+    "Unsupported external type Url for commonjs reference"
+
+Ya'ni Turbopack bilan `node:sqlite` ni faqat statik `import` shaklida
+ishlatib bo'ladi. Bu `db.ts` da izoh bilan qayd etilgan, aks holda
+keyingi safar yana o'sha yo'ldan urinilardi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |

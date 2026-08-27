@@ -8,9 +8,12 @@
 #
 # `nodejs_24` SINAB KO'RILDI VA YO'Q: Railway ishlatadigan nixpkgs surati
 # 2025-yil apreliga tegishli, Node 24 esa o'sha paytda hali chiqmagan edi
-# ("error: undefined variable 'nodejs_24'"). Shu suratdagi eng yangi Node —
-# `nodejs_22`, va u 22.5 dan yuqori bo'lishi kerak, ya'ni `node:sqlite`
-# unda bor. Qurish buyrug'idagi `node --version` buni logda tasdiqlaydi.
+# ("error: undefined variable 'nodejs_24'").
+#
+# Shu suratdagi Node — v22.10.0 (buni qurish logi ko'rsatdi). `node:sqlite`
+# unda BOR, lekin BAYROQ ostida: u 22.5 da qo'shilgan va faqat 22.13 dan
+# boshlab bayroqsiz ochilgan. Shuning uchun quyida `NODE_OPTIONS`
+# o'rnatiladi.
 #
 # gcc/gnumake olib tashlandi: ular faqat `better-sqlite3` ni yig'ish uchun
 # kerak edi, u esa endi ishlatilmaydi.
@@ -23,11 +26,18 @@ nixPkgs = ["...", "nodejs_22"]
 #
 # Python provayderida `build` bosqichi bo'sh, ya'ni hech narsa bosib
 # o'tilmayapti.
+# Konteynerdagi Node v22.10.0 da `node:sqlite` bayroq talab qiladi.
+# Bu yerda o'rnatilsa, u QURISH ga ham, ISHLASH ga ham tarqaladi —
+# ikkalasida ham modul kerak bo'ladi (`next build` sahifalarni tahlil
+# qilayotib modullarni ishga tushiradi).
+[variables]
+NODE_OPTIONS = "--experimental-sqlite"
+
 [phases.build]
 dependsOn = ["install"]
 cmds = [
-  # Node versiyasi LOGDA ko'rinsin: `node:sqlite` 22.5 dan boshlab bor,
-  # ya'ni qurish yiqilsa, sabab birinchi qatordayoq ma'lum bo'ladi.
+  # Node versiyasi LOGDA ko'rinsin — qurish yiqilsa, sabab birinchi
+  # qatordayoq ma'lum bo'ladi.
   "node --version",
   "cd web && npm ci && npm run build",
 ]

@@ -49,6 +49,19 @@ echo "Baza: ${DATABASE_URL}"
 alembic upgrade head
 python -m scripts.seed
 
+# --- node:sqlite bayrog'i -------------------------------------------------
+# Konteynerdagi Node — v22.10.0. `node:sqlite` unda bor, lekin bayroq
+# ostida: modul 22.5 da qo'shilgan va faqat 22.13 dan bayroqsiz ochilgan.
+# Bayroqsiz sayt "No such built-in module: node:sqlite" deb yiqiladi.
+#
+# Mavjud qiymat SAQLANADI: Railway yoki nixpacks allaqachon nimadir
+# qo'ygan bo'lishi mumkin, uni bosib o'tib ketmaymiz.
+case "${NODE_OPTIONS:-}" in
+  *--experimental-sqlite*) ;;
+  *) export NODE_OPTIONS="--experimental-sqlite ${NODE_OPTIONS:-}" ;;
+esac
+echo "Node: $(node --version), NODE_OPTIONS=${NODE_OPTIONS}"
+
 # --- Port ----------------------------------------------------------------
 # Standart qiymat 8080 — Railway domenning maqsad porti sifatida aynan
 # shuni taklif qiladi. Ilgari bu yerda 3000 turgan edi: `PORT`
