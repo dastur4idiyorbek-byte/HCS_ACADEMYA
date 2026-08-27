@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { obunaKunlari, salomatlikBandlari } from "../src/lib/config.ts";
+import { obunaKunlari, salomatlikBandlari, savdoQoidalari } from "../src/lib/config.ts";
 
 /** Bu testlar 2-naqshga qarshi: "e'lon qilingan, lekin ulanmagan".
  *
@@ -54,4 +54,12 @@ test("nisbiy HCS_CONFIG_FILE ildizga nisbatan hisoblanadi", async () => {
     if (oldingi === undefined) delete process.env.HCS_CONFIG_FILE;
     else process.env.HCS_CONFIG_FILE = oldingi;
   }
+});
+
+test("savdo qoidalari YAML dan o'qiladi", () => {
+  const q = savdoQoidalari();
+  assert.equal(q.maxStopPct, yaml.trade_rules.max_stop_distance_pct);
+  assert.equal(q.minTpPct, yaml.trade_rules.min_tp_distance_pct);
+  assert.equal(q.maxTpPct, yaml.trade_rules.max_tp_distance_pct);
+  assert.equal(q.minRiskReward, yaml.trade_rules.min_risk_reward);
 });

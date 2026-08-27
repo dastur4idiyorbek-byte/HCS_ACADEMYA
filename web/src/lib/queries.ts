@@ -1,5 +1,5 @@
 import { db, songaAylantir, vaqt, vaqtSatri } from "./db.ts";
-import { obunaKunlari } from "./config.ts";
+import { obunaKunlari, savdoQoidalari } from "./config.ts";
 
 /** Botning bazasidan o'qish/yozish.
  *
@@ -871,4 +871,208 @@ export function coinQaroriniOchir(symbol: string): boolean {
     .prepare(`delete from coin_rulings where symbol = ?`)
     .run(symbol.trim().toUpperCase());
   return natija.changes > 0;
+}
+
+// --------------------------------------------------------------------------- //
+//  Admin: qo'lda signal kiritish (2-bo'lim)
+// --------------------------------------------------------------------------- //
+
+export type SignalKirish = {
+  symbol: string;
+  entry: number;
+  stop: number;
+  tp1: number;
+  tp2: number;
+  note: string | null;
+};
+
+export type SignalNatijasi =
+  | { ok: true; id: number; ogohlantirishlar: string[] }
+  | { ok: false; sabab: string };
+
+/** Darajalar TARTIBI — bu ta'rif, chegara emas.
+ *
+ * Spot (long) savdoda Stop kirishdan past, TP lar esa yuqori bo'lishi
+ * SHART. Botdagi `SignalLevels` ham aynan shuni tekshiradi va
+ * `ValueError` beradi. Bu qoida hech qachon o'zgarmaydi — shuning uchun
+ * uni konfiguratsiyadan o'qish shart emas.
+ */
+function tartibXatosi(k: SignalKirish): string | null {
+  for (const [nom, qiymat] of [
+    ["Kirish", k.entry],
+    ["Stop", k.stop],
+    ["TP1", k.tp1],
+    ["TP2", k.tp2],
+  ] as const) {
+    if (!Number.isFinite(qiymat) || qiymat <= 0) return `${nom} musbat son bo'lishi kerak`;
+  }
+  if (k.stop >= k.entry) return "Stop kirish narxidan PAST bo'lishi kerak";
+  if (k.tp1 <= k.entry) return "TP1 kirish narxidan YUQORI bo'lishi kerak";
+  if (k.tp2 <= k.tp1) return "TP2 TP1 dan yuqori bo'lishi kerak";
+  return null;
+}
+
+/** Botdagi `_rule_warnings` bilan bir xil tekshiruvlar.
+ *
+ * TAQIQ EMAS, ogohlantirish: qo'lda kiritilgan signalda 3.3-band
+ * qoidalari majburiy emas — admin bilib turib chetga chiqishi mumkin.
+ */
+export function signalOgohlantirishlari(k: SignalKirish): string[] {
+  const q = savdoQoidalari();
+  const ogohlar: string[] = [];
+
+  const stopMasofa = ((k.entry - k.stop) / k.entry) * 100;
+  if (stopMasofa > q.maxStopPct) {
+    ogohlar.push(`Stop masofasi ${stopMasofa.toFixed(2)}% (chegara ${q.maxStopPct}%)`);
+  }
+  for (const [nom, narx] of [
+    ["TP1", k.tp1],
+    ["TP2", k.tp2],
+  ] as const) {
+    const masofa = ((narx - k.entry) / k.entry) * 100;
+    if (masofa < q.minTpPct || masofa > q.maxTpPct) {
+      ogohlar.push(
+        `${nom} masofasi ${masofa.toFixed(2)}% (${q.minTpPct}–${q.maxTpPct}% oralig'idan tashqarida)`,
+      );
+    }
+  }
+  const rr = (k.tp2 - k.entry) / (k.entry - k.stop);
+  if (rr < q.minRiskReward) {
+    ogohlar.push(`TP2 R/R ${rr.toFixed(2)} < ${q.minRiskReward}`);
+  }
+  return ogohlar;
+}
+
+/** Signalni bazaga yozadi. TARQATMAYDI.
+ *
+ * Tarqatish ATAYLAB bu yerda emas: kartochka har bir obunachi uchun
+ * alohida yasaladi (miqdor uning balansidan hisoblanadi) va
+ * `protect_content=True` bilan yuboriladi. Buni TypeScriptda takrorlash
+ * kartochka mantig'ining ikkinchi nusxasi bo'lardi.
+ *
+ * Shuning uchun `broadcast_at` bo'sh qoldiriladi — bot uni bir daqiqa
+ * ichida topib, kuzatuvga oladi va obunachilarga yuboradi
+ * (`bot/services/scheduler.py`, "web-signals" vazifasi).
+ */
+export function signalYarat(
+  kirish: SignalKirish,
+  hozir = new Date(),
+): SignalNatijasi {
+  const symbol = kirish.symbol.trim().toUpperCase();
+  if (!/^[A-Z0-9]{2,32}$/.test(symbol)) {
+    return { ok: false, sabab: "Symbol faqat harf va raqamdan iborat bo'lsin" };
+  }
+  const k = { ...kirish, symbol };
+  const xato = tartibXatosi(k);
+  if (xato) return { ok: false, sabab: xato };
+
+  const vaqtNow = vaqtSatri(hozir);
+  const natija = db()
+    .prepare(
+      `insert into signals
+         (symbol, source, status, entry, stop, tp1, tp2, entry_order_type,
+          exit_order_type, note, is_false_signal, created_at, updated_at)
+       values (?, 'manual', 'pending', ?, ?, ?, ?, 'limit', 'oco', ?, 0, ?, ?)`,
+    )
+    .run(symbol, k.entry, k.stop, k.tp1, k.tp2, k.note, vaqtNow, vaqtNow);
+
+  return {
+    ok: true,
+    id: songaAylantir(natija.lastInsertRowid),
+    ogohlantirishlar: signalOgohlantirishlari(k),
+  };
+}
+
+/** Hali tarqatilmagan signallar — panelda "yuborilmoqda" deb ko'rsatiladi. */
+export function tarqatilmaganSignallar(): { id: number; symbol: string; createdAt: Date | null }[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, symbol, created_at from signals
+        where broadcast_at is null and status in ('pending','active','tp1_hit','weakening')
+        order by created_at`,
+    )
+    .all() as Qator[];
+  return qatorlar.map((q) => ({
+    id: songaAylantir(q.id),
+    symbol: q.symbol as string,
+    createdAt: vaqt(q.created_at as string),
+  }));
+}
+
+// --------------------------------------------------------------------------- //
+//  Admin: video darsliklar (1.5-band)
+// --------------------------------------------------------------------------- //
+
+export type DarsKirish = {
+  title: string;
+  description: string | null;
+  minTier: Tarif;
+  position: number;
+  fileId: string | null;
+  published: boolean;
+};
+
+export function darslar(): (Kontent & { fileId: string | null; published: boolean })[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, kind, title, description, min_tier, position, file_id, is_published
+         from content order by position asc, id asc`,
+    )
+    .all() as Qator[];
+  return qatorlar.map((q) => ({
+    id: songaAylantir(q.id),
+    kind: q.kind as string,
+    title: q.title as string,
+    description: (q.description as string) ?? null,
+    minTier: q.min_tier as Tarif,
+    position: songaAylantir(q.position),
+    fileId: (q.file_id as string) ?? null,
+    published: Boolean(q.is_published),
+  }));
+}
+
+export type DarsNatijasi = { ok: true; id: number } | { ok: false; sabab: string };
+
+export function darsSaqla(
+  id: number | null,
+  kirish: DarsKirish,
+  hozir = new Date(),
+): DarsNatijasi {
+  const title = kirish.title.trim();
+  if (!title) return { ok: false, sabab: "Sarlavha yozilishi shart" };
+  if (!["lite", "pro", "premium"].includes(kirish.minTier)) {
+    return { ok: false, sabab: `Noma'lum tarif: ${kirish.minTier}` };
+  }
+
+  const baza = db();
+  const vaqtNow = vaqtSatri(hozir);
+  const tavsif = kirish.description?.trim() || null;
+  const fileId = kirish.fileId?.trim() || null;
+
+  if (id !== null) {
+    baza
+      .prepare(
+        `update content
+            set title = ?, description = ?, min_tier = ?, position = ?,
+                file_id = coalesce(?, file_id), is_published = ?, updated_at = ?
+          where id = ?`,
+      )
+      .run(title, tavsif, kirish.minTier, kirish.position, fileId,
+           kirish.published ? 1 : 0, vaqtNow, id);
+    return { ok: true, id };
+  }
+
+  const natija = baza
+    .prepare(
+      `insert into content (kind, title, description, file_id, min_tier, position,
+                            is_published, created_at, updated_at)
+       values ('video', ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(title, tavsif, fileId, kirish.minTier, kirish.position,
+         kirish.published ? 1 : 0, vaqtNow, vaqtNow);
+  return { ok: true, id: songaAylantir(natija.lastInsertRowid) };
+}
+
+export function darsOchir(id: number): boolean {
+  return db().prepare(`delete from content where id = ?`).run(id).changes > 0;
 }

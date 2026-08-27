@@ -18,9 +18,8 @@ from datetime import timedelta
 
 from aiogram import Bot
 
-from bot.formatting import render_signal_card
 from bot.i18n import DEFAULT_LANGUAGE, t
-from bot.keyboards import signal_actions
+from bot.services.broadcast import broadcast_signal, obunachilar
 from core.analysis import decide_entry_plan
 from core.analysis.indicators import adx, atr_pct, timeframe_trend
 from core.analysis.market_health import HealthInputs, MarketHealthCalculator
@@ -28,7 +27,7 @@ from core.analysis.scoring import breakdown_to_json
 from core.analysis.strategies import build_strategies, required_timeframes
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
-from core.domain.models import Candle, HalalVerdict, MarketHealth, PositionSuggestion
+from core.domain.models import Candle, HalalVerdict, MarketHealth
 from core.halal_screening import HalalScreener, StaticRulingRegistry
 from core.market_data import CandleProvider, CoinMarketCapDominance, RankingProvider
 from core.market_data.ranking import RankingUnavailableError
@@ -96,6 +95,16 @@ class PipelineRunner:
         self._monitor = SignalMonitor(config.risk_engine)
         self._health = MarketHealthCalculator(config)
         self._universe = UniverseCache(symbols=[], verdicts={})
+
+    @property
+    def watcher(self):  # noqa: ANN201 — turi `SignalWatcher`, aylanma import bo'lmasin
+        """Kuzatuvchi — fon vazifalari unga murojaat qiladi.
+
+        Ochiq qilingani sabab: rejalashtiruvchi veb-panelda yaratilgan
+        signallarni kuzatuvga qo'shishi kerak. `self._runner._watcher`
+        kabi yashirin maydonga tegish bog'liqlikni yashirardi.
+        """
+        return self._watcher
 
     # ------------------------------------------------------------------ #
     #  3.4 — Halol ro'yxatni yangilash
@@ -524,77 +533,29 @@ class PipelineRunner:
                 ),
             )
             signal_id = yozuv.id
-            qabul_qiluvchilar = await self._subscribers(session)
+            qabul_qiluvchilar = await obunachilar(session)
 
         self._watcher.add_signal(signal_id)
 
-        for telegram_id, balans in qabul_qiluvchilar:
-            # 5.1-band: miqdor foydalanuvchining o'z balansidan hisoblanadi,
-            # shuning uchun kartochka har biri uchun alohida yasaladi.
-            kartochka = render_signal_card(
-                candidate.symbol,
-                candidate.levels,
-                reja,
-                suggestion=self._suggest_size(candidate.symbol, candidate.levels, balans),
-                quote_asset=self._config.halal_screening.quote_asset,
-                tp1_close_pct=self._config.portfolio.tp1_close_pct,
-            )
-            try:
-                await self._bot.send_message(
-                    telegram_id,
-                    kartochka,
-                    protect_content=True,
-                    reply_markup=signal_actions(signal_id, DEFAULT_LANGUAGE),
-                )
-            except Exception:  # noqa: BLE001
-                logger.warning("Signal yetkazilmadi: telegram_id=%s", telegram_id)
+        yuborildi = await broadcast_signal(
+            self._bot,
+            qabul_qiluvchilar,
+            candidate.symbol,
+            candidate.levels,
+            reja,
+            signal_id,
+            self._config,
+        )
 
-        logger.info("Avtomatik signal yuborildi: %s (ball %.0f)", candidate.symbol, candidate.score)
+        # Tarqatilgani belgilanadi, aks holda fon vazifasi uni "hali
+        # yuborilmagan" deb topib IKKINCHI MARTA yuborardi.
+        async with self._db.session() as session:
+            await SignalRepository(session).mark_broadcast(signal_id)
 
-    def _suggest_size(
-        self, symbol: str, levels, balance: float | None  # noqa: ANN001
-    ) -> PositionSuggestion | None:
-        """5.1-band: shu foydalanuvchi uchun pozitsiya hajmi.
-
-        Balans kiritilmagan bo'lsa `None` — kartochkada miqdor o'rniga
-        "balansingizni kiriting" taklifi chiqadi.
-
-        Hisob-kitob `commit=False` bilan: bu FAQAT ko'rsatish uchun, xavf
-        byudjetidan hech narsa ajratilmaydi. Byudjet foydalanuvchi
-        "Men kirdim" deganda band qilinadi (5.4-band).
-
-        Hisoblab bo'lmasa `None` qaytadi va signal baribir yuboriladi —
-        miqdor yo'qligi signalni to'sib qo'ymaydi (0.3-band).
-        """
-        if balance is None or balance <= 0:
-            return None
-        try:
-            sizer = PositionSizer(self._config.position_sizing)
-            return sizer.suggest(symbol, levels, sizer.budget_for(balance), commit=False)
-        except Exception:  # noqa: BLE001 — miqdorsiz bo'lsa ham signal ketsin
-            logger.warning("Pozitsiya hajmi hisoblanmadi: %s", symbol, exc_info=True)
-            return None
-
-    async def _subscribers(self, session) -> list[tuple[int, float | None]]:  # noqa: ANN001
-        """Signal oladigan foydalanuvchilar: `(telegram_id, balans)`.
-
-        Balans ham qaytariladi, chunki pozitsiya hajmi HAR KIM UCHUN
-        boshqacha (5.1-band) — kartochka har bir qabul qiluvchi uchun
-        alohida yasaladi. Balans kiritilmagan bo'lsa `None`: kartochkada
-        miqdor o'rniga taklif matni chiqadi.
-        """
-        users = UserRepository(session)
-        obunalar = SubscriptionRepository(session)
-        natija = []
-        for user in await users.active_users(since_days=90):
-            tarif = await obunalar.tier_for(user.id)
-            if tarif is not None and tarif.covers(SubscriptionTier.LITE):
-                natija.append((user.telegram_id, user.declared_balance_usd))
-        return natija
-
-    # ------------------------------------------------------------------ #
-    #  4.1 / 4.2 — Faol signallarni qayta baholash
-    # ------------------------------------------------------------------ #
+        logger.info(
+            "Avtomatik signal yuborildi: %s (ball %.0f) -> %d ta",
+            candidate.symbol, candidate.score, yuborildi,
+        )
 
     async def review_open_signals(self, result: CycleResult | None) -> None:
         """Faol signallarni qayta baholab, zaiflashish va rotatsiyani tekshiradi."""
@@ -637,7 +598,7 @@ class PipelineRunner:
 
     async def _broadcast(self, text: str) -> None:
         async with self._db.session() as session:
-            qabul_qiluvchilar = await self._subscribers(session)
+            qabul_qiluvchilar = await obunachilar(session)
         for telegram_id in qabul_qiluvchilar:
             try:
                 await self._bot.send_message(telegram_id, text, protect_content=True)

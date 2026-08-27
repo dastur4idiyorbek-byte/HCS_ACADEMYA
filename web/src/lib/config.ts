@@ -65,3 +65,28 @@ export function salomatlikBandlari(): { high: number; mid: number } {
     mid: yol(["scoring", "thresholds", "health_mid_min"], 40),
   };
 }
+
+/** Savdo qoidalari — qo'lda kiritilgan signalni TEKSHIRISH uchun.
+ *
+ * Bu qiymatlar botdagi `_rule_warnings` bilan bir xil manbadan
+ * (`config/default.yaml`) o'qiladi. Nusxa ko'chirilsa, sayt bir chegara,
+ * bot esa boshqasi bo'yicha ogohlantirardi va admin qaysi biriga
+ * ishonishni bilmasdi.
+ *
+ * DIQQAT: bular TAQIQ emas, OGOHLANTIRISH. Botda ham shunday — admin
+ * bilib turib qoidadan chetga chiqadigan signal berishi mumkin
+ * (3.3-band qo'lda signalda majburiy emas).
+ */
+export function savdoQoidalari(): {
+  maxStopPct: number;
+  minTpPct: number;
+  maxTpPct: number;
+  minRiskReward: number;
+} {
+  return {
+    maxStopPct: yol(["trade_rules", "max_stop_distance_pct"], 8),
+    minTpPct: yol(["trade_rules", "min_tp_distance_pct"], 3),
+    maxTpPct: yol(["trade_rules", "max_tp_distance_pct"], 20),
+    minRiskReward: yol(["trade_rules", "min_risk_reward"], 3),
+  };
+}

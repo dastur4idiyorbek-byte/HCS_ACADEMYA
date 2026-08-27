@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { env } from "@/lib/env";
 import {
@@ -8,7 +9,10 @@ import {
   type Tarif,
   coinQaroriniBelgila,
   coinQaroriniOchir,
+  darsOchir,
+  darsSaqla,
   narxniYangila,
+  signalYarat,
   tolovniRadEt,
   tolovniTasdiqla,
 } from "@/lib/queries";
@@ -104,4 +108,64 @@ export async function qarorOchir(forma: FormData): Promise<void> {
   await adminTekshir();
   coinQaroriniOchir(String(forma.get("symbol") ?? ""));
   revalidatePath("/admin/halol");
+}
+
+
+// --------------------------------------------------------------------------- //
+//  Qo'lda signal kiritish (2-bo'lim)
+// --------------------------------------------------------------------------- //
+
+/** Foydalanuvchi "1 234,56" yoki "1 234.56" deb yozishi mumkin. */
+function narxOqi(xom: FormDataEntryValue | null): number {
+  return Number(String(xom ?? "").replace(/\s/g, "").replace(",", "."));
+}
+
+export async function signalBer(forma: FormData): Promise<void> {
+  await adminTekshir();
+
+  const natija = signalYarat({
+    symbol: String(forma.get("symbol") ?? ""),
+    entry: narxOqi(forma.get("entry")),
+    stop: narxOqi(forma.get("stop")),
+    tp1: narxOqi(forma.get("tp1")),
+    tp2: narxOqi(forma.get("tp2")),
+    note: String(forma.get("note") ?? "").trim() || null,
+  });
+
+  revalidatePath("/admin/signal");
+  // Natija manzil orqali uzatiladi: sahifa signalni bazadan qayta o'qib,
+  // ogohlantirishlarni o'zi hisoblaydi. Shunda ekrandagi matn har doim
+  // SAQLANGAN signalga tegishli bo'ladi.
+  redirect(
+    natija.ok
+      ? `/admin/signal?ok=${natija.id}`
+      : `/admin/signal?xato=${encodeURIComponent(natija.sabab)}`,
+  );
+}
+
+// --------------------------------------------------------------------------- //
+//  Video darsliklar (1.5-band)
+// --------------------------------------------------------------------------- //
+
+export async function darsSaqlash(forma: FormData): Promise<void> {
+  await adminTekshir();
+  const xomId = String(forma.get("id") ?? "").trim();
+
+  darsSaqla(xomId ? Number(xomId) : null, {
+    title: String(forma.get("title") ?? ""),
+    description: String(forma.get("description") ?? "").trim() || null,
+    minTier: String(forma.get("min_tier") ?? "pro") as Tarif,
+    position: Number(String(forma.get("position") ?? "0")) || 0,
+    fileId: String(forma.get("file_id") ?? "").trim() || null,
+    published: forma.get("published") === "on",
+  });
+  revalidatePath("/admin/darslar");
+  revalidatePath("/video");
+}
+
+export async function darsOchirish(forma: FormData): Promise<void> {
+  await adminTekshir();
+  darsOchir(Number(forma.get("id")));
+  revalidatePath("/admin/darslar");
+  revalidatePath("/video");
 }

@@ -367,3 +367,39 @@ async def test_bekor_qilinganda_ochiq_pozitsiya_yopiladi(db: Database) -> None:
     assert any("+2.00%" in matn for _, matn in bot.messages), (
         "yopilish narxi bozordagi joriy narx bo'lishi kerak"
     )
+
+
+async def test_kuzatuvda_yoq_signal_qoshiladi(db: Database) -> None:
+    """Veb-panelda yaratilgan signal botga shu yo'l bilan yetib boradi.
+
+    `add_signal()` — jarayon ICHIDAGI chaqiruv. Signal boshqa jarayonda
+    (saytda) yaratilsa, bot u haqda hech narsa bilmaydi va signal bazada
+    "ochiq" bo'lib turadi-yu, narxi kuzatilmaydi.
+    """
+    await _signal_yarat(db, "BTC")
+
+    stream = SoxtaStream([])
+    watcher = _watcher(SoxtaBot(), db, stream)
+    await watcher.restore_from_database()
+    assert stream.subscribed == {"BTC"}
+
+    # Sayt yangi signal yozdi — bot bu haqda bilmaydi
+    await _signal_yarat(db, "ETH", entry=50)
+    assert stream.subscribed == {"BTC"}, "hali kuzatuvda bo'lmasligi kerak"
+
+    soni = await watcher.sync_untracked()
+
+    assert soni == 1, "faqat YANGI signal qo'shilishi kerak"
+    assert stream.subscribed == {"BTC", "ETH"}
+
+
+async def test_sinxronlash_tanish_signalni_qayta_yuklamaydi(db: Database) -> None:
+    """Xotiradagi holat bazadagidan yangiroq bo'lishi mumkin — masalan
+    narx endigina TP ga tegib, hodisa hali yozilmagan bo'lsa."""
+    await _signal_yarat(db, "BTC")
+
+    watcher = _watcher(SoxtaBot(), db, SoxtaStream([]))
+    await watcher.restore_from_database()
+
+    assert await watcher.sync_untracked() == 0
+    assert await watcher.sync_untracked() == 0, "takroriy chaqiruv ham xavfsiz"

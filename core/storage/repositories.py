@@ -539,6 +539,33 @@ class SignalRepository:
         )
         return yozuv
 
+
+    async def pending_broadcast(self, limit: int = 20) -> list[SignalRecord]:
+        """Hali obunachilarga tarqatilmagan OCHIQ signallar.
+
+        Veb-panel signalni faqat bazaga yozadi — Telegramga xabar yuborish
+        botning ishi. Bu so'rov o'sha "yozilgan, lekin yuborilmagan"
+        signallarni topadi.
+        """
+        stmt = (
+            select(SignalRecord)
+            .where(
+                SignalRecord.broadcast_at.is_(None),
+                SignalRecord.status.in_(
+                    [s.value for s in SignalStatus if s.is_open]
+                ),
+            )
+            .order_by(SignalRecord.created_at)
+            .limit(limit)
+        )
+        return list((await self._session.execute(stmt)).scalars())
+
+    async def mark_broadcast(self, signal_id: int, now: datetime | None = None) -> None:
+        """Signal tarqatilgani belgilanadi — ikkinchi marta yuborilmasin."""
+        yozuv = await self.get(signal_id)
+        if yozuv is not None:
+            yozuv.broadcast_at = now or utc_now()
+
     async def consecutive_stops(self, limit: int = 20) -> int:
         """3.8-band: oxirgi nechta signal KETMA-KET Stop yegan."""
         stmt = (

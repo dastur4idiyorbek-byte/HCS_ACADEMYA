@@ -260,6 +260,19 @@ class SignalRecord(Base, TimestampMixin):
     # Telegram xabar id — holat o'zgarganda tahrirlash uchun
     broadcast_message_ids: Mapped[str | None] = mapped_column(Text)
 
+    #: Obunachilarga QACHON tarqatilgani. `None` — hali tarqatilmagan.
+    #:
+    #: Nima uchun kerak: signal endi IKKI JOYDA yaratilishi mumkin —
+    #: botda va veb-panelda. Veb Telegramga xabar yubora olmaydi (kartochka
+    #: `render_signal_card` bilan, har bir obunachi uchun alohida yasaladi),
+    #: shuning uchun u signalni faqat bazaga yozadi. Bot esa fon vazifasida
+    #: `broadcast_at IS NULL` bo'lganlarni topib tarqatadi.
+    #:
+    #: Mavjud `broadcast_message_ids` ustuni ishlatilmadi: uning nomi
+    #: "xabar id lari" degani, "tarqatildimi" degani emas. Bitta ustunni
+    #: ikki ma'noda ishlatish — bu loyihada allaqachon uchragan xato.
+    broadcast_at: Mapped[datetime | None] = mapped_column(UtcDateTime, index=True)
+
     events: Mapped[list[SignalEvent]] = relationship(
         back_populates="signal", cascade="all, delete-orphan"
     )

@@ -37,6 +37,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminYonMenyu
         bandlar={[
           { yol: "/admin", nom: t("admin.asosiy"), belgi: "💳" },
+          { yol: "/admin/signal", nom: t("admin.signal"), belgi: "📈" },
+          { yol: "/admin/darslar", nom: t("admin.darslar"), belgi: "🎬" },
           { yol: "/admin/hisobot", nom: t("admin.hisobot"), belgi: "🧾" },
           { yol: "/admin/narxlar", nom: t("admin.narxlar"), belgi: "🏷" },
           { yol: "/admin/halol", nom: t("admin.halol"), belgi: "☪️" },

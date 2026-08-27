@@ -151,7 +151,7 @@
     "kerak": "Kerakli tarif"
   },
   "admin": {
-    "sarlavha": "Admin panel",
+    "sarlavha": "Sarlavha",
     "tolovlar": "Tasdiqlanishi kutilayotgan to'lovlar",
     "tolov_yoq": "Kutilayotgan to'lov yo'q.",
     "tasdiqla": "Tasdiqlash",
@@ -201,6 +201,31 @@
     "haram": "Harom",
     "kim": "Kim belgilagan",
     "bekor": "Bekor bo'lgan (Entry'ga yetmagan)",
-    "hisobot_tarixi": "Oldingi hisobotlar"
+    "hisobot_tarixi": "Oldingi hisobotlar",
+    "signal": "Signal berish",
+    "darslar": "Video darsliklar",
+    "signal_izoh": "Signal bazaga yoziladi, bot uni bir daqiqa ichida kuzatuvga oladi va obunachilarga tarqatadi.",
+    "signal_nega_bot": "Nima uchun sayt o'zi yubormaydi: kartochka har bir obunachi uchun alohida yasaladi (miqdor uning balansidan hisoblanadi) va nusxalashdan himoyalangan holda yuboriladi. Buni saytda takrorlash kartochka mantig'ining ikkinchi nusxasi bo'lardi.",
+    "kirish_narx": "Kirish narxi",
+    "stop_narx": "Stop",
+    "tp1_narx": "TP1",
+    "tp2_narx": "TP2",
+    "yuborish": "Signal berish",
+    "yozildi": "Signal yozildi. Bot uni tez orada tarqatadi.",
+    "ogohlantirishlar": "Ogohlantirishlar",
+    "ogoh_izoh": "Bular taqiq emas — signal baribir yuboriladi. Botda ham shunday: qo'lda kiritilgan signalda risk qoidalari majburiy emas.",
+    "kutilmoqda": "Tarqatilishi kutilayotganlar",
+    "kutilmoqda_yoq": "Hammasi tarqatilgan.",
+    "dars_izoh": "Bu yerda darslikning nomi, tarifi va tartibi boshqariladi.",
+    "dars_video_izoh": "VIDEO FAYLNING O'ZI botga yuklanadi: Telegram fayl raqami (file_id) faqat o'sha yerda paydo bo'ladi. Saytda dars yaratib, videoni keyin botdan biriktirish mumkin.",
+    "tavsif": "Tavsif",
+    "tartib": "Tartib",
+    "min_tarif": "Minimal tarif",
+    "file_id": "Telegram file_id (ixtiyoriy)",
+    "chop_etilgan": "Chop etilgan",
+    "video_yoq": "Video biriktirilmagan",
+    "yangi_dars": "Yangi dars",
+    "dars_yoq": "Hali dars qo'shilmagan.",
+    "signal_izoh_maydoni": "Izoh (ixtiyoriy)"
   }
 }

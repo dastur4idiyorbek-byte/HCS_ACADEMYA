@@ -27,11 +27,12 @@ from bot.keyboards import (
     signal_list,
 )
 from bot.middlewares import AdminOnlyMiddleware
+from bot.services.broadcast import broadcast_signal
 from bot.states import SignalFlow
 from core.analysis import decide_entry_plan
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
-from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
+from core.domain.models import PositionSuggestion, SignalLevels
 from core.market_data import CandleProvider
 from core.position_sizing import PositionSizer
 from core.storage import Database
@@ -266,10 +267,15 @@ async def signal_send(
     if watcher is not None:
         watcher.add_signal(signal_id)
 
-    yuborildi = await _broadcast_signal(
+    yuborildi = await broadcast_signal(
         callback.bot, qabul_qiluvchilar, data["symbol"], levels, reja,
         signal_id, config, language,
     )
+
+    # Tarqatilgani belgilanadi, aks holda fon vazifasi uni "hali
+    # yuborilmagan" deb topib IKKINCHI MARTA yuborardi.
+    async with database.session() as session:
+        await SignalRepository(session).mark_broadcast(signal_id)
 
     await state.clear()
     logger.info("Qo'lda signal yuborildi: id=%s symbol=%s -> %d ta", signal_id,
@@ -339,45 +345,6 @@ def suggest_size(
     except Exception:  # noqa: BLE001
         logger.warning("Pozitsiya hajmi hisoblanmadi: %s", symbol, exc_info=True)
         return None
-
-
-async def _broadcast_signal(  # noqa: PLR0913
-    bot,  # noqa: ANN001
-    recipients: list[tuple[int, float | None]],
-    symbol: str,
-    levels: SignalLevels,
-    entry_plan: EntryPlan,
-    signal_id: int,
-    config: AppConfig,
-    language: str,
-) -> int:
-    """1.3-band: `protect_content=True` — forward/saqlash bloklanadi.
-
-    Kartochka HAR BIR qabul qiluvchi uchun alohida yasaladi: miqdor
-    ularning o'z balansidan hisoblanadi (5.1-band).
-    """
-    yuborildi = 0
-    for telegram_id, balans in recipients:
-        kartochka = render_signal_card(
-            symbol,
-            levels,
-            entry_plan,
-            suggestion=suggest_size(symbol, levels, balans, config),
-            quote_asset=config.halal_screening.quote_asset,
-            language=language,
-            tp1_close_pct=config.portfolio.tp1_close_pct,
-        )
-        try:
-            await bot.send_message(
-                telegram_id,
-                kartochka,
-                protect_content=True,
-                reply_markup=signal_actions(signal_id, language),
-            )
-            yuborildi += 1
-        except Exception:  # noqa: BLE001 — bitta xato tarqatishni to'xtatmasin
-            logger.warning("Signal yetkazilmadi: telegram_id=%s", telegram_id)
-    return yuborildi
 
 
 # --------------------------------------------------------------------------- #

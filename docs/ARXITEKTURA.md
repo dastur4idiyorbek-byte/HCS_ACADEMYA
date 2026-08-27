@@ -2920,6 +2920,55 @@ Ya'ni Turbopack bilan `node:sqlite` ni faqat statik `import` shaklida
 ishlatib bo'ladi. Bu `db.ts` da izoh bilan qayd etilgan, aks holda
 keyingi safar yana o'sha yo'ldan urinilardi.
 
+### Veb-panelda signal berish: jarayonlararo bo'shliq
+
+Admin panelga signal berish qo'shildi. Bu oddiy forma emas edi —
+oradan bitta jimgina xato chiqib turardi.
+
+Kuzatuvchi yangi signalni faqat `watcher.add_signal()` orqali biladi, u
+esa **jarayon ichidagi** chaqiruv. Sayt boshqa jarayonda ishlaydi, ya'ni
+u yozgan signal bazada "ochiq" bo'lib turardi-yu, narxi kuzatilmasdi:
+na TP, na Stop aniqlanardi. Tashqaridan hammasi joyida ko'rinardi.
+
+Tarqatishda ham shunday: kartochka HAR BIR obunachi uchun alohida
+yasaladi (miqdor uning balansidan hisoblanadi) va `protect_content=True`
+bilan yuboriladi. Buni TypeScriptda takrorlash — kartochka mantig'ining
+ikkinchi nusxasi demak edi.
+
+**Yechim — mas'uliyatni bo'lish:**
+
+| Kim | Nima qiladi |
+|---|---|
+| Sayt | Signalni bazaga yozadi, `broadcast_at` ni BO'SH qoldiradi |
+| Bot (`web-signals` fon vazifasi, 1 daqiqada bir) | Kuzatuvga oladi, keyin tarqatadi va `broadcast_at` ni belgilaydi |
+
+Ikki qadam ataylab shu tartibda: teskarisi bo'lsa, tarqatish yiqilganda
+signal kuzatuvsiz qolardi.
+
+`broadcast_at` — yangi ustun. Mavjud `broadcast_message_ids` ishlatilmadi:
+uning nomi "xabar id lari" degani, "tarqatildimi" degani emas. Bitta
+ustunni ikki ma'noda ishlatish bu loyihada allaqachon uchragan.
+
+### Uchta nusxa o'rniga bitta
+
+Tarqatish kodi ikki joyda edi (qo'lda signal va avtomatik sikl), veb
+uchun uchinchisi kerak bo'lardi. Shuning uchun u `bot/services/broadcast.py`
+ga chiqarildi — `broadcast_signal()` va `obunachilar()`. Aks holda
+`protect_content` bir joyda unutilsa, o'sha yo'ldan ketgan signal
+himoyasiz tarqalardi va buni hech kim sezmasdi.
+
+### Video darslik: veb nimani QILA OLMAYDI
+
+Darslik nomi, tarifi, tartibi va chop etish holati saytdan boshqariladi.
+Lekin **video faylning o'zi botga yuklanadi**: Telegram fayl raqami
+(`file_id`) faqat o'sha yerda paydo bo'ladi — bu Telegram cheklovi,
+bizning tanlovimiz emas. Saytda dars yaratib, videoni keyin botdan
+biriktirish mumkin; videosi yo'q darslar ro'yxatda alohida belgilanadi.
+
+Tahrirlashda bo'sh `file_id` mavjud videoni O'CHIRMAYDI (`coalesce`) —
+aks holda sarlavhani tuzatgan admin darsni ham buzib qo'yardi. Buni
+`tests/signal.test.ts` tekshiradi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |

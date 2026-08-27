@@ -115,6 +115,42 @@ class SignalWatcher:
         self._sync_subscription()
         return len(signallar)
 
+    async def sync_untracked(self) -> int:
+        """Bazadagi, lekin kuzatuvda BO'LMAGAN ochiq signallarni qo'shadi.
+
+        Nima uchun kerak: `add_signal()` — jarayon ICHIDAGI chaqiruv. Signal
+        veb-panelda yaratilsa, u boshqa jarayonda bo'ladi va bot bu haqda
+        hech narsa bilmaydi — signal bazada "ochiq" bo'lib turadi-yu,
+        narxi kuzatilmaydi: na TP, na Stop aniqlanadi. Tashqaridan hammasi
+        joyida ko'rinadi.
+
+        `restore_from_database()` dan farqi: bu metod FAQAT notanish
+        signallarni qo'shadi. Tanishlarini qayta yuklamaydi, chunki
+        xotiradagi holat bazadagidan yangiroq bo'lishi mumkin.
+
+        Returns:
+            Nechta yangi signal kuzatuvga olingani.
+        """
+        async with self._db.session() as session:
+            yozuvlar = await SignalRepository(session).open_signals()
+            yangilar = [
+                SignalRepository.to_domain(y)
+                for y in yozuvlar
+                if self._tracker.get(y.id) is None
+            ]
+
+        for signal in yangilar:
+            self._tracker.track(signal)
+
+        if yangilar:
+            logger.info(
+                "Kuzatuvga qo'shildi: %d ta yangi signal (%s)",
+                len(yangilar),
+                ", ".join(s.symbol for s in yangilar),
+            )
+            self._sync_subscription()
+        return len(yangilar)
+
     def add_signal(self, signal_id: int) -> None:
         """Yangi signal qo'shilganda kuzatuvga oladi (handler chaqiradi)."""
         asyncio.create_task(self._add_signal(signal_id))
