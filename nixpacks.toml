@@ -5,17 +5,25 @@
 
 [phases.setup]
 # "..." — nixpacks o'zi topgan paketlarni saqlaydi, ustiga qo'shamiz.
-# gcc/gnumake — `better-sqlite3` uchun (tayyor ikkilik topilmasa o'zi yig'ilsin).
-nixPkgs = ["...", "nodejs_22", "gcc", "gnumake"]
-
-# Nima uchun `build` deb nomlangan (masalan `veb` emas): `build` — nixpacks
-# ning STANDART bosqichi va u har doim `start` dan oldin bajariladi.
-# O'zimiz o'ylab topgan nomdagi bosqich esa grafikka kirmay qolishi va
-# jimgina o'tkazib yuborilishi mumkin — sayt esa yig'ilmagan holda
-# ishga tushardi.
 #
-# Python provayderida `build` bosqichi bo'sh, ya'ni biz hech narsani
-# bosib o'tmayapmiz.
+# nodejs_24: baza `node:sqlite` orqali o'qiladi, u esa Node 22.5 dan
+# boshlab bor. `nodejs_22` nomi nixpkgs ning qaysi surati ishlatilishiga
+# qarab 22.0-22.4 ni ham berishi mumkin — o'shanda modul topilmaydi.
+# 24 — bu chegaradan ancha yuqori, ya'ni taxminga o'rin qolmaydi.
+nixPkgs = ["...", "nodejs_24"]
+
+# Nima uchun `build` deb nomlangan (masalan `veb` emas): `build` —
+# nixpacks ning STANDART bosqichi va u har doim `start` dan oldin
+# bajariladi. O'zimiz o'ylab topgan nomdagi bosqich grafikka kirmay
+# qolishi va jimgina o'tkazib yuborilishi mumkin.
+#
+# Python provayderida `build` bosqichi bo'sh, ya'ni hech narsa bosib
+# o'tilmayapti.
 [phases.build]
 dependsOn = ["install"]
-cmds = ["cd web && npm ci && npm run build"]
+cmds = [
+  # Node versiyasi LOGDA ko'rinsin: `node:sqlite` 22.5 dan boshlab bor,
+  # ya'ni qurish yiqilsa, sabab birinchi qatordayoq ma'lum bo'ladi.
+  "node --version",
+  "cd web && npm ci && npm run build",
+]

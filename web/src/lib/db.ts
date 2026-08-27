@@ -24,6 +24,12 @@ import { bazaYoli } from "./env.ts";
  * Ikkilik fayl yo'q, qurish bosqichi yo'q, ABI mosligi masalasi yo'q.
  * Ya'ni muammoning butun sinfi yo'qoladi.
  *
+ * DIQQAT: import ATAYLAB statik. Uni kechiktirishga urinildi
+ * (`createRequire`, keyin oddiy `require`) — Turbopack ikkalasini ham
+ * rad etadi: "Unsupported external type Url for commonjs reference".
+ * Ya'ni Node versiyasi qurish MUHITIDA ham 22.5+ bo'lishi shart; bu
+ * `nixpacks.toml` da `nodejs_24` bilan ta'minlanadi.
+ *
  * Bot ulanishida WAL yoqilgan (`core/storage/database.py`), shuning uchun
  * o'qish yozishni bloklamaydi. `busy_timeout` — ikkinchi jarayon
  * yozayotgan lahzaga to'g'ri kelib qolsak, darhol xato bermay kutamiz.
