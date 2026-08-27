@@ -49,24 +49,64 @@ echo "Baza: ${DATABASE_URL}"
 alembic upgrade head
 python -m scripts.seed
 
+# --- Port ----------------------------------------------------------------
+# Standart qiymat 8080 — Railway domenning maqsad porti sifatida aynan
+# shuni taklif qiladi. Ilgari bu yerda 3000 turgan edi: `PORT`
+# o'zgaruvchisi qo'yilmasa sayt 3000 da tinglardi, Railway esa 8080 ga
+# yo'naltirardi va tashqaridan "Application failed to respond" ko'rinardi
+# — ikkala tomon ham "men ishlayapman" deb turgan holda.
+PORT="${PORT:-8080}"
+export PORT
+
 # --- Ikkala jarayon ------------------------------------------------------
-python -m bot.main &
-BOT_PID=$!
-
-(cd web && exec node_modules/.bin/next start --port "${PORT:-3000}" --hostname 0.0.0.0) &
+#
+# Sayt OLDIN ko'tariladi va bot bilan nima bo'lishidan qat'i nazar
+# ishlab turadi.
+#
+# Ilgari teskari edi: biri yiqilsa ikkinchisi ham to'xtardi. Mantiq
+# shunday edi — "signal dvigateli o'lgan holda sayt eski ma'lumotni
+# jonli qilib ko'rsatgani yomonroq". Amalda esa bu diagnostikani
+# butunlay o'ldirdi: bot bir soniya qoqilsa, tashqaridan
+# "Application failed to respond" ko'rinardi va bu xato bot haqidami,
+# sayt haqidami, qurilish haqidami — bilib bo'lmasdi.
+#
+# Endi mas'uliyat bo'lingan:
+#   - sayt DOIM javob beradi (hech bo'lmasa sabab ko'rinadi);
+#   - bot yiqilsa shu yerda qayta ko'tariladi, har safar kutish
+#     vaqti ikki barobar oshib boradi;
+#   - ketma-ket urinishlar tugasa, konteyner butunlay chiqadi va
+#     Railway uni noldan qayta ko'taradi.
+(cd web && exec node_modules/.bin/next start --port "$PORT" --hostname 0.0.0.0) &
 WEB_PID=$!
+echo "Sayt ishga tushdi: PID=${WEB_PID}, PORT=${PORT}"
 
-echo "Bot PID=${BOT_PID}, sayt PID=${WEB_PID}, port=${PORT:-3000}"
+#: Bot ketma-ket necha marta qayta ko'tariladi
+BOT_URINISHLAR="${BOT_RESTART_LIMIT:-5}"
 
-# Biri to'xtasa ikkinchisini ham to'xtatamiz va konteynerdan chiqamiz:
-# Railway uni qayta ko'taradi. Aks holda bot jimgina o'lib, sayt esa
-# ishlab turaverardi — tashqaridan hammasi joyida ko'rinardi.
 to_xtat() {
-  kill "$BOT_PID" "$WEB_PID" 2>/dev/null || true
+  kill "$WEB_PID" "${BOT_PID:-}" 2>/dev/null || true
 }
 trap to_xtat EXIT INT TERM
 
-wait -n "$BOT_PID" "$WEB_PID"
-KOD=$?
-echo "Jarayonlardan biri to'xtadi (kod ${KOD}) — konteyner qayta ko'tariladi."
-exit "$KOD"
+kutish=5
+for ((urinish = 1; urinish <= BOT_URINISHLAR; urinish++)); do
+  echo "Bot ishga tushmoqda (urinish ${urinish}/${BOT_URINISHLAR})"
+  python -m bot.main &
+  BOT_PID=$!
+
+  # Ikkalasidan qaysi biri birinchi to'xtasa — o'shani bilib olamiz
+  wait -n "$BOT_PID" "$WEB_PID" || true
+
+  if ! kill -0 "$WEB_PID" 2>/dev/null; then
+    echo "SAYT TO'XTADI — konteyner qayta ko'tariladi."
+    exit 1
+  fi
+
+  echo "BOT TO'XTADI. Sayt ishlab turibdi. ${kutish} soniyadan keyin qayta urinamiz."
+  wait "$BOT_PID" 2>/dev/null || true
+  sleep "$kutish"
+  kutish=$((kutish * 2))
+done
+
+echo "Bot ${BOT_URINISHLAR} marta ishga tushmadi — konteyner qayta ko'tariladi."
+exit 1

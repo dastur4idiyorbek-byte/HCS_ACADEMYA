@@ -18,6 +18,10 @@ startCommand = "bash scripts/start.sh"
 # Railway esa uni qayta ko'taradi.
 restartPolicyType = "ALWAYS"
 
-# Sayt tayyor bo'lgunicha Railway trafik yubormasin
-healthcheckPath = "/kirish"
-healthcheckTimeout = 120
+# Sayt tayyor bo'lgunicha Railway trafik yubormasin.
+#
+# Manzil ATAYLAB sahifa emas: sahifa cookie o'qiydi va nazariy jihatdan
+# 500 qaytarishi mumkin — o'shanda Railway butun deploy'ni muvaffaqiyatsiz
+# deb belgilab, ESKI versiyani saqlab qoladi va sabab ko'rinmay qoladi.
+healthcheckPath = "/api/health"
+healthcheckTimeout = 180
