@@ -2783,6 +2783,50 @@ Xuddi shu sabab bilan kiritilgan ma'lumot ham SERVERDA tekshiriladi:
 brauzerda sinab ko'rildi — `required` olib tashlangandan keyin ham
 sababsiz qaror rad etildi.
 
+### Birinchi deploy: "Application failed to respond"
+
+Domen ochilgach sayt javob bermadi. Uchta sabab topildi va ularning
+eng yomon tomoni shu edi: **uchalasi ham aynan bir xil xatoni
+ko'rsatardi**, ya'ni ularni bir-biridan ajratib bo'lmasdi.
+
+**1. Port.** `start.sh` da `${PORT:-3000}` turgan edi. Railway domen
+yaratganda maqsad porti sifatida **8080** ni taklif qiladi. `PORT`
+o'zgaruvchisi qo'yilmasa, sayt 3000 da tinglardi, Railway esa 8080 ga
+yo'naltirardi — ikkala tomon ham "men ishlayapman" deb turardi.
+Standart qiymat 8080 ga o'zgartirildi.
+
+**2. Bot va sayt bir-biriga bog'lab qo'yilgan edi.** Dastlab shunday
+qilingandi: biri to'xtasa, ikkinchisi ham to'xtardi. Mantiq mudofaaviy
+edi — "signal dvigateli o'lgan holda sayt eski ma'lumotni jonli qilib
+ko'rsatgani yomonroq".
+
+Amalda esa bu diagnostikani butunlay o'ldirdi. Bot bir soniya qoqilsa,
+tashqaridan aynan o'sha "Application failed to respond" chiqardi va bu
+xato **bot haqidami, sayt haqidami, qurilish haqidami** — bilib
+bo'lmasdi. Ya'ni himoya vositasi ko'rlik manbaiga aylandi.
+
+Endi mas'uliyat bo'lingan:
+
+| Nima bo'ldi | Natija |
+|---|---|
+| Bot yiqildi | Sayt ishlab turaveradi; bot 5s, 10s, 20s... kutib qayta ko'tariladi |
+| Bot 5 marta ko'tarilmadi | Konteyner chiqadi, Railway noldan qayta ko'taradi |
+| Sayt yiqildi | Konteyner darhol chiqadi |
+
+**3. Sog'liq tekshiruvi sahifaga qaratilgan edi** (`/kirish`). Sahifa
+cookie o'qiydi va nazariy jihatdan 500 qaytarishi mumkin — o'shanda
+Railway butun deploy'ni muvaffaqiyatsiz deb belgilab, ESKI versiyani
+saqlab qolardi. Eski versiyada esa umuman HTTP server yo'q edi (bot
+worker sifatida ishlardi), ya'ni xato yana o'sha xato bo'lib qaytardi.
+
+Endi `/api/health` — hech narsaga bog'liq bo'lmagan manzil. U bitta
+savolga javob beradi: "HTTP server ko'tarildimi?". Sog'liq tekshiruvi
+ilovaning ISHLASHINI emas, TIRIKLIGINI o'lchashi kerak.
+
+Uchalasi ham mahalliy tekshirildi: `PORT` o'zgaruvchisisiz sayt 8080 da
+290ms da ko'tarildi; soxta token bilan bot uch marta yiqildi va sayt shu
+davomida `/api/health` va `/kirish` uchun 200 qaytarib turdi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |
