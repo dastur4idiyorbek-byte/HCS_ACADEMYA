@@ -1,56 +1,32 @@
 import type { NextRequest } from "next/server";
 
+import { db } from "@/lib/db";
+
 /** Railway sog'liq tekshiruvi va tashxis.
  *
  * Oddiy holatda ATAYLAB hech narsaga bog'liq emas: bazaga ham, muhit
- * o'zgaruvchilariga ham tegmaydi. Bu manzil bitta savolga javob beradi —
- * "HTTP server ko'tarildimi?".
+ * o'zgaruvchilariga ham tegmaydi. Bitta savolga javob beradi — "HTTP
+ * server ko'tarildimi?".
  *
- * `?tekshir=baza` — alohida tashxis. Nima uchun kerak bo'ldi: serverda
- * bazaga tegadigan har qanday so'rov 502 qaytardi, ya'ni JARAYON O'LDI.
- * O'lgan jarayon esa xato xabarini yozib ulgurmaydi — na ekranda, na
- * logda hech narsa qolmaydi. Bu manzil o'sha xatoni TUTIB, matn sifatida
- * qaytaradi.
+ * `?tekshir=baza` — alohida tashxis: bazani ochib ko'radi va xatoni
+ * MATN sifatida qaytaradi. Nima uchun kerak bo'ldi: serverda bazaga
+ * tegadigan har qanday so'rov 502 qaytardi, ya'ni jarayon o'ldi. O'lgan
+ * jarayon esa xato xabarini yozib ulgurmaydi — na ekranda, na logda hech
+ * narsa qolmaydi.
  */
 export const dynamic = "force-dynamic";
 
-type Natija = { holat: "ok" } | { holat: "xato"; bosqich: string; xabar: string };
+type Natija = { holat: "ok"; foydalanuvchilar: number } | { holat: "xato"; xabar: string };
 
-async function bazaniTekshir(): Promise<Natija> {
-  // Dinamik import: `better-sqlite3` — mahalliy (native) modul. U yuklanish
-  // paytining O'ZIDA yiqilishi mumkin, tepadagi oddiy `import` esa bunday
-  // xatoni tutib bo'lmaydigan joyga qo'yardi.
-  let Database: typeof import("better-sqlite3");
+function bazaniTekshir(): Natija {
   try {
-    Database = (await import("better-sqlite3")).default as unknown as typeof import(
-      "better-sqlite3"
-    );
+    // Ilovaning HAQIQIY yo'li tekshiriladi. Alohida ulanish qursak, u
+    // ishlab, ilovaniki ishlamasligi mumkin edi va tashxis yolg'on
+    // tinchlik berardi.
+    const qator = db().prepare("select count(*) as n from users").get() as { n: number };
+    return { holat: "ok", foydalanuvchilar: Number(qator.n) };
   } catch (e) {
-    return { holat: "xato", bosqich: "modul yuklash", xabar: String(e) };
-  }
-
-  let yol: string;
-  try {
-    const { bazaYoli } = await import("@/lib/env");
-    yol = bazaYoli();
-  } catch (e) {
-    return { holat: "xato", bosqich: "yo'lni aniqlash", xabar: String(e) };
-  }
-
-  try {
-    // Faqat O'QISH uchun ochamiz: tekshiruv hech narsani o'zgartirmasin.
-    const baza = new (Database as unknown as new (
-      p: string,
-      o?: Record<string, unknown>,
-    ) => { prepare: (s: string) => { get: () => unknown }; close: () => void })(yol, {
-      readonly: true,
-      fileMustExist: true,
-    });
-    baza.prepare("select count(*) as n from users").get();
-    baza.close();
-    return { holat: "ok" };
-  } catch (e) {
-    return { holat: "xato", bosqich: `ochish (${yol})`, xabar: String(e) };
+    return { holat: "xato", xabar: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
   }
 }
 
@@ -60,9 +36,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     port: process.env.PORT ?? null,
     vaqt: new Date().toISOString(),
   };
-
   if (request.nextUrl.searchParams.get("tekshir") !== "baza") {
     return Response.json(asos);
   }
-  return Response.json({ ...asos, baza: await bazaniTekshir() });
+  return Response.json({ ...asos, baza: bazaniTekshir() });
 }

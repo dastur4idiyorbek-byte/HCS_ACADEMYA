@@ -1,4 +1,4 @@
-import { db, vaqt, vaqtSatri } from "./db.ts";
+import { db, songaAylantir, vaqt, vaqtSatri } from "./db.ts";
 import { obunaKunlari } from "./config.ts";
 
 /** Botning bazasidan o'qish/yozish.
@@ -532,15 +532,28 @@ export function tolovniTasdiqla(
   hozir = new Date(),
 ): TolovNatijasi {
   const baza = db();
-  const bajarish = baza.transaction((): TolovNatijasi => {
+
+  // Tranzaksiya QO'LDA boshqariladi: `node:sqlite` da `better-sqlite3`
+  // dagi `transaction()` o'ramchisi yo'q. Mantiq o'sha-o'sha — yarmi
+  // bajarilib qolsa, to'lov "tasdiqlangan" bo'lib turadi-yu, obuna
+  // ochilmaydi.
+  baza.exec("BEGIN");
+  try {
     const tolov = baza
       .prepare(
         `select p.id, p.user_id, p.tier, p.period, p.status, u.telegram_id
            from payments p join users u on u.id = p.user_id where p.id = ?`,
       )
       .get(paymentId) as Qator | undefined;
-    if (!tolov) return { ok: false, sabab: "topilmadi" };
-    if (tolov.status !== "pending") return { ok: false, sabab: "allaqachon" };
+
+    if (!tolov) {
+      baza.exec("ROLLBACK");
+      return { ok: false, sabab: "topilmadi" };
+    }
+    if (tolov.status !== "pending") {
+      baza.exec("ROLLBACK");
+      return { ok: false, sabab: "allaqachon" };
+    }
 
     const kunlar = obunaKunlari();
     const trial = tolov.period === "daily";
@@ -555,8 +568,8 @@ export function tolovniTasdiqla(
          values (?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
       )
       .run(
-        tolov.user_id,
-        tolov.tier,
+        songaAylantir(tolov.user_id),
+        String(tolov.tier),
         trial ? "daily" : "monthly",
         vaqtSatri(hozir),
         vaqtSatri(tugash),
@@ -572,11 +585,20 @@ export function tolovniTasdiqla(
                 subscription_id = ?, updated_at = ?
           where id = ?`,
       )
-      .run(adminTelegramId, vaqtSatri(hozir), natija.lastInsertRowid, vaqtSatri(hozir), paymentId);
+      .run(
+        adminTelegramId,
+        vaqtSatri(hozir),
+        songaAylantir(natija.lastInsertRowid),
+        vaqtSatri(hozir),
+        paymentId,
+      );
 
-    return { ok: true, telegramId: Number(tolov.telegram_id), expiresAt: tugash };
-  });
-  return bajarish();
+    baza.exec("COMMIT");
+    return { ok: true, telegramId: songaAylantir(tolov.telegram_id), expiresAt: tugash };
+  } catch (e) {
+    baza.exec("ROLLBACK");
+    throw e;
+  }
 }
 
 export function tolovniRadEt(
@@ -604,7 +626,7 @@ export function tolovniRadEt(
     )
     .run(adminTelegramId, vaqtSatri(hozir), sabab, vaqtSatri(hozir), paymentId);
 
-  return { ok: true, telegramId: Number(tolov.telegram_id), expiresAt: hozir };
+  return { ok: true, telegramId: songaAylantir(tolov.telegram_id), expiresAt: hozir };
 }
 
 // --------------------------------------------------------------------------- //
@@ -748,7 +770,7 @@ export function narxniYangila(
                 is_active = 1, updated_at = ?
           where id = ?`,
       )
-      .run(amount, paymentDetails, vaqtNow, mavjud.id);
+      .run(amount, paymentDetails, vaqtNow, songaAylantir(mavjud.id));
   } else {
     baza
       .prepare(
@@ -831,7 +853,7 @@ export function coinQaroriniBelgila(
         `update coin_rulings set status = ?, reason = ?, set_by = ?, updated_at = ?
           where id = ?`,
       )
-      .run(status, sabab, adminTelegramId, vaqtNow, mavjud.id);
+      .run(status, sabab, adminTelegramId, vaqtNow, songaAylantir(mavjud.id));
   } else {
     baza
       .prepare(

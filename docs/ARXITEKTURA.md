@@ -2827,6 +2827,57 @@ Uchalasi ham mahalliy tekshirildi: `PORT` o'zgaruvchisisiz sayt 8080 da
 290ms da ko'tarildi; soxta token bilan bot uch marta yiqildi va sayt shu
 davomida `/api/health` va `/kirish` uchun 200 qaytarib turdi.
 
+### 502: mahalliy modul jarayonni o'ldirardi
+
+Tarmoq loglari masalani hal qildi:
+
+    GET /kirish             200
+    GET /                   307
+    GET /api/auth/telegram  502   <- faqat shu
+    GET /favicon.ico        502   <- keyingi so'rov ham
+
+**502, 500 emas** — bu hal qiluvchi farq. 500 bo'lsa ilova xato
+qaytargan bo'lardi. 502 esa ilova UMUMAN javob bermaganini bildiradi:
+jarayon o'ldi. Keyingi `/favicon.ico` ham 502 bo'lgani buni tasdiqlaydi
+— favicon statik fayl, u bizning kodimizga umuman tegmaydi.
+
+Farqi bitta edi: `/kirish` bazaga tegmaydi (kirmagan foydalanuvchida
+`kirim()` erta qaytadi), `/api/auth/telegram` esa so'rovdagi BIRINCHI
+baza murojaatini qiladi.
+
+Tashxis manzili (`/api/health?tekshir=baza`) qo'yildi — u bazani
+dinamik import va try/catch ichida ochardi. **U ham 502 qaytardi.**
+Ya'ni xato JavaScript darajasida emas: `try/catch` uni tuta olmaydi,
+chunki jarayon butunlay o'lmoqda.
+
+Yagona nomzod — `better-sqlite3`, mahalliy (native) modul: ichida
+`.node` ikkilik fayli bor. Serverda u bilan bog'liq har qanday
+nomuvofiqlik (bundler ikkilik faylni ko'chirmasligi, Node ABI farqi,
+kutubxona versiyasi) toza xato bermaydi, jarayonni o'ldiradi.
+
+### Yechim: bog'liqlikni butunlay olib tashlash
+
+`serverExternalPackages` qo'shish yetarli bo'lmadi. Shuning uchun
+`better-sqlite3` **umuman olib tashlandi** va o'rniga `node:sqlite`
+ishlatiladi — u Node'ning O'ZIGA kirgan (22.5 dan beri). Ikkilik fayl
+yo'q, qurish bosqichi yo'q, ABI mosligi masalasi yo'q. Ya'ni muammoning
+BUTUN SINFI yo'qoladi, bitta ko'rinishi emas.
+
+Ko'chirishda ikkita farq bor edi:
+
+| `better-sqlite3` | `node:sqlite` |
+|---|---|
+| `db.transaction(fn)` | yo'q — `BEGIN`/`COMMIT`/`ROLLBACK` qo'lda |
+| `fileMustExist: true` | yo'q — fayl mavjudligi `existsSync` bilan tekshiriladi |
+
+Ikkinchisi muhim: `node:sqlite` mavjud bo'lmagan faylni JIMGINA
+YARATADI. Tekshirmasak, noto'g'ri `DATABASE_URL` da sayt bo'sh baza
+ochib, "jadval yo'q" deb yiqilardi va asl sabab — yo'l noto'g'riligi —
+ko'rinmay qolardi.
+
+`lastInsertRowid` BigInt qaytishi mumkin, shuning uchun bitta joyda
+(`songaAylantir`) oddiy songa aylantiriladi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |

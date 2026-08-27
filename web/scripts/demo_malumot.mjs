@@ -7,11 +7,11 @@
  *
  *   node scripts/demo_malumot.mjs
  */
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import path from "node:path";
 
 const yol = path.resolve(process.cwd(), "..", "data", "hcs.db");
-const baza = new Database(yol);
+const baza = new DatabaseSync(yol);
 
 const bor = baza.prepare("select count(*) c from users").get().c;
 if (bor > 0 && process.argv[2] !== "--majburiy") {
