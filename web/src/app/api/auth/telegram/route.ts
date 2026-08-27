@@ -1,7 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 import { SESSIYA_COOKIE, SESSIYA_SEK, sessiyaYarat, telegramLoginTekshir } from "@/lib/auth";
 import { env } from "@/lib/env";
+import { yonaltir } from "@/lib/manzil";
 import { foydalanuvchiniYozib } from "@/lib/queries";
 
 /** Telegram Login Widget shu manzilga QAYTARADI (redirect rejimi).
@@ -19,14 +20,14 @@ export async function GET(request: NextRequest) {
   if (!login) {
     // Sabab AYTILMAYDI (imzo xatomi, eskirganmi) — bu hujumchiga
     // foydali ma'lumot bo'lardi. Foydalanuvchi uchun natija bir xil.
-    return NextResponse.redirect(new URL("/kirish?xato=1", request.url));
+    return yonaltir("/kirish?xato=1");
   }
 
   const toliqIsm = [login.first_name, login.last_name].filter(Boolean).join(" ") || null;
   foydalanuvchiniYozib(login.id, login.username ?? null, toliqIsm, adminIds.has(login.id));
 
   const { token } = sessiyaYarat(login.id, botToken);
-  const javob = NextResponse.redirect(new URL("/bosh", request.url));
+  const javob = yonaltir("/bosh");
   javob.cookies.set(SESSIYA_COOKIE, token, {
     httpOnly: true,       // JavaScript o'qiy olmasin (XSS bo'lsa ham)
     sameSite: "lax",      // boshqa saytdan yuborilgan so'rovda kelmasin

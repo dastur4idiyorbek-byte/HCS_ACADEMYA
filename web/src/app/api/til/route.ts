@@ -1,6 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 import { TIL_COOKIE, tilmi } from "@/lib/i18n";
+import { yonaltir } from "@/lib/manzil";
 
 /** Til almashtirish. Tanlov bir yil saqlanadi. */
 export async function POST(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
   // Ochiq yo'naltirishning oldini olamiz: faqat shu saytdagi yo'l
   const xavfsizYol = qayerga.startsWith("/") && !qayerga.startsWith("//") ? qayerga : "/bosh";
 
-  const javob = NextResponse.redirect(new URL(xavfsizYol, request.url), { status: 303 });
+  const javob = yonaltir(xavfsizYol);
   if (tilmi(til)) {
     javob.cookies.set(TIL_COOKIE, til, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
   }
