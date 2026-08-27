@@ -649,3 +649,204 @@ export function foydalanuvchiniYozib(
   }
   return foydalanuvchiOl(telegramId)!;
 }
+
+// --------------------------------------------------------------------------- //
+//  Admin: Signal Xotirasi hisoboti (3.8-band)
+// --------------------------------------------------------------------------- //
+
+export type Hisobot = {
+  id: number;
+  generatedAt: Date | null;
+  periodDays: number;
+  rendered: string;
+  total: number;
+  traded: number;
+  tp2: number;
+  tp1ThenStop: number;
+  stop: number;
+  cancelled: number;
+  falseSignals: number;
+  averageScore: number | null;
+  averageHoldingHours: number | null;
+  patternCount: number;
+  sampleWarning: string | null;
+};
+
+/** Hisobotni SAYT HISOBLAMAYDI — u `core/analysis/postmortem/` da
+ *  hisoblanib, bot tomonidan bazaga yozilgan. Naqsh tahlilini bu yerda
+ *  qayta yozish "bitta manba" qoidasini buzardi: ikki joyda ikki xil
+ *  natija chiqishi mumkin edi. */
+export function hisobotlar(limit = 8): Hisobot[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, generated_at, period_days, rendered, total, traded, tp2,
+              tp1_then_stop, stop, cancelled, false_signals, average_score,
+              average_holding_hours, pattern_count, sample_warning
+         from audit_reports order by generated_at desc limit ?`,
+    )
+    .all(limit) as Qator[];
+  return qatorlar.map((q) => ({
+    id: Number(q.id),
+    generatedAt: vaqt(q.generated_at as string),
+    periodDays: Number(q.period_days),
+    rendered: (q.rendered as string) ?? "",
+    total: Number(q.total),
+    traded: Number(q.traded),
+    tp2: Number(q.tp2),
+    tp1ThenStop: Number(q.tp1_then_stop),
+    stop: Number(q.stop),
+    cancelled: Number(q.cancelled),
+    falseSignals: Number(q.false_signals),
+    averageScore: son(q.average_score),
+    averageHoldingHours: son(q.average_holding_hours),
+    patternCount: Number(q.pattern_count),
+    sampleWarning: (q.sample_warning as string) ?? null,
+  }));
+}
+
+// --------------------------------------------------------------------------- //
+//  Admin: narxlar (1.2-band)
+// --------------------------------------------------------------------------- //
+
+export type NarxNatijasi = { ok: true } | { ok: false; sabab: string };
+
+/** Botdagi `PriceRepository.upsert` bilan bir xil qoidalar.
+ *
+ * Manfiy yoki nol narx RAD ETILADI: botda ham shunday. Aks holda sayt
+ * orqali 0 so'mlik tarif yaratib qo'yish mumkin bo'lardi va buni hech
+ * kim sezmasdi.
+ */
+export function narxniYangila(
+  tier: Tarif,
+  period: string,
+  currency: string,
+  amount: number,
+  paymentDetails: string | null,
+  hozir = new Date(),
+): NarxNatijasi {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, sabab: "Narx musbat son bo'lishi kerak" };
+  }
+  if (!["daily", "monthly"].includes(period)) {
+    return { ok: false, sabab: `Noma'lum muddat: ${period}` };
+  }
+
+  const baza = db();
+  const vaqtNow = vaqtSatri(hozir);
+  const mavjud = baza
+    .prepare(
+      `select id from price_config where tier = ? and period = ? and currency = ?`,
+    )
+    .get(tier, period, currency) as Qator | undefined;
+
+  if (mavjud) {
+    baza
+      .prepare(
+        `update price_config
+            set amount = ?,
+                payment_details = coalesce(?, payment_details),
+                is_active = 1, updated_at = ?
+          where id = ?`,
+      )
+      .run(amount, paymentDetails, vaqtNow, mavjud.id);
+  } else {
+    baza
+      .prepare(
+        `insert into price_config (tier, period, currency, amount, payment_details,
+                                   is_active, created_at, updated_at)
+         values (?, ?, ?, ?, ?, 1, ?, ?)`,
+      )
+      .run(tier, period, currency, amount, paymentDetails, vaqtNow, vaqtNow);
+  }
+  return { ok: true };
+}
+
+// --------------------------------------------------------------------------- //
+//  Admin: halol ro'yxat (1.4 / 3.4-band)
+// --------------------------------------------------------------------------- //
+
+export type HalolHolat = "halal" | "mashbooh" | "haram";
+
+export type CoinQarori = {
+  symbol: string;
+  status: HalolHolat;
+  reason: string;
+  source: string | null;
+  setBy: number | null;
+  updatedAt: Date | null;
+};
+
+export function coinQarorlari(): CoinQarori[] {
+  const qatorlar = db()
+    .prepare(
+      `select symbol, status, reason, source, set_by, updated_at
+         from coin_rulings order by status, symbol`,
+    )
+    .all() as Qator[];
+  return qatorlar.map((q) => ({
+    symbol: q.symbol as string,
+    status: q.status as HalolHolat,
+    reason: q.reason as string,
+    source: (q.source as string) ?? null,
+    setBy: son(q.set_by),
+    updatedAt: vaqt(q.updated_at as string),
+  }));
+}
+
+export type QarorNatijasi = { ok: true } | { ok: false; sabab: string };
+
+/** Coin qarorini belgilaydi yoki yangilaydi.
+ *
+ * `reason` MAJBURIY va bo'sh bo'lishi mumkin emas — botda ham shunday
+ * (`CoinRuling.reason` nullable emas). Sabab yozilmasa, oradan olti oy
+ * o'tib "bu coin nega harom deb belgilangan?" degan savolga javob
+ * qolmaydi.
+ */
+export function coinQaroriniBelgila(
+  symbol: string,
+  status: HalolHolat,
+  reason: string,
+  adminTelegramId: number,
+  hozir = new Date(),
+): QarorNatijasi {
+  const belgi = symbol.trim().toUpperCase();
+  if (!/^[A-Z0-9]{2,32}$/.test(belgi)) {
+    return { ok: false, sabab: "Symbol faqat harf va raqamdan iborat bo'lsin" };
+  }
+  const sabab = reason.trim();
+  if (!sabab) return { ok: false, sabab: "Sabab yozilishi shart" };
+  if (!["halal", "mashbooh", "haram"].includes(status)) {
+    return { ok: false, sabab: `Noma'lum holat: ${status}` };
+  }
+
+  const baza = db();
+  const vaqtNow = vaqtSatri(hozir);
+  const mavjud = baza
+    .prepare(`select id from coin_rulings where symbol = ?`)
+    .get(belgi) as Qator | undefined;
+
+  if (mavjud) {
+    baza
+      .prepare(
+        `update coin_rulings set status = ?, reason = ?, set_by = ?, updated_at = ?
+          where id = ?`,
+      )
+      .run(status, sabab, adminTelegramId, vaqtNow, mavjud.id);
+  } else {
+    baza
+      .prepare(
+        `insert into coin_rulings (symbol, status, reason, source, set_by,
+                                   created_at, updated_at)
+         values (?, ?, ?, 'sayt', ?, ?, ?)`,
+      )
+      .run(belgi, status, sabab, adminTelegramId, vaqtNow, vaqtNow);
+  }
+  return { ok: true };
+}
+
+export function coinQaroriniOchir(symbol: string): boolean {
+  const natija = db()
+    .prepare(`delete from coin_rulings where symbol = ?`)
+    .run(symbol.trim().toUpperCase());
+  return natija.changes > 0;
+}

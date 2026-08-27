@@ -2,7 +2,7 @@
 
 Jadvallar: users, subscriptions, payments, signals, signal_events, content,
 violations, price_config, risk_config, coin_rulings (haram/mashbooh),
-user_positions, daily_stats, market_health_log, risk_blocks.
+user_positions, daily_stats, market_health_log, risk_blocks, audit_reports.
 
 MUHIM: bu modul `aiogram` ga bog'liq emas — `core/` qoidasi (0.1-band).
 """
@@ -383,6 +383,47 @@ class DailyStat(Base, TimestampMixin):
     avg_risk_reward: Mapped[float | None] = mapped_column(Float)
     total_participants: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_volume_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+
+class AuditReport(Base, TimestampMixin):
+    """3.8-band: haftalik o'z-o'zini tekshirish hisobotining QAYDI.
+
+    Nima uchun saqlanadi: hisobot faqat Telegramga yuborilardi. Admin uni
+    o'qimay qolsa yoki chat tozalansa — hisobot butunlay yo'qolardi, ya'ni
+    "o'tgan oy tizim qanday ishlagan" degan savolga javob bermasdi. Endi
+    veb-panel ham xuddi shu qaydni ko'rsatadi.
+
+    `rendered` — tayyor matn. Nima uchun raqamlar bilan birga to'liq matn
+    ham: naqshlar (`patterns`) tuzilmasi kelajakda o'zgarishi mumkin, matn
+    esa o'sha paytda admin AYNAN NIMANI ko'rgani. Bu — audit izi.
+    """
+
+    __tablename__ = "audit_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    generated_at: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
+    period_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    rendered: Mapped[str] = mapped_column(Text, nullable=False)
+
+    total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    traded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tp2: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tp1_then_stop: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    stop: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    cancelled: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    false_signals: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    average_score: Mapped[float | None] = mapped_column(Float)
+    average_holding_hours: Mapped[float | None] = mapped_column(Float)
+    pattern_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    sample_warning: Mapped[str | None] = mapped_column(Text)
+
+    #: Bir kunda bitta qayd: admin tugmani o'n marta bossa ham jadval
+    #: to'lib ketmasligi kerak, oxirgi holat esa doim yangi bo'lishi kerak.
+    report_date: Mapped[date] = mapped_column(Date, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("report_date", "period_days", name="report_date_period"),
+    )
 
 
 # --------------------------------------------------------------------------- #

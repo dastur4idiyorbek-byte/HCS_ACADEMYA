@@ -49,7 +49,7 @@ def mediana(im: Image.Image, cx: int, cy: int, r: int = 4) -> tuple[int, int, in
 
 
 def hex_kod(rang: tuple[int, int, int]) -> str:
-    return "#%02X%02X%02X" % rang
+    return "#{:02X}{:02X}{:02X}".format(*rang)
 
 
 def main() -> None:

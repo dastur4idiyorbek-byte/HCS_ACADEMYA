@@ -26,6 +26,7 @@ from core.config.schema import AppConfig
 from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.repositories import (
+    AuditReportRepository,
     PaymentRepository,
     RiskBlockRepository,
     SignalRepository,
@@ -178,7 +179,19 @@ class Scheduler:
         async with self._db.session() as session:
             signallar = await SignalRepository(session).closed_since(boshlanish)
 
-        matn = render_report(build_report(signallar, postmortem, hozir))
+        hisobot = build_report(signallar, postmortem, hozir)
+        matn = render_report(hisobot)
+
+        # Qaydni SAQLAYMIZ: ilgari hisobot faqat Telegramga ketardi va
+        # o'qilmay qolsa butunlay yo'qolardi. Yozib bo'lmasa — yuborish
+        # baribir davom etadi (0.3-band: qo'shimcha ish asosiy ishni
+        # to'xtatmaydi).
+        try:
+            async with self._db.session() as session:
+                await AuditReportRepository(session).save(hisobot, matn)
+        except Exception:  # noqa: BLE001
+            logger.exception("Haftalik hisobot qaydini yozib bo'lmadi")
+
         for admin_id in self._admin_ids:
             try:
                 await self._bot.send_message(admin_id, matn)

@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 
 import { env } from "@/lib/env";
-import { tolovniRadEt, tolovniTasdiqla } from "@/lib/queries";
+import {
+  type HalolHolat,
+  type Tarif,
+  coinQaroriniBelgila,
+  coinQaroriniOchir,
+  narxniYangila,
+  tolovniRadEt,
+  tolovniTasdiqla,
+} from "@/lib/queries";
 import { xabarYubor } from "@/lib/telegram";
 import { kirim } from "@/lib/session";
 
@@ -51,4 +59,49 @@ export async function radEt(forma: FormData): Promise<void> {
     );
   }
   revalidatePath("/admin");
+}
+
+
+// --------------------------------------------------------------------------- //
+//  Narxlar (1.2-band)
+// --------------------------------------------------------------------------- //
+
+export async function narxSaqla(forma: FormData): Promise<void> {
+  await adminTekshir();
+
+  // Foydalanuvchi "12 500" yoki "12,500" deb yozishi mumkin — bo'sh joy
+  // va vergul olib tashlanadi. Boshqa har qanday belgi qolsa, `Number`
+  // `NaN` beradi va `narxniYangila` uni rad etadi.
+  const xom = String(forma.get("amount") ?? "").replace(/[\s,]/g, "");
+  const rekvizit = String(forma.get("payment_details") ?? "").trim();
+
+  narxniYangila(
+    String(forma.get("tier")) as Tarif,
+    String(forma.get("period")),
+    String(forma.get("currency")),
+    Number(xom),
+    rekvizit || null,
+  );
+  revalidatePath("/admin/narxlar");
+}
+
+// --------------------------------------------------------------------------- //
+//  Halol ro'yxat (1.4 / 3.4-band)
+// --------------------------------------------------------------------------- //
+
+export async function qarorSaqla(forma: FormData): Promise<void> {
+  const adminId = await adminTekshir();
+  coinQaroriniBelgila(
+    String(forma.get("symbol") ?? ""),
+    String(forma.get("status") ?? "") as HalolHolat,
+    String(forma.get("reason") ?? ""),
+    adminId,
+  );
+  revalidatePath("/admin/halol");
+}
+
+export async function qarorOchir(forma: FormData): Promise<void> {
+  await adminTekshir();
+  coinQaroriniOchir(String(forma.get("symbol") ?? ""));
+  revalidatePath("/admin/halol");
 }

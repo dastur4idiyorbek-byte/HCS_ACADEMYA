@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.analysis.postmortem import ClosedSignal, outcome_from_status
+from core.analysis.postmortem.report import SelfAuditReport
 from core.domain.enums import (
     HalalStatus,
     OrderType,
@@ -36,6 +37,7 @@ from core.domain.models import (
 )
 from core.domain.portfolio import PositionOutcome, PositionSnapshot, PublicStats
 from core.storage.models import (
+    AuditReport,
     CoinRuling,
     Content,
     DailyStat,
@@ -974,3 +976,58 @@ class RiskBlockRepository:
 
 def today_utc() -> date:
     return utc_now().date()
+
+
+class AuditReportRepository:
+    """3.8-band: haftalik hisobotning qaydi.
+
+    Nima uchun kerak: hisobot faqat Telegramga yuborilardi va shu bilan
+    yo'qolardi. Endi u veb-panelda ham ko'rinadi va tarix bo'lib qoladi.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def save(self, report: SelfAuditReport, rendered: str) -> AuditReport:
+        """Hisobotni yozadi. BIR KUNDA BITTA qayd (davr uzunligi bo'yicha).
+
+        Nima uchun upsert: admin panelda tugmani necha marta bossa,
+        shuncha bir xil qator paydo bo'lardi. Har safar YANGILAB borish
+        esa ikki foyda beradi — jadval toza qoladi va veb-panel doim eng
+        so'nggi holatni ko'rsatadi.
+        """
+        sana = report.generated_at.date()
+        stmt = select(AuditReport).where(
+            AuditReport.report_date == sana,
+            AuditReport.period_days == report.period_days,
+        )
+        yozuv = (await self._session.execute(stmt)).scalar_one_or_none()
+        if yozuv is None:
+            yozuv = AuditReport(report_date=sana, period_days=report.period_days)
+            self._session.add(yozuv)
+
+        s = report.stats
+        yozuv.generated_at = report.generated_at
+        yozuv.rendered = rendered
+        yozuv.total = s.total
+        yozuv.traded = s.traded
+        yozuv.tp2 = s.tp2
+        yozuv.tp1_then_stop = s.tp1_then_stop
+        yozuv.stop = s.stop
+        yozuv.cancelled = s.cancelled
+        yozuv.false_signals = s.false_signals
+        yozuv.average_score = s.average_score
+        yozuv.average_holding_hours = s.average_holding_hours
+        yozuv.pattern_count = len(report.patterns)
+        yozuv.sample_warning = report.sample_warning
+
+        await self._session.flush()
+        return yozuv
+
+    async def latest(self, limit: int = 8) -> list[AuditReport]:
+        stmt = (
+            select(AuditReport)
+            .order_by(AuditReport.generated_at.desc())
+            .limit(limit)
+        )
+        return list((await self._session.execute(stmt)).scalars())

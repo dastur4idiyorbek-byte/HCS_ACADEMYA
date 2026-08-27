@@ -44,6 +44,7 @@ from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.models import User
 from core.storage.repositories import (
+    AuditReportRepository,
     CoinRulingRepository,
     ContentRepository,
     MarketHealthRepository,
@@ -823,9 +824,18 @@ async def self_audit_report(
         signallar = await SignalRepository(session).closed_since(boshlanish)
 
     hisobot = build_report(signallar, config.postmortem, hozir)
-    await callback.message.edit_text(
-        render_report(hisobot), reply_markup=back_button("home", language)
-    )
+    matn = render_report(hisobot)
+
+    # Qayd veb-panel uchun ham kerak. Bir kunda bitta yozuv bo'ladi, ya'ni
+    # tugmani qayta-qayta bosish jadvalni to'ldirmaydi. Yozib bo'lmasa —
+    # ekran baribir ko'rsatiladi (0.3-band).
+    try:
+        async with database.session() as session:
+            await AuditReportRepository(session).save(hisobot, matn)
+    except Exception:  # noqa: BLE001
+        logger.exception("Hisobot qaydini yozib bo'lmadi")
+
+    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
     await callback.answer()
 
 

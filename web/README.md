@@ -92,6 +92,6 @@ suv belgisi bo'lib turadi, nusxalash va chop etish bloklangan. Batafsil:
 | 6. "Nega signal yo'q?" voronkasi | ✅ |
 | 7. Video darsliklar / Onlayn kurs | ✅ |
 | 8. Profil / Obuna | ✅ |
-| 9. Admin panel | ✅ |
+| 9. Admin panel — to'lovlar, salomatlik, Signal Xotirasi, narxlar, halol ro'yxat | ✅ |
 | 10. Responsive tekshiruv | ✅ |
 | 11. Joylashtirish sozlamasi (Railway) | ✅ |

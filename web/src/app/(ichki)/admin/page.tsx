@@ -13,20 +13,8 @@ import { radEt, tasdiqla } from "./amallar";
 export const dynamic = "force-dynamic";
 
 export default async function Admin() {
-  const { til, admin } = await kirim();
+  const { til } = await kirim();
   const t = tarjimon(til);
-
-  if (!admin) {
-    return (
-      <>
-        <Sarlavha matn={t("admin.sarlavha")} />
-        <Card>
-          <p className="text-past text-sm">{t("admin.faqat_admin")}</p>
-        </Card>
-      </>
-    );
-  }
-
   const tolovlar = kutilayotganTolovlar(50);
   const salomatlik = salomatlikOxirgi();
   const tarix = salomatlikTarixi(8);
@@ -36,7 +24,6 @@ export default async function Admin() {
     <>
       <Sarlavha
         matn={t("admin.sarlavha")}
-        izoh={t("admin.izoh")}
         ong={tolovlar.length > 0 ? <Badge tone="ortacha">{tolovlar.length}</Badge> : undefined}
       />
 

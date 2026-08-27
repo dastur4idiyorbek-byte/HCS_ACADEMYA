@@ -2733,6 +2733,56 @@ ko'rinmadi**: kafel o'lchami (300x120) kartochka balandligidan katta
 bo'lib, bitta qator ham sig'magan. Endi u SVG kafel — o'lchami matn
 burchagiga moslangan va `tests/himoya.test.ts` uni tekshiradi.
 
+### Admin panel: `/panel` bilan tenglashtirish
+
+Boshlang'ich versiyada saytda faqat to'lov tasdiqlash va Bozor
+Salomatligi bor edi. Endi uchta bo'lim qo'shildi va shu bilan
+`/panel`ning ishlaydigan qismlari to'liq qamrab olindi:
+
+| Bo'lim | Nima uchun aynan bu |
+|---|---|
+| Signal Xotirasi (3.8) | Hisobot faqat Telegramga yuborilardi — o'qilmay qolsa butunlay yo'qolardi |
+| Narxlar (1.2) | Tarif narxini o'zgartirish uchun har safar botga kirish shart emas |
+| Halol ro'yxat (1.4 / 3.4) | Universum 150 taga kengaydi; 150 ta coinni bot tugmalari orqali ko'rib chiqish amalda mumkin emas |
+
+Risk sozlamalari ATAYLAB qo'shilmadi: u botda ham hali tayyor emas
+("9-bosqich ustiga qo'shiladi" deb ochiq yozilgan). Saytda uni qilib
+qo'yish ikki interfeys o'rtasida farq tug'dirardi.
+
+### Hisobot endi SAQLANADI
+
+`audit_reports` jadvali qo'shildi (`da6c8ea490c9` migratsiyasi). Nima
+uchun kerak edi: `build_report()` har safar qaytadan hisoblanardi va
+natija faqat Telegram xabari bo'lib qolardi. Ya'ni "o'tgan oy tizim
+qanday ishlagan" degan savolga javob bermasdi.
+
+Ikkita qaror muhim:
+
+- **Bir kunda bitta qayd** (`report_date` + `period_days` bo'yicha
+  upsert). Admin panelda tugmani o'n marta bossa, o'n xil qator paydo
+  bo'lardi. Endi eng so'nggi holat yoziladi.
+- **To'liq matn ham saqlanadi** (`rendered`), faqat raqamlar emas.
+  Naqshlar tuzilmasi kelajakda o'zgarishi mumkin; matn esa o'sha paytda
+  admin AYNAN NIMANI ko'rgani — bu audit izi.
+
+Hisobotni saytda QAYTA HISOBLASH ataylab qilinmadi. Naqsh tahlili
+`core/analysis/postmortem/` da yashaydi; uni TypeScriptda qayta yozish
+ikki joyda ikki xil natija berishi mumkin edi — bu 1-naqshning eng
+xavfli ko'rinishi bo'lardi, chunki farqni faqat kimdir ikkalasini
+solishtirib ko'rgandagina sezardi.
+
+### Yozuv amallarida adminlik IKKI MARTA tekshiriladi
+
+Sahifa layout'ida bitta tekshiruv bor, lekin u yetarli emas: server
+amali (server action) alohida HTTP so'rov bo'lib keladi va uni
+to'g'ridan-to'g'ri chaqirish mumkin. Shuning uchun `amallar.ts` dagi har
+bir funksiya `adminTekshir()` bilan boshlanadi.
+
+Xuddi shu sabab bilan kiritilgan ma'lumot ham SERVERDA tekshiriladi:
+`required` atributi brauzerda bir buyruq bilan olib tashlanadi. Buni
+brauzerda sinab ko'rildi — `required` olib tashlangandan keyin ham
+sababsiz qaror rad etildi.
+
 ## 51. Bosqichlar holati
 
 | # | Bosqich | Holat |
