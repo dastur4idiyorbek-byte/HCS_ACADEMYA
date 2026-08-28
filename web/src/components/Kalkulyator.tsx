@@ -10,6 +10,7 @@ import {
   musbatSon,
   narxMatni,
   tengUlushlar,
+  ulushlarniTengla,
 } from "@/lib/kalkulyator";
 
 /** Trading kalkulyatori — brauzerda, real vaqtda.
@@ -71,10 +72,24 @@ export function Kalkulyator({
     );
   }, [summa, kirish, stopMatn, tplar]);
 
-  const yangila = (i: number, maydon: keyof Matnli, qiymat: string) =>
-    setTplar((oldingi) =>
-      oldingi.map((t, j) => (i === j ? { ...t, [maydon]: qiymat } : t)),
-    );
+  const narxYangila = (i: number, qiymat: string) =>
+    setTplar((oldingi) => oldingi.map((t, j) => (i === j ? { ...t, narx: qiymat } : t)));
+
+  /** Ulush o'zgarsa QOLGANLARI qayta hisoblanadi.
+   *
+   * Tahrirlanayotgan maydonda foydalanuvchi YOZGAN matn qoladi (u hali
+   * "7." kabi tugallanmagan bo'lishi mumkin), boshqalari esa sondan
+   * qayta yasaladi. Shu sababdan yig'indi doim 100 bo'ladi va
+   * "ulushlar 125%" holati umuman yuzaga kelmaydi. */
+  const ulushYangila = (i: number, qiymat: string) =>
+    setTplar((oldingi) => {
+      const sonlar = oldingi.map((t) => Number(t.ulush.replace(",", ".")) || 0);
+      const yangilari = ulushlarniTengla(sonlar, i, Number(qiymat.replace(",", ".")) || 0);
+      return oldingi.map((t, j) => ({
+        narx: t.narx,
+        ulush: j === i ? qiymat : String(yangilari[j]),
+      }));
+    });
 
   const pul = (x: number) =>
     `${x >= 0 ? "+" : "−"}$${Math.abs(x).toLocaleString("en-US", {
@@ -134,7 +149,7 @@ export function Kalkulyator({
               <input
                 inputMode="decimal"
                 value={t.narx}
-                onChange={(e) => yangila(i, "narx", e.target.value)}
+                onChange={(e) => narxYangila(i, e.target.value)}
                 className={uslub}
               />
             </label>
@@ -145,7 +160,7 @@ export function Kalkulyator({
               <input
                 inputMode="decimal"
                 value={t.ulush}
-                onChange={(e) => yangila(i, "ulush", e.target.value)}
+                onChange={(e) => ulushYangila(i, e.target.value)}
                 className={uslub}
               />
             </label>
@@ -153,11 +168,6 @@ export function Kalkulyator({
         ))}
       </div>
 
-      {hisob && !hisob.toliqmi && (
-        <p className="border-ortacha/60 text-ortacha rounded-kichik mt-3 border px-3 py-2 text-sm">
-          ⚠️ {matnlar.ulush_xato.replace("{jami}", hisob.ulushJami.toFixed(2))}
-        </p>
-      )}
 
       {hisob && (
         <div className="border-ramka-yumshoq rounded-kichik mt-4 border p-3">

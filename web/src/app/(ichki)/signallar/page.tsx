@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kotirovka } from "@/lib/config";
+import { kotirovka, tp1Ulushi } from "@/lib/config";
 import { env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
 import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
@@ -100,6 +100,11 @@ export default async function Signallar() {
                 tpNarxlari={[s.tp1, s.tp2]}
                 belgi={suvBelgisi}
                 kotirovka={kotirovka()}
+                tp1Ulush={tp1Ulushi()}
+                buyurtmaMatni={`${s.entryOrderType === "market" ? "⚡" : "📌"} ${t(
+                  s.entryOrderType === "market" ? "signal.market" : "signal.limit",
+                )}`}
+                berilgan={s.createdAt}
                 matnlar={kalkulyatorMatnlari(t)}
               />
             </div>

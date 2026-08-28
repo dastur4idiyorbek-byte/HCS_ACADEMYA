@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Grafik } from "@/components/Grafik";
 import { Himoya } from "@/components/Himoya";
 import { Kalkulyator } from "@/components/Kalkulyator";
+import { SignalKartochka } from "@/components/SignalKartochka";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 
 /** Signallar RO'YXATIDA grafik va kalkulyatorni ochadigan tugma.
@@ -26,6 +27,9 @@ export function SignalOchish({
   tpNarxlari,
   belgi,
   kotirovka,
+  tp1Ulush,
+  buyurtmaMatni,
+  berilgan,
   matnlar,
 }: {
   symbol: string;
@@ -33,6 +37,10 @@ export function SignalOchish({
   stop: number;
   tpNarxlari: number[];
   belgi: string;
+  /** TP1 da sotiladigan ulush — konfiguratsiyadan, serverdan keladi */
+  tp1Ulush: number;
+  buyurtmaMatni: string;
+  berilgan: Date | null;
   /** Spot juftlik kotirovkasi (`USDT`). SERVERDAN keladi: uni
    *  konfiguratsiyadan o'qish fayl tizimini talab qiladi, brauzerda esa
    *  bunday imkoniyat yo'q. */
@@ -57,6 +65,24 @@ export function SignalOchish({
 
       {ochiq && (
         <div className="mt-3 space-y-4">
+          {/* Tartib: SIGNAL -> grafik -> kalkulyator. Avval kalkulyator
+              birinchi ochilardi va qaysi narx signalniki ekani
+              bilinmasdi. */}
+          <Himoya belgi={belgi} ogohlantirish={matnlar.himoya}>
+            <SignalKartochka
+              symbol={symbol}
+              kotirovka={kotirovka}
+              entry={entry}
+              stop={stop}
+              tp1={tpNarxlari[0]}
+              tp2={tpNarxlari[1]}
+              tp1Ulush={tp1Ulush}
+              buyurtmaMatni={buyurtmaMatni}
+              berilgan={berilgan}
+              matnlar={matnlar}
+            />
+          </Himoya>
+
           <Grafik
             symbol={`BINANCE:${birjaJuftligi(symbol, kotirovka)}`}
             xatoMatni={matnlar.grafik_xato}

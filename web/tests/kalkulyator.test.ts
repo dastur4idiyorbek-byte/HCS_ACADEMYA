@@ -9,6 +9,7 @@ import {
   musbatSon,
   narxMatni,
   tengUlushlar,
+  ulushlarniTengla,
 } from "../src/lib/kalkulyator.ts";
 
 /** Topshiriqdagi misolning o'zi: $1000, kirish 100, stop 97,
@@ -160,4 +161,58 @@ test("narx matnida guruh ajratgichi YO'Q", () => {
   const matn = narxMatni(1150.74798619);
   assert.ok(!matn.includes(","), matn);
   assert.equal(musbatSon(matn), 1150.75);
+});
+
+// --------------------------------------------------------------------- //
+//  Ulushlar avtomatik balansi
+// --------------------------------------------------------------------- //
+
+/** ENG MUHIM QOIDA: pozitsiya BITTA va u to'liq sotiladi, ya'ni
+ *  ulushlar yig'indisi har doim aniq 100 bo'lishi shart. Avval ikkala
+ *  maydon mustaqil edi va 75 + 50 = 125% pozitsiya hisoblanardi —
+ *  kalkulyator mavjud bo'lmagan foydani ko'rsatardi. */
+test("ikkita TP: biri o'zgarsa ikkinchisi qolganini oladi", () => {
+  assert.deepEqual(ulushlarniTengla([50, 50], 0, 75), [75, 25]);
+  assert.deepEqual(ulushlarniTengla([50, 50], 1, 30), [70, 30]);
+  assert.deepEqual(ulushlarniTengla([75, 25], 0, 100), [100, 0]);
+});
+
+test("uchta TP: qolgani NISBAT bo'yicha taqsimlanadi", () => {
+  // 30/20 nisbati (3:2) saqlanadi: 40 dan 24 va 16.
+  assert.deepEqual(ulushlarniTengla([50, 30, 20], 0, 60), [60, 24, 16]);
+});
+
+test("boshqalari nol bo'lsa teng bo'linadi", () => {
+  assert.deepEqual(ulushlarniTengla([100, 0, 0], 0, 40), [40, 30, 30]);
+});
+
+test("chegaradan chiqqan qiymat kesiladi", () => {
+  // 150% yozilsa boshqalari manfiy bo'lib qolardi.
+  assert.deepEqual(ulushlarniTengla([50, 50], 0, 150), [100, 0]);
+  assert.deepEqual(ulushlarniTengla([50, 50], 0, -20), [0, 100]);
+  assert.deepEqual(ulushlarniTengla([50, 50], 0, NaN), [0, 100]);
+});
+
+test("yig'indi HAR DOIM aniq 100", () => {
+  // Yaxlitlash qoldig'i yo'qolmasligi kerak — aks holda kalkulyator
+  // pozitsiyaning bir qismini "yo'qotardi".
+  const holatlar: [number[], number, number][] = [
+    [[50, 50], 0, 33.333],
+    [[33.34, 33.33, 33.33], 1, 41.7],
+    [[10, 20, 30, 40], 2, 7.77],
+    [[25, 25, 25, 25], 3, 61],
+  ];
+  for (const [ulushlar, i, yangi] of holatlar) {
+    const natija = ulushlarniTengla(ulushlar, i, yangi);
+    const jami = natija.reduce((s, x) => s + x, 0);
+    assert.ok(
+      Math.abs(jami - ULUSH_JAMI) < 1e-9,
+      `${JSON.stringify(ulushlar)} [${i}]=${yangi} -> ${JSON.stringify(natija)} = ${jami}`,
+    );
+    assert.equal(natija[i], yangi, "tahrirlangan maydon o'zgarmasligi kerak");
+  }
+});
+
+test("bitta TP har doim 100%", () => {
+  assert.deepEqual(ulushlarniTengla([100], 0, 40), [100]);
 });

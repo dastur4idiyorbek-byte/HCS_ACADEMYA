@@ -556,9 +556,12 @@ async def show_signal(
     """Tanlangan signal kartochkasi — miqdor shu foydalanuvchi balansidan.
 
     Narx SIGNAL YARATILGAN paytdagi emas, HOZIRGI narx bo'lishi kerak:
-    kartochkadagi narvon "hozirgi narx" deb yozadi va foydalanuvchi
-    ro'yxatni signal kelganidan ancha keyin ochishi mumkin. Narx
-    olinmasa signal baribir ko'rsatiladi (0.3-band).
+    foydalanuvchi ro'yxatni signal kelganidan ancha keyin ochishi
+    mumkin. Kartochka ham uni aynan shunday nomlaydi ("Hozirgi narx"),
+    chunki bu yerda `status` beriladi. Narx olinmasa signal baribir
+    ko'rsatiladi (0.3-band).
+
+    Sana esa signalning O'ZI berilgan vaqt — ochilgan vaqt emas.
     """
     if tier is None:
         await callback.answer(t("umumiy.ruxsat_yoq", language), show_alert=True)
@@ -573,6 +576,7 @@ async def show_signal(
             holat = SignalStatus(yozuv.status)
             levels = SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2)
             narx_signalda = yozuv.price_at_signal or yozuv.entry
+            berilgan = yozuv.created_at
 
     if not topildi:
         await callback.answer(t("signal.faol_emas", language), show_alert=True)
@@ -595,6 +599,7 @@ async def show_signal(
         suggestion=suggest_size(symbol, levels, balans, config),
         quote_asset=config.halal_screening.quote_asset,
         language=language,
+        created_at=berilgan,
         tp1_close_pct=config.portfolio.tp1_close_pct,
         # Holat KARTOCHKA ICHIDA ko'rsatiladi — tashqaridan qo'shilsa,
         # u buyurtma turi bilan zid chiqishi mumkin (34.1-bo'lim).

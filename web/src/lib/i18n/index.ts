@@ -57,6 +57,7 @@ export function tarjimon(til: Til) {
  */
 export function kalkulyatorMatnlari(t: (kalit: string) => string) {
   return {
+    ...kartochkaMatnlari(t),
     ochish: t("signal.ochish"),
     himoya: t("signal.himoya"),
     grafik_xato: t("signal.grafik_xato"),
@@ -70,5 +71,15 @@ export function kalkulyatorMatnlari(t: (kalit: string) => string) {
     jami: t("signal.kalk_jami"),
     ulush_xato: t("signal.kalk_ulush_xato"),
     ogohlantirish: t("signal.kalk_ogohlantirish"),
+  };
+}
+
+/** Signal kartochkasi matnlari — botdagi shablon bilan bir xil nomlar. */
+export function kartochkaMatnlari(t: (kalit: string) => string) {
+  return {
+    kirish: t("signal.kart_kirish"),
+    stop: t("signal.kart_stop"),
+    nisbat: t("signal.kart_nisbat"),
+    stop_izoh: t("signal.kart_stop_izoh"),
   };
 }

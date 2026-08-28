@@ -102,3 +102,14 @@ export function savdoQoidalari(): {
 export function kotirovka(): string {
   return yol(["halal_screening", "quote_asset"], "USDT");
 }
+
+/** TP1 da pozitsiyaning qancha qismi sotiladi (foizda).
+ *
+ * Bot signal kartochkasida aynan shu qiymatni yozadi
+ * (`bot/formatting.py` -> `render_levels`). Sayt uni ko'chirib
+ * yozsa, ikkalasi bir xil signal uchun boshqa-boshqa ulush
+ * ko'rsatardi va foydalanuvchi qaysi biriga ishonishni bilmasdi.
+ */
+export function tp1Ulushi(): number {
+  return yol(["portfolio", "tp1_close_pct"], 50);
+}

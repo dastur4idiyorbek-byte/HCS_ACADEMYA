@@ -3,14 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { Grafik } from "@/components/Grafik";
 import { Himoya } from "@/components/Himoya";
 import { Kalkulyator } from "@/components/Kalkulyator";
+import { SignalKartochka } from "@/components/SignalKartochka";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kotirovka } from "@/lib/config";
+import { kotirovka, tp1Ulushi } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
-import { HOLAT_BELGISI, holatNomi, narx, riskFoyda, sana } from "@/lib/format";
-import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
+import { HOLAT_BELGISI, holatNomi } from "@/lib/format";
+import { kalkulyatorMatnlari, kartochkaMatnlari, tarjimon } from "@/lib/i18n";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 import { kirishMumkin, signalOl, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
@@ -35,7 +36,6 @@ export default async function SignalSahifasi({
   // ochib olish mumkin bo'lardi.
   if (!kirishMumkin(signal.status)) redirect("/signallar");
 
-  const rr = riskFoyda(signal.entry, signal.stop, signal.tp2);
   // Suv belgisida ID turadi: skrinshot tarqalsa, u kimdan chiqqani ko'rinadi
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
   const buyurtma = signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
@@ -55,20 +55,23 @@ export default async function SignalSahifasi({
       />
 
       <div className="space-y-5">
-<Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
-          <Card variant="urgu">
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-              <Qiymat nom={t("signal.entry")} qiymat={narx(signal.entry)} />
-              <Qiymat nom={t("signal.stop")} qiymat={narx(signal.stop)} tone="past" />
-              <Qiymat nom={t("signal.tp1")} qiymat={narx(signal.tp1)} tone="yaxshi" />
-              <Qiymat nom={t("signal.tp2")} qiymat={narx(signal.tp2)} tone="yaxshi" />
-            </dl>
-            <div className="mt-4 border-t border-white/10 pt-3">
-              <p className="text-sm">
-                {signal.entryOrderType === "market" ? "⚡" : "📌"} {t(buyurtma)}
-              </p>
-            </div>
-          </Card>
+        {/* Signalning O'ZI birinchi — avval sahifa avtomatik to'lgan
+            kalkulyator maydonlaridan boshlanardi va qaysi raqam
+            signalniki ekani bilinmasdi. Tartib: signal -> grafik ->
+            kalkulyator. */}
+        <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
+          <SignalKartochka
+            symbol={signal.symbol}
+            kotirovka={kotirovka()}
+            entry={signal.entry}
+            stop={signal.stop}
+            tp1={signal.tp1}
+            tp2={signal.tp2}
+            tp1Ulush={tp1Ulushi()}
+            buyurtmaMatni={`${signal.entryOrderType === "market" ? "⚡" : "📌"} ${t(buyurtma)}`}
+            berilgan={signal.createdAt}
+            matnlar={kartochkaMatnlari(t)}
+          />
         </Himoya>
 
         <p className="text-matn-past px-1 text-xs leading-relaxed">
@@ -76,19 +79,16 @@ export default async function SignalSahifasi({
         </p>
 
         <div className="grid gap-5 sm:grid-cols-2">
+          {/* Risk/Foyda va sana KARTOCHKADA turadi — bu yerda takrorlanmaydi.
+              Qolgani: signal berilgan paytdagi bozor holati. */}
           <Card>
-            <CardTitle>{t("signal.nisbat")}</CardTitle>
+            <CardTitle>{t("salomatlik.sarlavha")}</CardTitle>
             <p className="raqam text-sarlavha mt-2 text-2xl font-bold">
-              {rr === null ? "—" : `1 : ${rr.toFixed(2)}`}
+              {signal.marketHealthAtEntry === null
+                ? "—"
+                : `${signal.marketHealthAtEntry.toFixed(0)}/100`}
             </p>
-            <CardHint>
-              {t("signal.berilgan")}: {sana(signal.createdAt)} UTC
-            </CardHint>
-            {signal.marketHealthAtEntry !== null && (
-              <CardHint>
-                {t("salomatlik.sarlavha")}: {signal.marketHealthAtEntry.toFixed(0)}/100
-              </CardHint>
-            )}
+            <CardHint>{t("signal.salomatlik_izoh")}</CardHint>
           </Card>
 
           <Card>
@@ -141,24 +141,6 @@ export default async function SignalSahifasi({
         </Card>
       </div>
     </>
-  );
-}
-
-function Qiymat({
-  nom,
-  qiymat,
-  tone,
-}: {
-  nom: string;
-  qiymat: string;
-  tone?: "yaxshi" | "past";
-}) {
-  const rang = tone === "yaxshi" ? "text-yaxshi" : tone === "past" ? "text-past" : "text-sarlavha";
-  return (
-    <div>
-      <dt className="text-matn-past text-xs uppercase tracking-wide">{nom}</dt>
-      <dd className={`raqam mt-0.5 font-semibold ${rang}`}>{qiymat}</dd>
-    </div>
   );
 }
 

@@ -15,22 +15,64 @@ def darajalar() -> SignalLevels:
     return SignalLevels(entry=2450.0, stop=2431.4, tp1=2523.5, tp2=2560.0)
 
 
-def test_kartochka_spetsifikatsiya_tuzilishiga_mos() -> None:
+def test_kartochka_shabloni_toliq() -> None:
+    """Shablon: coin -> harakat -> darajalar -> xulosa -> sana."""
     reja = decide_entry_plan(2478.0, darajalar(), KONFIG)
     kartochka = render_signal_card("eth", darajalar(), reja)
 
     assert "ETH/USDT" in kartochka
-    assert "KIRISH narxi" in kartochka, "narvon kirish nuqtasini ko'rsatishi kerak"
-    assert "OCO" in kartochka, "chiqish buyurtmasi turi aytilishi kerak"
-    assert "1-OCO" in kartochka and "2-OCO" in kartochka, (
-        "ikkala OCO ham ko'rsatilishi kerak"
-    )
-    assert "50%" in kartochka, "har bir OCO ning ulushi ko'rsatilishi kerak"
-    # Narvon: har bir daraja BIR MARTA ko'rsatiladi, OCO tegishliligi
-    # yonida yoziladi — raqamlar takrorlanmaydi.
+    assert "Kirish" in kartochka
+    assert "Stop" in kartochka
+    assert "TP1" in kartochka and "TP2" in kartochka
+    assert "Risk/Foyda" in kartochka, "qaror uchun asosiy raqam"
+    assert "50%" in kartochka, "har bir TP da qancha sotilishi"
     assert kartochka.count("🎯") == 2, "ikkita TP"
-    assert kartochka.count("🛑") == 1, "Stop bir marta, 'ikkalasida' deb belgilanadi"
-    assert "ikkalasida" in kartochka
+    assert kartochka.count("🛑") == 1, "Stop bir marta"
+
+
+def test_kartochkada_birja_jargoni_yoq() -> None:
+    """"OCO" — birja atamasi. Signal o'quvchi uni bilishi shart emas,
+    shuning uchun kartochkadan olib tashlangan: uning o'rniga "Stop
+    butun pozitsiyani yopadi" degan oddiy gap turadi."""
+    kartochka = render_signal_card(
+        "ETH", darajalar(), decide_entry_plan(2478.0, darajalar(), KONFIG)
+    )
+    assert "OCO" not in kartochka
+    assert "butun pozitsiyani yopadi" in kartochka
+
+
+def test_kartochkada_sana_va_vaqt_bor() -> None:
+    """Foydalanuvchi signal QACHON berilganini ko'rishi kerak."""
+    from datetime import UTC, datetime
+
+    kartochka = render_signal_card(
+        "ETH",
+        darajalar(),
+        decide_entry_plan(2478.0, darajalar(), KONFIG),
+        created_at=datetime(2026, 8, 28, 10, 45, tzinfo=UTC),
+    )
+    assert "28.08.2026" in kartochka
+    assert "10:45 UTC" in kartochka
+
+
+def test_narx_qatori_kontekstga_qarab_nomlanadi() -> None:
+    """Bitta maydon, ikki ma'no bo'lib qolmasin.
+
+    Yangi signalda narx — signal berilgan lahzaniki. Foydalanuvchi eski
+    signalni ochganda esa narx shu lahzada birjadan olinadi. Ikkalasini
+    bir xil nomlash o'quvchini adashtirardi: raqam qachonga tegishli
+    ekani bilinmasdi.
+    """
+    from core.domain.enums import SignalStatus
+
+    lv = darajalar()
+    reja = decide_entry_plan(lv.entry * 1.01, lv, KONFIG)
+
+    yangi = render_signal_card("ETH", lv, reja)
+    ochilgan = render_signal_card("ETH", lv, reja, status=SignalStatus.PENDING)
+
+    assert "Signal narxi" in yangi and "Hozirgi narx" not in yangi
+    assert "Hozirgi narx" in ochilgan and "Signal narxi" not in ochilgan
 
 
 def test_limit_va_market_kartochkada_korinadi() -> None:
@@ -226,40 +268,44 @@ def test_belgi_takrorlanmaydi() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_narvon_darajalarni_tartib_bilan_korsatadi() -> None:
-    """Yuqoridan pastga: TP2 -> TP1 -> kirish -> Stop."""
-    from bot.formatting import render_price_ladder
+def test_darajalar_mantiqiy_tartibda() -> None:
+    """Kirish -> Stop -> TP1 -> TP2.
 
-    lv = darajalar()
-    qatorlar = render_price_ladder(lv).splitlines()
+    Avval narvon NARX bo'yicha saralanardi (TP2 -> TP1 -> kirish ->
+    Stop) va o'rtasiga "hozirgi narx" qatori tushardi. Natijada to'rt
+    bir xil ko'rinishdagi qator aralashib ketardi va qaysi raqam nima
+    ekani darrov bilinmasdi. Endi tartib O'QISH tartibi: avval nima
+    qilish, keyin qayerda to'xtash, keyin qayerda sotish.
+    """
+    from bot.formatting import render_levels
 
-    assert len(qatorlar) == 4
-    assert "TP2" in qatorlar[0]
-    assert "TP1" in qatorlar[1]
-    assert "KIRISH" in qatorlar[2]
-    assert "Stop" in qatorlar[3]
-
-
-def test_narvon_hozirgi_narxni_oz_orniga_qoyadi() -> None:
-    """Narx qayerda turgani bir qarashda ko'rinishi kerak."""
-    from bot.formatting import render_price_ladder
-
-    lv = darajalar()
-
-    yuqorida = render_price_ladder(lv, current_price=lv.entry * 1.01).splitlines()
-    pastda = render_price_ladder(lv, current_price=(lv.entry + lv.stop) / 2).splitlines()
-
-    # Narx kirishdan yuqorida -> narvonda kirishdan OLDIN turadi
-    assert "hozirgi" in yuqorida[2] and "KIRISH" in yuqorida[3]
-    # Narx kirishdan pastda -> kirishdan KEYIN turadi
-    assert "KIRISH" in pastda[2] and "hozirgi" in pastda[3]
-
-
-def test_narvon_kirish_narxida_takrorlanmaydi() -> None:
-    """Joriy narx kirish narxiga teng bo'lsa, ikkita bir xil qator chiqmaydi."""
-    from bot.formatting import render_price_ladder
-
-    lv = darajalar()
-    qatorlar = render_price_ladder(lv, current_price=lv.entry).splitlines()
+    qatorlar = render_levels(darajalar()).splitlines()
 
     assert len(qatorlar) == 4
+    assert "Kirish" in qatorlar[0]
+    assert "Stop" in qatorlar[1]
+    assert "TP1" in qatorlar[2]
+    assert "TP2" in qatorlar[3]
+
+
+def test_darajalar_ustunlari_tekislanadi() -> None:
+    """Raqamlar bir ustunda tursin — telefonda shunda o'qiladi."""
+    from bot.formatting import render_levels
+
+    # Narx uzunliklari har xil: 2,450 / 2,431.4 / 2,523.5 / 2,560
+    qatorlar = [q.replace("<code>", "").replace("</code>", "")
+                for q in render_levels(darajalar()).splitlines()]
+    joylar = [q.index(".") for q in qatorlar]
+    assert len(set(joylar)) == 1, f"kasr nuqtasi bir ustunda emas: {qatorlar}"
+
+
+def test_tp_ulushlari_konfiguratsiyadan() -> None:
+    """TP2 ulushi — 100 dan qolgani. Ikkalasi qattiq yozilmagan."""
+    from bot.formatting import render_levels
+
+    blok = render_levels(darajalar(), tp1_close_pct=70)
+    tp1 = next(q for q in blok.splitlines() if "TP1" in q)
+    tp2 = next(q for q in blok.splitlines() if "TP2" in q)
+
+    assert "70%" in tp1
+    assert "30%" in tp2

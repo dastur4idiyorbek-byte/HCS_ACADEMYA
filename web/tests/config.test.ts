@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { obunaKunlari, salomatlikBandlari, savdoQoidalari } from "../src/lib/config.ts";
+import {
+  obunaKunlari,
+  salomatlikBandlari,
+  savdoQoidalari,
+  tp1Ulushi,
+} from "../src/lib/config.ts";
 
 /** Bu testlar 2-naqshga qarshi: "e'lon qilingan, lekin ulanmagan".
  *
@@ -62,4 +67,14 @@ test("savdo qoidalari YAML dan o'qiladi", () => {
   assert.equal(q.minTpPct, yaml.trade_rules.min_tp_distance_pct);
   assert.equal(q.maxTpPct, yaml.trade_rules.max_tp_distance_pct);
   assert.equal(q.minRiskReward, yaml.trade_rules.min_risk_reward);
+});
+
+/** Bot kartochkasida TP1 ulushi shu qiymatdan yoziladi
+ *  (`bot/formatting.py` -> `render_levels`). Yo'l noto'g'ri bo'lsa
+ *  `yol()` jimgina zaxira qiymatni qaytaradi — ya'ni xato ko'rinmaydi
+ *  va sayt bilan bot boshqa-boshqa ulush ko'rsatib turaveradi. */
+test("TP1 ulushi YAML dagi haqiqiy yo'ldan o'qiladi", () => {
+  const ulush = tp1Ulushi();
+  assert.ok(ulush > 0 && ulush <= 100, `mantiqsiz ulush: ${ulush}`);
+  assert.equal(ulush, yaml.portfolio.tp1_close_pct);
 });

@@ -10,10 +10,13 @@ bo'lsa o'rniga taklif matni ko'rsatiladi.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from bot.i18n import DEFAULT_LANGUAGE, t
 from core.analysis.support_resistance import RangePosition
 from core.domain.enums import SignalStatus
 from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
+from core.utils.time_utils import utc_now
 
 
 def format_price(value: float) -> str:
@@ -33,49 +36,91 @@ def format_pct(value: float, signed: bool = True) -> str:
     return f"{value:+.2f}%" if signed else f"{value:.2f}%"
 
 
-def render_price_ladder(
+def render_levels(
     levels: SignalLevels,
-    current_price: float | None = None,
     language: str = DEFAULT_LANGUAGE,
     tp1_close_pct: float = 50.0,
 ) -> str:
-    """Narx narvoni — barcha darajalar tartib bilan, yuqoridan pastga.
+    """Narx darajalari — bitta blok, ustunlari tekislangan.
 
-    Nima uchun kerak: raqamlar ro'yxati "narx qayerda turibdi" degan
-    savolga javob bermaydi. Narvon buni bir qarashda ko'rsatadi —
-    ayniqsa narx hali kirish nuqtasiga yetmagan bo'lsa.
+    TARTIB YUQORIDAN PASTGA EMAS, MANTIQIY: avval nima qilish kerak
+    (Kirish), keyin qayerda to'xtash (Stop), keyin qayerda sotish
+    (TP1, TP2). Avval narvon narx bo'yicha saralanardi va o'rtasiga
+    "hozirgi narx" qatori tushardi — o'quvchi qaysi raqam nima ekanini
+    ajrata olmasdi.
 
-    Joriy narx berilsa, u o'z o'rniga qo'yiladi va strelka bilan
-    belgilanadi.
+    Har bir TP yonida QANCHA ULUSH sotilishi turadi. Avval bu joyda
+    "1-OCO 50%" degan jargon bor edi: OCO — birja atamasi, uni signal
+    o'quvchining bilishi shart emas.
     """
-    ulush = f"{tp1_close_pct:.0f}%"
-    qatorlar: list[tuple[float, str, str]] = [
-        (levels.tp2, "🎯", f"TP2  {format_pct(levels.tp2_distance_pct):>6}  2-OCO {ulush}"),
-        (levels.tp1, "🎯", f"TP1  {format_pct(levels.tp1_distance_pct):>6}  1-OCO {ulush}"),
-        (levels.entry, "▪", t("signal.narvon_kirish", language)),
-        (
-            levels.stop,
-            "🛑",
-            f"Stop {format_pct(-levels.stop_distance_pct):>6}  "
-            + t("signal.narvon_ikkala_oco", language),
-        ),
+    tp2_close = max(0.0, 100.0 - tp1_close_pct)
+    ulush = lambda x: f"{x:.0f}%"  # noqa: E731
+
+    qatorlar: list[tuple[str, str, float, str, str]] = [
+        ("💠", t("signal.daraja_kirish", language), levels.entry, "", ""),
+        ("🛑", t("signal.daraja_stop", language), levels.stop,
+         format_pct(-levels.stop_distance_pct), ""),
+        ("🎯", "TP1", levels.tp1, format_pct(levels.tp1_distance_pct), ulush(tp1_close_pct)),
+        ("🎯", "TP2", levels.tp2, format_pct(levels.tp2_distance_pct), ulush(tp2_close)),
     ]
 
-    # Joriy narx kirish narxidan sezilarli farq qilsagina ko'rsatiladi —
-    # aks holda ikkita bir xil qator chiqadi.
-    if current_price is not None and abs(current_price - levels.entry) > levels.entry * 1e-4:
-        qatorlar.append((current_price, "▶", t("signal.narvon_hozir", language)))
-
-    qatorlar.sort(key=lambda q: q[0], reverse=True)
-    eng_uzun = max(len(format_price(narx)) for narx, _, _ in qatorlar)
+    nom_eni = max(len(nom) for _, nom, _, _, _ in qatorlar)
+    narx_eni = max(len(format_price(narx)) for _, _, narx, _, _ in qatorlar)
+    foiz_eni = max(len(foiz) for _, _, _, foiz, _ in qatorlar)
 
     return "\n".join(
-        f"<code>{belgi} {format_price(narx):>{eng_uzun}}  {izoh}</code>"
-        for narx, belgi, izoh in qatorlar
+        "<code>"
+        + f"{belgi} {nom:<{nom_eni}}  {format_price(narx):>{narx_eni}}"
+        + (f"  {foiz:>{foiz_eni}}" if foiz else "")
+        + (f"  {ulushi}" if ulushi else "")
+        + "</code>"
+        for belgi, nom, narx, foiz, ulushi in qatorlar
     )
 
 
-def render_signal_card(
+def render_summary(  # noqa: PLR0913
+    levels: SignalLevels,
+    amount: str,
+    risk: str | None,
+    price: float | None,
+    price_is_live: bool,
+    language: str = DEFAULT_LANGUAGE,
+) -> str:
+    """Kartochkaning pastki bloki — qaror uchun kerakli raqamlar.
+
+    Risk/Foyda nisbati TP2 bo'yicha: signal 3.3-bandda aynan shu
+    nisbat bilan tekshiriladi, ya'ni o'quvchi ko'radigan raqam
+    tizim qaror qabul qilgan raqam bilan bir xil bo'lishi kerak.
+
+    Narx qatorining NOMI kontekstga qarab o'zgaradi va bu ataylab:
+
+      - yangi signal tarqatilayotganda narx signal berilgan lahzaniki,
+        ya'ni "Signal narxi";
+      - foydalanuvchi eski signalni ochganda esa narx SHU LAHZADA
+        birjadan olinadi, ya'ni "Hozirgi narx".
+
+    Ikkalasini bitta nom bilan atash — bitta maydonni ikki ma'noda
+    ishlatish bo'lardi: o'quvchi ko'rgan raqam qachonga tegishli ekanini
+    bilmasdi.
+    """
+    qatorlar: list[tuple[str, str, str]] = [
+        ("⚖️", t("signal.xulosa_nisbat", language), f"1 : {levels.risk_reward_tp2:.2f}"),
+        ("💵", t("signal.xulosa_miqdor", language), amount),
+    ]
+    if risk is not None:
+        qatorlar.append(("📉", t("signal.xulosa_zarar", language), risk))
+    if price is not None:
+        kalit = "signal.xulosa_hozirgi" if price_is_live else "signal.xulosa_narx"
+        qatorlar.append(("📊", t(kalit, language), format_price(price)))
+
+    nom_eni = max(len(nom) for _, nom, _ in qatorlar)
+    return "\n".join(
+        f"<code>{belgi} {nom:<{nom_eni}}  {qiymat}</code>"
+        for belgi, nom, qiymat in qatorlar
+    )
+
+
+def render_signal_card(  # noqa: PLR0913
     symbol: str,
     levels: SignalLevels,
     entry_plan: EntryPlan,
@@ -85,26 +130,49 @@ def render_signal_card(
     range_position: RangePosition | None = None,
     tp1_close_pct: float = 50.0,
     status: SignalStatus | None = None,
+    created_at: datetime | None = None,
 ) -> str:
-    """5.1.0-banddagi signal-kartochkani chiqaradi.
+    """5.1.0-banddagi signal-kartochka.
+
+    TUZILISHI (yuqoridan pastga — o'qish tartibi ham shu):
+
+        📡 COIN/USDT              — nima haqida
+        📌 harakat qatori         — nima qilish kerak
+        ─────────
+        💠 Kirish / 🛑 Stop / 🎯 TP1 / 🎯 TP2 — qaysi narxda
+        ─────────
+        ⚖️ Risk/Foyda, 💵 Miqdor, 📉 Stop ishlasa — qaror uchun raqamlar
+        🔸 Stop butun pozitsiyani yopadi
+        🗓 sana va vaqt
+
+    Avvalgi ko'rinish "narx narvoni" edi: darajalar NARX bo'yicha
+    saralanardi va o'rtasiga hozirgi narx qatori tushardi. Natijada
+    Kirish, Stop va TP bir xil ko'rinishdagi to'rt qatorga aralashib
+    ketardi va qaysi raqam nima ekani darrov bilinmasdi.
 
     Args:
         suggestion: pozitsiya hajmi tavsiyasi. `None` bo'lsa (foydalanuvchi
             balansini kiritmagan) "Miqdor" o'rniga taklif matni ko'rsatiladi.
-        range_position: Discount/Premium joylashuvi (3.1-band). Berilsa,
-            kartochka oxiriga zona qatori qo'shiladi — foydalanuvchi narx
-            arzon yoki qimmat ekanini ko'radi.
+        range_position: Discount/Premium joylashuvi (3.1-band).
         status: signal holati. Berilsa, harakat qatori AYNAN SHUNDAN
             olinadi. Nima uchun muhim: avval harakat qatori ("Hozir
             oling") buyurtma turidan, holat esa ("Kutilmoqda")
             kuzatuvchidan kelardi — ikki alohida manba, natijada bitta
             xabarda ikkita qarama-qarshi gap chiqardi. Endi holat
             ma'lum bo'lsa u YAGONA manba.
+        created_at: signal berilgan vaqt. Berilmasa — hozir.
     """
     if suggestion is not None and suggestion.position_size_usd > 0:
         amount = f"${format_price(suggestion.position_size_usd)}"
     else:
         amount = t("signal.miqdor_hisoblanmagan", language)
+
+    # Xavfni PUL bilan ko'rsatish — foizdan ko'ra tushunarli. Balans
+    # kiritilmagan bo'lsa hisoblab bo'lmaydi, o'shanda qator chiqmaydi.
+    if suggestion is not None and suggestion.risk_amount_usd > 0:
+        risk = f"−${suggestion.risk_amount_usd:,.2f}"
+    else:
+        risk = None
 
     # Harakat qatori: holat ma'lum bo'lsa — o'shandan, aks holda (yangi
     # signal, hali kuzatilmagan) buyurtma turidan.
@@ -116,6 +184,12 @@ def render_signal_card(
         harakat_emoji = f"{entry_plan.order_type.emoji} "
         harakat_matni = entry_plan.order_type.label_uz
 
+    # Joriy narx kirish narxiga juda yaqin bo'lsa ko'rsatilmaydi —
+    # ikkita bir xil raqam foyda bermaydi.
+    narx = entry_plan.current_price
+    if narx is not None and abs(narx - levels.entry) <= levels.entry * 1e-4:
+        narx = None
+
     kartochka = t(
         "signal.kartochka",
         language,
@@ -123,23 +197,19 @@ def render_signal_card(
         quote=quote_asset.upper(),
         order_emoji=harakat_emoji,
         order_label=harakat_matni,
-        amount=amount,
-        ladder=render_price_ladder(
-            levels,
-            current_price=entry_plan.current_price,
+        levels=render_levels(levels, language=language, tp1_close_pct=tp1_close_pct),
+        xulosa=render_summary(
+            levels, amount, risk, narx, price_is_live=status is not None,
             language=language,
-            tp1_close_pct=tp1_close_pct,
         ),
     )
-    # Xavfni PUL bilan ko'rsatish — foizdan ko'ra tushunarli. Balans
-    # kiritilmagan bo'lsa hisoblab bo'lmaydi, o'shanda qator qo'shilmaydi.
-    if suggestion is not None and suggestion.risk_amount_usd > 0:
-        kartochka += "\n\n" + t(
-            "signal.xavf_puli",
-            language,
-            risk=f"−${suggestion.risk_amount_usd:,.2f}",
-        )
 
+    kartochka += "\n\n" + t("signal.izoh_stop", language)
     if range_position is not None:
         kartochka += f"\n📍 {range_position.describe()}"
+
+    vaqt = created_at or utc_now()
+    kartochka += "\n" + t(
+        "signal.sana", language, sana=vaqt.strftime("%d.%m.%Y · %H:%M UTC")
+    )
     return kartochka

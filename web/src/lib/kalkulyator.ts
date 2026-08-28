@@ -105,6 +105,62 @@ export function tengUlushlar(soni: number): number[] {
   return ulushlar;
 }
 
+/** Bitta TP ulushi o'zgarganda QOLGANLARINI qayta taqsimlaydi.
+ *
+ * NEGA KERAK: ikkita TP bo'lsa va foydalanuvchi TP1 ga 75% yozsa, TP2
+ * o'z-o'zidan 25% bo'lishi kerak — chunki pozitsiya bitta va u to'liq
+ * sotiladi. Avval ikkala maydon mustaqil edi: 75 va 50 yozilib qolsa
+ * kalkulyator 125% pozitsiyani hisoblab, mavjud bo'lmagan foydani
+ * ko'rsatardi.
+ *
+ * IKKITADAN KO'P TP uchun qoida: qolgan ulush boshqalarga ULARNING
+ * NISBATIDA taqsimlanadi. Ya'ni 50/30/20 da TP1 ni 60 qilsak, TP2 va
+ * TP3 o'z nisbatini saqlagan holda 24/16 bo'ladi — foydalanuvchi
+ * qo'lda sozlagan muvozanat buzilmaydi.
+ *
+ * Yaxlitlash qoldig'i OXIRGI tahrirlanmagan ulushga beriladi, shunda
+ * yig'indi HAR DOIM aniq 100 bo'ladi.
+ */
+export function ulushlarniTengla(
+  ulushlar: number[],
+  indeks: number,
+  yangi: number,
+): number[] {
+  const n = ulushlar.length;
+  if (n === 0) return [];
+  if (n === 1) return [ULUSH_JAMI];
+
+  // Chegaradan chiqqan qiymat kesiladi: 150% yozilsa boshqalari manfiy
+  // bo'lib qolardi va hisob ma'nosini yo'qotardi.
+  const qiymat = Math.min(Math.max(Number.isFinite(yangi) ? yangi : 0, 0), ULUSH_JAMI);
+  const qolgan = ULUSH_JAMI - qiymat;
+
+  const musbat = (x: number) => (Number.isFinite(x) && x > 0 ? x : 0);
+  const boshqaJami = ulushlar.reduce(
+    (s, x, i) => (i === indeks ? s : s + musbat(x)),
+    0,
+  );
+
+  const natija = ulushlar.map((eski, i) => {
+    if (i === indeks) return qiymat;
+    // Boshqalari hammasi nol bo'lsa nisbat yo'q — teng bo'linadi.
+    const ulush =
+      boshqaJami > 0 ? (qolgan * musbat(eski)) / boshqaJami : qolgan / (n - 1);
+    return Math.round(ulush * 100) / 100;
+  });
+
+  // Yaxlitlashdan keyin yig'indi 99.99 yoki 100.003 bo'lib qolishi
+  // mumkin (tahrirlangan qiymatning o'zi ham kasrli bo'lishi mumkin —
+  // masalan 33.333). Oxirgi tahrirlanmagan ulush QOLDIQDAN hisoblanadi,
+  // qayta yaxlitlanmaydi: aks holda tuzatish yana yo'qolardi.
+  const oxirgi = indeks === n - 1 ? n - 2 : n - 1;
+  const boshqalarJami = natija.reduce((s, x, i) => (i === oxirgi ? s : s + x), 0);
+  // 1e-9 gacha yaxlitlash — bu suzuvchi nuqta shovqinini oladi, lekin
+  // haqiqiy qoldiqni saqlaydi.
+  natija[oxirgi] = Math.round((ULUSH_JAMI - boshqalarJami) * 1e9) / 1e9;
+  return natija;
+}
+
 /** `BTCUSDT` -> `BTC`. Miqdorni qaysi aktivda ko'rsatishni bilish uchun. */
 export function asosiyAktiv(symbol: string, quote = "USDT"): string {
   const s = symbol.toUpperCase();
