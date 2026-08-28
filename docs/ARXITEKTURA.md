@@ -3332,7 +3332,55 @@ UCH MARTA sodir bo'ldi: `admin.izoh` mavjud tarjimani bosib ketgan;
 yo'q edi. Endi kodda ishlatilgan har bir qattiq yozilgan kalit ikkala
 tilda ham tekshiriladi — test yozilgan zahoti uchinchisini topdi.
 
-## 56. Bosqichlar holati
+## 56. Jonli narx: signal kirishdan qancha yurgan
+
+Ro'yxatda signal "Faol" deb turardi-yu, u foydaga ketayotganini yoki
+Stop tomon yurayotganini KO'RSATMASDI. Yangi foydalanuvchi uchun esa
+birinchi savol aynan shu. Endi har bir kartochkada bo'sh joyda foiz
+turadi: yuqorida bo'lsa yashil `+`, pastda bo'lsa qizil `−`.
+
+**Narxni SERVER oladi, brauzer emas.** Ikki sabab: foydalanuvchining
+tarmog'i Binance'ni to'sishi mumkin (TradingView bilan aynan shunday
+bo'ldi), va uchta kartochka uchta to'g'ridan-to'g'ri so'rov yuborsa
+birja chegarasiga tez yetamiz. Server `/api/v3/ticker/price?symbols=[…]`
+ga BITTA so'rov yuboradi va javobni 15 soniya keshda saqlaydi;
+brauzer esa 20 soniyada bir marta `/api/narx` ga murojaat qiladi.
+
+`/api/narx` SESSIYA BILAN yopiq va juftliklar `^[A-Z0-9]{4,24}$` ga
+tekshiriladi (ko'pi bilan 30 ta). Narxning o'zi maxfiy emas, lekin
+manzilimiz birov uchun bepul narx manbai bo'lib qolmasin.
+
+**Narx noma'lum bo'lsa HECH NARSA ko'rsatilmaydi.** `0.00%` yozish
+yolg'on bo'lardi — u "narx o'zgarmadi" degan ma'noni beradi, aslida
+esa narx umuman kelmagan. Tarmoq uzilsa oxirgi ma'lum foiz qoladi.
+
+### Modul chegarasi: `jonli.ts` va `jonli-server.ts`
+
+Avval hammasi bitta faylda edi va qurish yiqildi:
+
+    the chunking context does not support external modules
+    (request: node:fs)
+
+Sabab: brauzerdagi komponent `ozgarishFoizi()` ni import qilardi, u
+turgan fayl esa `config.ts` ni tortardi, u esa YAML uchun `node:fs`
+ni. Fayl ikkiga bo'lindi:
+
+  - `lib/jonli.ts` — sof hisob, klientga ham tushadi;
+  - `lib/jonli-server.ts` — Binance so'rovi, FAQAT serverda.
+
+Bu 1-naqshning qarindoshi: "bitta fayl ikki xil muhitga xizmat
+qilyapti" ham xuddi "bitta son ikki xil ma'noda" kabi jimgina buzadi.
+
+### Yon ta'sir: yorliqlar to'qnashuvi topildi
+
+Tekshiruv paytida ma'lum bo'ldiki, BITTA signal ikki joyda ikki xil
+ko'rinardi — ro'yxatda "Kirish narxi", o'z sahifasida "Kirish".
+Sabab: `kalkulyatorMatnlari` ichidagi `kirish` kaliti
+`kartochkaMatnlari` dagi shu nomli kalitni bosib ketardi. Kalkulyator
+kalitlari `kalk_` prefiksiga o'tkazildi, `tests/i18n.test.ts` ga esa
+"kartochka matnlari bosib ketilmaydi" testi qo'shildi.
+
+## 57. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

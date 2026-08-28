@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Himoya } from "@/components/Himoya";
+import { JonliNarx } from "@/components/JonliNarx";
 import { SignalOchish } from "@/components/SignalOchish";
 import { Qulf } from "@/components/ui/Qulf";
 import { Badge } from "@/components/ui/Badge";
@@ -9,6 +10,7 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { kotirovka, tp1Ulushi } from "@/lib/config";
 import { hajmTaklifi } from "@/lib/hajm";
+import { birjaJuftligi } from "@/lib/kalkulyator";
 import { env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
 import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
@@ -83,6 +85,18 @@ export default async function Signallar() {
                     <span className="text-matn-past raqam block text-xs">
                       {t("signal.entry")} {narx(s.entry)} · {holatNomi(s.status, til)}
                     </span>
+                  </span>
+                  {/* Kirishdan qancha yurgani — YASHIL/QIZIL foiz. Avval
+                      kartochka faqat "Faol" derdi va signal foydaga
+                      ketayotganini yoki zarar tomon yurayotganini
+                      ko'rsatmasdi. Yangi foydalanuvchi uchun birinchi
+                      savol aynan shu. */}
+                  <span className="text-right">
+                    <JonliNarx
+                      juftlik={birjaJuftligi(s.symbol, kotirovka())}
+                      kirish={s.entry}
+                      qisqa
+                    />
                   </span>
                   {s.score !== null && (
                     <Badge tone="yaxshi">

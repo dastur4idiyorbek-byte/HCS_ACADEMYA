@@ -3,7 +3,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { test } from "node:test";
 
-import { tarjima } from "../src/lib/i18n/index.ts";
+import { kalkulyatorMatnlari, kartochkaMatnlari, tarjima } from "../src/lib/i18n/index.ts";
 
 /** Bu test 2-naqshga qarshi: "e'lon qilingan, lekin ulanmagan".
  *
@@ -81,3 +81,22 @@ function ruDaBormi(kalit: string): boolean {
   }
   return typeof joriy === "string";
 }
+
+test("kalkulyator matnlari kartochka matnlarini BOSIB KETMAYDI", () => {
+  // Bir vaqtlar `kalkulyatorMatnlari` ichida `kirish: t("signal.kalk_kirish")`
+  // turardi va u `kartochkaMatnlari` dagi `kirish: t("signal.kart_kirish")`
+  // ni bosib ketardi. Natijada BITTA signal ikki xil ko'rinardi:
+  // ro'yxatda "Kirish narxi", o'z sahifasida "Kirish". Kartochka esa
+  // botdagi shablonning aynan nusxasi bo'lishi shart.
+  const t = (kalit: string) => kalit;
+  const kartochka = kartochkaMatnlari(t);
+  const kalkulyator = kalkulyatorMatnlari(t) as Record<string, string>;
+
+  for (const [nom, qiymat] of Object.entries(kartochka)) {
+    assert.equal(
+      kalkulyator[nom],
+      qiymat,
+      `"${nom}" kalkulyator ro'yxatida boshqa matnga almashib qolgan`,
+    );
+  }
+});

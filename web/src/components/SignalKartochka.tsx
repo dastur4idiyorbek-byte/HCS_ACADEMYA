@@ -1,5 +1,7 @@
+import { JonliNarx } from "@/components/JonliNarx";
 import { Card } from "@/components/ui/Card";
 import { foiz, narx, sana } from "@/lib/format";
+import { birjaJuftligi } from "@/lib/kalkulyator";
 
 /** Signal kartochkasi — BOTDAGI SHABLONNING AYNAN O'ZI.
  *
@@ -85,7 +87,16 @@ export function SignalKartochka({
         />
       </div>
 
+      {/* HOZIRGI narx — faqat saytda. Telegram xabari bir marta
+          yuboriladi va o'zgarmaydi, sayt esa jonli ko'rsata oladi. */}
       <dl className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <dt className="text-matn-past text-xs uppercase">📊 {matnlar.hozir}</dt>
+        <dd>
+          <JonliNarx juftlik={birjaJuftligi(symbol, kotirovka)} kirish={entry} />
+        </dd>
+      </dl>
+
+      <dl className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <dt className="text-matn-past text-xs uppercase">⚖️ {matnlar.nisbat}</dt>
         <dd className="raqam text-sarlavha font-semibold">
           {nisbat === null ? "—" : `1 : ${nisbat.toFixed(2)}`}

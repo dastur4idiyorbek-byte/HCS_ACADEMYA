@@ -128,7 +128,7 @@ export function Kalkulyator({
           </label>
           <label className="block">
             <span className="text-matn-past mb-1 block text-xs uppercase">
-              {matnlar.kirish}
+              {matnlar.kalk_kirish}
             </span>
             <input
               inputMode="decimal"
@@ -139,7 +139,7 @@ export function Kalkulyator({
           </label>
           <label className="block">
             <span className="text-matn-past mb-1 block text-xs uppercase">
-              {matnlar.stop}
+              {matnlar.kalk_stop}
             </span>
             <input
               inputMode="decimal"

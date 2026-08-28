@@ -57,14 +57,19 @@ export function tarjimon(til: Til) {
  */
 export function kalkulyatorMatnlari(t: (kalit: string) => string) {
   return {
+    // DIQQAT — NOMLAR TO'QNASHMASIN: kalkulyator kalitlari `kalk_`
+    // bilan boshlanadi. Ilgari ular oddiy `kirish`/`stop` deb atalgan
+    // va kartochkaning shu nomli kalitlarini bosib ketardi: bitta
+    // signal ro'yxatda "Kirish narxi", o'z sahifasida esa "Kirish"
+    // deb ko'rinardi. Kartochka hamma joyda BIR XIL bo'lishi shart.
     ...kartochkaMatnlari(t),
     ochish: t("signal.ochish"),
     himoya: t("signal.himoya"),
     grafik_xato: t("signal.grafik_xato"),
     sarlavha: t("signal.kalk_sarlavha"),
     summa: t("signal.kalk_summa"),
-    kirish: t("signal.kalk_kirish"),
-    stop: t("signal.kalk_stop"),
+    kalk_kirish: t("signal.kalk_kirish"),
+    kalk_stop: t("signal.kalk_stop"),
     ulush: t("signal.kalk_ulush"),
     umumiy: t("signal.kalk_umumiy"),
     stop_agar: t("signal.kalk_stop_agar"),
@@ -80,6 +85,7 @@ export function kartochkaMatnlari(t: (kalit: string) => string) {
     kirish: t("signal.kart_kirish"),
     stop: t("signal.kart_stop"),
     nisbat: t("signal.kart_nisbat"),
+    hozir: t("signal.kart_hozir"),
     stop_izoh: t("signal.kart_stop_izoh"),
   };
 }

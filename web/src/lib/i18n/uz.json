@@ -109,7 +109,8 @@
     "kalk_ulush_xato": "Ulushlar yig'indisi 100% bo'lishi kerak — hozir {jami}%.",
     "kalk_ogohlantirish": "Bu — faqat hisob-kitob, moliyaviy maslahat emas.",
     "grafik": "Bozor grafigi",
-    "grafik_xato": "Grafik yuklanmadi — brauzerdagi reklama bloklovchi TradingView'ga ruxsat bermayotgan bo'lishi mumkin. Signal narxlari pastda, ular grafikka bog'liq emas."
+    "grafik_xato": "Grafik yuklanmadi — brauzerdagi reklama bloklovchi TradingView'ga ruxsat bermayotgan bo'lishi mumkin. Signal narxlari pastda, ular grafikka bog'liq emas.",
+    "kart_hozir": "Hozirgi narx"
   },
   "statistika": {
     "sarlavha": "Statistika",
