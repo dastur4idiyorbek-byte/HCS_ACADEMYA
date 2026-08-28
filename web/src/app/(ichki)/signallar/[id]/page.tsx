@@ -10,7 +10,8 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { kotirovka, tp1Ulushi } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
-import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
+import { HOLAT_BELGISI, holatNomi, narx, pul } from "@/lib/format";
+import { hajmTaklifi } from "@/lib/hajm";
 import { kalkulyatorMatnlari, kartochkaMatnlari, tarjimon } from "@/lib/i18n";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 import { kirishMumkin, pozitsiyaOl, signalOl, tarifQamraydi } from "@/lib/queries";
@@ -44,6 +45,11 @@ export default async function SignalSahifasi({
   // Suv belgisida ID turadi: skrinshot tarqalsa, u kimdan chiqqani ko'rinadi
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
   const pozitsiya = foydalanuvchi ? pozitsiyaOl(foydalanuvchi.id, signal.id) : null;
+  // Taklif — BOTDAGI hisobning aynan o'zi (`web/src/lib/hajm.ts`).
+  // Kalkulyator ham, "Men sotib oldim" ham SHU raqamdan boshlanadi,
+  // ya'ni foydalanuvchi bir sahifada ikki xil son ko'rmaydi.
+  const balans = foydalanuvchi?.declaredBalanceUsd ?? null;
+  const taklif = balans === null ? null : hajmTaklifi(balans, signal.entry, signal.stop);
   const buyurtma = signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
 
   return (
@@ -84,6 +90,37 @@ export default async function SignalSahifasi({
           🔒 {t("signal.himoya_izoh")}
         </p>
 
+        {/* BALANS BIRINCHI. Balanssiz tizim hech narsa taklif qila
+            olmaydi va foydalanuvchi "qancha olay?" degan savolga javob
+            topmaydi — chalkashlik aynan shu yerdan boshlanardi. */}
+        {foydalanuvchi && taklif === null && (
+          <Card variant="urgu">
+            <CardTitle>💰 {t("portfel.balans_kerak")}</CardTitle>
+            <CardHint>{t("portfel.balans_kerak_izoh")}</CardHint>
+            <div className="mt-3">
+              <Button href="/portfel">{t("portfel.balans_yangi")}</Button>
+            </div>
+          </Card>
+        )}
+
+        {taklif && (
+          <Card>
+            <CardTitle>🧮 {t("signal.taklif_sarlavha")}</CardTitle>
+            <p className="raqam text-sarlavha mt-1 text-3xl font-bold">
+              ${pul(taklif.hajm)}
+            </p>
+            <p className="text-matn-past raqam mt-1 text-sm">
+              📉 {t("signal.taklif_xavf")}: −${pul(taklif.xavf)}
+            </p>
+            <CardHint className="mt-2">
+              {t("signal.taklif_izoh").replace("{foiz}", taklif.kunlikXavfFoiz.toFixed(1))}
+            </CardHint>
+            {taklif.kesilgan && (
+              <CardHint className="mt-1">ℹ️ {t("signal.taklif_kesilgan")}</CardHint>
+            )}
+          </Card>
+        )}
+
         <div className="grid gap-5 sm:grid-cols-2">
           {/* Risk/Foyda va sana KARTOCHKADA turadi — bu yerda takrorlanmaydi.
               Qolgani: signal berilgan paytdagi bozor holati. */}
@@ -122,6 +159,7 @@ export default async function SignalSahifasi({
           <Kalkulyator
             symbol={signal.symbol}
             kotirovka={kotirovka()}
+            boshlangichSumma={taklif?.hajm ?? null}
             entry={signal.entry}
             stop={signal.stop}
             tpNarxlari={[signal.tp1, signal.tp2]}
@@ -129,14 +167,6 @@ export default async function SignalSahifasi({
           />
         </Himoya>
 
-        <Card>
-          <CardTitle>{t("signal.ball_sabab")}</CardTitle>
-          <BallTafsiloti xom={signal.scoreBreakdown} bosh={t("umumiy.yoq")} />
-        </Card>
-
-        {/* "Men sotib oldim" — botdagi `sig:enter:` ning sayt tomoni.
-            Usiz portfel sahifasi saytdan kirgan odam uchun HECH QACHON
-            to'lmasdi: yozuv faqat botdan yaratilardi. */}
         {foydalanuvchi && (
           <Card>
             <CardTitle>🖐 {t("signal.kirdim_sarlavha")}</CardTitle>
@@ -145,22 +175,36 @@ export default async function SignalSahifasi({
                 ✅{" "}
                 {t("signal.kirdim_bor").replace(
                   "{amount}",
-                  narx(pozitsiya.amountUsd),
+                  pul(pozitsiya.amountUsd),
                 )}
               </p>
             ) : (
               <>
                 <CardHint>{t("signal.kirdim_izoh")}</CardHint>
+
+                {/* Kirish narxi KO'RSATILADI, lekin tahrirlanmaydi: u
+                    signalning o'zidan olinadi. Tahrirlansa, foydalanuvchi
+                    o'ziga qulay narx yozib, statistikada mavjud bo'lmagan
+                    foyda ko'rsatardi. */}
+                <p className="text-matn-past mt-3 text-xs uppercase">
+                  {t("signal.kirdim_narx")}
+                </p>
+                <p className="raqam text-sarlavha font-semibold">{narx(signal.entry)}</p>
+
                 <form action={kirdim} className="mt-3 flex flex-wrap items-end gap-2">
                   <input type="hidden" name="signal_id" value={signal.id} />
                   <label className="min-w-0 flex-1">
                     <span className="text-matn-past mb-1 block text-xs uppercase">
-                      {t("signal.kirdim_summa")}
+                      {t("signal.kirdim_haqiqiy")}
                     </span>
+                    {/* Taklif OLDINDAN yoziladi, lekin qulflanmaydi: biz
+                        taklif qilamiz, foydalanuvchi esa HAQIQATDA qancha
+                        olganini yozadi. Haqiqiy hisob-kitob shundan chiqadi. */}
                     <input
                       name="summa"
                       inputMode="decimal"
                       required
+                      defaultValue={taklif ? taklif.hajm.toFixed(2) : ""}
                       placeholder="100"
                       className="border-ramka-yumshoq rounded-tugma bg-fon raqam w-full border px-3 py-2 text-sm"
                     />
@@ -180,6 +224,14 @@ export default async function SignalSahifasi({
           </Card>
         )}
 
+        <Card>
+          <CardTitle>{t("signal.ball_sabab")}</CardTitle>
+          <BallTafsiloti xom={signal.scoreBreakdown} bosh={t("umumiy.yoq")} />
+        </Card>
+
+        {/* "Men sotib oldim" — botdagi `sig:enter:` ning sayt tomoni.
+            Usiz portfel sahifasi saytdan kirgan odam uchun HECH QACHON
+            to'lmasdi: yozuv faqat botdan yaratilardi. */}
         <Card>
           <CardHint>{t("kontent.botda_izoh")}</CardHint>
           <div className="mt-3 flex flex-wrap gap-3">

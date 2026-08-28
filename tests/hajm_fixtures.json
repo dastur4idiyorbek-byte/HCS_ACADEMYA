@@ -1,0 +1,65 @@
+[
+  {
+    "balans": 500.0,
+    "entry": 100.0,
+    "stop": 97.0,
+    "kunlikXavfFoiz": 3.0,
+    "kunlikByudjet": 15.0,
+    "hajm": 170.0,
+    "xavf": 5.1
+  },
+  {
+    "balans": 1000.0,
+    "entry": 100.0,
+    "stop": 99.0,
+    "kunlikXavfFoiz": 3.0,
+    "kunlikByudjet": 30.0,
+    "hajm": 340.0,
+    "xavf": 3.4
+  },
+  {
+    "balans": 1000.0,
+    "entry": 0.869,
+    "stop": 0.8294,
+    "kunlikXavfFoiz": 3.0,
+    "kunlikByudjet": 30.0,
+    "hajm": 223.8333333333,
+    "xavf": 10.2
+  },
+  {
+    "balans": 5000.0,
+    "entry": 61250.5,
+    "stop": 59800.0,
+    "kunlikXavfFoiz": 2.0,
+    "kunlikByudjet": 100.0,
+    "hajm": 1435.7235436057,
+    "xavf": 34.0
+  },
+  {
+    "balans": 10000.0,
+    "entry": 100.0,
+    "stop": 95.0,
+    "kunlikXavfFoiz": 2.0,
+    "kunlikByudjet": 200.0,
+    "hajm": 1360.0,
+    "xavf": 68.0
+  },
+  {
+    "balans": 50000.0,
+    "entry": 100.0,
+    "stop": 99.5,
+    "kunlikXavfFoiz": 1.5,
+    "kunlikByudjet": 750.0,
+    "hajm": 17000.0,
+    "xavf": 85.0
+  },
+  {
+    "balans": 100.0,
+    "entry": 2.5,
+    "stop": 2.4,
+    "kunlikXavfFoiz": 3.0,
+    "kunlikByudjet": 3.0,
+    "hajm": 25.5,
+    "xavf": 1.02
+  }
+]

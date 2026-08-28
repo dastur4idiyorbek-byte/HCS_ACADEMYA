@@ -183,12 +183,20 @@ def tier_choice(prefix: str, language: str = DEFAULT_LANGUAGE) -> InlineKeyboard
 
 
 def signal_actions(
-    signal_id: int, language: str = DEFAULT_LANGUAGE, back_to: str | None = None
+    signal_id: int,
+    language: str = DEFAULT_LANGUAGE,
+    back_to: str | None = None,
+    balans_yoq: bool = False,
 ) -> InlineKeyboardMarkup:
     """3.6-band: har bir signal ostida shaffoflik tugmalari.
 
     `back_to` — ro'yxatdan ochilganda qaytish tugmasi qo'shiladi. Yangi
     xabar sifatida kelgan signalda u kerak emas (qaytadigan ekran yo'q).
+
+    `balans_yoq` — foydalanuvchi balansini kiritmagan. O'shanda ENG
+    TEPADA balans tugmasi turadi: balanssiz kartochkada "Miqdor"
+    o'rniga "balansingizni kiriting" chiqadi-yu, uni QAYERDAN kiritishni
+    ko'rsatadigan yo'l yo'q edi.
     """
     qatorlar = [
         [
@@ -205,6 +213,16 @@ def signal_actions(
             )
         ],
     ]
+    if balans_yoq:
+        qatorlar.insert(
+            0,
+            [
+                InlineKeyboardButton(
+                    text=t("portfel.balans_kiriting", language),
+                    callback_data="portfel:balans",
+                )
+            ],
+        )
     if back_to is not None:
         qatorlar.append(
             [InlineKeyboardButton(text=t("umumiy.orqaga", language), callback_data=back_to)]

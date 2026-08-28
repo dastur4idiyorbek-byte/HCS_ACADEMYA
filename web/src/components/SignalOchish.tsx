@@ -30,6 +30,7 @@ export function SignalOchish({
   tp1Ulush,
   buyurtmaMatni,
   berilgan,
+  boshlangichSumma,
   matnlar,
 }: {
   symbol: string;
@@ -41,6 +42,8 @@ export function SignalOchish({
   tp1Ulush: number;
   buyurtmaMatni: string;
   berilgan: Date | null;
+  /** Kalkulyatorning boshlang'ich summasi — tizim taklifi */
+  boshlangichSumma: number | null;
   /** Spot juftlik kotirovkasi (`USDT`). SERVERDAN keladi: uni
    *  konfiguratsiyadan o'qish fayl tizimini talab qiladi, brauzerda esa
    *  bunday imkoniyat yo'q. */
@@ -92,6 +95,7 @@ export function SignalOchish({
             <Kalkulyator
               symbol={symbol}
               kotirovka={kotirovka}
+              boshlangichSumma={boshlangichSumma}
               entry={entry}
               stop={stop}
               tpNarxlari={tpNarxlari}

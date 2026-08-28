@@ -7,6 +7,19 @@ export function narx(n: number): string {
   return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: xona });
 }
 
+/** PUL summasi — har doim ikki xona.
+ *
+ * `narx()` dan farqli: u COIN narxi uchun (arzon coinda sakkiz xona
+ * kerak). Pul esa dollarda va sentdan mayda bo'lmaydi — tavsiya
+ * "$426.4571" deb chiqsa, u hisoblangandek emas, tasodifiy ko'rinadi.
+ */
+export function pul(n: number): string {
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function foiz(n: number | null, xona = 2): string {
   if (n === null) return "—";
   const belgi = n > 0 ? "+" : "";

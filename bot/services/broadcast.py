@@ -12,7 +12,6 @@ from __future__ import annotations
 from aiogram import Bot
 from aiogram.types import BufferedInputFile
 
-from bot.chart import render_signal_chart
 from bot.formatting import render_signal_card
 from bot.i18n import DEFAULT_LANGUAGE
 from bot.keyboards import signal_actions
@@ -76,6 +75,13 @@ async def signal_grafigi(
         return None
     timeframe = config.analysis.entry_timeframe
     try:
+        # Import ICHKARIDA: `bot/chart.py` Pillow'ni talab qiladi. Uni
+        # modul boshida import qilsak va Pillow o'rnatilmagan bo'lsa
+        # (masalan serverda `pip install` yiqilsa), BUTUN BOT ishga
+        # tushmasdi — grafik esa atigi qo'shimcha qulaylik. Bu yerda
+        # xato oddiy "rasm yo'q" holatiga aylanadi.
+        from bot.chart import render_signal_chart
+
         shamlar = await candles.fetch_candles(symbol, timeframe, GRAFIK_SHAMLAR)
         if not shamlar:
             return None
@@ -131,7 +137,10 @@ async def broadcast_signal(  # noqa: PLR0913
             language=language,
             tp1_close_pct=config.portfolio.tp1_close_pct,
         )
-        tugmalar = signal_actions(signal_id, language)
+        # Balanssiz foydalanuvchiga ENG AVVAL balans tugmasi ko'rinadi.
+        tugmalar = signal_actions(
+            signal_id, language, balans_yoq=not balans or balans <= 0
+        )
 
         # RASM YIQILSA SIGNAL MATN BO'LIB KETADI. Bu — 0.3-bandning
         # aynan o'zi: rasm qulaylik, signal esa mahsulotning o'zi.

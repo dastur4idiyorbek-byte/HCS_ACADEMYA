@@ -44,6 +44,16 @@ function yol<T>(kalitlar: string[], zaxira: T): T {
   return (joriy as T) ?? zaxira;
 }
 
+/** YAML dagi ixtiyoriy yo'lni o'qish — takrorlanadigan o'ramsiz.
+ *
+ * `yol()` xususiy edi va har bir qiymat uchun alohida funksiya
+ * yozilardi. Pozitsiya hajmi hisobiga oltita parametr kerak, ular
+ * uchun oltita o'ram yozish — shovqin.
+ */
+export function sozlama<T>(kalitlar: string[], zaxira: T): T {
+  return yol(kalitlar, zaxira);
+}
+
 /** Obuna muddati kunlarda. Zaxira qiymatlar — YAML o'qilmay qolgan holat
  *  uchun; ular botning standart qiymatlari bilan bir xil. */
 export function obunaKunlari(): { daily: number; monthly: number } {

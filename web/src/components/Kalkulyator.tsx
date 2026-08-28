@@ -35,6 +35,7 @@ export function Kalkulyator({
   entry,
   stop,
   tpNarxlari,
+  boshlangichSumma,
   matnlar,
 }: {
   symbol: string;
@@ -43,10 +44,19 @@ export function Kalkulyator({
   entry: number;
   stop: number;
   tpNarxlari: number[];
+  /** Boshlang'ich summa — TIZIM TAKLIFI (balans va Stop masofasidan).
+   *  Berilmasa 1000 qo'yiladi: bu faqat balans kiritilmagan holat. */
+  boshlangichSumma?: number | null;
   matnlar: Record<string, string>;
 }) {
   const aktiv = asosiyAktiv(symbol, kotirovka);
-  const [summa, setSumma] = useState("1000");
+  // Avval bu yerda QATTIQ "1000" turardi va u hech kimning haqiqiy
+  // holatiga mos kelmasdi. Endi tizim taklifi tushadi — ya'ni
+  // kalkulyator kartochkadagi "Miqdor" bilan bir xil raqamdan
+  // boshlanadi va foydalanuvchi ikki xil son ko'rmaydi.
+  const [summa, setSumma] = useState(() =>
+    boshlangichSumma && boshlangichSumma > 0 ? boshlangichSumma.toFixed(2) : "1000",
+  );
   // `String(entry)` EMAS: bazadagi son `0.8294354680460917` boʻlib
   // chiqishi mumkin va maydonda shundayligicha turardi — uni oʻqib ham,
   // tahrirlab ham boʻlmaydi.

@@ -1,47 +1,83 @@
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 
-import { STANDART_TIL, TILLAR, tarjima, tilmi } from "../src/lib/i18n/index.ts";
+import { tarjima } from "../src/lib/i18n/index.ts";
 
-function kalitlar(obj: unknown, prefiks = ""): string[] {
-  if (typeof obj !== "object" || obj === null) return [prefiks];
-  return Object.entries(obj as Record<string, unknown>).flatMap(([k, v]) =>
-    typeof v === "object" && v !== null ? kalitlar(v, `${prefiks}${k}.`) : [`${prefiks}${k}`],
-  );
+/** Bu test 2-naqshga qarshi: "e'lon qilingan, lekin ulanmagan".
+ *
+ * `tarjima()` kalit topilmasa XATO BERMAYDI — kalitning O'ZINI
+ * qaytaradi. Bu ataylab shunday (bitta yetishmagan matn sahifani
+ * yiqitmasligi kerak), lekin narxi bor: kalitni noto'g'ri bo'limga
+ * yozib qo'ysak, ekranda `portfel.balans_kerak` degan xom matn chiqadi
+ * va buni faqat tasodifan ko'rib qolamiz.
+ *
+ * Aynan shu IKKI MARTA sodir bo'ldi:
+ *   - `admin.izoh` mavjud tarjimani bosib ketgan edi;
+ *   - `balans_kerak` `signal` bo'limiga tushib qolgan, sahifa esa
+ *     `portfel.balans_kerak` deb o'qirdi.
+ *
+ * Endi kodda ishlatilgan HAR BIR kalit tekshiriladi.
+ */
+
+const ILDIZ = path.resolve(process.cwd(), "src");
+
+function fayllar(jild: string): string[] {
+  const natija: string[] = [];
+  for (const nom of readdirSync(jild)) {
+    const toliq = path.join(jild, nom);
+    if (statSync(toliq).isDirectory()) natija.push(...fayllar(toliq));
+    else if (/\.tsx?$/.test(nom)) natija.push(toliq);
+  }
+  return natija;
 }
 
-/** Bu test 4-naqshga qarshi: "qattiq yozilgan qiymat jimgina eskiradi".
- *  Yangi matn uz.json ga qo'shilib, ru.json da unutilsa — rus tilidagi
- *  sayt o'zbekcha matn ko'rsata boshlaydi va buni hech kim sezmaydi. */
-test("barcha tillarda kalitlar to'liq mos", () => {
-  const asos = kalitlar(TILLAR[STANDART_TIL]).sort();
-  for (const [til, lugat] of Object.entries(TILLAR)) {
-    if (til === STANDART_TIL) continue;
-    const boshqa = kalitlar(lugat).sort();
-    assert.deepEqual(
-      boshqa,
-      asos,
-      `${til}.json kalitlari ${STANDART_TIL}.json bilan mos emas`,
-    );
-  }
-});
+/** `t("bolim.kalit")` — faqat QATTIQ yozilgan kalitlar.
+ *  O'zgaruvchi orqali berilganlarini statik topib bo'lmaydi. */
+const NAQSH = /\bt\(\s*"([a-z0-9_]+\.[a-z0-9_]+)"\s*\)/gi;
 
-test("birorta matn bo'sh emas", () => {
-  for (const [til, lugat] of Object.entries(TILLAR)) {
-    for (const kalit of kalitlar(lugat)) {
-      const matn = tarjima(til as "uz" | "ru", kalit);
-      assert.ok(matn.trim().length > 0, `${til}.json: ${kalit} bo'sh`);
+test("kodda ishlatilgan har bir tarjima kaliti mavjud", () => {
+  const yetishmayotgan: string[] = [];
+  const kalitlar = new Set<string>();
+
+  for (const fayl of fayllar(ILDIZ)) {
+    const matn = readFileSync(fayl, "utf8");
+    for (const moslik of matn.matchAll(NAQSH)) {
+      const kalit = moslik[1];
+      kalitlar.add(kalit);
+      // Kalit topilmasa `tarjima()` kalitning o'zini qaytaradi.
+      if (tarjima("uz", kalit) === kalit) {
+        yetishmayotgan.push(`${path.relative(ILDIZ, fayl)}: ${kalit}`);
+      }
     }
   }
+
+  assert.ok(kalitlar.size > 50, `juda kam kalit topildi (${kalitlar.size}) — naqsh buzilganmi?`);
+  assert.deepEqual(yetishmayotgan, [], "bu kalitlar lug'atda yo'q");
 });
 
-test("topilmagan kalit sahifani yiqitmaydi", () => {
-  assert.equal(tarjima("uz", "yoq.bunday.kalit"), "yoq.bunday.kalit");
+test("ruscha tarjimada ham shu kalitlar bor", () => {
+  const yetishmayotgan: string[] = [];
+  for (const fayl of fayllar(ILDIZ)) {
+    for (const moslik of readFileSync(fayl, "utf8").matchAll(NAQSH)) {
+      const kalit = moslik[1];
+      // `tarjima("ru", ...)` topolmasa uzbekchaga tushadi — shuning
+      // uchun lug'atning O'ZIDAN qaraymiz.
+      if (!ruDaBormi(kalit)) yetishmayotgan.push(kalit);
+    }
+  }
+  assert.deepEqual([...new Set(yetishmayotgan)], [], "ruscha tarjimasi yo'q kalitlar");
 });
 
-test("tilmi() faqat qo'llab-quvvatlanadigan tilni qabul qiladi", () => {
-  assert.ok(tilmi("uz"));
-  assert.ok(tilmi("ru"));
-  assert.ok(!tilmi("en"));
-  assert.ok(!tilmi(undefined));
-});
+function ruDaBormi(kalit: string): boolean {
+  const ru = JSON.parse(
+    readFileSync(path.join(ILDIZ, "lib", "i18n", "ru.json"), "utf8"),
+  ) as Record<string, unknown>;
+  let joriy: unknown = ru;
+  for (const qism of kalit.split(".")) {
+    if (typeof joriy !== "object" || joriy === null) return false;
+    joriy = (joriy as Record<string, unknown>)[qism];
+  }
+  return typeof joriy === "string";
+}

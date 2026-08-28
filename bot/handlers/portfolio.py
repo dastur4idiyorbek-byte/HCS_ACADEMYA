@@ -17,9 +17,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.i18n import t
 from bot.keyboards import back_button, main_menu
+from bot.services.broadcast import hajm_taklifi
 from bot.states import PositionFlow
 from core.config.schema import AppConfig
 from core.domain.enums import SignalStatus, SubscriptionTier
+from core.domain.models import SignalLevels
 from core.services import summarize
 from core.storage import Database
 from core.storage.repositories import (
@@ -42,18 +44,42 @@ def _usd(value: float | None) -> str:
     return "—" if value is None else f"${value:+,.2f}"
 
 
+def _hajm_taklifi(yozuv, balans: float | None, config: AppConfig) -> float | None:  # noqa: ANN001
+    """Shu signal uchun tavsiya etilgan hajm, yoki `None`.
+
+    Kartochkadagi "Miqdor" bilan AYNAN BIR XIL hisob (`hajm_taklifi`),
+    shuning uchun foydalanuvchi ikki xil raqam ko'rmaydi.
+
+    Xato bo'lsa `None` — taklifsiz ham savol berilaveradi (0.3-band).
+    """
+    if not balans or balans <= 0:
+        return None
+    try:
+        taklif = hajm_taklifi(
+            yozuv.symbol,
+            SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2),
+            balans,
+            config,
+        )
+    except Exception:  # noqa: BLE001 — taklif majburiy emas
+        return None
+    return taklif.position_size_usd if taklif and taklif.position_size_usd > 0 else None
+
+
 # --------------------------------------------------------------------------- #
 #  "Men kirdim" (5.4-band)
 # --------------------------------------------------------------------------- #
 
 
 @router.callback_query(F.data.startswith("sig:enter:"))
-async def ask_position_amount(
+async def ask_position_amount(  # noqa: PLR0913
     callback: CallbackQuery,
     state,  # noqa: ANN001
     database: Database,
+    config: AppConfig,
     db_user_id: int,
     language: str,
+    db_user=None,  # noqa: ANN001
     is_admin: bool = False,
     **_: object,
 ) -> None:
@@ -65,6 +91,7 @@ async def ask_position_amount(
             await callback.answer(t("signal.kirdim_signal_yopiq", language), show_alert=True)
             return
 
+        balans = getattr(db_user, "declared_balance_usd", None)
         mavjud = await UserPositionRepository(session).get(db_user_id, signal_id)
         if mavjud is not None:
             await callback.answer(
@@ -75,7 +102,18 @@ async def ask_position_amount(
 
     await state.set_state(PositionFlow.waiting_amount)
     await state.update_data(signal_id=signal_id, entry_price=yozuv.entry, symbol=yozuv.symbol)
-    await callback.message.answer(t("signal.kirdim_soralmoqda", language))
+
+    # BIZ TAKLIF QILAMIZ, FOYDALANUVCHI HAQIQATNI AYTADI. Taklifsiz
+    # savol "qancha oldingiz?" bo'lib qolardi va odam qaysi raqamni
+    # yozishni bilmasdi — kartochkadagi "Miqdor" bilan bog'liqlik
+    # ko'rinmasdi.
+    taklif = _hajm_taklifi(yozuv, balans, config)
+    savol = t("signal.kirdim_soralmoqda", language)
+    if taklif is not None:
+        savol += "\n\n" + t(
+            "signal.kirdim_taklif", language, amount=f"{taklif:,.2f}"
+        )
+    await callback.message.answer(savol)
     await callback.answer()
 
 

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { kotirovka, tp1Ulushi } from "@/lib/config";
+import { hajmTaklifi } from "@/lib/hajm";
 import { env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
 import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
@@ -31,6 +32,7 @@ export default async function Signallar() {
     );
   }
 
+  const balans = foydalanuvchi?.declaredBalanceUsd ?? null;
   const royxat = signallar(100);
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
   const ochiladigan = royxat.filter((s) => kirishMumkin(s.status));
@@ -105,6 +107,9 @@ export default async function Signallar() {
                   s.entryOrderType === "market" ? "signal.market" : "signal.limit",
                 )}`}
                 berilgan={s.createdAt}
+                boshlangichSumma={
+                  balans === null ? null : (hajmTaklifi(balans, s.entry, s.stop)?.hajm ?? null)
+                }
                 matnlar={kalkulyatorMatnlari(t)}
               />
             </div>

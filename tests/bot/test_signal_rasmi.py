@@ -121,3 +121,29 @@ async def test_shamlar_olinmasa_none(config) -> None:  # noqa: ANN001
     assert await signal_grafigi(ShamlarYiqiladi(), "BTC", DARAJALAR, config) is None
     assert await signal_grafigi(ShamlarBosh(), "BTC", DARAJALAR, config) is None
     assert await signal_grafigi(None, "BTC", DARAJALAR, config) is None
+
+
+async def test_pillow_yoq_bolsa_ham_bot_ishlaydi(config, monkeypatch) -> None:  # noqa: ANN001
+    """Pillow o'rnatilmasa BUTUN BOT ishga tushmay qolmasin.
+
+    `bot/chart.py` Pillow'ni talab qiladi. Uni modul boshida import
+    qilsak va serverda `pip install` yiqilsa, import xatosi butun
+    zanjirni (broadcast -> runner -> bot) o'ldirardi — grafik esa
+    atigi qo'shimcha qulaylik.
+    """
+    import builtins
+
+    asl = builtins.__import__
+
+    def yiqiladigan(nom, *args, **kwargs):  # noqa: ANN001, ANN202
+        if nom == "bot.chart" or nom.startswith("PIL"):
+            raise ImportError("Pillow o'rnatilmagan")
+        return asl(nom, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", yiqiladigan)
+
+    class Shamlar:
+        async def fetch_candles(self, *_: object, **__: object) -> list:
+            return [object()]
+
+    assert await signal_grafigi(Shamlar(), "BTC", DARAJALAR, config) is None
