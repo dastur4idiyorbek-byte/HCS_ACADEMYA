@@ -2,3 +2,8 @@
 pytest==8.3.4
 pytest-asyncio==0.24.0
 ruff==0.8.4
+
+# --- Hujjat chiqarish (faqat ishlab chiqishda) ---
+# `python -m scripts.qollanma_pdf` uchun. PRODUCTION'ga KIRMAYDI:
+# bot va sayt PDF chiqarmaydi, kutubxona esa Pillow'ni tortadi.
+reportlab==5.0.1
