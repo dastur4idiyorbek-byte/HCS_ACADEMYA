@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
+import { bazaYoli } from "@/lib/env";
 import { MENYU } from "@/lib/menyu";
 
 /** Railway sog'liq tekshiruvi va tashxis.
@@ -23,17 +24,35 @@ import { MENYU } from "@/lib/menyu";
  */
 export const dynamic = "force-dynamic";
 
-type Natija = { holat: "ok"; foydalanuvchilar: number } | { holat: "xato"; xabar: string };
+type Natija =
+  | { holat: "ok"; yol: string; foydalanuvchilar: number }
+  | { holat: "xato"; yol: string; xabar: string };
 
+/** Baza tekshiruvi — YO'LI bilan birga.
+ *
+ * Yo'l nima uchun muhim: Railway'da doimiy disk FAQAT BITTA xizmatga
+ * ulanadi. Xizmat ikkita bo'lib qolsa, biri diskdagi haqiqiy bazaga
+ * (`/data/hcs.db`), ikkinchisi esa konteynerning o'z diskidagi bo'sh
+ * nusxaga (`.../data/hcs.db`) qarab turadi — va tashqaridan ikkalasi
+ * bir xil ishlayotgandek ko'rinadi.
+ *
+ * Yo'l `/data` bilan boshlanmasa, bu xizmat doimiy diskka ULANMAGAN:
+ * uning bazasi har yangilanishda o'chadi.
+ */
 function bazaniTekshir(): Natija {
+  const yol = bazaYoli();
   try {
     // Ilovaning HAQIQIY yo'li tekshiriladi. Alohida ulanish qursak, u
     // ishlab, ilovaniki ishlamasligi mumkin edi va tashxis yolg'on
     // tinchlik berardi.
     const qator = db().prepare("select count(*) as n from users").get() as { n: number };
-    return { holat: "ok", foydalanuvchilar: Number(qator.n) };
+    return { holat: "ok", yol, foydalanuvchilar: Number(qator.n) };
   } catch (e) {
-    return { holat: "xato", xabar: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
+    return {
+      holat: "xato",
+      yol,
+      xabar: e instanceof Error ? `${e.name}: ${e.message}` : String(e),
+    };
   }
 }
 
