@@ -3153,7 +3153,82 @@ Bu jimgina adashtiradi: baza to'g'ri, kod to'g'ri, xato esa kodda
 izlanadi. Endi nusxalash bitta joyda (`web/tests/nusxa.ts`) va u
 `-wal` bilan `-shm` ni ham oladi.
 
-## 53. Bosqichlar holati
+## 53. "Sayt eski kodni ko'rsatyapti" — ikkita mustaqil sabab
+
+Yangi kod GitHub'da bor edi, saytda esa yo'q. Bu ikki soatdan ko'proq
+vaqt oldi va sabab BITTA emas, IKKITA edi — ular bir-birini yashirib
+turdi. Har biri alohida ham topilishi qiyin, birga esa deyarli
+imkonsiz.
+
+### 53.1. Ikkita Railway loyihasi
+
+Bitta GitHub reposiga IKKITA loyiha ulangan edi:
+
+| Loyiha | Domen | Doimiy disk |
+|---|---|---|
+| `amiable-light` | yo'q ("Unexposed service") | yo'q |
+| `selfless-benevolence` | `hcsacademya-production...` | bor |
+
+Deploy loglari birinchisida kuzatilardi, sayt esa ikkinchisidan
+kelardi. Ikkalasi ham "HCS_ACADEMYA" deb atalgan, ikkalasi ham
+"Deployment successful" deb turardi.
+
+Yon ta'siri bundan ham yomonroq edi: `scripts/start.sh` ikkala
+loyihada ham botni ishga tushiradi, Telegram esa bitta botga bitta
+`getUpdates` ulanishiga ruxsat beradi. Natijada bot 3,5 soat davomida
+o'zi bilan urishdi (`TelegramConflictError`, 2498 urinish) va HECH
+QANDAY xabarni qabul qilmadi. Logda faqat konflikt ko'rinardi,
+"nega signal tarqatilmayapti" degan savolga esa javob yo'q edi.
+
+**Belgi:** xizmat sozlamalarida "Public Networking" bo'sh, lekin sayt
+baribir ochiladi. Demak uni BOSHQA xizmat berayapti.
+
+### 53.2. `[variables]` dagi NODE_OPTIONS bosib o'tilgan
+
+Ikkinchi sabab birinchisi ostida yashirin turdi: qurish YIQILARDI.
+
+  Failed to collect configuration for /api/auth/telegram
+  [cause]: ERR_UNKNOWN_BUILTIN_MODULE: No such built-in module: node:sqlite
+    at module evaluation (src/lib/db.ts:2:1)
+  node v22.10.0
+
+`node:sqlite` 22.10 da bayroq ostida (bayroqsiz faqat 22.13 dan) va
+bayroq `nixpacks.toml` ning `[variables]` bo'limida allaqachon
+qo'yilgan edi. Lekin unga TAYANIB BO'LMAYDI: Railway xizmatining o'z
+o'zgaruvchilari uni bosib o'tishi mumkin. Aynan shu sodir bo'ldi —
+bitta loyihada qurish o'tdi, ikkinchisida o'sha commit shu xato bilan
+yiqildi. Ikki loyiha bo'lmaganda bu farq umuman ko'rinmasdi.
+
+Endi qiymat `npm run build` buyrug'ining O'ZIDA. Buni hech qanday
+muhit o'zgaruvchisi bosib o'tolmaydi.
+
+Qo'shimcha: qurishdan oldin bitta qator `node:sqlite` ochilishini
+tekshiradi. Usiz xato `next build` ning o'rtasida, "Collecting page
+data" bosqichida chiqadi va 40 qator ichida ko'milib ketadi.
+
+### 53.3. Xulosa: "deploy o'tdi" — javob emas
+
+Ikkala sababda ham platformaning xabari ("Deployment successful")
+to'g'ri edi, lekin SAVOLGA javob bermasdi. Kerakli savol boshqa:
+"ochiq domenda HOZIR qaysi commit ishlayapti?".
+
+Shuning uchun `/api/health` ga ikkita tashxis qo'shildi:
+
+  `?tekshir=versiya` — repo, shox, commit, deploy raqami VA menyu
+  bandlari ro'yxati. Oxirgisi kodning O'ZIDAN olinadi: platforma
+  o'zgaruvchilari yo'q bo'lsa yoki boshqa narsani ko'rsatsa ham,
+  `salomatlik` bandi bo'lsa — yangi kod, `sokinlik` bo'lsa — eskisi.
+
+  `?tekshir=baza` — bazaning YO'LI. `/data` bilan boshlanmasa, bu
+  xizmat doimiy diskka ulanmagan va uning bazasi har yangilanishda
+  o'chadi. Ikki loyihali holatda aynan shu ikkalasini ajratib berdi.
+
+Qoida: joylashtirish haqidagi har qanday da'vo ISHLAYOTGAN TIZIMNING
+O'ZIDAN tasdiqlanishi kerak. Bu — 48-bo'limdagi "ulanmagan filtr"
+xatosining boshqa qiyofasi: hamma narsa to'g'ri ko'rinadi, chunki
+hech kim natijaning o'zini so'ramagan.
+
+## 54. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
