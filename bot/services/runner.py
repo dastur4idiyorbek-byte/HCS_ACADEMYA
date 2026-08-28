@@ -19,7 +19,7 @@ from datetime import timedelta
 from aiogram import Bot
 
 from bot.i18n import DEFAULT_LANGUAGE, t
-from bot.services.broadcast import broadcast_signal, obunachilar, signal_grafigi
+from bot.services.broadcast import broadcast_signal, obunachilar
 from core.analysis import decide_entry_plan
 from core.analysis.indicators import adx, atr_pct, timeframe_trend
 from core.analysis.market_health import HealthInputs, MarketHealthCalculator
@@ -105,16 +105,6 @@ class PipelineRunner:
         kabi yashirin maydonga tegish bog'liqlikni yashirardi.
         """
         return self._watcher
-
-    @property
-    def candles(self):  # noqa: ANN201 — turi `CandleProvider`, aylanma import bo'lmasin
-        """Sham manbai — signal grafigi rasmini chizish uchun.
-
-        `watcher` bilan bir xil sababdan ochiq: rejalashtiruvchi ham
-        grafik chizishi kerak, `self._runner._candles` kabi yashirin
-        maydonga tegish esa bog'liqlikni yashirardi.
-        """
-        return self._candles
 
     # ------------------------------------------------------------------ #
     #  3.4 — Halol ro'yxatni yangilash
@@ -547,9 +537,6 @@ class PipelineRunner:
 
         self._watcher.add_signal(signal_id)
 
-        grafik = await signal_grafigi(
-            self._candles, candidate.symbol, candidate.levels, self._config
-        )
         yuborildi = await broadcast_signal(
             self._bot,
             qabul_qiluvchilar,
@@ -558,7 +545,6 @@ class PipelineRunner:
             reja,
             signal_id,
             self._config,
-            chart=grafik,
         )
 
         # Tarqatilgani belgilanadi, aks holda fon vazifasi uni "hali

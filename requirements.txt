@@ -15,20 +15,6 @@ aiohttp==3.10.11
 # (sabab: docs/ARXITEKTURA.md, 9-bo'lim). Ular ~100 MB joy egallardi va
 # Oracle Cloud bepul ARM serverida bu sezilarli.
 
-# --- Signal grafigi rasmi ---
-# Pillow — signal bilan birga ketadigan "uzun pozitsiya" grafigini
-# chizish uchun. Bu yerda numpy/pandas dan farqli qaror: Pillow ~3 MB
-# va u boshqa hech narsani tortmaydi.
-#
-# Nima uchun matplotlib EMAS: u numpy ni talab qiladi va ~50 MB — ya'ni
-# yuqoridagi qoidani buzardi. Bizga esa kerak bo'lgani — to'rtburchak,
-# chiziq va matn; buni Pillow o'zi qiladi.
-#
-# Nima uchun brauzer (Playwright) EMAS: ~400 MB Chromium va
-# TradingView shartlariga zid avtomatlashtirish. Sabablar to'liq
-# `bot/chart.py` boshida yozilgan.
-Pillow==11.0.0
-
 # --- Konfiguratsiya / vaqt ---
 PyYAML==6.0.2
 python-dotenv==1.0.1

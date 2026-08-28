@@ -22,7 +22,7 @@ from aiogram.types import FSInputFile
 
 from bot.hosting import video_dir
 from bot.i18n import DEFAULT_LANGUAGE, t
-from bot.services.broadcast import broadcast_signal, obunachilar, signal_grafigi
+from bot.services.broadcast import broadcast_signal, obunachilar
 from bot.services.runner import PipelineRunner, cycle_interval
 from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
@@ -224,12 +224,9 @@ class Scheduler:
 
         for signal_id, symbol, levels, buyurtma in tayyor:
             reja = EntryPlan(order_type=buyurtma, reference_price=levels.entry)
-            grafik = await signal_grafigi(
-                self._runner.candles, symbol, levels, self._config
-            )
             yuborildi = await broadcast_signal(
                 self._bot, qabul_qiluvchilar, symbol, levels, reja,
-                signal_id, self._config, chart=grafik,
+                signal_id, self._config,
             )
             async with self._db.session() as session:
                 await SignalRepository(session).mark_broadcast(signal_id)

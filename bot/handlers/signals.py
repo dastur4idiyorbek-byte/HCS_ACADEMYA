@@ -27,7 +27,7 @@ from bot.keyboards import (
     signal_list,
 )
 from bot.middlewares import AdminOnlyMiddleware
-from bot.services.broadcast import broadcast_signal, signal_grafigi
+from bot.services.broadcast import broadcast_signal
 from bot.states import SignalFlow
 from core.analysis import decide_entry_plan
 from core.config.schema import AppConfig
@@ -267,10 +267,9 @@ async def signal_send(
     if watcher is not None:
         watcher.add_signal(signal_id)
 
-    grafik = await signal_grafigi(candles, data["symbol"], levels, config)
     yuborildi = await broadcast_signal(
         callback.bot, qabul_qiluvchilar, data["symbol"], levels, reja,
-        signal_id, config, language, chart=grafik,
+        signal_id, config, language,
     )
 
     # Tarqatilgani belgilanadi, aks holda fon vazifasi uni "hali

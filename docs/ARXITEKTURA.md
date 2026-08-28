@@ -3228,77 +3228,111 @@ O'ZIDAN tasdiqlanishi kerak. Bu — 48-bo'limdagi "ulanmagan filtr"
 xatosining boshqa qiyofasi: hamma narsa to'g'ri ko'rinadi, chunki
 hech kim natijaning o'zini so'ramagan.
 
-## 54. Signal grafigi rasmi: TradingView skrinshoti NEGA bo'lmadi
+## 54. TradingView skrinshoti: TEKSHIRILDI, IMKONSIZ — va rasm olib tashlandi
 
-Talab aniq edi: signal bilan birga TradingView'dan "uzun pozitsiya"
-asbobi qo'yilgan grafik skrinshoti ketsin. Tekshiruv natijasi —
-TradingView'ning O'ZIDAN buni bepul olish MUMKIN EMAS:
+Talab: signal bilan birga TradingView'dan "uzun pozitsiya" asbobi
+qo'yilgan grafik skrinshoti ketsin.
 
-  - grafik rasmini beradigan ochiq API yo'q; "Snapshot" tugmasi sayt
-    interfeysining bir qismi, xizmat emas;
-  - uni brauzer bilan avtomatlashtirish TradingView shartlariga zid,
+### 54.1. Tekshiruv natijasi — bepul yo'l YO'Q
+
+Bu xulosa SAQLANADI, chunki savol yana ko'tarilishi mumkin:
+
+  - TradingView'da grafik rasmini beradigan OCHIQ API yo'q. "Snapshot"
+    tugmasi — sayt interfeysining bir qismi, xizmat emas.
+  - Brauzer bilan avtomatlashtirish TradingView shartlariga zid,
     konteynerga ~400 MB Chromium qo'shadi va interfeys o'zgargan kuni
-    sinadi;
-  - eng muhimi: BEPUL EMBED WIDGET'DA CHIZISH API SI UMUMAN YO'Q.
+    sinadi.
+  - ENG MUHIMI: bepul embed widget'da CHIZISH API si umuman yo'q.
     "Long Position" asbobini dastur orqali qo'yib bo'lmaydi — u faqat
-    litsenziyalangan Charting Library da bor. Ya'ni brauzer yo'li
-    ishlaganda ham kerakli rasmni bermasdi;
-  - uchinchi tomon xizmatlari (chart-img va sh.k.) buni qila oladi,
-    lekin pullik va ular yiqilsa rasm ham yo'qoladi.
+    litsenziyalangan Charting Library da. Ya'ni brauzer yo'li
+    ishlaganda ham kerakli rasmni BERMASDI.
+  - `chart-img` kabi uchinchi tomon xizmatlari buni qiladi, lekin
+    pullik (oyiga ~$15 dan) va ular yiqilsa rasm ham yo'qoladi.
 
-Shuning uchun grafik O'ZIMIZ chiziladi. Kerakli ma'lumot allaqachon
-bizda: shamlar Binance'dan olinadi (`core/market_data`), darajalar esa
-signalning o'zida.
+### 54.2. O'zimiz chizgan variant QURILDI va KEYIN OLIB TASHLANDI
 
-### 54.1. Nima uchun Pillow, matplotlib emas
+Alternativa sifatida grafik o'zimizning ma'lumotimizdan chizildi:
+Binance shamlari + signal darajalari, Pillow bilan (~3 MB, matplotlib
+emas — u numpy'ni tortadi va `requirements.txt` dagi qoidani buzardi).
+Ishladi: kirish chizig'i, Stop'gacha qizil zona, TP2 gacha yashil zona,
+yorliqlar ustma-ust tushmasligi uchun alohida joylashtirish hisobi.
 
-`requirements.txt` da yozilgan qoida bor: numpy/pandas ATAYLAB yo'q,
-chunki ular ~100 MB joy egallaydi. Matplotlib numpy ni talab qiladi,
-ya'ni o'sha qoidani buzardi.
+Egasi ko'rib chiqib, rasm KERAK EMAS degan qarorga keldi — signal
+kartochkasining o'zi yetarli. Shuning uchun `bot/chart.py`, Pillow
+bog'liqligi va tarqatishdagi rasm yo'li butunlay olib tashlandi.
 
-Bizga kerak bo'lgani — to'rtburchak, chiziq va matn. Pillow buni o'zi
-qiladi va ~3 MB.
+Nima uchun bu yerda yozib qo'yilgan: tekshiruvning O'ZI qimmatli
+natija. Rasm yana kerak bo'lsa, TradingView tomonini qaytadan
+tekshirish shart emas — javob 54.1 da. Qurilgan variantni esa
+`3c1c050` commitidan tiklash mumkin.
 
-Shrift ham TASHQARIDAN OLINMAYDI: `ImageFont.load_default(size=N)`
-Pillow bilan birga keladigan masshtablanadigan shriftni beradi.
-Railway konteynerida `fonts-dejavu` o'rnatilmagan — tizim shriftiga
-tayansak, rasm faqat mahalliy mashinada chizilardi.
+### 54.3. Yo'l-yo'lakay topilgan xavf
 
-### 54.2. Hisob chizishdan AJRATILGAN
+Grafik moduli `bot/services/broadcast.py` da modul boshida import
+qilingan edi. Serverda `pip install` yiqilsa, import xatosi butun
+zanjirni (broadcast -> runner -> bot) o'ldirardi — ya'ni QO'SHIMCHA
+QULAYLIK butun botni ishga tushirmay qo'yardi.
 
-Rasmni test bilan tekshirib bo'lmaydi (piksel solishtirish mo'rt),
-lekin uning ostidagi matematikani — mumkin va shart:
+Bu naqsh boshqa joyda ham takrorlanishi mumkin: ixtiyoriy imkoniyat
+majburiy import bilan ulansa, u ixtiyoriy bo'lmay qoladi.
 
-  - `Olcham` — narx <-> piksel almashinuvi;
-  - `olcham_hisobla()` — oraliqqa SHAMLAR VA DARAJALAR ikkalasi ham
-    kiritiladi. Faqat shamlardan hisoblansa, Stop va TP rasmdan chiqib
-    ketardi — ular ko'pincha shamlar oralig'idan tashqarida;
-  - `_yorliqlarni_joylashtir()` — ustma-ust tushgan yorliqlarni
-    ajratadi. TP1 bilan TP2 orasi 1-2% bo'lishi ODATIY hol, istisno
-    emas: usiz TP2 narxi TP1 yorlig'i ostida qolib ketardi.
+## 55. Balans -> taklif -> "men sotib oldim": bitta zanjir
 
-Chiziq har doim o'z narxida qoladi, faqat YORLIQ siljiydi va unga
-ingichka chiziq bilan bog'lanadi.
+Uch joyda uch xil raqam bor edi va ular bir-biriga ulanmagan:
+kalkulyator har doim "1000" dan boshlanardi, signal kartochkasidagi
+"Miqdor" balansdan hisoblanardi, "Men sotib oldim" esa bo'sh turardi.
+Foydalanuvchi qaysi raqamga ishonishni bilmasdi.
 
-### 54.3. Rasm signalni TO'SIB QO'YMAYDI
+### 55.1. Tartib — mantiqiy, dizayn emas
 
-Ikki joyda ehtiyot chorasi bor va ikkalasi ham 0.3-bandning o'zi:
+    balans -> tizim taklifi -> kalkulyator -> "men sotib oldim"
 
-  - `signal_grafigi()` hech qachon istisno tashlamaydi. Binance javob
-    bermasa yoki chizishda xato bo'lsa `None` qaytadi va signal MATN
-    bo'lib ketadi;
-  - `broadcast_signal()` da `send_photo` yiqilsa, o'sha obunachiga
-    MATN yuboriladi. Buni test tutdi: rasm qo'shilganda yuborish yo'li
-    `send_message` dan `send_photo` ga o'tdi va soxta bot `send_photo`
-    ni bilmagani uchun obunachi HECH NARSA olmay qoldi. Haqiqiy
-    hayotda ham shunday bo'lishi mumkin edi — Telegram rasmni rad
-    etsa, signal butunlay yo'qolardi.
+Balans BIRINCHI, chunki usiz tizim hech narsa taklif qila olmaydi.
+Avval kartochka "balansingizni kiriting" derdi-yu, QAYERDAN kiritishni
+ko'rsatmasdi — botda ham, saytda ham. Endi balanssiz foydalanuvchiga
+signal sahifasining tepasida so'rov chiqadi, botda esa kartochkaning
+eng tepasida balans tugmasi turadi.
 
-Rasm BIR MARTA yuklanadi: birinchi yuborishdan keyingi `file_id`
-qolgan obunachilarga qayta ishlatiladi. Aks holda yuzta obunachida bir
-xil rasm yuz marta yuklanardi.
+### 55.2. Biz TAKLIF qilamiz, foydalanuvchi HAQIQATNI aytadi
 
-## 55. Bosqichlar holati
+Taklif — kunlik xavf byudjeti va Stop masofasidan hisoblangan raqam.
+U kalkulyatorning boshlang'ich summasiga ham, "Men sotib oldim"
+maydoniga ham tushadi, ya'ni bir sahifada ikki xil son yo'q.
+
+Lekin maydon QULFLANMAYDI: foydalanuvchi haqiqatda boshqacha olishi
+mumkin va portfeldagi foyda/zarar aynan HAQIQIY miqdordan hisoblanishi
+kerak. Taklifni majburiy qilsak, statistika xayoliy bo'lardi.
+
+KIRISH NARXI esa aksincha — ko'rsatiladi, lekin tahrirlanmaydi. U
+signal yozuvidan olinadi. Tahrirlansa, foydalanuvchi o'ziga qulay narx
+yozib, statistikada mavjud bo'lmagan foyda ko'rsatardi.
+
+### 55.3. Pul hisobi IKKI TILDA — ochiq boshqariladi
+
+Taklif asli Pythonda (`core/position_sizing/`), sayt esa TypeScriptda
+(`web/src/lib/hajm.ts`). Ikki nusxa — xavf, shuning uchun:
+
+  1. barcha parametrlar bitta YAML dan o'qiladi;
+  2. `tests/hajm_fixtures.json` — Python chiqargan ETALON. Python
+     testi ham, sayt testi ham SHU faylga solishtiradi.
+
+Biror tomon o'zgarsa testlardan biri darhol yiqiladi. Faqat
+KO'RSATISH yo'li ko'chirilgan: kunlik byudjetdan xavf AJRATISH
+Pythonda qoladi.
+
+### 55.4. i18n kalitlari endi test bilan qoplangan
+
+`tarjima()` kalit topilmasa xato bermaydi — kalitning O'ZINI
+qaytaradi. Bu ataylab (bitta yetishmagan matn sahifani yiqitmasin),
+lekin narxi bor: ekranda `portfel.balans_kerak` degan xom matn chiqadi
+va buni faqat tasodifan ko'rib qolamiz.
+
+UCH MARTA sodir bo'ldi: `admin.izoh` mavjud tarjimani bosib ketgan;
+`balans_kerak` noto'g'ri bo'limga tushgan; `umumiy.saqlash` umuman
+yo'q edi. Endi kodda ishlatilgan har bir qattiq yozilgan kalit ikkala
+tilda ham tekshiriladi — test yozilgan zahoti uchinchisini topdi.
+
+## 56. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
