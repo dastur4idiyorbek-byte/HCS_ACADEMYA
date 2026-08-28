@@ -10,7 +10,9 @@ yo'ldan ketgan signal himoyasiz tarqalardi va buni hech kim sezmasdi.
 from __future__ import annotations
 
 from aiogram import Bot
+from aiogram.types import BufferedInputFile
 
+from bot.chart import render_signal_chart
 from bot.formatting import render_signal_card
 from bot.i18n import DEFAULT_LANGUAGE
 from bot.keyboards import signal_actions
@@ -49,6 +51,47 @@ def hajm_taklifi(
         return None
 
 
+#: Grafik uchun nechta sham olinadi. 80 ta 4-soatlik sham ~13 kun —
+#: signal atrofidagi harakatni ko'rsatishga yetadi, rasm esa siqilib
+#: ketmaydi.
+GRAFIK_SHAMLAR = 80
+
+
+async def signal_grafigi(
+    candles,  # noqa: ANN001 — `CandleProvider`, aylanma import bo'lmasin
+    symbol: str,
+    levels: SignalLevels,
+    config: AppConfig,
+    created_at=None,  # noqa: ANN001
+) -> bytes | None:
+    """Signal grafigi rasmi (PNG) yoki `None`.
+
+    HECH QACHON ISTISNO TASHLAMAYDI (0.3-band): rasm — qo'shimcha
+    qulaylik, signalning o'zi emas. Binance javob bermasa yoki chizishda
+    xato bo'lsa, signal MATN sifatida baribir ketishi kerak. Aks holda
+    grafik xizmati bir daqiqa yiqilgani uchun obunachi signalni umuman
+    olmasdi.
+    """
+    if candles is None:
+        return None
+    timeframe = config.analysis.entry_timeframe
+    try:
+        shamlar = await candles.fetch_candles(symbol, timeframe, GRAFIK_SHAMLAR)
+        if not shamlar:
+            return None
+        return render_signal_chart(
+            symbol,
+            shamlar,
+            levels,
+            quote_asset=config.halal_screening.quote_asset,
+            timeframe=timeframe,
+            created_at=created_at,
+        )
+    except Exception:  # noqa: BLE001 — rasm signalni to'sib qo'ymasin
+        logger.warning("Signal grafigi chizilmadi: %s", symbol, exc_info=True)
+        return None
+
+
 async def broadcast_signal(  # noqa: PLR0913
     bot: Bot,
     recipients: list[Qabul],
@@ -58,6 +101,7 @@ async def broadcast_signal(  # noqa: PLR0913
     signal_id: int,
     config: AppConfig,
     language: str = DEFAULT_LANGUAGE,
+    chart: bytes | None = None,
 ) -> int:
     """1.3-band: `protect_content=True` — forward/saqlash bloklanadi.
 
@@ -71,6 +115,12 @@ async def broadcast_signal(  # noqa: PLR0913
         Nechtasiga yetkazilgani.
     """
     yuborildi = 0
+    # Rasm BIR MARTA yuklanadi: birinchi yuborishdan keyin Telegram
+    # bergan `file_id` qolganlariga qayta ishlatiladi. Aks holda har
+    # bir obunachi uchun bir xil rasm qaytadan yuklanardi — yuzta
+    # obunachida yuz marta.
+    rasm_id: str | None = None
+
     for telegram_id, balans in recipients:
         kartochka = render_signal_card(
             symbol,
@@ -81,12 +131,36 @@ async def broadcast_signal(  # noqa: PLR0913
             language=language,
             tp1_close_pct=config.portfolio.tp1_close_pct,
         )
+        tugmalar = signal_actions(signal_id, language)
+
+        # RASM YIQILSA SIGNAL MATN BO'LIB KETADI. Bu — 0.3-bandning
+        # aynan o'zi: rasm qulaylik, signal esa mahsulotning o'zi.
+        # Telegram rasmni rad etsa (o'lcham, format, tarmoq), obunachi
+        # HECH NARSA olmay qolardi.
+        if chart is not None:
+            try:
+                fayl = rasm_id or BufferedInputFile(chart, filename=f"{symbol}.png")
+                xabar = await bot.send_photo(
+                    telegram_id, fayl, caption=kartochka,
+                    protect_content=True, reply_markup=tugmalar,
+                )
+                # `file_id` ni bir marta olib, qolganlariga qayta
+                # ishlatamiz — aks holda har obunachi uchun bir xil rasm
+                # qaytadan yuklanardi.
+                if rasm_id is None and xabar.photo:
+                    rasm_id = xabar.photo[-1].file_id
+                yuborildi += 1
+                continue
+            except Exception:  # noqa: BLE001 — matnga tushib ko'ramiz
+                logger.warning(
+                    "Signal rasmi yuborilmadi, matn bilan urinamiz: telegram_id=%s",
+                    telegram_id, exc_info=True,
+                )
+
         try:
             await bot.send_message(
-                telegram_id,
-                kartochka,
-                protect_content=True,
-                reply_markup=signal_actions(signal_id, language),
+                telegram_id, kartochka,
+                protect_content=True, reply_markup=tugmalar,
             )
             yuborildi += 1
         except Exception:  # noqa: BLE001 — bitta xato tarqatishni to'xtatmasin
