@@ -8,6 +8,7 @@ import {
   asosiyAktiv,
   hisobla,
   musbatSon,
+  narxMatni,
   tengUlushlar,
 } from "@/lib/kalkulyator";
 
@@ -29,24 +30,30 @@ const uslub =
 
 export function Kalkulyator({
   symbol,
+  kotirovka = "USDT",
   entry,
   stop,
   tpNarxlari,
   matnlar,
 }: {
   symbol: string;
+  /** Spot juftlik kotirovkasi — miqdorni to'g'ri aktivda ko'rsatish uchun */
+  kotirovka?: string;
   entry: number;
   stop: number;
   tpNarxlari: number[];
   matnlar: Record<string, string>;
 }) {
-  const aktiv = asosiyAktiv(symbol);
+  const aktiv = asosiyAktiv(symbol, kotirovka);
   const [summa, setSumma] = useState("1000");
-  const [kirish, setKirish] = useState(String(entry));
-  const [stopMatn, setStopMatn] = useState(String(stop));
+  // `String(entry)` EMAS: bazadagi son `0.8294354680460917` boʻlib
+  // chiqishi mumkin va maydonda shundayligicha turardi — uni oʻqib ham,
+  // tahrirlab ham boʻlmaydi.
+  const [kirish, setKirish] = useState(() => narxMatni(entry));
+  const [stopMatn, setStopMatn] = useState(() => narxMatni(stop));
   const [tplar, setTplar] = useState<Matnli[]>(() => {
     const ulushlar = tengUlushlar(tpNarxlari.length);
-    return tpNarxlari.map((n, i) => ({ narx: String(n), ulush: String(ulushlar[i]) }));
+    return tpNarxlari.map((n, i) => ({ narx: narxMatni(n), ulush: String(ulushlar[i]) }));
   });
 
   const hisob = useMemo(() => {

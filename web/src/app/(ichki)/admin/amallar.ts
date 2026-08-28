@@ -5,8 +5,6 @@ import { redirect } from "next/navigation";
 
 import { env } from "@/lib/env";
 import {
-  type HalolHolat,
-  type Tarif,
   coinQaroriniBelgila,
   coinQaroriniOchir,
   darsOchir,
@@ -14,9 +12,12 @@ import {
   havolaOchir,
   havolaSaqla,
   narxniYangila,
+  signalOchir,
   signalYarat,
   tolovniRadEt,
   tolovniTasdiqla,
+  type HalolHolat,
+  type Tarif,
 } from "@/lib/queries";
 import { xabarYubor } from "@/lib/telegram";
 import { kirim } from "@/lib/session";
@@ -143,6 +144,22 @@ export async function signalBer(forma: FormData): Promise<void> {
       ? `/admin/signal?ok=${natija.id}`
       : `/admin/signal?xato=${encodeURIComponent(natija.sabab)}`,
   );
+}
+
+/** Signalni butunlay o'chirish — sinov yozuvlarini tozalash uchun.
+ *
+ * Signal statistikaga kiradi, shuning uchun sinov paytida yaratilgan
+ * soxta signal g'alaba foizini va o'rtacha natijani buzadi. Uni
+ * yashirish yetarli emas — hisob-kitobda qolaverardi.
+ */
+export async function signalOchirish(forma: FormData): Promise<void> {
+  await adminTekshir();
+  const id = Number(forma.get("id"));
+  if (Number.isInteger(id) && id > 0) signalOchir(id);
+  revalidatePath("/admin/signal");
+  revalidatePath("/signallar");
+  revalidatePath("/statistika");
+  redirect("/admin/signal");
 }
 
 // --------------------------------------------------------------------------- //

@@ -1,12 +1,17 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { narx, sana } from "@/lib/format";
+import { foiz, holatNomi, narx, sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
-import { signalOgohlantirishlari, signalOl, tarqatilmaganSignallar } from "@/lib/queries";
+import {
+  adminSignallar,
+  signalOgohlantirishlari,
+  signalOl,
+  tarqatilmaganSignallar,
+} from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
-import { signalBer } from "../amallar";
+import { signalBer, signalOchirish } from "../amallar";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +46,7 @@ export default async function YangiSignal({
     : [];
 
   const kutayotganlar = tarqatilmaganSignallar();
+  const barchasi = adminSignallar();
 
   return (
     <>
@@ -87,7 +93,7 @@ export default async function YangiSignal({
                 id="symbol"
                 name="symbol"
                 required
-                placeholder="BTCUSDT"
+                placeholder="BTC"
                 className="border-ramka-yumshoq rounded-tugma bg-fon w-full border px-3 py-2 text-sm uppercase sm:w-56"
               />
             </div>
@@ -147,6 +153,44 @@ export default async function YangiSignal({
                 <li key={s.id} className="flex justify-between gap-3 text-sm">
                   <span className="text-sarlavha font-medium">{s.symbol}</span>
                   <span className="text-matn-past raqam text-xs">{sana(s.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        {/* Barcha signallar — o'chirish uchun. Sinov paytida yaratilgan
+            soxta signal statistikaga kiradi va uni buzadi: bitta
+            "-94%" butun g'alaba foizini yaroqsiz qiladi. */}
+        <Card>
+          <CardTitle>🗑 {t("admin.signal_royxat")}</CardTitle>
+          <CardHint>{t("admin.signal_royxat_izoh")}</CardHint>
+
+          {barchasi.length === 0 ? (
+            <CardHint className="mt-3">{t("admin.kutilmoqda_yoq")}</CardHint>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {barchasi.map((s) => (
+                <li
+                  key={s.id}
+                  className="border-ramka-yumshoq rounded-kichik flex flex-wrap items-center justify-between gap-2 border p-2.5"
+                >
+                  <span className="min-w-0">
+                    <span className="text-sarlavha font-medium">{s.symbol}</span>{" "}
+                    <span className="text-matn-past raqam text-xs">
+                      {holatNomi(s.status, til)} · {narx(s.entry)} · {sana(s.createdAt)}
+                      {s.resultPct !== null && ` · ${foiz(s.resultPct)}`}
+                    </span>
+                  </span>
+                  <form action={signalOchirish}>
+                    <input type="hidden" name="id" value={s.id} />
+                    <button
+                      type="submit"
+                      className="border-past/70 text-past rounded-tugma border px-3 py-1.5 text-xs"
+                    >
+                      {t("admin.ochirish")}
+                    </button>
+                  </form>
                 </li>
               ))}
             </ul>

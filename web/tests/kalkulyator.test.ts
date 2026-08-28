@@ -4,8 +4,10 @@ import { test } from "node:test";
 import {
   ULUSH_JAMI,
   asosiyAktiv,
+  birjaJuftligi,
   hisobla,
   musbatSon,
+  narxMatni,
   tengUlushlar,
 } from "../src/lib/kalkulyator.ts";
 
@@ -110,4 +112,52 @@ test("TP soni moslashuvchan — 2 ta ham, 4 ta ham ishlaydi", () => {
     assert.equal(h.tplar.length, soni);
     assert.equal(h.toliqmi, true);
   }
+});
+
+// --------------------------------------------------------------------- //
+//  Birja juftligi — grafik shunga bog'liq
+// --------------------------------------------------------------------- //
+
+/** ISHLAB CHIQARISHDAGI SHAKL: bazada `symbol` — ASOSIY AKTIV (`DOT`),
+ *  juftlik emas. Bot uni `quote_asset` bilan qo'shib yasaydi
+ *  (`core/halal_screening/screener.py` -> `pair_for()`).
+ *
+ *  Bu testlar aynan shu sababdan yozildi: grafikka `BINANCE:DOT`
+ *  berilgan edi va TradingView "This symbol doesn't exist" deb turdi.
+ *  Mahalliy sinov bazasida coinlar `BTCUSDT` deb yozilgani uchun xato
+ *  ko'rinmadi — sinov ma'lumoti haqiqatdan boshqacha edi. */
+test("asosiy aktivdan birja juftligi yasaladi", () => {
+  assert.equal(birjaJuftligi("DOT"), "DOTUSDT");
+  assert.equal(birjaJuftligi("BTC"), "BTCUSDT");
+  assert.equal(birjaJuftligi("dot"), "DOTUSDT");
+});
+
+test("juftlik allaqachon berilgan bo'lsa ikkinchi marta qo'shilmaydi", () => {
+  // Ikkala shakl ham kelishi mumkin, natija bir xil bo'lishi shart.
+  assert.equal(birjaJuftligi("DOTUSDT"), "DOTUSDT");
+  assert.equal(birjaJuftligi("BTCUSDT"), "BTCUSDT");
+});
+
+test("boshqa kotirovka ham ishlaydi", () => {
+  assert.equal(birjaJuftligi("DOT", "USDC"), "DOTUSDC");
+  assert.equal(birjaJuftligi("DOTUSDC", "USDC"), "DOTUSDC");
+});
+
+// --------------------------------------------------------------------- //
+//  Narx matni — maydonga tushadigan qiymat
+// --------------------------------------------------------------------- //
+
+test("narx kattaligiga qarab kasr xonalari tanlanadi", () => {
+  assert.equal(narxMatni(0.8294354680460917), "0.829435");
+  assert.equal(narxMatni(61250.5), "61250.5");
+  assert.equal(narxMatni(17.42), "17.42");
+  assert.equal(narxMatni(0.0001234567), "0.00012346");
+});
+
+test("narx matnida guruh ajratgichi YO'Q", () => {
+  // Vergul bo'lsa, `musbatSon()` uni kasr belgisi deb o'qib yuboradi
+  // va "1,150.74" -> "1.150.74" -> NaN bo'lardi.
+  const matn = narxMatni(1150.74798619);
+  assert.ok(!matn.includes(","), matn);
+  assert.equal(musbatSon(matn), 1150.75);
 });

@@ -11,13 +11,43 @@ const {
   darsOchir,
   darsSaqla,
   darslar,
+  signalOchir,
   signalOgohlantirishlari,
   signalYarat,
   tarqatilmaganSignallar,
 } = await import("../src/lib/queries.ts");
 const { savdoQoidalari } = await import("../src/lib/config.ts");
 
-const YAXSHI = { symbol: "BTCUSDT", entry: 100, stop: 97, tp1: 106, tp2: 115, note: null };
+const YAXSHI = { symbol: "BTC", entry: 100, stop: 97, tp1: 106, tp2: 115, note: null };
+
+// --------------------------------------------------------------------------- //
+//  Signal: symbol shakli — ASOSIY AKTIV, juftlik emas
+// --------------------------------------------------------------------------- //
+
+/** Bazada `symbol` — `DOT`, `DOTUSDT` emas: bot ham shunday yozadi
+ *  (`core/halal_screening/screener.py` -> `pair_for()` juftlikni
+ *  ALOHIDA yasaydi). Admin juftlikni to'liq yozib yuborsa, bitta
+ *  ustunda ikki xil shakl paydo bo'lardi.
+ *
+ *  Bu haqiqiy xatodan keyin yozildi: grafikka `BINANCE:DOT` berilgan
+ *  edi va TradingView "This symbol doesn't exist" deb turdi. */
+test("juftlik yozilsa ham bazaga asosiy aktiv tushadi", () => {
+  const natija = signalYarat({ ...YAXSHI, symbol: "DOTUSDT" });
+  assert.ok(natija.ok);
+  const qator = db()
+    .prepare("select symbol from signals where id = ?")
+    .get(natija.id) as { symbol: string };
+  assert.equal(qator.symbol, "DOT");
+});
+
+test("asosiy aktiv yozilsa o'zgarmaydi", () => {
+  const natija = signalYarat({ ...YAXSHI, symbol: "dot" });
+  assert.ok(natija.ok);
+  const qator = db()
+    .prepare("select symbol from signals where id = ?")
+    .get(natija.id) as { symbol: string };
+  assert.equal(qator.symbol, "DOT");
+});
 
 // --------------------------------------------------------------------------- //
 //  Signal: darajalar tartibi
@@ -32,7 +62,7 @@ test("to'g'ri signal yoziladi va tarqatilmagan bo'lib qoladi", () => {
   const qator = db()
     .prepare("select symbol, status, broadcast_at, note, source from signals where id = ?")
     .get(natija.id) as Record<string, unknown>;
-  assert.equal(qator.symbol, "BTCUSDT");
+  assert.equal(qator.symbol, "BTC");
   assert.equal(qator.status, "pending");
   assert.equal(qator.source, "manual");
   assert.equal(qator.note, "sinov");
@@ -183,4 +213,60 @@ test("sarlavhasiz dars rad etiladi", () => {
     published: true,
   });
   assert.equal(n.ok, false);
+});
+
+// --------------------------------------------------------------------------- //
+//  Signalni o'chirish — bog'liq yozuvlar bilan birga
+// --------------------------------------------------------------------------- //
+
+/** NEGA BU TEST BOR: sxemada `user_positions` va `signal_events`
+ *  signalga `ondelete="CASCADE"` bilan bog'langan, LEKIN SQLite'da
+ *  tashqi kalitlar standart holda O'CHIQ (`PRAGMA foreign_keys = 0`).
+ *  Ya'ni CASCADE ga tayanib bo'lmaydi va faqat `signals` dan
+ *  o'chirilsa, foydalanuvchining pozitsiyasi mavjud bo'lmagan signalga
+ *  ishora qilib qolardi — portfel va statistika buzilardi. */
+test("signal o'chirilganda unga bog'liq yozuvlar ham ketadi", () => {
+  const natija = signalYarat({ ...YAXSHI, symbol: "OCHIR" });
+  assert.ok(natija.ok);
+  const id = natija.id;
+
+  const baza = db();
+  baza
+    .prepare(
+      `insert into signal_events (signal_id, event, created_at, updated_at)
+       values (?, 'created', datetime('now'), datetime('now'))`,
+    )
+    .run(id);
+  baza
+    .prepare(
+      `insert into user_positions
+         (user_id, signal_id, amount_usd, entry_price, trade_date, created_at, updated_at)
+       values (1, ?, 100, 100, date('now'), datetime('now'), datetime('now'))`,
+    )
+    .run(id);
+
+  const sanoq = (jadval: string) =>
+    Number(
+      (
+        baza
+          .prepare(`select count(*) as n from ${jadval} where signal_id = ?`)
+          .get(id) as { n: number }
+      ).n,
+    );
+
+  assert.equal(sanoq("signal_events"), 1);
+  assert.equal(sanoq("user_positions"), 1);
+
+  assert.equal(signalOchir(id), true);
+
+  assert.equal(sanoq("signal_events"), 0, "signal_events yetim qoldi");
+  assert.equal(sanoq("user_positions"), 0, "user_positions yetim qoldi");
+  const qolgan = baza
+    .prepare("select count(*) as n from signals where id = ?")
+    .get(id) as { n: number };
+  assert.equal(Number(qolgan.n), 0);
+});
+
+test("mavjud bo'lmagan signalni o'chirish false qaytaradi", () => {
+  assert.equal(signalOchir(999999), false);
 });

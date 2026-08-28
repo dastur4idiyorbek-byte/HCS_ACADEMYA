@@ -90,3 +90,15 @@ export function savdoQoidalari(): {
     minRiskReward: yol(["trade_rules", "min_risk_reward"], 3),
   };
 }
+
+/** Spot juftlik kotirovkasi — `DOT` dan `DOTUSDT` yasash uchun.
+ *
+ * Bot ham shu qiymatni ishlatadi (`core/halal_screening/screener.py` ->
+ * `pair_for()`). Bu yerga ko'chirib yozilsa, YAML o'zgargan kuni sayt
+ * grafikni mavjud bo'lmagan juftlikda so'rardi va TradingView "This
+ * symbol doesn't exist" deb turardi — bu allaqachon bir marta bo'ldi,
+ * faqat boshqa sababdan.
+ */
+export function kotirovka(): string {
+  return yol(["halal_screening", "quote_asset"], "USDT");
+}

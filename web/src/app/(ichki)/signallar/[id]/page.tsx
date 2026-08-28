@@ -7,9 +7,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
+import { kotirovka } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx, riskFoyda, sana } from "@/lib/format";
 import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
+import { birjaJuftligi } from "@/lib/kalkulyator";
 import { kirishMumkin, signalOl, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
@@ -101,7 +103,7 @@ export default async function SignalSahifasi({
           <CardTitle>📈 {t("signal.grafik")}</CardTitle>
           <div className="mt-3">
             <Grafik
-              symbol={`BINANCE:${signal.symbol}`}
+              symbol={`BINANCE:${birjaJuftligi(signal.symbol, kotirovka())}`}
               xatoMatni={t("signal.grafik_xato")}
             />
           </div>
@@ -113,6 +115,7 @@ export default async function SignalSahifasi({
         <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
           <Kalkulyator
             symbol={signal.symbol}
+            kotirovka={kotirovka()}
             entry={signal.entry}
             stop={signal.stop}
             tpNarxlari={[signal.tp1, signal.tp2]}

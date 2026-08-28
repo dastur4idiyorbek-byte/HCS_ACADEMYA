@@ -111,3 +111,36 @@ export function asosiyAktiv(symbol: string, quote = "USDT"): string {
   const q = quote.toUpperCase();
   return s.endsWith(q) && s.length > q.length ? s.slice(0, -q.length) : s;
 }
+
+/** Birja juftligi nomi — grafik uchun: `DOT` -> `DOTUSDT`.
+ *
+ * NEGA KERAK BO'LDI: loyihada `symbol` — bu ASOSIY AKTIV (`DOT`,
+ * `BTC`), birja juftligi emas. Bot uni `quote_asset` bilan qo'shib
+ * yasaydi (`core/halal_screening/screener.py` -> `pair_for()`).
+ * Grafikka `BINANCE:DOT` berilgan edi va TradingView "This symbol
+ * doesn't exist" deb turdi.
+ *
+ * Xato SINOV MA'LUMOTI tufayli ko'rinmadi: mahalliy bazada coinlar
+ * `BTCUSDT` deb yozilgan edi, ya'ni sinovda tasodifan to'g'ri
+ * chiqardi. Shuning uchun bu funksiya IKKALA shaklni ham qabul
+ * qiladi — juftlik allaqachon berilgan bo'lsa, ikkinchi marta
+ * qo'shilmaydi.
+ */
+export function birjaJuftligi(symbol: string, quote = "USDT"): string {
+  const q = quote.toUpperCase();
+  return `${asosiyAktiv(symbol, q)}${q}`;
+}
+
+/** Narxni kiritish maydoni uchun matn.
+ *
+ * Kasr xonalari narxning KATTALIGIGA qarab tanlanadi: `0.869` uchun
+ * ikkita xona yetmaydi, `61250.5` uchun sakkiztasi ortiqcha.
+ *
+ * Guruh ajratgichi (`1,150.74`) ATAYLAB QO'YILMAYDI: maydon
+ * tahrirlanadi va vergul `musbatSon()` da kasr belgisi deb
+ * o'qilardi — `1,150.74` "1.150.74" ga aylanib, butun hisob buzilardi.
+ */
+export function narxMatni(n: number): string {
+  const xona = n >= 1000 ? 2 : n >= 1 ? 4 : n >= 0.01 ? 6 : 8;
+  return n.toFixed(xona).replace(/\.?0+$/, "");
+}

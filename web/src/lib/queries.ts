@@ -1,5 +1,6 @@
 import { db, songaAylantir, vaqt, vaqtSatri } from "./db.ts";
-import { obunaKunlari, savdoQoidalari } from "./config.ts";
+import { kotirovka, obunaKunlari, savdoQoidalari } from "./config.ts";
+import { asosiyAktiv } from "./kalkulyator.ts";
 
 /** Botning bazasidan o'qish/yozish.
  *
@@ -961,10 +962,15 @@ export function signalYarat(
   kirish: SignalKirish,
   hozir = new Date(),
 ): SignalNatijasi {
-  const symbol = kirish.symbol.trim().toUpperCase();
-  if (!/^[A-Z0-9]{2,32}$/.test(symbol)) {
+  // ASOSIY AKTIVGA keltiriladi: bazada `symbol` — `DOT`, `DOTUSDT`
+  // emas (bot ham shunday yozadi). Admin juftlikni to'liq yozib
+  // yuborsa, o'sha bitta ustunda ikki xil shakl paydo bo'lardi va
+  // grafik ham, kuzatuv ham qaysi biriga ishonishni bilmasdi.
+  const xomSymbol = kirish.symbol.trim().toUpperCase();
+  if (!/^[A-Z0-9]{2,32}$/.test(xomSymbol)) {
     return { ok: false, sabab: "Symbol faqat harf va raqamdan iborat bo'lsin" };
   }
+  const symbol = asosiyAktiv(xomSymbol, kotirovka());
   const k = { ...kirish, symbol };
   const xato = tartibXatosi(k);
   if (xato) return { ok: false, sabab: xato };
@@ -1000,6 +1006,70 @@ export function tarqatilmaganSignallar(): { id: number; symbol: string; createdA
     symbol: q.symbol as string,
     createdAt: vaqt(q.created_at as string),
   }));
+}
+
+/** Barcha signallar — admin ro'yxati uchun (o'chirish tugmasi bilan). */
+export function adminSignallar(limit = 100): {
+  id: number;
+  symbol: string;
+  status: SignalHolati;
+  entry: number;
+  resultPct: number | null;
+  createdAt: Date | null;
+  broadcast: boolean;
+}[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, symbol, status, entry, result_pct, created_at, broadcast_at
+         from signals order by created_at desc, id desc limit ?`,
+    )
+    .all(limit) as Qator[];
+  return qatorlar.map((q) => ({
+    id: songaAylantir(q.id),
+    symbol: q.symbol as string,
+    status: q.status as SignalHolati,
+    entry: Number(q.entry),
+    resultPct: q.result_pct === null ? null : Number(q.result_pct),
+    createdAt: vaqt(q.created_at as string),
+    broadcast: q.broadcast_at !== null,
+  }));
+}
+
+/** Signalni va unga bog'liq hamma narsani o'chiradi.
+ *
+ * NEGA HAQIQIY O'CHIRISH (yashirish emas): bu amal SINOV signallari
+ * uchun. Ular statistikaga kiradi va uni buzadi — bitta soxta "-94%"
+ * butun g'alaba foizini yaroqsiz qiladi. Yashirilgan signal esa
+ * hisob-kitobda qolaverardi.
+ *
+ * NEGA BOG'LIQ YOZUVLAR QO'LDA O'CHIRILADI: sxemada ular
+ * `ondelete="CASCADE"` bilan bog'langan, LEKIN SQLite'da tashqi
+ * kalitlar STANDART HOLDA O'CHIQ (`PRAGMA foreign_keys = 0`) —
+ * tekshirildi, bu bazada ham shunday. Ya'ni CASCADE umuman
+ * ishlamaydi va faqat `signals` dan o'chirsak, `user_positions`
+ * yetim qolardi: foydalanuvchining portfeli va statistikasi mavjud
+ * bo'lmagan signalga ishora qilib turardi.
+ *
+ * Pragmani yoqish o'rniga qo'lda o'chirish tanlandi: pragma butun
+ * ulanishga ta'sir qiladi va bot yozayotgan boshqa yo'llarni
+ * kutilmaganda buzishi mumkin. Bu yerdagi uchta `delete` esa faqat
+ * shu amalga tegishli.
+ *
+ * Qaytadi: o'chirildimi.
+ */
+export function signalOchir(id: number): boolean {
+  const baza = db();
+  baza.exec("BEGIN");
+  try {
+    baza.prepare(`delete from signal_events where signal_id = ?`).run(id);
+    baza.prepare(`delete from user_positions where signal_id = ?`).run(id);
+    const natija = baza.prepare(`delete from signals where id = ?`).run(id);
+    baza.exec("COMMIT");
+    return songaAylantir(natija.changes) > 0;
+  } catch (xato) {
+    baza.exec("ROLLBACK");
+    throw xato;
+  }
 }
 
 // --------------------------------------------------------------------------- //
