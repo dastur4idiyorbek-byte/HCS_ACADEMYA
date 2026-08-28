@@ -39,5 +39,22 @@ cmds = [
   # Node versiyasi LOGDA ko'rinsin — qurish yiqilsa, sabab birinchi
   # qatordayoq ma'lum bo'ladi.
   "node --version",
-  "cd web && npm ci && npm run build",
+
+  # `node:sqlite` OCHILADIMI — qurishdan OLDIN tekshiriladi.
+  #
+  # Nima uchun alohida qadam: usiz xato `next build` ning o'rtasida,
+  # "Collecting page data" bosqichida chiqadi va logda 40 qator
+  # ichida ko'milib ketadi ("Failed to collect configuration for
+  # /api/auth/telegram"). Sabab esa butunlay boshqa joyda ko'rinadi.
+  # Bu qator yiqilsa — xabar aniq va birinchi o'rinda turadi.
+  "node --experimental-sqlite -e \"require('node:sqlite'); console.log('node:sqlite OK')\"",
+
+  # NODE_OPTIONS BUYRUQNING O'ZIDA — `[variables]` da EMAS.
+  #
+  # `[variables]` da ham qo'yilgan, lekin unga tayanib bo'lmaydi:
+  # Railway xizmatining o'z o'zgaruvchilari uni bosib o'tishi mumkin va
+  # aynan shunday bo'ldi — bir loyihada qurish o'tdi, ikkinchisida
+  # o'sha commit "No such built-in module: node:sqlite" bilan yiqildi.
+  # Buyruq satridagi qiymatni esa hech narsa bosib o'tolmaydi.
+  "cd web && npm ci && NODE_OPTIONS=--experimental-sqlite npm run build",
 ]
