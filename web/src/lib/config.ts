@@ -113,3 +113,13 @@ export function kotirovka(): string {
 export function tp1Ulushi(): number {
   return yol(["portfolio", "tp1_close_pct"], 50);
 }
+
+/** Eng kichik pozitsiya hajmi (USD).
+ *
+ * Botdagi `save_position` ham aynan shu chegarani qo'llaydi
+ * (`bot/handlers/portfolio.py`). Ikki joyda ikki xil bo'lsa,
+ * botda rad etilgan miqdor saytda o'tib ketardi.
+ */
+export function engKichikPozitsiya(): number {
+  return yol(["portfolio", "min_position_usd"], 1);
+}

@@ -10,20 +10,25 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { kotirovka, tp1Ulushi } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
-import { HOLAT_BELGISI, holatNomi } from "@/lib/format";
+import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
 import { kalkulyatorMatnlari, kartochkaMatnlari, tarjimon } from "@/lib/i18n";
 import { birjaJuftligi } from "@/lib/kalkulyator";
-import { kirishMumkin, signalOl, tarifQamraydi } from "@/lib/queries";
+import { kirishMumkin, pozitsiyaOl, signalOl, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
+
+import { kirdim } from "../amallar";
 
 export const dynamic = "force-dynamic";
 
 export default async function SignalSahifasi({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ kirdim?: string; xato?: string }>;
 }) {
   const { til, tarif, foydalanuvchi } = await kirim();
+  const { kirdim: kirdiMi, xato } = await searchParams;
   const t = tarjimon(til);
   if (!tarifQamraydi(tarif, "lite")) redirect("/signallar");
 
@@ -38,6 +43,7 @@ export default async function SignalSahifasi({
 
   // Suv belgisida ID turadi: skrinshot tarqalsa, u kimdan chiqqani ko'rinadi
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
+  const pozitsiya = foydalanuvchi ? pozitsiyaOl(foydalanuvchi.id, signal.id) : null;
   const buyurtma = signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
 
   return (
@@ -127,6 +133,52 @@ export default async function SignalSahifasi({
           <CardTitle>{t("signal.ball_sabab")}</CardTitle>
           <BallTafsiloti xom={signal.scoreBreakdown} bosh={t("umumiy.yoq")} />
         </Card>
+
+        {/* "Men sotib oldim" — botdagi `sig:enter:` ning sayt tomoni.
+            Usiz portfel sahifasi saytdan kirgan odam uchun HECH QACHON
+            to'lmasdi: yozuv faqat botdan yaratilardi. */}
+        {foydalanuvchi && (
+          <Card>
+            <CardTitle>🖐 {t("signal.kirdim_sarlavha")}</CardTitle>
+            {pozitsiya ? (
+              <p className="text-yaxshi mt-2 text-sm">
+                ✅{" "}
+                {t("signal.kirdim_bor").replace(
+                  "{amount}",
+                  narx(pozitsiya.amountUsd),
+                )}
+              </p>
+            ) : (
+              <>
+                <CardHint>{t("signal.kirdim_izoh")}</CardHint>
+                <form action={kirdim} className="mt-3 flex flex-wrap items-end gap-2">
+                  <input type="hidden" name="signal_id" value={signal.id} />
+                  <label className="min-w-0 flex-1">
+                    <span className="text-matn-past mb-1 block text-xs uppercase">
+                      {t("signal.kirdim_summa")}
+                    </span>
+                    <input
+                      name="summa"
+                      inputMode="decimal"
+                      required
+                      placeholder="100"
+                      className="border-ramka-yumshoq rounded-tugma bg-fon raqam w-full border px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <Button type="submit">{t("signal.kirdim_tugma")}</Button>
+                </form>
+              </>
+            )}
+            {kirdiMi && !pozitsiya && (
+              <p className="text-yaxshi mt-2 text-sm">✅ {t("signal.kirdim_ok")}</p>
+            )}
+            {xato && (
+              <p className="border-past/60 text-past rounded-kichik mt-2 border px-3 py-2 text-sm">
+                ⚠️ {xato}
+              </p>
+            )}
+          </Card>
+        )}
 
         <Card>
           <CardHint>{t("kontent.botda_izoh")}</CardHint>

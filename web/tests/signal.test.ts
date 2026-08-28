@@ -8,9 +8,13 @@ process.env.DATABASE_URL = `sqlite+aiosqlite:///${vaqtinchalik}`;
 
 const { db } = await import("../src/lib/db.ts");
 const {
+  balansSaqla,
   darsOchir,
   darsSaqla,
   darslar,
+  foydalanuvchiOl,
+  pozitsiyaOl,
+  pozitsiyaQayd,
   signalOchir,
   signalOgohlantirishlari,
   signalYarat,
@@ -269,4 +273,76 @@ test("signal o'chirilganda unga bog'liq yozuvlar ham ketadi", () => {
 
 test("mavjud bo'lmagan signalni o'chirish false qaytaradi", () => {
   assert.equal(signalOchir(999999), false);
+});
+
+// --------------------------------------------------------------------------- //
+//  "Men sotib oldim" — qoidalar BOTDAGI bilan bir xil
+// --------------------------------------------------------------------------- //
+
+/** Bu qoidalar `bot/handlers/portfolio.py` dagi `save_position` dan
+ *  ko'chirilgan. Ikki joyda ikki xil bo'lsa, botda rad etilgan yozuv
+ *  saytda o'tib ketardi va portfel ikki xil ma'lumot ko'rsatardi. */
+test("pozitsiya qayd etiladi va portfelga tushadi", () => {
+  const s = signalYarat({ ...YAXSHI, symbol: "KIRDIM" });
+  assert.ok(s.ok);
+
+  assert.deepEqual(pozitsiyaQayd(1, s.id, 250), { ok: true });
+  const p = pozitsiyaOl(1, s.id);
+  assert.equal(p?.amountUsd, 250);
+  // Kirish narxi SIGNALDAN olinadi, foydalanuvchidan emas.
+  assert.equal(p?.entryPrice, YAXSHI.entry);
+});
+
+test("bitta signalga ikki marta kirib bo'lmaydi", () => {
+  const s = signalYarat({ ...YAXSHI, symbol: "IKKI" });
+  assert.ok(s.ok);
+  assert.deepEqual(pozitsiyaQayd(1, s.id, 100), { ok: true });
+
+  const yana = pozitsiyaQayd(1, s.id, 500);
+  assert.equal(yana.ok, false);
+  // Bazadagi yozuv O'ZGARMAGAN bo'lishi kerak.
+  assert.equal(pozitsiyaOl(1, s.id)?.amountUsd, 100);
+});
+
+test("yopilgan signalga kirib bo'lmaydi", () => {
+  const s = signalYarat({ ...YAXSHI, symbol: "YOPIQ" });
+  assert.ok(s.ok);
+  db().prepare("update signals set status = 'stopped' where id = ?").run(s.id);
+
+  const natija = pozitsiyaQayd(1, s.id, 100);
+  assert.equal(natija.ok, false);
+  assert.equal(pozitsiyaOl(1, s.id), null);
+});
+
+test("juda kichik yoki noto'g'ri miqdor rad etiladi", () => {
+  const s = signalYarat({ ...YAXSHI, symbol: "KICHIK" });
+  assert.ok(s.ok);
+  for (const yomon of [0, -50, Number.NaN]) {
+    assert.equal(pozitsiyaQayd(1, s.id, yomon).ok, false, `o'tkazib yubordi: ${yomon}`);
+  }
+  assert.equal(pozitsiyaOl(1, s.id), null);
+});
+
+test("mavjud bo'lmagan signalga kirib bo'lmaydi", () => {
+  assert.equal(pozitsiyaQayd(1, 999999, 100).ok, false);
+});
+
+// --------------------------------------------------------------------------- //
+//  Balans
+// --------------------------------------------------------------------------- //
+
+test("balans saqlanadi va o'chiriladi", () => {
+  assert.deepEqual(balansSaqla(1, 1500), { ok: true });
+  assert.equal(foydalanuvchiOl(5000001)?.declaredBalanceUsd, 1500);
+
+  // `null` — "ko'rsatmayman", 0 dan FARQ QILADI.
+  assert.deepEqual(balansSaqla(1, null), { ok: true });
+  assert.equal(foydalanuvchiOl(5000001)?.declaredBalanceUsd, null);
+
+  assert.deepEqual(balansSaqla(1, 0), { ok: true });
+  assert.equal(foydalanuvchiOl(5000001)?.declaredBalanceUsd, 0);
+});
+
+test("manfiy balans rad etiladi", () => {
+  assert.equal(balansSaqla(1, -100).ok, false);
 });

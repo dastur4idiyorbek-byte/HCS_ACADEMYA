@@ -1,5 +1,10 @@
 import { db, songaAylantir, vaqt, vaqtSatri } from "./db.ts";
-import { kotirovka, obunaKunlari, savdoQoidalari } from "./config.ts";
+import {
+  engKichikPozitsiya,
+  kotirovka,
+  obunaKunlari,
+  savdoQoidalari,
+} from "./config.ts";
 import { asosiyAktiv } from "./kalkulyator.ts";
 
 /** Botning bazasidan o'qish/yozish.
@@ -158,6 +163,8 @@ export type KutilayotganTolov = {
   amount: number;
   currency: string;
   createdAt: Date | null;
+  /** Telegramdagi chek rasmi. `null` — chek biriktirilmagan. */
+  receiptFileId: string | null;
 };
 
 // --------------------------------------------------------------------------- //
@@ -496,7 +503,7 @@ export function kutilayotganTolovlar(limit = 20): KutilayotganTolov[] {
   const qatorlar = db()
     .prepare(
       `select p.id, p.user_id, p.tier, p.period, p.amount, p.currency, p.created_at,
-              u.telegram_id, u.username, u.full_name
+              p.receipt_file_id, u.telegram_id, u.username, u.full_name
          from payments p join users u on u.id = p.user_id
         where p.status = 'pending'
         order by p.created_at asc limit ?`,
@@ -508,6 +515,7 @@ export function kutilayotganTolovlar(limit = 20): KutilayotganTolov[] {
     telegramId: Number(q.telegram_id),
     username: (q.username as string) ?? null,
     fullName: (q.full_name as string) ?? null,
+    receiptFileId: (q.receipt_file_id as string) ?? null,
     tier: q.tier as Tarif,
     period: q.period as string,
     amount: Number(q.amount),
@@ -1104,6 +1112,89 @@ export function darslar(): (Kontent & { fileId: string | null; published: boolea
     videoPath: (q.video_path as string) ?? null,
     published: Boolean(q.is_published),
   }));
+}
+
+/** Foydalanuvchi e'lon qilgan balansi (5.1-band).
+ *
+ * "E'LON QILGAN" — bu birja hisobiga ULANMAGAN raqam, foydalanuvchi
+ * o'zi aytadi. Tizim undan faqat pozitsiya hajmini taklif qilish uchun
+ * foydalanadi va hech qachon uni tekshira olmaydi. Shuning uchun nom
+ * ham shunday: `declared_balance_usd`.
+ *
+ * `null` — balansni O'CHIRISH (foydalanuvchi ko'rsatmaslikni tanladi),
+ * bu 0 dan farq qiladi: 0 "pulim yo'q" degani, `null` esa "aytmayman".
+ */
+export function balansSaqla(
+  userId: number,
+  summa: number | null,
+  hozir = new Date(),
+): { ok: true } | { ok: false; sabab: string } {
+  if (summa !== null && (!Number.isFinite(summa) || summa < 0)) {
+    return { ok: false, sabab: "Balans manfiy bo'lishi mumkin emas" };
+  }
+  const natija = db()
+    .prepare(`update users set declared_balance_usd = ?, updated_at = ? where id = ?`)
+    .run(summa, vaqtSatri(hozir), userId);
+  if (songaAylantir(natija.changes) === 0) {
+    return { ok: false, sabab: "Foydalanuvchi topilmadi" };
+  }
+  return { ok: true };
+}
+
+/** Foydalanuvchining shu signaldagi pozitsiyasi (bo'lsa). */
+export function pozitsiyaOl(
+  userId: number,
+  signalId: number,
+): { amountUsd: number; entryPrice: number } | null {
+  const q = db()
+    .prepare(
+      `select amount_usd, entry_price from user_positions
+        where user_id = ? and signal_id = ?`,
+    )
+    .get(userId, signalId) as Qator | undefined;
+  if (!q) return null;
+  return { amountUsd: Number(q.amount_usd), entryPrice: Number(q.entry_price) };
+}
+
+/** "Men sotib oldim" — pozitsiyani qayd etadi (5.4-band).
+ *
+ * QOIDALAR BOTDAGI BILAN BIR XIL (`bot/handlers/portfolio.py`):
+ *   - yopilgan signalga kirib bo'lmaydi;
+ *   - bitta signalga bir marta;
+ *   - miqdor `portfolio.min_position_usd` dan kam bo'lmasin.
+ *
+ * KIRISH NARXI FORMADAN OLINMAYDI — signal yozuvidan olinadi.
+ * Aks holda foydalanuvchi o'ziga qulay narx yozib, keyin
+ * statistikada mavjud bo'lmagan foyda ko'rsatardi.
+ */
+export function pozitsiyaQayd(
+  userId: number,
+  signalId: number,
+  summa: number,
+  hozir = new Date(),
+): { ok: true } | { ok: false; sabab: string } {
+  const eng = engKichikPozitsiya();
+  if (!Number.isFinite(summa) || summa < eng) {
+    return { ok: false, sabab: `Miqdor kamida $${eng} bo'lishi kerak` };
+  }
+
+  const s = signalOl(signalId);
+  if (!s) return { ok: false, sabab: "Signal topilmadi" };
+  if (yopilgan(s.status)) return { ok: false, sabab: "Bu signal allaqachon yopilgan" };
+
+  if (pozitsiyaOl(userId, signalId) !== null) {
+    return { ok: false, sabab: "Siz bu signalga allaqachon kirgansiz" };
+  }
+
+  const vaqtNow = vaqtSatri(hozir);
+  db()
+    .prepare(
+      `insert into user_positions
+         (user_id, signal_id, amount_usd, entry_price, trade_date, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(userId, signalId, summa, s.entry, vaqtNow.slice(0, 10), vaqtNow, vaqtNow);
+  return { ok: true };
 }
 
 export type DarsNatijasi = { ok: true; id: number } | { ok: false; sabab: string };

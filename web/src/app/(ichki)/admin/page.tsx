@@ -48,7 +48,26 @@ export default async function Admin() {
                     <span className="text-matn-past raqam text-xs">{sana(p.createdAt)}</span>
                   </div>
 
-                  <CardHint className="mt-2">📎 {t("admin.chek")}</CardHint>
+                  {/* Chek RASMI shu yerda ko'rinadi. Avval "chek botda
+                      ko'riladi" deb turardi va admin har bir to'lov uchun
+                      Telegramga o'tishi kerak edi. */}
+                  {p.receiptFileId ? (
+                    <a
+                      href={`/api/chek/${p.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="border-ramka-yumshoq rounded-kichik mt-2 block overflow-hidden border"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/api/chek/${p.id}`}
+                        alt={t("admin.chek")}
+                        className="max-h-72 w-full object-contain"
+                      />
+                    </a>
+                  ) : (
+                    <CardHint className="mt-2">📎 {t("admin.chek_yoq")}</CardHint>
+                  )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <form action={tasdiqla}>

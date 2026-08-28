@@ -1,4 +1,5 @@
 import { Qulf } from "@/components/ui/Qulf";
+import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
@@ -8,10 +9,17 @@ import { tarjimon } from "@/lib/i18n";
 import { pozitsiyalar, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
+import { balansSaqlash } from "./amallar";
+
 export const dynamic = "force-dynamic";
 
-export default async function Portfel() {
+export default async function Portfel({
+  searchParams,
+}: {
+  searchParams: Promise<{ xato?: string }>;
+}) {
   const { til, tarif, foydalanuvchi } = await kirim();
+  const { xato } = await searchParams;
   const t = tarjimon(til);
   if (!tarifQamraydi(tarif, "lite")) {
     return (
@@ -32,16 +40,43 @@ export default async function Portfel() {
       <Sarlavha matn={t("portfel.sarlavha")} izoh={t("portfel.izoh")} />
 
       <div className="space-y-5">
-        {foydalanuvchi?.declaredBalanceUsd !== null &&
-          foydalanuvchi?.declaredBalanceUsd !== undefined && (
-            <Card>
-              <CardTitle>{t("portfel.balans")}</CardTitle>
-              <p className="raqam text-sarlavha mt-1 text-2xl font-bold">
-                ${narx(foydalanuvchi.declaredBalanceUsd)}
-              </p>
-              <CardHint>{t("portfel.balans_izoh")}</CardHint>
-            </Card>
+        {/* Balans TAHRIRLANADI. Avval u faqat o'qish uchun edi va
+            kiritilmagan bo'lsa kartochka umuman ko'rinmasdi — ya'ni
+            saytdan kirgan odam uni hech qachon kirita olmasdi. Balanssiz
+            esa signal kartochkasida "Miqdor" ham hisoblanmaydi. */}
+        <Card>
+          <CardTitle>{t("portfel.balans")}</CardTitle>
+          <p className="raqam text-sarlavha mt-1 text-2xl font-bold">
+            {foydalanuvchi?.declaredBalanceUsd === null ||
+            foydalanuvchi?.declaredBalanceUsd === undefined
+              ? "—"
+              : `$${narx(foydalanuvchi.declaredBalanceUsd)}`}
+          </p>
+          <CardHint>{t("portfel.balans_izoh")}</CardHint>
+
+          <form action={balansSaqlash} className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="min-w-0 flex-1">
+              <span className="text-matn-past mb-1 block text-xs uppercase">
+                {t("portfel.balans_yangi")}
+              </span>
+              <input
+                name="balans"
+                inputMode="decimal"
+                defaultValue={foydalanuvchi?.declaredBalanceUsd ?? ""}
+                placeholder="1000"
+                className="border-ramka-yumshoq rounded-tugma bg-fon raqam w-full border px-3 py-2 text-sm"
+              />
+            </label>
+            <Button type="submit">{t("umumiy.saqlash")}</Button>
+          </form>
+
+          {xato && (
+            <p className="border-past/60 text-past rounded-kichik mt-2 border px-3 py-2 text-sm">
+              ⚠️ {xato}
+            </p>
           )}
+          <CardHint className="mt-2">{t("portfel.balans_bosh")}</CardHint>
+        </Card>
 
         {royxat.length === 0 ? (
           <Card>
