@@ -491,7 +491,7 @@ market_data:
 # --- 6.4-band: logging ---
 # --- Kuzatuv vositalari (savdo qaroriga ta'sir qilmaydi) ---
 monitoring:
-  # Jonli tahlil monitori — "oshxona ko'rinishi" (58-bo'lim).
+  # Jonli tahlil monitori — "oshxona ko'rinishi" (59-bo'lim).
   # Admin tizimning orqa fonda nima qilayotganini ko'zi bilan ko'radi.
   pipeline_events:
     enabled: true
