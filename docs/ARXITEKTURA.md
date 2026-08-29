@@ -3780,7 +3780,7 @@ javob bo'lardi.
 **Botda yo'q.** Bunday tezlikdagi yangilanish o'nlab Telegram xabariga
 aylanardi — bu funksiya faqat saytning admin panelida.
 
-## 60. Sinov davri — indeks faqat BOZOR ma'lumotidan (100 kun)
+## 60. Sinov davri — tizim faqat BOZORGA qarab qaror qiladi (100 kun)
 
 Bozor Salomatligi Indeksining bir omili — `aggregate_user_capacity`
 (vazni 20) — bozorni emas, BIZNING holatimizni o'lchaydi:
@@ -3821,9 +3821,46 @@ Muddat tugagach omil O'ZI qaytadi — hech kim hech narsani yoqishi
 shart emas. Sayt ham shu YAML dan o'qiydi (`sinovHolati()`), shuning
 uchun bot bilan sayt bir kunda bir xil qarorga keladi.
 
-Ekranda: Bozor Salomatligi sahifasida o'sha qator "Sinov davri —
-indeksga qo'shilmadi" deb ko'rsatiladi, ostida esa sababi va necha kun
-qolgani yoziladi.
+### 60.1 Tormozlar ham ushlab turilmaydi
+
+Maqsad — 100 kun ichida strategiyaning O'ZINI to'liq ko'rish. Signal
+berishni BIZNING holatimizga qarab to'xtatuvchi qoidalar bunga
+xalaqit beradi: yomon ertalakdan keyin tizim o'zini o'chiradi va
+kunning qolgan qismini umuman ko'rmaymiz — namuna qiyshayadi.
+
+Shuning uchun `sinov.suspend_risk_rules` ro'yxatidagi qoidalar shu
+davrda tekshirilmaydi:
+
+| Qoida | Nimani o'lchaydi |
+|---|---|
+| 4.1 `daily_loss_limit` | bugungi/haftalik zararimiz |
+| 4.2 `max_open_signals` | nechta signalimiz ochiq |
+| 4.3 `correlation` | shu guruhda allaqachon signalimiz bor |
+| 4.10 `consecutive_loss` | ketma-ket nechta Stop yedik |
+
+**TO'XTATILMAYDI** — va bu chegara muhim, chunki sinov "hamma narsani
+o'chirish" emas: Bozor Salomatligi, BTC filtri, volatillik, narx
+yangiligi, halol ro'yxat, juma namozi, favqulodda to'xtash va har bir
+signalning O'Z risk qoidalari (Stop/TP/RR, pozitsiya hajmi). Ya'ni
+signal SIFATI o'zgarmaydi — faqat "bugunga yetadi" degan tormozlar
+ushlab turilmaydi.
+
+Qoida jimgina o'chirilmaydi: har siklda `logger.warning` bilan qaysi
+qoidalar to'xtatilgani va necha kun qolgani yoziladi
+(`_sinovni_ogohlantir()`), saytda esa Bozor Salomatligi sahifasida
+ro'yxati bilan ko'rsatiladi.
+
+**XAVF OCHIQ AYTILADI:** kunlik zarar tormozi yo'q ekan, ketma-ket
+zararli kunda tizim o'zini to'xtatmaydi. Sinov davrida obunachi kam
+bo'lgani uchun bu ataylab qabul qilingan narx; muddat tugagach tormoz
+o'zi qaytadi, yoki YAML dagi bitta qatorni o'chirish bilan darhol
+qaytariladi.
+
+### 60.2 Ekranda
+
+Bozor Salomatligi sahifasida o'sha qator "Sinov davri — indeksga
+qo'shilmadi" deb ko'rsatiladi, ostida sababi, necha kun qolgani va
+to'xtatilgan tormozlar ro'yxati yoziladi.
 
 ## 61. Bosqichlar holati
 

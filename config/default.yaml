@@ -362,24 +362,46 @@ market_health:
   btc_dominance:
     stable_change_pct: 0.5         # sutkalik o'zgarish shundan kichik bo'lsa "barqaror"
     sharp_change_pct: 2.0
-  # SINOV DAVRI — indeks faqat BOZOR ma'lumotidan hisoblanadi.
-  #
-  # `aggregate_user_capacity` bozorni emas, BIZNING holatimizni
-  # o'lchaydi: obunachilar balansi va kunlik xavf sig'imi. Sinov paytida
-  # obunachi yo'q, ya'ni bu omil bozor haqida hech narsa aytmaydi.
-  # Halollik talabi ham shu: ommaga ko'rsatiladigan sinov natijasiga
-  # bizning obunachilar soni aralashmasin.
-  #
-  # Vazn YO'QOLMAYDI — qolgan omillarga ulushiga qarab bo'linadi, ya'ni
-  # indeks 0-100 shkalasida qoladi (aks holda 55 va 70 chegaralari
-  # jimgina boshqa ma'no olardi).
-  #
-  # Muddat tugagach omil O'ZI qaytadi.
-  sinov:
-    enabled: true
-    start_date: "2026-08-29"
-    days: 100
-    exclude_factors: ["aggregate_user_capacity"]
+
+# --- SINOV DAVRI (100 kun) ---
+#
+# Maqsad: 100 kun davomida strategiyaning O'ZINI kuzatish. Buning uchun
+# tizim FAQAT BOZORGA qarab qaror qilsin — bizning holatimiz (nechta
+# obunachimiz bor, bugun qancha zarar ko'rdik, nechta signalimiz ochiq)
+# natijaga aralashmasin.
+#
+# Ikki narsa vaqtincha chetga chiqadi:
+#
+#   1. `exclude_health_factors` — Bozor Salomatligi indeksidan
+#      chiqariladigan omillar. `aggregate_user_capacity` obunachilarning
+#      balansi va kunlik xavf sig'imini o'lchaydi; u ~50 ta real
+#      foydalanuvchi bo'lganda ma'noga ega, hozir esa bozor haqida hech
+#      narsa aytmaydi. Vazni YO'QOLMAYDI — qolgan omillarga ulushiga
+#      qarab bo'linadi, ya'ni indeks 0-100 shkalasida qoladi.
+#
+#   2. `suspend_risk_rules` — signal berishni BIZNING holatimizga qarab
+#      to'xtatuvchi qoidalar. Ular ishlaganda sinov namunasi qiyshayadi:
+#      yomon ertalakdan keyin tizim o'zini o'chiradi va qolgan kunni
+#      umuman ko'rmaymiz.
+#
+# TO'XTATILMAYDI: bozorga oid qoidalar (Bozor Salomatligi, BTC filtri,
+# tekis bozor, volatillik, narx yangiligi), diniy qoidalar (halol
+# ro'yxat, juma namozi), favqulodda to'xtash va har bir signalning O'Z
+# risk qoidalari (Stop/TP/RR, pozitsiya hajmi). Ya'ni signal sifati
+# o'zgarmaydi — faqat "bugunga yetadi" degan tormozlar ushlab
+# turilmaydi.
+#
+# Muddat tugagach hammasi O'ZI qaytadi.
+sinov:
+  enabled: true
+  start_date: "2026-08-29"
+  days: 100
+  exclude_health_factors: ["aggregate_user_capacity"]
+  suspend_risk_rules:
+    - "daily_loss_limit"    # 4.1 — bugungi/haftalik zararimiz
+    - "max_open_signals"    # 4.2 — nechta signalimiz ochiq
+    - "correlation"         # 4.3 — shu guruhda allaqachon signal bor
+    - "consecutive_loss"    # 4.10 — ketma-ket Stop yeganimiz
 
 # --- 5-bo'lim: pozitsiya hajmi va portfel ---
 position_sizing:

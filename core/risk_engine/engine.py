@@ -12,6 +12,8 @@ zarur.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from core.analysis.strategies.opening_range_scalp import scalp_trade_rules
 from core.config.schema import AppConfig
 from core.domain.enums import BlockReason, SignalSource
@@ -34,7 +36,7 @@ from core.risk_engine.rules import (
     VolatilityRule,
 )
 from core.utils.logging_setup import get_logger
-from core.utils.time_utils import timeframe_minutes
+from core.utils.time_utils import timeframe_minutes, utc_now
 
 logger = get_logger(__name__)
 
@@ -118,11 +120,35 @@ class RiskEngine:
     def rules(self) -> list[RiskRule]:
         return list(self._rules)
 
+    def suspended_rules(self, now: datetime | None = None) -> set[str]:
+        """Sinov davrida vaqtincha to'xtatilgan qoidalar nomi.
+
+        Bular BOZORNI emas, BIZNING holatimizni o'lchaydi: bugungi
+        zararimiz, nechta signalimiz ochiq, ketma-ket nechta Stop
+        yedik. 100 kunlik kuzatuvda ular namunani qiyshaytiradi —
+        yomon ertalakdan keyin tizim o'zini o'chiradi va qolgan kunni
+        umuman ko'rmaymiz.
+
+        Bozorga oid va diniy qoidalar bu ro'yxatga TUSHMAYDI — ular
+        strategiyaning o'zi, kuzatiladigan narsaning bir qismi.
+        """
+        sinov = self._config.sinov
+        lahza = now or utc_now()
+        if not sinov.faolmi(lahza):
+            return set()
+        return set(sinov.suspend_risk_rules)
+
     def evaluate(self, candidate: SignalCandidate, context: RiskContext) -> RiskDecision:
         """Nomzodni baholaydi. Barcha rad sabablari yig'iladi."""
         qaror = RiskDecision.allow()
+        toxtatilgan = self.suspended_rules(context.now)
 
         for rule in self._rules:
+            if rule.name in toxtatilgan:
+                # Sinov davri: JIM O'TKAZIB YUBORILMAYDI — sabab logda
+                # qoladi, ekranda esa sinov yozuvi turadi.
+                logger.debug("Sinov davri: '%s' qoidasi tekshirilmadi", rule.name)
+                continue
             try:
                 natija = rule.check(candidate, context)
             except Exception:  # noqa: BLE001

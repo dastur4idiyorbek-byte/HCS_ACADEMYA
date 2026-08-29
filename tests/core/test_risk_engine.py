@@ -495,3 +495,135 @@ def test_qoida_xato_bersa_tizim_toxtamaydi_lekin_signal_berilmaydi(config: AppCo
 
     assert not qaror.allowed
     assert BlockReason.INTERNAL_ERROR in qaror.reasons
+
+
+# --------------------------------------------------------------------------- #
+#  Sinov davri: BIZNING holatimizga qarab to'xtatuvchi qoidalar ushlab turmaydi
+# --------------------------------------------------------------------------- #
+
+SINOV_VAQTI = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)  # chorshanba, sinov ichida
+
+
+def test_sinov_davrida_kunlik_zarar_signalni_toxtatmaydi(
+    engine: RiskEngine, config: AppConfig
+) -> None:
+    """100 kunlik kuzatuvning butun maqsadi — strategiyani TO'LIQ ko'rish.
+
+    Kunlik zarar chegarasi ishlaganda yomon ertalakdan keyin tizim
+    o'zini o'chiradi va kunning qolgan qismini umuman ko'rmaymiz —
+    namuna qiyshayadi.
+    """
+    limit = config.risk_engine.daily_loss_limit_pct
+    qaror = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, daily_loss_pct=limit * 2)
+    )
+    assert BlockReason.DAILY_LOSS_LIMIT not in qaror.reasons
+    assert qaror.allowed
+
+
+def test_sinov_davrida_ochiq_signallar_chegarasi_ushlab_turmaydi(
+    engine: RiskEngine, config: AppConfig
+) -> None:
+    ochiq = [
+        Signal(
+            symbol=f"C{i}",
+            levels=SignalLevels(100, 99, 103, 105),
+            source=SignalSource.CLASSIC_TA,
+            status=SignalStatus.ACTIVE,
+        )
+        for i in range(config.risk_engine.max_open_signals_by_health.high + 3)
+    ]
+    qaror = engine.evaluate(nomzod(), sog_kontekst(now=SINOV_VAQTI, open_signals=ochiq))
+    assert BlockReason.MAX_OPEN_SIGNALS not in qaror.reasons
+
+
+def test_sinov_davrida_ketma_ket_stop_ham_ushlab_turmaydi(
+    engine: RiskEngine, config: AppConfig
+) -> None:
+    chegara = config.risk_engine.consecutive_loss.max_consecutive_stops
+    qaror = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, consecutive_stops=chegara + 2)
+    )
+    assert BlockReason.CONSECUTIVE_LOSSES not in qaror.reasons
+
+
+def test_sinov_davrida_BOZOR_qoidalari_ishlayveradi(engine: RiskEngine) -> None:
+    """Eng muhim chegara: sinov "hamma narsani o'chirish" EMAS.
+
+    Bozor yomon bo'lsa signal baribir berilmaydi — aks holda biz
+    strategiyani emas, tasodifni o'lchagan bo'lardik.
+    """
+    past = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, market_health=salomatlik(20))
+    )
+    assert BlockReason.MARKET_HEALTH_LOW in past.reasons
+
+    btc = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, btc_change_24h_pct=-9.0)
+    )
+    assert not btc.allowed
+
+    past_volatillik = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, atr_pct=0.05)
+    )
+    assert BlockReason.LOW_VOLATILITY in past_volatillik.reasons
+
+    eskirgan = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, price_age_seconds=999_999.0)
+    )
+    assert not eskirgan.allowed
+
+
+def test_sinov_davrida_HALOL_va_favqulodda_toxtash_ishlaydi(
+    engine: RiskEngine, config: AppConfig
+) -> None:
+    """Diniy qoida va favqulodda tugma hech qachon to'xtatilmaydi."""
+    harom = nomzod()
+    harom = SignalCandidate(
+        symbol=harom.symbol,
+        levels=harom.levels,
+        source=harom.source,
+        breakdown=harom.breakdown,
+        halal_verdict=HalalVerdict(harom.symbol, HalalStatus.HARAM, "harom"),
+    )
+    assert not engine.evaluate(harom, sog_kontekst(now=SINOV_VAQTI)).allowed
+
+    kill = engine.evaluate(
+        nomzod(), sog_kontekst(now=SINOV_VAQTI, kill_switch_active=True)
+    )
+    assert BlockReason.KILL_SWITCH in kill.reasons
+
+
+def test_sinov_tugagach_tormozlar_ozi_qaytadi(
+    engine: RiskEngine, config: AppConfig
+) -> None:
+    keyin = datetime(2027, 3, 3, 10, 0, tzinfo=UTC)
+    limit = config.risk_engine.daily_loss_limit_pct
+    qaror = engine.evaluate(nomzod(), sog_kontekst(now=keyin, daily_loss_pct=limit))
+    assert BlockReason.DAILY_LOSS_LIMIT in qaror.reasons
+
+
+def test_toxtatilgan_qoidalar_royxati_ochiq(engine: RiskEngine) -> None:
+    """Admin nima o'chirilganini ko'ra olishi kerak — yashirin rejim yo'q."""
+    assert engine.suspended_rules(SINOV_VAQTI) == {
+        "daily_loss_limit",
+        "max_open_signals",
+        "correlation",
+        "consecutive_loss",
+    }
+    assert engine.suspended_rules(ODDIY_VAQT) == set()
+
+
+def test_sinov_davrida_korrelyatsiya_ham_ushlab_turmaydi(engine: RiskEngine) -> None:
+    """BTC ochiq bo'lsa ham ETH signali yozib boriladi — sinovda biz
+    strategiyaning HAMMA nomzodini ko'rishimiz kerak."""
+    ochiq = Signal(
+        symbol="BTC",
+        levels=SignalLevels(100, 99, 103, 105),
+        source=SignalSource.CLASSIC_TA,
+        status=SignalStatus.ACTIVE,
+    )
+    qaror = engine.evaluate(
+        nomzod("ETH"), sog_kontekst(now=SINOV_VAQTI, open_signals=[ochiq])
+    )
+    assert BlockReason.CORRELATION not in qaror.reasons

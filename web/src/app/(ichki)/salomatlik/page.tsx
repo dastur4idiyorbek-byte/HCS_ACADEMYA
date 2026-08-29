@@ -107,6 +107,17 @@ export default async function Salomatlik() {
   // omil keyin "nega indeks boshqacha?" degan javobsiz savol qoldirardi.
   const sinov = sinovHolati(salomatlik?.createdAt ?? (await hozir()));
 
+  // Vaqtincha to'xtatilgan qoidalarning odam o'qiydigan nomi. Kalitlar
+  // QO'LDA yozilgan (`t("salomatlik.qoida_...")`), chunki
+  // `tests/i18n.test.ts` aynan shunday yozilganlarini tekshiradi —
+  // shablon satri bo'lsa, yetishmayotgan tarjima jimgina chiqib ketardi.
+  const qoidaNomlari: Record<string, string> = {
+    daily_loss_limit: t("salomatlik.qoida_daily_loss_limit"),
+    max_open_signals: t("salomatlik.qoida_max_open_signals"),
+    correlation: t("salomatlik.qoida_correlation"),
+    consecutive_loss: t("salomatlik.qoida_consecutive_loss"),
+  };
+
   // QT davri indeks HISOBLANGAN paytga qarab aniqlanadi, "hozir" ga
   // emas: shkala o'sha lahzaning surati, ikkalasi bir vaqtga tegishli
   // bo'lishi kerak.
@@ -191,6 +202,13 @@ export default async function Salomatlik() {
               <p className="text-matn-past mt-3 text-xs">
                 🧪 {t("salomatlik.sinov_izoh")} — {sinov.qolganKun}{" "}
                 {t("umumiy.kun_qoldi")}
+              </p>
+            )}
+            {sinov.faol && sinov.toxtatilgan.length > 0 && (
+              <p className="text-matn-past mt-2 text-xs">
+                ⏸ {t("salomatlik.sinov_tormoz")}:{" "}
+                {sinov.toxtatilgan.map((q) => qoidaNomlari[q] ?? q).join(", ")}.{" "}
+                {t("salomatlik.sinov_tormoz_izoh")}
               </p>
             )}
           </Card>

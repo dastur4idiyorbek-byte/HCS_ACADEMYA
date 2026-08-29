@@ -184,16 +184,20 @@ export function sinovDavri(): {
   yoqilgan: boolean;
   boshlanish: string;
   kunlar: number;
+  /** Indeksdan chiqarilgan omillar */
   chiqarilgan: string[];
+  /** Vaqtincha to'xtatilgan Risk Engine qoidalari */
+  toxtatilgan: string[];
 } {
   return {
-    yoqilgan: sozlama(["market_health", "sinov", "enabled"], true),
-    boshlanish: String(sozlama(["market_health", "sinov", "start_date"], "2026-08-29")),
-    kunlar: sozlama(["market_health", "sinov", "days"], 100),
+    yoqilgan: sozlama(["sinov", "enabled"], true),
+    boshlanish: String(sozlama(["sinov", "start_date"], "2026-08-29")),
+    kunlar: sozlama(["sinov", "days"], 100),
     chiqarilgan: sozlama(
-      ["market_health", "sinov", "exclude_factors"],
+      ["sinov", "exclude_health_factors"],
       ["aggregate_user_capacity"] as string[],
     ),
+    toxtatilgan: sozlama(["sinov", "suspend_risk_rules"], [] as string[]),
   };
 }
 
@@ -206,6 +210,7 @@ export function sinovHolati(paytida: Date): {
   faol: boolean;
   qolganKun: number;
   chiqarilgan: string[];
+  toxtatilgan: string[];
 } {
   const s = sinovDavri();
   const bosh = new Date(`${s.boshlanish}T00:00:00Z`);
@@ -218,5 +223,6 @@ export function sinovHolati(paytida: Date): {
     faol,
     qolganKun: Math.max(0, Math.round((tugash.getTime() - kun.getTime()) / 86_400_000)),
     chiqarilgan: s.chiqarilgan,
+    toxtatilgan: s.toxtatilgan,
   };
 }

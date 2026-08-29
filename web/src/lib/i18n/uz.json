@@ -65,7 +65,13 @@
     "davr_X": "X (Continuation) — tasdiqlanish va davom etish",
     "davr_keyingi": "Keyingisi",
     "sinov_omil": "Sinov davri — indeksga qo'shilmadi",
-    "sinov_izoh": "Sinov davri: tizim faqat BOZOR ma'lumotidan baholanadi. Foydalanuvchi balansi va sig'imi kabi bizga tegishli ko'rsatkichlar indeksga qo'shilmaydi — natija halol va tekshiriladigan bo'lishi uchun. Muddat tugagach omil o'zi qaytadi."
+    "sinov_izoh": "Sinov davri: tizim faqat BOZOR ma'lumotidan baholanadi. Foydalanuvchi balansi va sig'imi kabi bizga tegishli ko'rsatkichlar indeksga qo'shilmaydi — natija halol va tekshiriladigan bo'lishi uchun. Muddat tugagach omil o'zi qaytadi.",
+    "sinov_tormoz": "Sinov davrida vaqtincha ushlab turilmaydigan tormozlar",
+    "qoida_daily_loss_limit": "kunlik/haftalik zarar chegarasi",
+    "qoida_max_open_signals": "ochiq signallar soni chegarasi",
+    "qoida_correlation": "bir guruhda ikkinchi signal cheklovi",
+    "qoida_consecutive_loss": "ketma-ket zarardan keyingi to'xtash",
+    "sinov_tormoz_izoh": "Bular bozorni emas, bizning holatimizni o'lchaydi. Sinov 100 kun davomida to'liq namuna berishi uchun ular ushlab turilmaydi. Bozor filtrlari, halol ro'yxat, juma namozi va har bir signalning o'z Stop/TP qoidalari o'z kuchida qoladi."
   },
   "signal": {
     "sarlavha": "Signallar",

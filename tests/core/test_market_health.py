@@ -452,7 +452,7 @@ def test_kunlik_oldindan_tahlilda_ham_qollanadi(calculator) -> None:  # noqa: AN
 
 
 def test_qolgan_kun_sanogi_kamayib_boradi(config) -> None:  # noqa: ANN001
-    sinov = config.market_health.sinov
+    sinov = config.sinov
     assert sinov.qolgan_kun(SINOV_ICHIDA) > sinov.qolgan_kun(
         datetime(2026, 11, 1, tzinfo=UTC)
     )

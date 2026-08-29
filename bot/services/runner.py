@@ -284,6 +284,7 @@ class PipelineRunner:
 
     async def run_once(self) -> CycleResult | None:
         """Signal siklini bir marta ishga tushiradi."""
+        self._sinovni_ogohlantir()
         if self._universe.is_empty:
             await self.refresh_universe()
         if self._universe.is_empty:
@@ -321,6 +322,26 @@ class PipelineRunner:
             await self._emit(nomzod, salomatlik, self._joriy_narx(shamlar, nomzod.symbol))
 
         return natija
+
+    def _sinovni_ogohlantir(self) -> None:
+        """Sinov davri kuchda ekanini LOGDA takrorlaydi (60-bo'lim).
+
+        Vaqtincha to'xtatilgan qoida — jimgina o'chirilgan qoidaga
+        aylanmasligi kerak. Har siklda bir qatorlik ogohlantirish
+        muddat tugaganini ham, hali kuchda ekanini ham ko'rsatib
+        turadi.
+        """
+        sinov = self._config.sinov
+        hozir = utc_now()
+        if not sinov.faolmi(hozir):
+            return
+        logger.warning(
+            "SINOV DAVRI kuchda (%d kun qoldi): indeksdan chiqarilgan omillar %s, "
+            "vaqtincha to'xtatilgan risk qoidalari %s",
+            sinov.qolgan_kun(hozir),
+            ", ".join(sinov.exclude_health_factors) or "yo'q",
+            ", ".join(sinov.suspend_risk_rules) or "yo'q",
+        )
 
     async def _record_rejections(self, result: CycleResult, health: MarketHealth) -> None:
         """3.7-band: nima uchun signal chiqmagani bazaga yoziladi.

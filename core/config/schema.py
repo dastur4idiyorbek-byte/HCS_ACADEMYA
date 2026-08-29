@@ -572,58 +572,6 @@ class BtcDominanceConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class SinovDavriConfig:
-    """Sinov davri — indeks FAQAT bozor ma'lumotidan hisoblanadi.
-
-    NIMA UCHUN. `aggregate_user_capacity` omili bozorni emas, BIZNING
-    holatimizni o'lchaydi: obunachilarning balansi va kunlik xavf
-    sig'imi. Sinov paytida obunachi yo'q, ya'ni bu omil bozor haqida
-    HECH NARSA aytmaydi — u yo tekin 20 ball beradi, yo (bitta test
-    foydalanuvchisi limitga yaqinlashsa) indeksni tushiradi. Ikkala
-    holat ham sinov natijasini buzadi.
-
-    Halollik talabi ham shuni aytadi: ommaga "tizim shu natijani
-    berdi" deb ko'rsatilganda, o'sha natijaga bizning obunachilar soni
-    aralashmagan bo'lishi kerak.
-
-    VAZN YO'QOLMAYDI, QAYTA TAQSIMLANADI. Omil shunchaki olib
-    tashlansa, indeksning yuqori chegarasi 100 dan 80 ga tushardi va
-    barcha chegaralar (55, 70) jimgina boshqa ma'no olardi — bu
-    loyihadagi 1-naqsh ("shkala mos kelmasligi"). Shuning uchun qolgan
-    omillar vazni ulushiga qarab kattalashtiriladi.
-
-    Muddat tugagach omil O'ZI qaytadi — hech kim hech narsani yoqishi
-    shart emas.
-    """
-
-    enabled: bool = True
-    #: ISO sana: "YYYY-MM-DD". Sinov shu kundan boshlanadi.
-    start_date: str = "2026-08-29"
-    days: int = 100
-    #: Indeksdan chiqariladigan omillar (nomi `factors.py` dagidek)
-    exclude_factors: list[str] = field(
-        default_factory=lambda: ["aggregate_user_capacity"]
-    )
-
-    def boshlanish(self) -> date:
-        """YAML'da tirnoqsiz yozilsa PyYAML uni `date` qilib beradi —
-        ikkala ko'rinish ham qabul qilinadi."""
-        if isinstance(self.start_date, date):
-            return self.start_date
-        return date.fromisoformat(str(self.start_date))
-
-    def tugash(self) -> date:
-        return self.boshlanish() + timedelta(days=self.days)
-
-    def faolmi(self, moment: datetime) -> bool:
-        kun = moment.date()
-        return self.enabled and self.boshlanish() <= kun < self.tugash()
-
-    def qolgan_kun(self, moment: datetime) -> int:
-        return max(0, (self.tugash() - moment.date()).days)
-
-
-@dataclass(frozen=True, slots=True)
 class MarketHealthConfig:
     #: 3-omil to'liq ball oladigan O'RTACHA ADX (bitta coin emas, 30 ta
     #: coinning o'rtachasi — sabab `docs/ARXITEKTURA.md`, 32-bo'lim)
@@ -632,8 +580,6 @@ class MarketHealthConfig:
     recompute_on_candle_close: bool = True
     daily_preview_utc_hour: int = 0
     btc_dominance: BtcDominanceConfig = field(default_factory=BtcDominanceConfig)
-    #: Sinov davri — sig'im kabi BIZGA tegishli omillar chiqariladi
-    sinov: SinovDavriConfig = field(default_factory=SinovDavriConfig)
 
 
 # --------------------------------------------------------------------------- #
@@ -883,10 +829,84 @@ class MonitoringConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class SinovDavriConfig:
+    """Sinov davri — tizim FAQAT bozorga qarab baholanadi.
+
+    NIMA UCHUN. `aggregate_user_capacity` omili bozorni emas, BIZNING
+    holatimizni o'lchaydi: obunachilarning balansi va kunlik xavf
+    sig'imi. Sinov paytida obunachi yo'q, ya'ni bu omil bozor haqida
+    HECH NARSA aytmaydi — u yo tekin 20 ball beradi, yo (bitta test
+    foydalanuvchisi limitga yaqinlashsa) indeksni tushiradi. Ikkala
+    holat ham sinov natijasini buzadi.
+
+    Halollik talabi ham shuni aytadi: ommaga "tizim shu natijani
+    berdi" deb ko'rsatilganda, o'sha natijaga bizning obunachilar soni
+    aralashmagan bo'lishi kerak.
+
+    VAZN YO'QOLMAYDI, QAYTA TAQSIMLANADI. Omil shunchaki olib
+    tashlansa, indeksning yuqori chegarasi 100 dan 80 ga tushardi va
+    barcha chegaralar (55, 70) jimgina boshqa ma'no olardi — bu
+    loyihadagi 1-naqsh ("shkala mos kelmasligi"). Shuning uchun qolgan
+    omillar vazni ulushiga qarab kattalashtiriladi.
+
+    Muddat tugagach omil O'ZI qaytadi — hech kim hech narsani yoqishi
+    shart emas.
+    """
+
+    enabled: bool = True
+    #: ISO sana: "YYYY-MM-DD". Sinov shu kundan boshlanadi.
+    start_date: str = "2026-08-29"
+    days: int = 100
+    #: Indeksdan chiqariladigan omillar (nomi `factors.py` dagidek)
+    exclude_health_factors: list[str] = field(
+        default_factory=lambda: ["aggregate_user_capacity"]
+    )
+    #: Sinov davrida TO'XTATIB TURILADIGAN Risk Engine qoidalari.
+    #:
+    #: Bular BOZORNI emas, BIZNING holatimizni o'lchaydi: bugungi
+    #: zararimiz, nechta signalimiz ochiq, ketma-ket nechta Stop
+    #: yedik. Ular signal berishni to'xtatsa, sinov namunasi
+    #: qiyshayadi: yomon ertalakdan keyin tizim o'zini o'chiradi va
+    #: qolgan kunni umuman ko'rmaymiz — "bu strategiya nima qiladi?"
+    #: degan savolga javob yarim qoladi.
+    #:
+    #: BOZORGA oid qoidalar (BTC filtri, tekis bozor, volatillik,
+    #: Bozor Salomatligi) va DINIY qoidalar (halol ro'yxat, juma
+    #: namozi) hech qachon to'xtatilmaydi.
+    suspend_risk_rules: list[str] = field(
+        default_factory=lambda: [
+            "daily_loss_limit",
+            "max_open_signals",
+            "correlation",
+            "consecutive_loss",
+        ]
+    )
+
+    def boshlanish(self) -> date:
+        """YAML'da tirnoqsiz yozilsa PyYAML uni `date` qilib beradi —
+        ikkala ko'rinish ham qabul qilinadi."""
+        if isinstance(self.start_date, date):
+            return self.start_date
+        return date.fromisoformat(str(self.start_date))
+
+    def tugash(self) -> date:
+        return self.boshlanish() + timedelta(days=self.days)
+
+    def faolmi(self, moment: datetime) -> bool:
+        kun = moment.date()
+        return self.enabled and self.boshlanish() <= kun < self.tugash()
+
+    def qolgan_kun(self, moment: datetime) -> int:
+        return max(0, (self.tugash() - moment.date()).days)
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     """Butun tizimning yagona konfiguratsiya obyekti."""
 
     project: ProjectConfig = field(default_factory=ProjectConfig)
+    #: Sinov davri — BIZGA tegishli omillar va tormozlar vaqtincha chetda
+    sinov: SinovDavriConfig = field(default_factory=SinovDavriConfig)
     halal_screening: HalalScreeningConfig = field(default_factory=HalalScreeningConfig)
     analysis: AnalysisConfig = field(default_factory=AnalysisConfig)
     scoring: ScoringConfig = field(default_factory=ScoringConfig)

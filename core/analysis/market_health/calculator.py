@@ -68,11 +68,11 @@ class MarketHealthCalculator:
         indeks 0-100 shkalasida qoladi. Aks holda yuqori chegara 80 ga
         tushib, 55 va 70 chegaralari jimgina boshqa ma'no olardi.
         """
-        sinov = self._config.market_health.sinov
+        sinov = self._config.sinov
         if not sinov.faolmi(at):
             return omillar
 
-        chiqarilgan = set(sinov.exclude_factors)
+        chiqarilgan = set(sinov.exclude_health_factors)
         olib_tashlangan = sum(o.weight for o in omillar if o.name in chiqarilgan)
         jami = sum(o.weight for o in omillar)
         qolgan = jami - olib_tashlangan
