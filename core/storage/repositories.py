@@ -36,6 +36,7 @@ from core.domain.models import (
     SignalLevels,
 )
 from core.domain.portfolio import PositionOutcome, PositionSnapshot, PublicStats
+from core.pipeline.events import PipelineEvent
 from core.storage.models import (
     AuditReport,
     CoinRuling,
@@ -43,6 +44,7 @@ from core.storage.models import (
     DailyStat,
     MarketHealthLog,
     Payment,
+    PipelineEventRecord,
     PriceConfig,
     RiskBlock,
     SignalRecord,
@@ -902,6 +904,63 @@ class MarketHealthRepository:
             MarketHealthLog.is_daily_preview.is_(False),
         )
         return (await self._session.execute(stmt)).scalar_one_or_none()
+
+
+class PipelineEventRepository:
+    """Jonli tahlil monitori — "oshxona ko'rinishi" (59-bo'lim).
+
+    BU DOIMIY ARXIV EMAS. Jadval har siklda to'ladi va `purge_older_than`
+    bilan bo'shatiladi. Doimiy statistika `risk_blocks` da va Signal
+    Xotirasi modulida qoladi — bu yerga ikkinchi nusxa qilinmaydi.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def record_many(self, events: list[PipelineEvent]) -> int:
+        """Bir siklning barcha bosqich hodisalarini yozadi."""
+        if not events:
+            return 0
+        self._session.add_all(
+            [
+                PipelineEventRecord(
+                    symbol=hodisa.symbol,
+                    stage=hodisa.stage,
+                    status=hodisa.status.value,
+                    reason=hodisa.reason,
+                    score=hodisa.score,
+                    cycle_at=hodisa.at or utc_now(),
+                )
+                for hodisa in events
+            ]
+        )
+        await self._session.flush()
+        return len(events)
+
+    async def latest_cycle(self) -> datetime | None:
+        """Oxirgi sikl vaqti — sahifa shuni ko'rsatadi."""
+        stmt = select(func.max(PipelineEventRecord.cycle_at))
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def purge_older_than(self, cutoff: datetime) -> int:
+        """Eskirgan yozuvlarni o'chiradi.
+
+        Monitor JONLI ko'rinish, doimiy arxiv emas. Tozalanmasa jadval
+        cheksiz o'sardi: har sikl har coin uchun 9-11 qator yozadi,
+        ya'ni kuniga o'n minglab qator.
+        """
+        eskilar = await self._session.execute(
+            select(PipelineEventRecord.id).where(PipelineEventRecord.cycle_at < cutoff)
+        )
+        idlar = [q for (q,) in eskilar]
+        if not idlar:
+            return 0
+        for yozuv in await self._session.execute(
+            select(PipelineEventRecord).where(PipelineEventRecord.id.in_(idlar))
+        ):
+            await self._session.delete(yozuv[0])
+        await self._session.flush()
+        return len(idlar)
 
 
 class RiskBlockRepository:

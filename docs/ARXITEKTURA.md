@@ -3708,7 +3708,73 @@ to'g'ri chiqdi — dalillar S/R va trend omillari ICHIDA ko'rinadi:
 ▰▰▰▰▱ 15/20 — Trend: 🔵 Ko'tarilish trendi (HH/HL), so'nggi BOS ...
 ```
 
-## 59. Bosqichlar holati
+## 59. Jonli Oshxona — admin monitori (`pipeline_events`)
+
+Restoran metaforasi: oshxona — `core/pipeline`, taom — signal,
+qaytarilgan buyurtma — rad etilgan nomzod VA SABABI. Admin
+`/admin/jonli` sahifasida tizim orqa fonda nima qilayotganini ko'zi
+bilan ko'radi.
+
+**Nima uchun kerak.** "Signal yo'q" degan holat normal (0.2-band),
+lekin uni "bot to'xtab qolgan" dan ajratib bo'lmasdi. Endi ajratiladi:
+ekranda har bir coin qaysi bosqichgacha yetgani turadi.
+
+**Tahlil kodiga TEGILMADI.** Bosqichlar qat'iy tartibda bajariladi,
+demak coin qaysi bosqichda to'xtaganini bilsak, undan oldingilarni
+o'tgani ham aniq. `core/pipeline/events.py` shu mantiq bilan
+`CycleResult` dan butun ketma-ketlikni QAYTA TIKLAYDI — strategiya
+ichiga birorta "hodisa yozish" chaqiruvi qo'shilmadi, ya'ni tahlil
+yo'li ham, tezligi ham o'zgarmadi.
+
+**Rostgo'ylik qoidasi.** Ko'rsatilgan har bir ✅ haqiqatan bajarilgan
+bo'lishi kerak. Shuning uchun:
+
+* har strategiyaning O'Z zanjiri bor (`CLASSIC_TA_STAGES`,
+  `SCALP_STAGES`) — skalpingda `zones` ham, `confirmation` ham yo'q,
+  klassik zanjir unga qo'llansa monitor mavjud bo'lmagan bosqichlarni
+  "o'tdi" derdi;
+* notanish strategiya uchun zanjir to'qib chiqarilmaydi — faqat
+  to'xtagan bosqich yoziladi;
+* `classic_ta:levels:stop_too_close` kabi aniqroq kod ham `levels`
+  bosqichi deb tanib olinadi (aks holda undan keyingi bosqich ham
+  "o'tgan" bo'lib chizilardi);
+* zanjir tartibi test bilan qulflangan: `test_pipeline_events.py`
+  `analyze()` MANBASIDAN haqiqiy tartibni o'qib solishtiradi
+  (1-naqsh: "bitta qiymat ikki joyda yozilgan").
+
+**Vaqt darvozalari pastga suriladi.** Skalping oynasi kuniga atigi 45
+daqiqa ochiq, ya'ni "oyna yopiq" yozuvi har siklda, har coin uchun
+keladi va zanjirda chuqurroq turadi. U klassik tahlilning haqiqiy
+sababini bosib ketmasligi uchun `ROUTINE_STAGES` yozuvlari faqat
+boshqa sabab bo'lmaganda ko'rsatiladi (voronkadagi qaror bilan bir xil).
+
+**Saqlash — jonli, arxiv emas.** `pipeline_events` jadvali
+(migratsiya `c7d2f5a91e40`) har siklda to'ldiriladi va
+`monitoring.pipeline_events.retention_hours` (standart 6 soat) dan
+eskirgani o'chiriladi. Doimiy statistika allaqachon voronkada va
+Signal Xotirasida. Yozish `bot/services/runner.py` da `try/except`
+ichida: monitor hech qachon siklni to'xtatmasligi kerak.
+
+**Ekranda.** `jonliHolat()` faqat `max(cycle_at)` ni o'qiydi — ikki
+siklni aralashtirsak, bir coin ikki marta va ikki xil natija bilan
+chiqardi. Signal chiqqan kartochka yashil (`urgu`) va tepada.
+Yangilanish — har 5 soniyada `/api/jonli` (admin-only) ga polling;
+WebSocket emas, chunki yangilanish tezligi baribir sikl tezligi bilan
+cheklangan, WebSocket esa faqat ulanishni tiklash muammosini qo'shardi.
+Uzilish YASHIRILMAYDI: "⚠️ yangilanish uzildi" yoziladi, aks holda
+eskirgan ma'lumot jonli deb ko'rinardi.
+
+**Bosqich nomlari — voronkanikidan BOSHQA.** Python'dagi
+`STAGE_LABELS` — rad etish sabablari ("Halol ro'yxatda emas"). Ular
+voronkada to'g'ri, monitorda esa "✅ Halol ro'yxatda emas" degan
+bema'nilik chiqardi. Shuning uchun monitor neytral nomlarni
+(`oshxona.b_*`, uz va ru) ishlatadi; kod -> kalit aylantirish
+`web/src/lib/oshxona.ts` da, testi bilan.
+
+**Botda yo'q.** Bunday tezlikdagi yangilanish o'nlab Telegram xabariga
+aylanardi — bu funksiya faqat saytning admin panelida.
+
+## 60. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

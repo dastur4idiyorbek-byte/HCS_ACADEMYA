@@ -304,6 +304,37 @@ class SignalEvent(Base, TimestampMixin):
     signal: Mapped[SignalRecord] = relationship(back_populates="events")
 
 
+class PipelineEventRecord(Base, TimestampMixin):
+    """Jonli tahlil monitori — "oshxona ko'rinishi" (59-bo'lim).
+
+    Har bir coin har bir bosqichda nima bo'lgani. Admin tizimning
+    ishlayotganini ko'zi bilan ko'rishi va bir necha soat signal
+    chiqmaganda QAYSI bosqichda to'xtayotganini darhol topishi uchun.
+
+    BU DOIMIY ARXIV EMAS. Yozuvlar bir necha soatdan keyin tozalanadi
+    (`purge_older_than`): doimiy statistika allaqachon `risk_blocks`
+    va Signal Xotirasi/Postmortem modulida bor. Bu jadval faqat
+    "hozir nima bo'lyapti" degan savolga xizmat qiladi, shuning uchun
+    u tez o'sib, tez bo'shashi normal.
+    """
+
+    __tablename__ = "pipeline_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: `*` — sikl darajasidagi hodisa (bitta coinniki emas)
+    symbol: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    stage: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    #: `pass` / `fail` / `pending`
+    status: Mapped[str] = mapped_column(String(8), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    score: Mapped[float | None] = mapped_column(Float)
+    #: Bitta siklning barcha hodisalari bir xil belgiga ega — sahifa
+    #: ularni shu bo'yicha guruhlaydi va "oxirgi sikl" ni ajratadi.
+    cycle_at: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
+
+    __table_args__ = (Index("ix_pipeline_events_cycle", "cycle_at", "symbol"),)
+
+
 class RiskBlock(Base, TimestampMixin):
     """4-bo'lim: Risk Engine nima uchun signalni to'xtatdi.
 

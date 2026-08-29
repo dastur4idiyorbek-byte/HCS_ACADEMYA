@@ -489,6 +489,17 @@ market_data:
   max_concurrent_candle_requests: 8
 
 # --- 6.4-band: logging ---
+# --- Kuzatuv vositalari (savdo qaroriga ta'sir qilmaydi) ---
+monitoring:
+  # Jonli tahlil monitori — "oshxona ko'rinishi" (58-bo'lim).
+  # Admin tizimning orqa fonda nima qilayotganini ko'zi bilan ko'radi.
+  pipeline_events:
+    enabled: true
+    # JONLI ko'rinish, doimiy arxiv EMAS: doimiy statistika risk_blocks
+    # da va Signal Xotirasi modulida qoladi. Tozalanmasa jadval cheksiz
+    # o'sardi — har sikl har coin uchun 9-11 qator.
+    retention_hours: 6
+
 logging:
   level: "INFO"
   dir: "logs"

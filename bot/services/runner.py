@@ -33,11 +33,13 @@ from core.halal_screening import HalalScreener, StaticRulingRegistry
 from core.market_data import CandleProvider, CoinMarketCapDominance, RankingProvider
 from core.market_data.ranking import RankingUnavailableError
 from core.pipeline import CycleInput, CycleResult, SignalCycle, SignalMonitor, SymbolData
+from core.pipeline.events import derive_events
 from core.position_sizing import PositionSizer, compute_aggregate_capacity
 from core.storage import Database
 from core.storage.repositories import (
     CoinRulingRepository,
     MarketHealthRepository,
+    PipelineEventRepository,
     RiskBlockRepository,
     SignalRepository,
     SubscriptionRepository,
@@ -313,6 +315,7 @@ class PipelineRunner:
         natija = self._cycle.run(kirish)
 
         await self._record_rejections(natija, salomatlik)
+        await self._record_pipeline_events(natija)
 
         for nomzod in natija.emitted:
             await self._emit(nomzod, salomatlik, self._joriy_narx(shamlar, nomzod.symbol))
@@ -341,6 +344,40 @@ class PipelineRunner:
                 await RiskBlockRepository(session).record_many(qatorlar, health.value)
         except Exception:  # noqa: BLE001 — kuzatuv yozuvi siklni to'xtatmaydi
             logger.exception("Rad etish sabablarini yozib bo'lmadi")
+
+    async def _record_pipeline_events(self, result: CycleResult) -> None:
+        """Jonli tahlil monitori uchun bosqich hodisalarini yozadi (59-bo'lim).
+
+        `derive_events()` butun ketma-ketlikni `CycleResult` dan QAYTA
+        TIKLAYDI — strategiya ichiga hech qanday "hodisa yozish"
+        chaqiruvi qo'shilmagan. Sabab: tahlil yo'li o'zgarmasligi kerak.
+
+        ESKI YOZUVLAR SHU YERDA TOZALANADI. Alohida fon vazifasi
+        qo'yilmadi: sikl allaqachon muntazam ishlaydi, ya'ni tozalash
+        uchun ikkinchi jadval kerak emas. Tozalanmasa jadval cheksiz
+        o'sardi — har sikl har coin uchun 9-11 qator.
+
+        Yozib bo'lmasa — sikl to'xtamaydi (0.3-band): monitor qulaylik,
+        savdo qarori emas.
+        """
+        hozir = utc_now()
+        hodisalar = derive_events(result, hozir)
+        if not hodisalar:
+            return
+
+        saqlash = self._config.monitoring.pipeline_events
+        if not saqlash.enabled:
+            return
+
+        try:
+            async with self._db.session() as session:
+                ombor = PipelineEventRepository(session)
+                await ombor.record_many(hodisalar)
+                await ombor.purge_older_than(
+                    hozir - timedelta(hours=saqlash.retention_hours)
+                )
+        except Exception:  # noqa: BLE001 — monitor siklni to'xtatmaydi
+            logger.exception("Jonli monitor hodisalarini yozib bo'lmadi")
 
     def _build_input(
         self,

@@ -1401,3 +1401,86 @@ export function havolaSaqla(
 export function havolaOchir(id: number): boolean {
   return db().prepare(`delete from social_links where id = ?`).run(id).changes > 0;
 }
+
+// --------------------------------------------------------------------------- //
+//  Jonli tahlil monitori — "oshxona ko'rinishi"
+// --------------------------------------------------------------------------- //
+
+export type JonliBosqich = {
+  stage: string;
+  status: "pass" | "fail" | "pending";
+  reason: string | null;
+};
+
+export type JonliCoin = {
+  symbol: string;
+  bosqichlar: JonliBosqich[];
+  score: number | null;
+  /** Barcha bosqichlardan o'tdimi — kartochka yashil bo'ladi */
+  signal: boolean;
+};
+
+export type JonliHolat = {
+  cycleAt: Date | null;
+  coinlar: JonliCoin[];
+  /** Sikl darajasidagi to'xtash (`market_health`) — bo'lsa */
+  siklToxtadi: string | null;
+};
+
+/** Oxirgi siklning bosqichma-bosqich holati.
+ *
+ * FAQAT OXIRGI SIKL ko'rsatiladi: monitor "hozir nima bo'lyapti" degan
+ * savolga javob beradi. Bir necha siklni aralashtirsak, bir coin ikki
+ * marta va ikki xil natija bilan chiqardi.
+ */
+export function jonliHolat(): JonliHolat {
+  const oxirgi = db()
+    .prepare(`select max(cycle_at) as v from pipeline_events`)
+    .get() as Qator | undefined;
+  const belgi = oxirgi?.v as string | undefined;
+  if (!belgi) return { cycleAt: null, coinlar: [], siklToxtadi: null };
+
+  const qatorlar = db()
+    .prepare(
+      `select symbol, stage, status, reason, score from pipeline_events
+        where cycle_at = ? order by id`,
+    )
+    .all(belgi) as Qator[];
+
+  let siklToxtadi: string | null = null;
+  const xarita = new Map<string, JonliCoin>();
+
+  for (const q of qatorlar) {
+    const symbol = q.symbol as string;
+    if (symbol === "*") {
+      siklToxtadi = (q.reason as string) ?? null;
+      continue;
+    }
+    let coin = xarita.get(symbol);
+    if (!coin) {
+      coin = { symbol, bosqichlar: [], score: null, signal: false };
+      xarita.set(symbol, coin);
+    }
+    coin.bosqichlar.push({
+      stage: q.stage as string,
+      status: q.status as JonliBosqich["status"],
+      reason: (q.reason as string) ?? null,
+    });
+    if (q.score !== null && q.score !== undefined) coin.score = Number(q.score);
+  }
+
+  const coinlar = [...xarita.values()];
+  for (const coin of coinlar) {
+    coin.signal = coin.bosqichlar.every((b) => b.status === "pass");
+  }
+
+  // Signal chiqqanlar YUQORIDA — admin avval natijani ko'radi. Qolganlari
+  // qanchalik uzoq borgani bo'yicha: eng ilg'orlari tepada, chunki aynan
+  // ular "nega o'tmadi" degan savolga eng yaqin javob.
+  coinlar.sort((a, b) => {
+    if (a.signal !== b.signal) return a.signal ? -1 : 1;
+    return b.bosqichlar.length - a.bosqichlar.length;
+  });
+
+  return { cycleAt: vaqt(belgi), coinlar, siklToxtadi };
+}

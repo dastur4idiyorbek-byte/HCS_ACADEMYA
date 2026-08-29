@@ -808,6 +808,27 @@ class LoggingConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class PipelineEventsConfig:
+    """Jonli tahlil monitori — "oshxona ko'rinishi" (59-bo'lim)."""
+
+    enabled: bool = True
+    #: Yozuvlar shuncha soatdan keyin tozalanadi.
+    #:
+    #: Bu JONLI ko'rinish, doimiy arxiv emas: doimiy statistika
+    #: `risk_blocks` da va Signal Xotirasi modulida bor. Tozalash
+    #: bo'lmasa jadval cheksiz o'sardi — har sikl har coin uchun
+    #: 9-11 qator, ya'ni kuniga o'n minglab.
+    retention_hours: int = 6
+
+
+@dataclass(frozen=True, slots=True)
+class MonitoringConfig:
+    """Kuzatuv vositalari — savdo qaroriga ta'sir qilmaydi."""
+
+    pipeline_events: PipelineEventsConfig = field(default_factory=PipelineEventsConfig)
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     """Butun tizimning yagona konfiguratsiya obyekti."""
 
@@ -824,4 +845,5 @@ class AppConfig:
     strategies: StrategiesConfig = field(default_factory=StrategiesConfig)
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)
     market_data: MarketDataConfig = field(default_factory=MarketDataConfig)
+    monitoring: MonitoringConfig = field(default_factory=MonitoringConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
