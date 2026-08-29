@@ -274,7 +274,7 @@ class ScoreThresholds:
 
 @dataclass(frozen=True, slots=True)
 class ScoreBonuses:
-    """CryptoSpot3% omillari — bazaviy 100 ball USTIGA qo'shiladigan bonus.
+    """Bazaviy 100 ball USTIGA qo'shiladigan bonus — faqat VAQT omili.
 
     NIMA UCHUN BONUS, VAZN EMAS. Bazaviy vaznlar (`ScoreWeights`)
     o'lchab tanlangan: `scripts.kalibrlash` 27 ta sozlamada eng yuqori
@@ -287,18 +287,80 @@ class ScoreBonuses:
     Chegaralarni qayta kalibrlash shart emas.
     """
 
-    structure: float = 10
-    liquidity_sweep: float = 10
+    #: ICT Kill Zone. Bu YAGONA bonus bo'lib qoldi: struktura, daraja
+    #: turi va sweep endi mavjud omillar ICHIGA kiradi (`ScoreUplift`)
+    #: — ular S/R va trend haqidagi DALIL, alohida omil emas. Sessiya
+    #: oynasi esa ularning hech biriga tegishli emas: u kirish VAQTI
+    #: haqida, tuzilma haqida emas.
     session_overlap: float = 5
 
     def total(self) -> float:
-        return self.structure + self.liquidity_sweep + self.session_overlap
+        return self.session_overlap
+
+
+@dataclass(frozen=True, slots=True)
+class ScoreUplift:
+    """CryptoSpot3% dalillari mavjud omillarni QANCHA ko'tara oladi.
+
+    ORALASHIB ISHLASH. Struktura, daraja turi va sweep — alohida
+    omillar emas, ular MAVJUD omillar haqidagi qo'shimcha dalil:
+
+      * yalab o'tib qaytilgan va Quasimodo turidagi zona — bu
+        SIFATLIROQ S/R zonasi, ya'ni 25 ballik omilning o'zi;
+      * HH/HL strukturasi va BOS — bu trendning o'zi, faqat EMA dan
+        oldinroq ko'rinadigan ko'rinishi.
+
+    Shuning uchun ular yonma-yon turmaydi, omil ichida qo'shiladi:
+
+        yangi = eski + (1 - eski) * dalil * ulush
+
+    Bu shakl IKKI XOSSANI kafolatlaydi:
+      1. hech qachon PASAYTIRMAYDI (dalil yo'q -> eski qiymat qoladi);
+      2. hech qachon 1 dan oshmaydi (shkala buzilmaydi).
+
+    Ya'ni yangi bilim ballni faqat KO'TARADI — natijada u signal
+    SONIGA ham ta'sir qiladi, nafaqat tartibiga.
+    """
+
+    #: Sweep va daraja turi S/R omilini qancha ko'tara oladi
+    support_resistance: float = 0.5
+    #: SMC strukturasi trend omilini qancha ko'tara oladi
+    trend: float = 0.5
+
+
+@dataclass(frozen=True, slots=True)
+class SetupRouteConfig:
+    """Metodikaning TO'LIQ shartnomasi bajarildimi — BELGI.
+
+    Bu DARVOZA EMAS. Darvoza bitta: ball chegarasi. Shartnoma esa
+    "bu signal CryptoSpot3% naqshining to'liq ko'rinishi" degan
+    yorliq — u "Nega bu signal?" ekranida ko'rsatiladi va o'lchovda
+    sanaladi.
+
+    Nima uchun alohida darvoza QILINMADI: ikkita parallel darvoza
+    ikkita mustaqil qoidalar to'plami degani, ya'ni ikki barobar
+    sozlash va ikki barobar xato. Dalillar omillar ichiga qo'shilgani
+    uchun (`ScoreUplift`) to'liq shartnomali nomzod baribir yuqori
+    ball oladi va chegaradan o'z kuchi bilan o'tadi.
+    """
+
+    enabled: bool = True
+    #: Yalash shuncha shamdan yangi bo'lishi kerak. Eski sweep bugungi
+    #: kirish uchun dalil emas.
+    max_sweep_age_bars: int = 5
+    #: BOS tasdig'i talab qilinsinmi (metodikaning 4-qadami)
+    require_bos: bool = True
+    #: Daraja turi shu ishonchdan past bo'lsa yo'l yopiq (oddiy daraja
+    #: — 0.0, RBS/SBR — 0.6, OCL — 0.8, Qm/OB — 1.0)
+    min_level_confidence: float = 0.6
 
 
 @dataclass(frozen=True, slots=True)
 class ScoringConfig:
     weights: ScoreWeights = field(default_factory=ScoreWeights)
     bonuses: ScoreBonuses = field(default_factory=ScoreBonuses)
+    uplift: ScoreUplift = field(default_factory=ScoreUplift)
+    setup_route: SetupRouteConfig = field(default_factory=SetupRouteConfig)
     thresholds: ScoreThresholds = field(default_factory=ScoreThresholds)
 
 

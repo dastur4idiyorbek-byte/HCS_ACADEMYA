@@ -214,6 +214,10 @@ class ScoreBreakdown:
 
     symbol: str
     components: list[ScoreComponent]
+    #: CryptoSpot3% shartnomasi TO'LIQ bajarilganmi — YORLIQ, darvoza
+    #: emas. Signal bilan birga saqlanadi, chunki keyinroq qayta
+    #: hisoblab bo'lmaydi (bozor holati o'zgargan bo'ladi).
+    setup_complete: bool = False
 
     @property
     def total(self) -> float:
@@ -345,10 +349,22 @@ class SignalCandidate:
     breakdown: ScoreBreakdown
     halal_verdict: HalalVerdict
     entry_plan: EntryPlan | None = None
+    #: CryptoSpot3% MUSTAQIL kirish shartnomasi bajarildimi (B yo'li).
+    #:
+    #: `core.analysis.scoring.setup_route.SetupVerdict` — bu yerda tip
+    #: yozilmaydi, chunki `core/domain/` tahlil modullariga bog'liq
+    #: bo'lmasligi kerak (0.1-band: "miya" va "tana" ajratilgan, domen
+    #: esa ikkalasidan ham quyida turadi).
+    setup: object | None = None
 
     @property
     def score(self) -> float:
         return self.breakdown.total
+
+    @property
+    def setup_qualified(self) -> bool:
+        """Metodika shartnomasi to'liq bajarilganmi."""
+        return bool(getattr(self.setup, "qualified", False))
 
 
 # --------------------------------------------------------------------------- #

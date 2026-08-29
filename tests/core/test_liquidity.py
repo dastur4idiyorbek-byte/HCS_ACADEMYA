@@ -138,12 +138,37 @@ def test_malumotsiz_tasnif_oddiy_daraja_beradi() -> None:
     assert classify_level_type(support(), tekis(5), 0.0) is LevelType.PLAIN
 
 
+def rbs_shakli() -> list[Candle]:
+    """Haqiqiy RBS naqshi: zona QARSHILIK bo'lgan, keyin buzilgan.
+
+        1. narx zonaga ko'tarilib, aynan undan PASTGA QAYTADI
+           (zona ichida pivot high hosil bo'ladi -> u qarshilik edi)
+        2. keyin narx zonadan yuqoriga yopilib o'tadi
+        3. va yuqorida qoladi -> endi u support
+    """
+    shamlar = [sham(i, 96.0, 94.0, 95.0) for i in range(6)]
+    shamlar.append(sham(6, 100.0, 98.0, 99.5))  # zona ichidan qaytish
+    shamlar += [sham(7 + i, 96.0, 94.0, 95.0) for i in range(6)]
+    shamlar += [sham(13 + i, 106.0, 104.0, 105.0) for i in range(10)]
+    return shamlar
+
+
 def test_buzilgan_qarshilik_rbs_deb_belgilanadi() -> None:
-    """Narx zonadan pastda edi, buzib o'tdi va endi ustida — RBS."""
+    assert classify_level_type(support(), rbs_shakli(), 1.0) is LevelType.RBS
+
+
+def test_qarshilik_bolmagan_zona_rbs_emas() -> None:
+    """Narx shunchaki zonani kesib o'tgan — bu RBS EMAS.
+
+    Regressiya: avval faqat "narx qachondir kesib o'tganmi" tekshirilardi
+    va kalibrlash to'plamidagi 27 zonaning HAMMASI RBS deb tasniflanardi.
+    Ko'tarilayotgan narx har qanday support zonasini kesib o'tgan
+    bo'ladi — ya'ni tasnif hech narsani ajratmasdi.
+    """
     shamlar = [sham(i, 98.0, 96.0, 97.0) for i in range(10)]  # zonadan past
     shamlar += [sham(10 + i, 106.0, 104.0, 105.0) for i in range(10)]  # ustida
 
-    assert classify_level_type(support(), shamlar, 1.0) is LevelType.RBS
+    assert classify_level_type(support(), shamlar, 1.0) is LevelType.PLAIN
 
 
 def test_otish_bolmasa_oddiy_daraja() -> None:

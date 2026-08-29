@@ -165,11 +165,17 @@ export default async function Admin() {
             />
           </dl>
 
-          <p className="text-matn-past mt-4 text-xs uppercase">{t("admin.smc_bonuslar")}</p>
+          <p className="text-matn-past mt-4 text-xs uppercase">{t("admin.smc_kotarish")}</p>
           <dl className="mt-2 space-y-2 text-sm">
-            <SozlamaQatori nom="🔵 Struktura" qiymat={`+${smc.bonusStruktura}`} />
-            <SozlamaQatori nom="🧲 Liquidity Sweep" qiymat={`+${smc.bonusYalash}`} />
-            <SozlamaQatori nom="⏰ Kill Zone" qiymat={`+${smc.bonusSessiya}`} />
+            <SozlamaQatori
+              nom="🔵 Struktura → trend"
+              qiymat={`×${smc.kotarishStruktura}`}
+            />
+            <SozlamaQatori
+              nom="🧲 Sweep + daraja → S/R"
+              qiymat={`×${smc.kotarishZona}`}
+            />
+            <SozlamaQatori nom="⏰ Kill Zone bonusi" qiymat={`+${smc.bonusSessiya}`} />
           </dl>
           <p className="text-matn-past mt-3 text-xs leading-relaxed">
             {t("admin.smc_bonus_izoh")}

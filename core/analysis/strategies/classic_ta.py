@@ -6,8 +6,10 @@ To'g'ri tartib:
     2. Narx Support zonasida VA Discount zonadami (3.1-band davomi)
     3. Stop/TP darajalari S/R va ATR asosida quriladi (3.3 chegaralari bilan)
     4. KEYIN: indikatorlar va yuqori timeframelar BALLGA qo'shiladi
-    5. CryptoSpot3% qatlami (SMC struktura, MSNR daraja turi, LIT
-       yalash, ICT sessiya oynasi) — BONUS ball, to'siq emas
+    5. CryptoSpot3% dalillari (SMC struktura, MSNR daraja turi, LIT
+       yalash) ballning ICHIGA qo'shiladi — struktura trendni, daraja
+       turi va sweep esa S/R zonasini ko'taradi. To'siq emas: dalil
+       yo'q bo'lsa ball o'zgarmaydi.
 
 KIM QAROR QILADI. "Signal berilsinmi" degan savolga STRUKTURA (S/R
 zonasi) va RISK QOIDASI (3.3-band) javob beradi. Indikatorlar esa
@@ -38,6 +40,7 @@ from core.analysis.indicators import build_snapshot, confirm
 from core.analysis.level_types import classify_level_type
 from core.analysis.market_structure import analyze_structure
 from core.analysis.scoring import Scorer, build_levels
+from core.analysis.scoring.setup_route import evaluate_setup
 from core.analysis.strategies.base import Strategy, StrategyInput
 from core.analysis.support_resistance import (
     SupportResistanceDetector,
@@ -192,6 +195,15 @@ class ClassicTaStrategy(Strategy):
         daraja_turi = classify_level_type(zona, shamlar, zona_xaritasi.atr, struktura)
         yalash = detect_liquidity_sweep(shamlar, zona, analysis.liquidity_sweep)
 
+        # Metodikaning TO'LIQ shartnomasi bajarildimi — YORLIQ.
+        # Bu darvoza emas: dalillar allaqachon ball ichiga qo'shilgan
+        # (`factors.py`), ya'ni to'liq shartnomali nomzod baribir
+        # yuqori ball oladi. Yorliq "Nega bu signal?" ekranida va
+        # o'lchovda ishlatiladi.
+        shartnoma = evaluate_setup(
+            struktura, daraja_turi, yalash, self._config.scoring.setup_route
+        )
+
         # 7) Ball
         tafsilot = self._scorer.score(
             symbol=data.symbol,
@@ -206,6 +218,7 @@ class ClassicTaStrategy(Strategy):
             level_type=daraja_turi,
             sweep=yalash,
             moment=shamlar[-1].open_time,
+            setup=shartnoma,
         )
 
         logger.info(
@@ -219,12 +232,15 @@ class ClassicTaStrategy(Strategy):
             struktura.direction.value,
             "tuzilma" if daraja_natijasi.tp_from_structure else "o'lchangan",
         )
+        if shartnoma.qualified:
+            logger.info("%s: %s", data.symbol, shartnoma.reason)
         return SignalCandidate(
             symbol=data.symbol,
             levels=daraja_natijasi.levels,
             source=SignalSource.CLASSIC_TA,
             breakdown=tafsilot,
             halal_verdict=data.halal_verdict,
+            setup=shartnoma,
         )
 
     # ------------------------------------------------------------------ #

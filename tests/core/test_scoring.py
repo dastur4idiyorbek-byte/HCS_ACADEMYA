@@ -170,7 +170,9 @@ def test_barcha_omillar_hisobga_olinadi(config) -> None:  # noqa: ANN001
     bazaviy = {k.name for k in tafsilot.components if not k.bonus}
     bonuslar = {k.name for k in tafsilot.components if k.bonus}
     assert bazaviy == {"support_resistance", "trend", "rsi", "volume", "macd", "risk_reward"}
-    assert bonuslar == {"structure", "liquidity_sweep", "session_overlap"}
+    # CryptoSpot3% dalillari ALOHIDA omil emas — ular S/R va trend
+    # ichiga qo'shiladi. Bonus bo'lib faqat vaqt omili qoldi.
+    assert bonuslar == {"session_overlap"}
 
 
 def test_sr_eng_katta_vaznga_ega(config) -> None:  # noqa: ANN001
@@ -255,7 +257,7 @@ def test_tafsilot_json_ga_aylanadi(config) -> None:  # noqa: ANN001
 
     xom = json.loads(breakdown_to_json(tafsilot))
     assert xom["symbol"] == "BTC"
-    assert len(xom["components"]) == 9  # 6 bazaviy + 3 bonus
+    assert len(xom["components"]) == 7  # 6 bazaviy + 1 bonus (Kill Zone)
     assert xom["maximum"] == 100 + config.scoring.bonuses.total()
     # Chegara bazaviy shkalada tekshiriladi — postmortem uchun ham kerak
     assert xom["base_total"] <= 100
@@ -298,9 +300,7 @@ def test_json_dan_qaytib_oqiladi(config) -> None:  # noqa: ANN001
     assert tiklangan.total == pytest.approx(asl.total, abs=0.02)
     assert tiklangan.base_total == pytest.approx(asl.base_total, abs=0.02)
     # Bonus belgisi ham saqlanishi SHART: usiz chegara shkalasi buziladi
-    assert {k.name for k in tiklangan.components if k.bonus} == {
-        "structure", "liquidity_sweep", "session_overlap"
-    }
+    assert {k.name for k in tiklangan.components if k.bonus} == {"session_overlap"}
 
 
 def test_eski_yozuvda_bonus_kaliti_yoq_bolsa_ham_oqiladi() -> None:

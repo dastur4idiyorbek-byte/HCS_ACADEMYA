@@ -11,13 +11,16 @@ Har bir omil DARAJALI (graduated) baholanadi, "bor/yo'q" emas.
 Minimal ball chegarasi statik EMAS — `RiskEngine.score_threshold()` orqali
 Bozor Salomatligi Indeksiga qarab moslashadi.
 
-    levels.py   — Stop/TP darajalarini S/R va ATR asosida qurish
-    factors.py  — bazaviy omillarni darajali baholash (jami 100)
-    bonuses.py  — CryptoSpot3% omillari, bazaviy ball USTIGA (jami 25)
-    scorer.py   — yig'ish, saralash, chegara qo'llash
+    levels.py      — Stop/TP darajalarini S/R va ATR asosida qurish
+    factors.py     — bazaviy omillar (jami 100). CryptoSpot3% dalillari
+                     SHU YERGA qo'shiladi: struktura trend omilini,
+                     daraja turi va sweep esa S/R omilini ko'taradi.
+    bonuses.py     — Kill Zone (5) — vaqt omili, tuzilmaga tegishli emas
+    setup_route.py — "shartnoma to'liq bajarildi" YORLIG'I (darvoza emas)
+    scorer.py      — yig'ish, saralash, chegara qo'llash
 
-Chegara BAZAVIY 100 ballik shkalada o'lchanadi: bonuslar faqat
-nomzodni yuqoriga suradi, hech qachon pastga tortmaydi.
+Chegara BAZAVIY ballda tekshiriladi — ya'ni CryptoSpot3% dalillari
+chegaraga TA'SIR QILADI, chunki ular o'sha ball ichida.
 """
 
 from core.analysis.scoring.bonuses import build_bonus_components, in_session_overlap

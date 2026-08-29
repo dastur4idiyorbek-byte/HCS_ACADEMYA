@@ -208,10 +208,10 @@ def test_nomzod_uchta_qatlamdan_otadi(config) -> None:  # noqa: ANN001
     assert bazaviy == {
         "support_resistance", "trend", "rsi", "volume", "macd", "risk_reward"
     }
-    # CryptoSpot3% qatlami HAM hisoblanadi, lekin u to'siq emas: bonusi
-    # nol bo'lgan nomzod ham shu yergacha yetib keladi.
+    # CryptoSpot3% dalillari ALOHIDA omil emas: ular S/R va trend
+    # omillari ichiga qo'shiladi. Bonus bo'lib faqat vaqt omili qoldi.
     bonuslar = {k.name for k in natija.breakdown.components if k.bonus}
-    assert bonuslar == {"structure", "liquidity_sweep", "session_overlap"}
+    assert bonuslar == {"session_overlap"}
     assert natija.halal_verdict.is_tradable
 
 

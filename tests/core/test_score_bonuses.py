@@ -1,9 +1,8 @@
-"""CryptoSpot3% ball bonuslari, ICT Kill Zone va QT (AMDX) davri.
+"""ICT Kill Zone bonusi va QT (AMDX) davri.
 
-Asosiy tekshiriladigan xatti-harakat: bu omillar ball BERADI, lekin
-hech qachon YO'LNI YOPMAYDI. Metodika hujjatining o'zi ham shuni talab
-qiladi — bu loyihada qat'iy "VA" filtrlarini ko'paytirish signal
-voronkasini allaqachon nolga tushirgan.
+Struktura, daraja turi va sweep testlari bu yerda EMAS: ular endi
+alohida bonus emas, mavjud omillar ichidagi dalil
+(`tests/core/test_omil_kotarish.py`).
 """
 
 from __future__ import annotations
@@ -12,104 +11,19 @@ from datetime import UTC, datetime
 
 import pytest
 
-from core.analysis.level_types import LevelType
 from core.analysis.market_health.quarterly import (
     QuarterPhase,
     describe_phase,
     quarterly_phase,
 )
-from core.analysis.market_structure import MarketStructure, StructureBreak
 from core.analysis.scoring.bonuses import (
     build_bonus_components,
     in_session_overlap,
-    score_liquidity_sweep,
     score_session_overlap,
-    score_structure,
 )
-from core.analysis.support_resistance.liquidity import LiquiditySweep
 from core.config.schema import ScoreBonuses, SessionOverlapConfig
-from core.domain.enums import TrendDirection
 
 OYNA = SessionOverlapConfig(enabled=True, start_hour_utc=13, end_hour_utc=16)
-
-
-def kotarilish() -> MarketStructure:
-    return MarketStructure(
-        swings=[],
-        direction=TrendDirection.UP,
-        last_bos=StructureBreak("bos", 100.0, 5, TrendDirection.UP),
-    )
-
-
-def pasayish() -> MarketStructure:
-    return MarketStructure(swings=[], direction=TrendDirection.DOWN)
-
-
-def yalash(bars_since: int = 0) -> LiquiditySweep:
-    return LiquiditySweep(
-        swept_price=98.5,
-        index=20,
-        depth_pct=0.5,
-        reclaim_index=21,
-        bars_since=bars_since,
-    )
-
-
-# --------------------------------------------------------------------------- #
-#  Struktura bonusi
-# --------------------------------------------------------------------------- #
-
-
-def test_kotarilish_strukturasi_toliq_bonus_beradi() -> None:
-    omil = score_structure(kotarilish(), LevelType.QUASIMODO, 10.0)
-    assert omil.earned == pytest.approx(10.0)
-    assert omil.bonus is True
-
-
-def test_pasayish_strukturasi_bonus_bermaydi_lekin_manfiy_ham_emas() -> None:
-    """Nol — bu JAZO emas. Nomzod bazaviy ballini to'liq saqlaydi."""
-    omil = score_structure(pasayish(), LevelType.PLAIN, 10.0)
-    assert omil.earned == 0.0
-
-
-def test_hisoblanmagan_struktura_xato_bermaydi() -> None:
-    omil = score_structure(None, LevelType.PLAIN, 10.0)
-    assert omil.earned == 0.0
-    assert "hisoblanmadi" in omil.explanation
-
-
-def test_kuchli_daraja_turi_bonusni_oshiradi() -> None:
-    oddiy = score_structure(kotarilish(), LevelType.PLAIN, 10.0)
-    kuchli = score_structure(kotarilish(), LevelType.STRONG_OB, 10.0)
-    assert kuchli.earned > oddiy.earned
-
-
-def test_daraja_turi_izohga_qoshiladi() -> None:
-    omil = score_structure(kotarilish(), LevelType.RBS, 10.0)
-    assert "RBS" in omil.explanation
-
-
-# --------------------------------------------------------------------------- #
-#  Liquidity Sweep bonusi
-# --------------------------------------------------------------------------- #
-
-
-def test_topilmagan_sweep_nol_beradi() -> None:
-    omil = score_liquidity_sweep(None, 10.0)
-    assert omil.earned == 0.0
-    assert omil.bonus is True
-
-
-def test_yangi_sweep_eskisidan_kop_ball_oladi() -> None:
-    """Qaytishdan ko'p vaqt o'tgan bo'lsa, naqsh o'z ishini qilib bo'lgan."""
-    yangi = score_liquidity_sweep(yalash(bars_since=0), 10.0)
-    eski = score_liquidity_sweep(yalash(bars_since=9), 10.0)
-    assert yangi.earned > eski.earned
-
-
-def test_juda_eski_sweep_ham_manfiy_bermaydi() -> None:
-    omil = score_liquidity_sweep(yalash(bars_since=100), 10.0)
-    assert omil.earned >= 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -194,30 +108,22 @@ def test_davr_matni_saytga_tayyor() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_barcha_bonuslar_bonus_deb_belgilanadi() -> None:
-    """Bu belgi darvozani himoya qiladi: chegara faqat bazaviy ballda."""
+def test_bonus_deb_belgilanadi() -> None:
+    """Belgi darvozani himoya qiladi: chegara faqat bazaviy ballda."""
     komponentlar = build_bonus_components(
-        structure=kotarilish(),
-        level_type=LevelType.RBS,
-        sweep=yalash(),
         moment=datetime(2026, 8, 21, 14, tzinfo=UTC),
         bonuses=ScoreBonuses(),
         session=OYNA,
     )
-    assert len(komponentlar) == 3
+    assert len(komponentlar) == 1
     assert all(k.bonus for k in komponentlar)
 
 
-def test_hech_narsa_topilmasa_ham_uch_komponent_qaytadi() -> None:
+def test_vaqt_nomalum_bolsa_ham_komponent_qaytadi() -> None:
     """Ro'yxat uzunligi o'zgarmasin: shkala (maximum) barqaror qolishi kerak."""
     komponentlar = build_bonus_components(
-        structure=None,
-        level_type=LevelType.PLAIN,
-        sweep=None,
-        moment=None,
-        bonuses=ScoreBonuses(),
-        session=OYNA,
+        moment=None, bonuses=ScoreBonuses(), session=OYNA
     )
-    assert len(komponentlar) == 3
+    assert len(komponentlar) == 1
     assert sum(k.earned for k in komponentlar) == 0.0
     assert sum(k.maximum for k in komponentlar) == ScoreBonuses().total()

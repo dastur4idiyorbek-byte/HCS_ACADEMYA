@@ -227,13 +227,32 @@ scoring:
     threshold_high_health: 50      # bozor kuchli — chegara pastroq
     threshold_mid_health: 55       # bozor o'rtacha — talab qattiqroq
     # indeks < health_mid_min bo'lsa yangi signal umuman berilmaydi
-  # CryptoSpot3% omillari — bazaviy 100 USTIGA qo'shiladi (jami 125).
-  # Vazn sifatida kiritilmadi: bazaviy vaznlar o'lchab tanlangan va
-  # ularni siqish ballarni chegaradan pastga tushirardi (46-bo'lim).
+  # Bonus — bazaviy 100 USTIGA. Faqat BITTA omil qoldi: Kill Zone.
+  # Struktura, daraja turi va sweep endi bonus EMAS — ular mavjud
+  # omillar ichiga qo'shiladi (`uplift`), chunki ular aynan S/R va
+  # trend haqidagi dalil. Sessiya oynasi esa kirish VAQTI haqida,
+  # ya'ni ikkalasiga ham tegishli emas.
   bonuses:
-    structure: 10                  # SMC yo'nalishi + BOS + daraja turi
-    liquidity_sweep: 10            # sweep + qaytish naqshi
     session_overlap: 5             # Kill Zone vaqtida
+
+  # ORALASHIB ISHLASH: CryptoSpot3% dalillari mavjud omillarni qancha
+  # ko'tara oladi.  yangi = eski + (1 - eski) * dalil * ulush
+  #
+  # Bu shakl ballni hech qachon pasaytirmaydi va shkalani buzmaydi.
+  # Dalil BAZAVIY ballga qo'shilgani uchun u chegaraga ta'sir qiladi —
+  # ya'ni yangi modul signal SONINI ham o'zgartira oladi, nafaqat
+  # tartibini. Ilgari u faqat bonus edi va son o'zgarmasdi.
+  uplift:
+    support_resistance: 0.5        # daraja turi + sweep -> S/R sifati
+    trend: 0.5                     # SMC strukturasi -> trend kuchi
+
+  # Metodikaning TO'LIQ shartnomasi bajarildimi — YORLIQ, darvoza emas.
+  # "Nega bu signal?" ekranida ko'rsatiladi va o'lchovda sanaladi.
+  setup_route:
+    enabled: true
+    max_sweep_age_bars: 5          # eski yalash dalil emas
+    require_bos: true              # metodikaning 4-qadami
+    min_level_confidence: 0.6      # oddiy daraja yetarli emas
 
 # --- 3.3-band: universal risk qoidasi ---
 trade_rules:

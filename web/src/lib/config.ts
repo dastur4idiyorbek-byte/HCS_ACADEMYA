@@ -155,8 +155,8 @@ export function smcSozlamalari(): {
   sessiyaYoqilgan: boolean;
   sessiyaBoshi: number;
   sessiyaOxiri: number;
-  bonusStruktura: number;
-  bonusYalash: number;
+  kotarishStruktura: number;
+  kotarishZona: number;
   bonusSessiya: number;
 } {
   return {
@@ -168,8 +168,8 @@ export function smcSozlamalari(): {
     sessiyaYoqilgan: yol(["analysis", "session_overlap", "enabled"], true),
     sessiyaBoshi: yol(["analysis", "session_overlap", "start_hour_utc"], 13),
     sessiyaOxiri: yol(["analysis", "session_overlap", "end_hour_utc"], 16),
-    bonusStruktura: yol(["scoring", "bonuses", "structure"], 10),
-    bonusYalash: yol(["scoring", "bonuses", "liquidity_sweep"], 10),
+    kotarishStruktura: yol(["scoring", "uplift", "trend"], 0.5),
+    kotarishZona: yol(["scoring", "uplift", "support_resistance"], 0.5),
     bonusSessiya: yol(["scoring", "bonuses", "session_overlap"], 5),
   };
 }

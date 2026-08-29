@@ -44,6 +44,9 @@ class RankedCandidate:
     candidate: SignalCandidate
     rank: int
     passed_threshold: bool
+    #: CryptoSpot3% shartnomasi TO'LIQ bajarilganmi — YORLIQ, darvoza
+    #: emas. "Nega bu signal?" ekrani va o'lchov uchun.
+    setup_complete: bool = False
 
     @property
     def score(self) -> float:
@@ -51,7 +54,7 @@ class RankedCandidate:
 
     @property
     def base_score(self) -> float:
-        """Chegara TEKSHIRILADIGAN ball — bonussiz."""
+        """Klassik yo'l TEKSHIRADIGAN ball — bonussiz."""
         return self.candidate.breakdown.base_total
 
 
@@ -75,6 +78,7 @@ class Scorer:
         level_type: LevelType = LevelType.PLAIN,
         sweep: LiquiditySweep | None = None,
         moment: datetime | None = None,
+        setup: object | None = None,
     ) -> ScoreBreakdown:
         """Bitta nomzod uchun ball tafsilotini quradi.
 
@@ -92,9 +96,11 @@ class Scorer:
         ayrilish esa chegaradan o'tishni imkonsiz qiladi. Ya'ni
         3-tuzatish jimgina bekor bo'lardi.
 
-        `structure`, `level_type`, `sweep`, `moment` — CryptoSpot3%
-        omillari. Ular BONUS beradi: berilmasa nomzod bazaviy 100
-        ballik tizimda baholanadi va hech narsa yo'qotmaydi.
+        `structure`, `level_type`, `sweep` — CryptoSpot3% dalillari.
+        Ular ALOHIDA OMIL EMAS: S/R va trend omillarining ICHIGA
+        qo'shiladi (`factors.py`, `_uplift`), chunki ular aynan o'sha
+        ikki narsa haqidagi ma'lumot. Berilmasa omillar eski holicha
+        hisoblanadi — hech narsa yo'qolmaydi.
         """
         komponentlar = build_components(
             zone_map=zone_map,
@@ -107,16 +113,21 @@ class Scorer:
             indicators=self._config.analysis.indicators,
             rules=rules if rules is not None else self._config.trade_rules,
             htf_alignment=htf_alignment,
-        )
-        komponentlar += build_bonus_components(
             structure=structure,
             level_type=level_type,
             sweep=sweep,
+            uplift=self._config.scoring.uplift,
+        )
+        komponentlar += build_bonus_components(
             moment=moment,
             bonuses=self._config.scoring.bonuses,
             session=self._config.analysis.session_overlap,
         )
-        return ScoreBreakdown(symbol=symbol, components=komponentlar)
+        return ScoreBreakdown(
+            symbol=symbol,
+            components=komponentlar,
+            setup_complete=bool(getattr(setup, "qualified", False)),
+        )
 
     def rank(
         self,
@@ -125,21 +136,26 @@ class Scorer:
     ) -> list[RankedCandidate]:
         """Nomzodlarni ballga qarab saralaydi va chegarani qo'llaydi.
 
-        DARVOZA BAZAVIY BALLDA, SARALASH TO'LIQ BALLDA.
+        BITTA DARVOZA, ICHIDA IKKALA MODUL.
 
-        Chegara (50/55) `scripts.kalibrlash` bilan BAZAVIY 100 ballik
-        shkalada o'lchangan. CryptoSpot3% bonuslari shkalani 125 ga
-        kengaytiradi — agar chegara to'liq ballga qo'llansa, u jimgina
-        yumshab qolardi: o'lchovda nomzodlarning 80% i o'tib ketdi va
-        "eng yaxshi 33%" degan tanlov ma'nosini yo'qotdi
-        (`tests/core/test_chegara_erishiladi.py` shuni ushladi).
+        Chegara BAZAVIY ballda tekshiriladi. Bu "eski modul" degani
+        EMAS: CryptoSpot3% dalillari (struktura, daraja turi, sweep)
+        aynan shu bazaviy ball ichida — ular S/R va trend omillarini
+        ko'taradi (`factors.py`, `_uplift`).
 
-        Shuning uchun ikki savol ajratilgan — bu loyihaning o'z
-        tamoyili: STRUKTURA "signal berilsinmi" deydi, sifat omillari
-        esa "ko'p nomzod ichidan qaysi biri" deydi. Bonuslar aynan
-        sifat omillari, ya'ni ular reytingga ta'sir qiladi, darvozaga
-        emas. Natijada yangi bilim na botni jimlatadi, na chegarani
-        yuvib yuboradi.
+        Ya'ni ikki modul ORALASHIB ishlaydi: tuzilmasi kuchli nomzod
+        yuqoriroq bazaviy ball oladi va chegaradan O'Z KUCHI bilan
+        o'tadi. Shu sababli yangi modul nafaqat QAYSI signal
+        chiqishiga, balki QANCHA signal chiqishiga ham ta'sir qiladi.
+
+        Nima uchun parallel ikkinchi darvoza QILINMADI: ikkita mustaqil
+        darvoza ikkita alohida qoidalar to'plami degani — ikki barobar
+        sozlash, ikki barobar xato va "qaysi biri ishladi" degan doimiy
+        savol. Dalil omil ichiga qo'shilganda bitta raqam yetarli.
+
+        Bonus (Kill Zone) esa chegaraga KIRMAYDI: u kirish vaqti
+        haqida, tuzilma haqida emas, va u faqat saralashga ta'sir
+        qiladi.
 
         Args:
             threshold: minimal BAZAVIY ball. `None` — Bozor Salomatligi
@@ -154,11 +170,12 @@ class Scorer:
                 passed_threshold=(
                     threshold is not None and nomzod.breakdown.base_total >= threshold
                 ),
+                setup_complete=nomzod.setup_qualified,
             )
             for index, nomzod in enumerate(tartiblangan)
         ]
 
-        otganlar = sum(1 for r in natija if r.passed_threshold)
+        otganlar = [r for r in natija if r.passed_threshold]
         if natija and not otganlar:
             eng_yuqori = max(r.base_score for r in natija)
             logger.info(
@@ -166,6 +183,14 @@ class Scorer:
                 "signal berilmaydi (normal holat)",
                 eng_yuqori,
                 f"{threshold:.0f}" if threshold is not None else "yopiq",
+            )
+        elif otganlar:
+            toliq = sum(1 for r in otganlar if r.setup_complete)
+            logger.info(
+                "Chegaradan %d nomzod o'tdi, shundan %d tasida CryptoSpot3% "
+                "shartnomasi to'liq bajarilgan",
+                len(otganlar),
+                toliq,
             )
         return natija
 
@@ -190,6 +215,7 @@ def breakdown_to_json(breakdown: ScoreBreakdown) -> str:
             # Chegara BAZAVIY shkalada o'lchanadi — postmortem uchun
             # ikkalasi ham kerak.
             "base_total": round(breakdown.base_total, 2),
+            "setup_complete": breakdown.setup_complete,
             "components": [
                 {
                     "name": komponent.name,
@@ -234,15 +260,15 @@ def breakdown_from_json(raw: str) -> ScoreBreakdown | None:
         return None
     if not komponentlar:
         return None
-    return ScoreBreakdown(symbol=str(xom.get("symbol", "")), components=komponentlar)
+    return ScoreBreakdown(
+        symbol=str(xom.get("symbol", "")),
+        components=komponentlar,
+        setup_complete=bool(xom.get("setup_complete", False)),
+    )
 
 
 #: Bonus omillari uchun belgi — "Nega bu signal?" ekranida ajratib turadi.
-BONUS_BELGILARI = {
-    "structure": "🔵",
-    "liquidity_sweep": "🧲",
-    "session_overlap": "⏰",
-}
+BONUS_BELGILARI = {"session_overlap": "⏰"}
 
 
 def breakdown_to_text(breakdown: ScoreBreakdown) -> str:
@@ -257,6 +283,8 @@ def breakdown_to_text(breakdown: ScoreBreakdown) -> str:
         f"📊 {breakdown.symbol} — {breakdown.total:.0f}/{breakdown.maximum:.0f} ball",
         "",
     ]
+    if breakdown.setup_complete:
+        qatorlar += ["✅ CryptoSpot3% shartnomasi TO'LIQ: struktura + daraja + sweep", ""]
     for komponent in breakdown.components:
         if komponent.bonus and komponent.earned <= 0:
             continue

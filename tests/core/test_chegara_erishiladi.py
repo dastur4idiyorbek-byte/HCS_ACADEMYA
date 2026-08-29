@@ -21,6 +21,7 @@ chiqara oladigan ball bilan solishtiriladi.
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 from pathlib import Path
 
@@ -38,10 +39,8 @@ from kalibrlash import kirish, shamlar_yasa, sozlamalar  # noqa: E402
 from core.analysis.strategies.classic_ta import ClassicTaStrategy  # noqa: E402
 
 
-@pytest.fixture(scope="module")
-def nomzodlar() -> list:  # noqa: ANN201
-    """Turli sifatdagi sozlamalarda chiqqan haqiqiy nomzodlar."""
-    config = load_config()
+def nomzodlar(config) -> list:  # noqa: ANN001, ANN201
+    """Berilgan sozlamada chiqqan haqiqiy nomzodlar."""
     strategiya = ClassicTaStrategy(config)
     natija = []
     for s in sozlamalar():
@@ -49,6 +48,27 @@ def nomzodlar() -> list:  # noqa: ANN201
         if nomzod is not None:
             natija.append(nomzod)
     return natija
+
+
+@pytest.fixture(scope="module", name="nomzodlar")
+def nomzodlar_fixture() -> list:  # noqa: ANN201
+    return nomzodlar(load_config())
+
+
+@pytest.fixture(scope="module")
+def nomzodlar_dalilsiz() -> list:  # noqa: ANN201
+    """CryptoSpot3% dalillari O'CHIRILGAN holat — "oldingi modul"."""
+    config = load_config()
+    ochiq = dataclasses.replace(
+        config,
+        scoring=dataclasses.replace(
+            config.scoring,
+            uplift=dataclasses.replace(
+                config.scoring.uplift, support_resistance=0.0, trend=0.0
+            ),
+        ),
+    )
+    return nomzodlar(ochiq)
 
 
 @pytest.fixture(scope="module")
@@ -103,37 +123,57 @@ def test_chegara_hammani_otkazib_yubormaydi(ballar: list[float]) -> None:
     )
 
 
-def test_bonus_darvozani_yuvib_yubormaydi(nomzodlar: list) -> None:  # noqa: ANN001
-    """CryptoSpot3% bonuslari chegarani JIMGINA yumshatmasligi kerak.
+def test_bonus_ozi_darvozani_ochmaydi(nomzodlar: list) -> None:  # noqa: ANN001
+    """Kill Zone bonusi chegarani JIMGINA yumshatmasligi kerak.
 
-    Bonuslar qo'shilganda ballar 100 dan oshadi. Agar chegara to'liq
-    ballga qo'llansa, o'lchovda nomzodlarning 80% i o'tib ketardi —
-    ya'ni "eng yaxshi 33%" degan tanlov ma'nosini yo'qotardi. Shuning
-    uchun `Scorer.rank()` darvozani BAZAVIY ballda tekshiradi.
+    Bonus to'liq ballni ko'taradi. Agar chegara to'liq ballga
+    qo'llansa, u yumshab qolardi — o'lchovda nomzodlarning 80% i o'tib
+    ketardi. Shuning uchun chegara BAZAVIY ballda tekshiriladi.
+
+    Diqqat, bu "eski modul" degani emas: CryptoSpot3% dalillari aynan
+    bazaviy ball ichida (S/R va trend omillarini ko'taradi).
     """
-    chegara = load_config().scoring.thresholds.threshold_mid_health
-    reyting = Scorer(load_config()).rank(nomzodlar, chegara)
+    config = load_config()
+    chegara = config.scoring.thresholds.threshold_mid_health
+    reyting = Scorer(config).rank(nomzodlar, chegara)
 
-    otganlar = [r for r in reyting if r.passed_threshold]
-    assert all(r.base_score >= chegara for r in otganlar)
-
-    # Bonusi bor, lekin bazaviy balli past nomzod O'TMASLIGI kerak
-    bonusli = [r for r in reyting if r.score > r.base_score]
-    assert bonusli, "bonus umuman berilmayapti — qatlam ulanmaganmi?"
-    for r in bonusli:
-        if r.base_score < chegara:
-            assert not r.passed_threshold
+    for r in reyting:
+        assert r.passed_threshold == (r.base_score >= chegara)
 
 
-def test_reyting_toliq_ball_boyicha_saralanadi(nomzodlar: list) -> None:  # noqa: ANN001
-    """Darvoza bazaviy ballda, lekin SARALASH to'liq ballda.
+def test_dalillar_signal_SONIGA_tasir_qiladi(nomzodlar_dalilsiz: list) -> None:  # noqa: ANN001
+    """Yangi modul faqat reytingni emas, QANCHA signal chiqishini ham hal qilsin.
 
-    Bonuslarning butun ma'nosi shu: bir xil sifatdagi ikki nomzoddan
-    strukturasi va sweep'i borini yuqoriga chiqarish.
+    Bu — butun qatlamning ma'nosi. Dalillar bonus bo'lganda yangi
+    modul signal soniga umuman ta'sir qila olmasdi: eski modul 3 ta
+    nomzod bergan bo'lsa, yangi modul o'sha uchtasini qayta
+    tartiblardi, xolos.
+
+    Endi dalil bazaviy ball ichida, ya'ni tuzilmasi kuchli nomzod
+    chegaradan O'Z KUCHI bilan o'tadi.
     """
-    reyting = Scorer(load_config()).rank(nomzodlar, 0.0)
-    ballar = [r.score for r in reyting]
-    assert ballar == sorted(ballar, reverse=True)
+    config = load_config()
+    chegara = config.scoring.thresholds.threshold_mid_health
+
+    bilan = [n.breakdown.base_total for n in nomzodlar(config)]
+    siz = [n.breakdown.base_total for n in nomzodlar_dalilsiz]
+
+    assert len(bilan) == len(siz), "nomzodlar soni o'zgarmasligi kerak"
+    # Dalil hech qachon pasaytirmaydi
+    for a, b in zip(bilan, siz, strict=True):
+        assert a >= b - 1e-9
+
+    otgan_bilan = sum(1 for b in bilan if b >= chegara)
+    otgan_siz = sum(1 for b in siz if b >= chegara)
+    assert otgan_bilan >= otgan_siz, "dalil signalni KAMAYTIRMASLIGI kerak"
+
+
+def test_dalil_ballni_pasaytirmaydi(nomzodlar_dalilsiz: list) -> None:  # noqa: ANN001
+    """Eng muhim kafolat: yangi bilim hech kimni pastga tortmaydi."""
+    config = load_config()
+    eng_yuqori_bilan = max(n.breakdown.base_total for n in nomzodlar(config))
+    eng_yuqori_siz = max(n.breakdown.base_total for n in nomzodlar_dalilsiz)
+    assert eng_yuqori_bilan >= eng_yuqori_siz
 
 
 def test_orta_chegara_yuqoridan_qattiqroq() -> None:

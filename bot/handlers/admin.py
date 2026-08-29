@@ -869,6 +869,7 @@ def _smc_matni(config: AppConfig, language: str) -> str:
     yalash = analysis.liquidity_sweep
     sessiya = analysis.session_overlap
     bonuslar = config.scoring.bonuses
+    kotarish = config.scoring.uplift
 
     def holat(yoqilgan: bool) -> str:
         return "yoqilgan" if yoqilgan else "o'chirilgan"
@@ -889,9 +890,9 @@ def _smc_matni(config: AppConfig, language: str) -> str:
         f"<code>Qaytish muddati      {yalash.max_reclaim_bars} sham</code>",
         f"<code>Kill Zone            {oyna}</code>",
         "",
-        f"<code>🔵 Struktura         +{bonuslar.structure:.0f}</code>",
-        f"<code>🧲 Liquidity Sweep   +{bonuslar.liquidity_sweep:.0f}</code>",
-        f"<code>⏰ Kill Zone         +{bonuslar.session_overlap:.0f}</code>",
+        f"<code>🔵 Struktura -> trend     x{kotarish.trend:.2f}</code>",
+        f"<code>🧲 Sweep+daraja -> S/R    x{kotarish.support_resistance:.2f}</code>",
+        f"<code>⏰ Kill Zone bonusi       +{bonuslar.session_overlap:.0f}</code>",
         "",
         t("admin.smc_bonus_izoh", language),
         "",

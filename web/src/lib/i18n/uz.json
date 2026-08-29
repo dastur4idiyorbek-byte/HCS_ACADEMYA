@@ -303,9 +303,10 @@
     "smc_qaytish": "Qaytish muddati (sham)",
     "smc_sessiya": "Kill Zone (London-NY)",
     "smc_bonuslar": "Bonus ballar",
-    "smc_bonus_izoh": "Bonuslar bazaviy 100 ball USTIGA qo'shiladi. Chegara esa faqat bazaviy ballda tekshiriladi — ya'ni bu omillar reytingni o'zgartiradi, yo'lni yopmaydi.",
+    "smc_bonus_izoh": "Struktura, daraja turi va sweep MAVJUD omillar ichiga qo'shiladi (trend va S/R), ya'ni ular chegaraga ta'sir qiladi — signal soni ham shundan o'zgaradi. Kill Zone esa faqat reytingga ta'sir qiladigan bonus.",
     "yoqilgan": "yoqilgan",
-    "ochirilgan": "o'chirilgan"
+    "ochirilgan": "o'chirilgan",
+    "smc_kotarish": "Omillarni ko'tarish"
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",

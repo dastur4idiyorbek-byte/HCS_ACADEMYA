@@ -14,8 +14,15 @@ S/R eng yuqori vaznga ega — 3.1-bandga mos.
 from __future__ import annotations
 
 from core.analysis.indicators import Confirmation, IndicatorSnapshot
-from core.analysis.support_resistance import RangePosition, ZoneMap
-from core.config.schema import IndicatorConfig, ScoreWeights, TradeRulesConfig
+from core.analysis.level_types import LevelType
+from core.analysis.market_structure import MarketStructure, structure_alignment
+from core.analysis.support_resistance import LiquiditySweep, RangePosition, ZoneMap
+from core.config.schema import (
+    IndicatorConfig,
+    ScoreUplift,
+    ScoreWeights,
+    TradeRulesConfig,
+)
 from core.domain.models import ScoreComponent, SignalLevels, SRZone
 
 #: Narx zonaga shu ATR masofasidan yaqin bo'lsa — to'liq yaqinlik balli
@@ -25,12 +32,46 @@ FULL_TOUCHES = 5
 #: Faqat Fibonacci'ga tayangan zona shu ulushda baholanadi (pivot tasdig'i yo'q)
 FIBONACCI_ONLY_FACTOR = 0.5
 
+#: Sweep "yangi" hisoblanadigan sham soni — undan keyin dalil kuchi so'nadi
+SWEEP_FRESH_BARS = 10
+
+
+def _uplift(base: float, evidence: float, share: float) -> float:
+    """Dalilni mavjud bahoga QO'SHADI — almashtirmaydi, pasaytirmaydi.
+
+        yangi = eski + (1 - eski) * dalil * ulush
+
+    Ikki xossa kafolatlanadi: dalil bo'lmasa eski qiymat o'zgarmaydi,
+    dalil to'liq bo'lsa ham natija 1 dan oshmaydi. Aynan shu shakl
+    tufayli CryptoSpot3% qatlami ballni faqat ko'taradi va shuning
+    uchun signal SONIGA ta'sir qila oladi.
+    """
+    dalil = min(1.0, max(0.0, evidence))
+    return base + (1.0 - base) * dalil * share
+
+
+def _combine(evidence: list[float]) -> float:
+    """Mustaqil dalillarni birlashtiradi:  1 - (1-a)(1-b)...
+
+    Bu — "noisy-OR": har bir dalil qolgan SHUBHANI kamaytiradi.
+    Bitta kuchli dalil o'zi ham ko'p narsa aytadi, ikkitasi birga esa
+    ko'proq. O'rtacha olish esa teskarisini qilardi: ikkinchi tasdiq
+    birinchisini SUSAYTIRARDI, agar u sal zaifroq bo'lsa.
+    """
+    shubha = 1.0
+    for dalil in evidence:
+        shubha *= 1.0 - min(1.0, max(0.0, dalil))
+    return 1.0 - shubha
+
 
 def score_support_resistance(
     zone_map: ZoneMap,
     zone: SRZone,
     range_position: RangePosition | None,
     weight: float,
+    level_type: LevelType = LevelType.PLAIN,
+    sweep: LiquiditySweep | None = None,
+    uplift: float = 0.0,
 ) -> ScoreComponent:
     """S/R zonasi sifati — eng og'ir omil (25 ball).
 
@@ -39,6 +80,14 @@ def score_support_resistance(
       2. Ishonchlilik — zona necha marta test qilingan
       3. Discount chuqurligi — narx diapazonda qanchalik pastda
       4. Tozalik     — zona pivotlarga tayanadimi yoki faqat Fibonacci'ga
+
+    CRYPTOSPOT3% DALILLARI SHU YERGA QO'SHILADI, alohida omil sifatida
+    emas. Sabab: MSNR daraja turi ham, LIT sweep'i ham AYNAN SHU ZONA
+    haqidagi ma'lumot. "Yalab o'tib qaytilgan Quasimodo zonasi" —
+    bu boshqa bir omil emas, bu shunchaki SIFATLIROQ S/R zonasi.
+
+    Ular yonma-yon qo'yilsa, bitta narsa ikki joyda o'lchanardi va
+    ikkalasi ham yarim kuch bilan ishlardi.
     """
     masofa_atr = zone_map.distance_in_atr(zone)
     yaqinlik = _taper(masofa_atr, full=FULL_PROXIMITY_ATR, zero=2.0)
@@ -58,6 +107,32 @@ def score_support_resistance(
         + (f", Discount chuqurligi {chuqurlik:.0%}" if chuqurlik else ", Discount emas")
         + (" (faqat Fibonacci)" if zone.from_fibonacci else "")
     )
+
+    # Zona SIFATI haqidagi qo'shimcha dalil: daraja turi + yalash.
+    #
+    # Ular BIRLASHTIRILADI, o'rtachalanmaydi. Sabab: ikkalasi ham AYNAN
+    # BIR narsani tasdiqlaydi ("bu zona ishonchli"), lekin MUSTAQIL
+    # manbalardan — biri tarixiy tuzilmadan, ikkinchisi hozirgi narx
+    # harakatidan. Mustaqil tasdiqlar bir-birini KUCHAYTIRISHI kerak,
+    # o'rtachalanib bir-birini susaytirmasligi.
+    #
+    # O'rtacha olinganda "Quasimodo + yangi sweep" holati "faqat
+    # Quasimodo" dan deyarli farq qilmasdi — ya'ni metodikaning asosiy
+    # da'vosi (naqshlar BIRGA kuchli) modelda aks etmasdi.
+    dalillar: list[float] = []
+    if level_type is not LevelType.PLAIN:
+        dalillar.append(level_type.confidence)
+        izoh += f"; {level_type.label}"
+    if sweep is not None:
+        yangilik = max(0.0, 1.0 - sweep.bars_since / SWEEP_FRESH_BARS)
+        dalillar.append(0.6 + 0.4 * yangilik)
+        izoh += f"; 🧲 {sweep.describe()}"
+
+    if dalillar and uplift > 0:
+        oldingi = xom
+        xom = _uplift(xom, _combine(dalillar), uplift)
+        izoh += f" [tuzilma dalili: +{(xom - oldingi) * weight:.1f} ball]"
+
     return ScoreComponent("support_resistance", xom * weight, weight, izoh)
 
 
@@ -74,6 +149,8 @@ def score_trend(
     config: IndicatorConfig,
     weight: float,
     htf_alignment: float | None = None,
+    structure: MarketStructure | None = None,
+    uplift: float = 0.0,
 ) -> ScoreComponent:
     """Trend kuchi — EMA ajralishi, ADX va yuqori timeframelar (20 ball).
 
@@ -119,9 +196,26 @@ def score_trend(
         + adx_kuchi * ulush["adx"]
         + htf_kuchi * ulush.get("htf", 0.0)
     )
-    return ScoreComponent(
-        "trend", xom * weight, weight, f"Trend: {ema_matn}, {adx_matn}, {htf_matn}"
-    )
+
+    # SMC STRUKTURASI SHU YERGA QO'SHILADI. HH/HL ketma-ketligi —
+    # bu ham trend, faqat EMA dan OLDINROQ ko'rinadigan ko'rinishi:
+    # EMA200 — 200 shamlik o'rtacha, struktura esa narxning o'z
+    # qadamlari. Aynan shu sababli u alohida omil emas, balki shu
+    # omilning yetishmayotgan yarmi.
+    #
+    # Pasayish strukturasi JAZOLAMAYDI (dalil 0 -> ball o'zgarmaydi).
+    # Qat'iy rad etish kerak bo'lsa, `require_structure_alignment`
+    # alohida sozlama sifatida bor va standart holatda o'chiq.
+    izoh = f"Trend: {ema_matn}, {adx_matn}, {htf_matn}"
+    if structure is not None and uplift > 0:
+        moslik = structure_alignment(structure)
+        oldingi = xom
+        xom = _uplift(xom, moslik, uplift)
+        izoh += f", 🔵 {structure.describe()}"
+        if xom > oldingi:
+            izoh += f" [+{(xom - oldingi) * weight:.1f} ball]"
+
+    return ScoreComponent("trend", xom * weight, weight, izoh)
 
 
 def score_rsi(
@@ -185,11 +279,32 @@ def build_components(
     indicators: IndicatorConfig,
     rules: TradeRulesConfig,
     htf_alignment: float | None = None,
+    structure: MarketStructure | None = None,
+    level_type: LevelType = LevelType.PLAIN,
+    sweep: LiquiditySweep | None = None,
+    uplift: ScoreUplift | None = None,
 ) -> list[ScoreComponent]:
     """Barcha omillarni bitta ro'yxatga yig'adi."""
+    kotarish = uplift if uplift is not None else ScoreUplift(0.0, 0.0)
     return [
-        score_support_resistance(zone_map, zone, range_position, weights.support_resistance),
-        score_trend(snapshot, confirmation, indicators, weights.trend, htf_alignment),
+        score_support_resistance(
+            zone_map,
+            zone,
+            range_position,
+            weights.support_resistance,
+            level_type=level_type,
+            sweep=sweep,
+            uplift=kotarish.support_resistance,
+        ),
+        score_trend(
+            snapshot,
+            confirmation,
+            indicators,
+            weights.trend,
+            htf_alignment,
+            structure=structure,
+            uplift=kotarish.trend,
+        ),
         score_rsi(snapshot, confirmation, weights.rsi),
         score_volume(confirmation, weights.volume),
         score_macd(confirmation, weights.macd),

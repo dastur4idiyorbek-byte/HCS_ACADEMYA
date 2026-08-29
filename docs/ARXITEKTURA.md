@@ -3389,62 +3389,109 @@ kiritishni so'radi: **MSNR -> SMC -> LIT -> ICT -> QT+SMT**.
 
 | Qism | Modul | Qanday ta'sir qiladi |
 |---|---|---|
-| SMC (HH/HL, BOS/CHOCH) | `core/analysis/market_structure.py` | ball bonusi + Salomatlik indeksining ASOSIY omili |
-| MSNR (RBS/SBR/OCL/Qm/OB) | `core/analysis/level_types.py` | struktura bonusi ichida daraja sifati |
-| LIT (Liquidity Sweep) | `support_resistance/liquidity.py` | ball bonusi |
-| ICT (Kill Zone) | `scoring/bonuses.py` | ball bonusi |
+| SMC (HH/HL, BOS/CHOCH) | `core/analysis/market_structure.py` | TREND omilini ko'taradi + Salomatlik indeksining ASOSIY omili |
+| MSNR (RBS/SBR/OCL/Qm/OB) | `core/analysis/level_types.py` | S/R omilini ko'taradi |
+| LIT (Liquidity Sweep) | `support_resistance/liquidity.py` | S/R omilini ko'taradi |
+| ICT (Kill Zone) | `scoring/bonuses.py` | ball bonusi (+5) |
 | QT (AMDX) | `market_health/quarterly.py` | Salomatlik omili (kichik vazn) + saytda kontekst |
 | SMT (divergensiya) | — | V2 ga qoldirildi (metodika hujjatining o'z tavsiyasi) |
 
-### Eng muhim qaror: BONUS, VAZN EMAS
+### Eng muhim qaror: DALIL OMIL ICHIDA, YONIDA EMAS
 
-Yangi omillarni mavjud 100 ballik vazn taqsimotiga qo'shish oson yo'l
-edi. Lekin bazaviy vaznlar O'LCHAB tanlangan: `scripts.kalibrlash` 27
-ta sozlamada eng yuqori ballni 59.7 deb topgan va chegaralar (50/55)
-aynan shu taqsimotdan olingan. Eski omillarni siqish ballarni pastga
-tushirardi — bot 48 soat jim turgan holat aynan shunday paydo bo'lgan
-(40- va 46-bo'limlar).
+Birinchi yozuvda metodika omillari BONUS edi — mavjud omillar yonida
+turardi va bazaviy 100 ball ustiga qo'shilardi. Admin buni to'g'ri
+tanqid qildi:
 
-Shuning uchun uch bonus bazaviy 100 USTIGA qo'shiladi (jami 125):
-struktura +10, sweep +10, Kill Zone +5. Topilmasa nol — ya'ni yangi
-bilim signalni TO'SA OLMAYDI. Bu metodika hujjatining o'z talabi ham.
+> "Eski modul 10 kunda 3 ta signal berdi. Demak yangi modul o'sha
+> uchtasini qayta tartiblab chiqadi, xolos — u aslida signal
+> tanlashda ham ishlatilishi kerak."
 
-### Ikkinchi muhim qaror: darvoza bazaviy ballda
+Tanqid o'rinli edi. Bonus chegaraga kirmagani uchun yangi modul signal
+SONIGA umuman ta'sir qila olmasdi. Undan ham chuqurroq muammo bor edi:
+**bitta narsa ikki joyda o'lchanardi.** "Yalab o'tib qaytilgan
+Quasimodo zonasi" — bu boshqa bir omil emas, bu shunchaki SIFATLIROQ
+S/R zonasi. HH/HL ketma-ketligi ham alohida narsa emas — bu trendning
+o'zi, faqat EMA dan oldinroq ko'rinadigan ko'rinishi.
 
-Bonuslar hammaning ballini ko'taradi. Agar chegara TO'LIQ ballga
-qo'llansa, u jimgina yumshab qolardi:
-`tests/core/test_chegara_erishiladi.py` buni darhol ushladi —
-nomzodlarning 80% i o'tib ketdi va "eng yaxshi 33%" degan tanlov
-ma'nosini yo'qotdi.
+Shuning uchun dalillar MAVJUD OMILLAR ICHIGA ko'chirildi:
 
-Yechim loyihaning o'z tamoyilidan keldi: **struktura "signal
-berilsinmi" deydi, sifat omillari "qaysi biri" deydi.** Bonuslar —
-sifat omillari, ya'ni ular REYTINGGA ta'sir qiladi, DARVOZAGA emas.
-`Scorer.rank()` chegarani `breakdown.base_total` bilan solishtiradi,
-saralashni esa to'liq ball bo'yicha qiladi.
+| Dalil | Qaysi omilga | Nima uchun aynan u |
+|---|---|---|
+| MSNR daraja turi + LIT sweep | S/R zonasi (25) | ikkalasi ham AYNAN SHU ZONA haqidagi ma'lumot |
+| SMC strukturasi (HH/HL, BOS) | Trend (20) | struktura — trendning kechikmaydigan ko'rinishi |
+| ICT Kill Zone | bonus (5) | kirish VAQTI haqida, tuzilma haqida emas |
 
-Natijada yangi qatlam na botni jimlatadi, na chegarani yuvib yuboradi.
+Qo'shish shakli:
 
-### O'lchov
+    yangi = eski + (1 - eski) * dalil * ulush
+
+Ikki xossa kafolatlanadi: dalil bo'lmasa qiymat o'zgarmaydi, dalil
+to'liq bo'lsa ham omil o'z vaznidan oshmaydi. Ya'ni yangi bilim
+ballni faqat KO'TARADI — hech kimni yo'ldan qaytarmaydi.
+
+Natijada ikki modul ORALASHIB ishlaydi: dalil chegara o'qiydigan
+BAZAVIY ball ichida, ya'ni u ham QAYSI signal chiqishiga, ham QANCHA
+signal chiqishiga ta'sir qiladi. Parallel ikkinchi darvoza
+QILINMADI — u ikkita alohida qoidalar to'plami, ikki barobar sozlash
+va "qaysi biri ishladi" degan doimiy savol degani bo'lardi.
+
+### Mustaqil dalillar QO'SHILADI, o'rtachalanmaydi
+
+Daraja turi va sweep bir vaqtda topilganda ular `noisy-OR` bilan
+birlashtiriladi:  `1 - (1-a)(1-b)`.
+
+Sabab: ikkalasi ham AYNAN BIR narsani tasdiqlaydi ("bu zona
+ishonchli"), lekin MUSTAQIL manbalardan — biri tarixiy tuzilmadan,
+ikkinchisi hozirgi narx harakatidan. O'rtacha olinganda ikkinchi
+tasdiq birinchisini SUSAYTIRARDI (agar sal zaifroq bo'lsa) va
+metodikaning asosiy da'vosi — naqshlar BIRGA kuchli — modelda aks
+etmasdi.
+
+### O'lchov: dalil signal soniga ta'sir qiladimi
 
 `python -m scripts.cryptospot3_olchov` (tarmoq talab qilmaydi):
 
 ```
-Nomzodlar soni:        15 -> 15   (o'zgarmadi — hech biri to'siq emas)
-Chegaradan o'tganlar:   8 ->  8   (o'zgarmadi — darvoza bazaviy ballda)
-Bazaviy ball:  19.5 .. 63.8  (o'rtacha 50.4)
-Bonus:          4.6 .. 16.8  (o'rtacha 10.7, shift 25)
-Reyting tartibi bonusdan o'zgardimi: HA
+Nomzodlar soni:        15 -> 15
+Bazaviy ball:  dalilsiz 19.5..63.8 (o'rt. 50.4)
+               dalilli  32.5..67.2 (o'rt. 56.3)
+
+Chegara bo'ylab o'tganlar soni:
+   chegara  dalilsiz   dalilli
+        45        12        13
+        50         9        12
+        52         8        11
+        55         8         8   <-- joriy
+        58         7         8
+        60         4         8
+        62         1         7
+        65         0         3
 ```
 
-Oxirgi qator — qatlamning butun ma'nosi. Bazaviy balli 63.8 bo'lgan
-nomzod to'liq ball bo'yicha 5-o'ringa tushdi, 59.7 balligi esa
-1-o'ringa chiqdi: strukturasi va sweep'i kuchliroq. Ya'ni QAYSI signal
-chiqishi o'zgardi, QANCHA signal chiqishi esa o'zgarmadi.
+**Sinalgan 8 chegaradan 7 tasida dalil signal sonini OSHIRDI.**
+Joriy chegarada (55) son o'zgarmadi — bu TASODIF: 15 ta sun'iy
+nomzoddan hech biri aynan shu chiziqni kesib o'tmadi. 60 da esa
+4 -> 8, ya'ni ikki barobar. Mexanizm ishlaydi, bitta chegaradagi
+natija esa namunaga bog'liq.
 
-**Bu haqiqiy bozorda tasdiqlanishi kerak.** Sun'iy to'plam chegara
-kalibrlash uchun qurilgan, foydani o'lchash uchun emas. Serverda:
-`python -m scripts.backtest --compare --days 730`.
+Chegarani shu jadvalga qarab o'zgartirmang: 15 ta sun'iy nomzod —
+mexanizmni tekshirish uchun, chegarani tanlash uchun emas.
+
+### Yo'l-yo'lakay: MSNR tasnifi hech narsani ajratmasdi
+
+O'lchov qilinganda kalibrlash to'plamidagi **27 zonaning HAMMASI**
+"RBS" deb tasniflangani ma'lum bo'ldi. Sabab: `_is_flipped()` faqat
+"narx qachondir bu zonani kesib o'tganmi" degan savolni tekshirardi —
+ko'tarilayotgan narx esa har qanday support zonasini kesib o'tgan
+bo'ladi.
+
+Ya'ni "dalil" aslida hammaga bir xil qo'shiladigan doimiy songa
+aylanib qolgan edi — bu chegarani jimgina pasaytirish bilan barobar.
+
+Tuzatildi: RBS uchun endi zona ROSTDAN qarshilik bo'lganini
+ko'rsatuvchi burilish nuqtasi (zona ichidagi pivot high) talab
+qilinadi. Taqsimot 27/27 RBS dan 15 RBS + 12 oddiy ga o'zgardi —
+tasnif haqiqiy ajratish kuchiga ega bo'ldi.
 
 ### BTC Dominance asosiy omil bo'lishdan chiqarildi
 

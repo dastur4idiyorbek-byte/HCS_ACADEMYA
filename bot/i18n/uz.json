@@ -191,7 +191,7 @@
     "smc": "🧲 SMC / LIT sozlamalari",
     "smc_sarlavha": "🧲 <b>SMC / LIT sozlamalari</b>",
     "smc_izoh": "Bu qiymatlar <code>config/default.yaml</code> da turadi va joylashtirishda o'zgaradi — bu yerdan tahrirlab bo'lmaydi. Panel amaldagi holatni ko'rsatadi.",
-    "smc_bonus_izoh": "🔸 Bonuslar bazaviy 100 ball USTIGA qo'shiladi. Chegara esa faqat bazaviy ballda tekshiriladi — ya'ni bu omillar reytingni o'zgartiradi, yo'lni yopmaydi."
+    "smc_bonus_izoh": "🔸 Struktura, daraja turi va sweep MAVJUD omillar ichiga qo'shiladi (trend va S/R), ya'ni ular chegaraga ta'sir qiladi — signal soni ham shundan o'zgaradi. Kill Zone esa faqat reytingga ta'sir qiladigan bonus."
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."

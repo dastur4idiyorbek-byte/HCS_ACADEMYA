@@ -26,6 +26,7 @@ from __future__ import annotations
 from enum import Enum
 
 from core.analysis.market_structure import MarketStructure, SwingLabel
+from core.analysis.support_resistance.pivots import find_pivots
 from core.domain.enums import ZoneKind
 from core.domain.models import Candle, SRZone
 
@@ -100,39 +101,44 @@ def classify_level_type(
     return LevelType.PLAIN
 
 
-def _is_flipped(zone: SRZone, candles: list[Candle]) -> bool:
-    """Daraja avval QARAMA-QARSHI tomondan sinalganmi (RBS / SBR).
+def _is_flipped(zone: SRZone, candles: list[Candle], lookback: int = 5) -> bool:
+    """Daraja avval QARAMA-QARSHI vazifada ISHLAGANmi (RBS / SBR).
 
-    Support uchun: tarixda narx bu zonadan YUQORIDAN pastga emas,
-    pastdan yuqoriga o'tgan bo'lishi kerak — ya'ni zona qachondir
-    qarshilik bo'lgan va buzib o'tilgan.
+    RBS uchun uch dalil BIRGALIKDA kerak:
 
-    Buzilish yopilish narxi bilan o'lchanadi (soya bilan emas) va
-    kamida bitta to'liq o'tish talab qilinadi.
+        1. zona ichida QARSHILIK bo'lganini ko'rsatuvchi burilish —
+           ya'ni narx aynan shu yerdan pastga qaytgan (pivot HIGH);
+        2. keyin narx zonadan yuqoriga YOPILIB o'tgan (buzilish);
+        3. hozir narx hamon zonadan yuqorida.
+
+    NIMA UCHUN BIRINCHI SHART QO'SHILDI. Avval faqat 2 va 3 tekshirilardi
+    va natijada kalibrlash to'plamidagi 27 zonaning HAMMASI "RBS" deb
+    tasniflanardi: ko'tarilayotgan narx har qanday support zonasini
+    qachondir kesib o'tgan bo'ladi. Ya'ni tasnif hech narsani
+    ajratmasdi va ballga qo'shiladigan "dalil" aslida hammaga bir xil
+    qo'shiladigan doimiy songa aylanib qolgan edi.
+
+    Burilish nuqtasi talabi tasnifni haqiqiy qiladi: zona faqat
+    ROSTDAN qarshilik bo'lgan bo'lsa RBS bo'ladi.
     """
-    yuqorida = False
-    pastda = False
-    otish = False
-
-    for sham in candles:
-        if sham.close > zone.high:
-            if pastda:
-                otish = True
-            yuqorida, pastda = True, False
-        elif sham.close < zone.low:
-            if yuqorida:
-                otish = True
-            yuqorida, pastda = False, True
-
-    if not otish:
+    pivotlar = find_pivots(candles, lookback)
+    kerakli = ZoneKind.RESISTANCE if zone.kind is ZoneKind.SUPPORT else ZoneKind.SUPPORT
+    burilishlar = [p for p in pivotlar if p.kind is kerakli and zone.contains(p.price)]
+    if not burilishlar:
         return False
 
-    # Support uchun narx HOZIR zonadan yuqorida bo'lishi kerak (aks holda
-    # u hali ham qarshilik), resistance uchun aksincha.
-    oxirgi = candles[-1].close
+    # Buzilish burilishdan KEYIN sodir bo'lishi kerak — aks holda bu
+    # "avval buzildi, keyin qarshilik bo'ldi" degan boshqa hikoya.
+    birinchi = min(p.index for p in burilishlar)
+    keyingi = candles[birinchi + 1 :]
+    if not keyingi:
+        return False
+
     if zone.kind is ZoneKind.SUPPORT:
-        return oxirgi > zone.low
-    return oxirgi < zone.high
+        buzildi = any(sham.close > zone.high for sham in keyingi)
+        return buzildi and candles[-1].close > zone.low
+    buzildi = any(sham.close < zone.low for sham in keyingi)
+    return buzildi and candles[-1].close < zone.high
 
 
 def _is_change_of_level(zone: SRZone, structure: MarketStructure | None) -> bool:
