@@ -3656,12 +3656,57 @@ Ikki narsa muhim:
 2. **O'tganlarning hammasi to'liq shartnomali** — tasodif emas,
    tanlov endi tuzilma sifatiga qarab ishlayapti.
 
-**LEKIN ballar taqsimoti O'ZGARDI.** EMA olib tashlangach sun'iy
-to'plamda chegaradan o'tganlar 8 tadan 3 taga tushdi. Chegaralar
-(50/55) EMA bor paytda kalibrlangan, ya'ni ular endi eskirgan
-bo'lishi mumkin. Ularni haqiqiy bozorda qayta o'lchash SHART:
-`python -m scripts.kalibrlash` va `python -m scripts.backtest`.
-Sun'iy 15 ta nomzodga qarab chegarani sozlash — shovqinni sozlash.
+### Kalibrlash QAYTA ISHGA TUSHIRILDI — chegaralar o'zgartirilmadi
+
+EMA olib tashlangach ballar taqsimoti o'zgardi, shuning uchun
+`python -m scripts.kalibrlash` qayta ishga tushirildi:
+
+```
+Sinalgan sozlamalar : 27      Nomzod chiqdi : 15
+Eng yuqori ball     : 68.2    Eng past : 38.4
+O'rtacha            : 51.3    Mediana  : 51.9
+
+  chegara  60:   2 / 15 ( 13%)
+  chegara  55:   3 / 15 ( 20%)   <- joriy (o'rta salomatlik)
+  chegara  50:  10 / 15 ( 67%)   <- joriy (yuqori salomatlik)
+  chegara  45:  11 / 15 ( 73%)
+```
+
+Loyihaning e'lon qilingan mo'ljali (config izohida) shunday edi:
+`55 -> eng yaxshi 33%`, `50 -> eng yaxshi 67%`.
+
+**Natija: 50 aynan mo'ljalda (67%), 55 esa biroz qattiqroq (20%,
+mo'ljal 33%).**
+
+CHEGARALAR O'ZGARTIRILMADI, sabab uchta:
+
+  1. **Ikkalasi ham ERISHILADI.** Asosiy xavf — "erishib bo'lmas
+     chegara" (40- va 46-bo'limlar) — takrorlanmadi: yuqori bandda
+     10 ta, o'rta bandda 3 ta nomzod o'tadi.
+  2. **55 ni 54 ga tushirish 15 ta sun'iy namunaga moslash bo'lardi.**
+     Taqsimot g'adir-budur: 54.4 da ikkita nomzod turibdi, ya'ni bir
+     ballik siljish natijani ikki barobar o'zgartiradi. Bu shovqinni
+     sozlash demakdir.
+  3. **O'rta salomatlikda qattiqroq bo'lish — mo'ljalga zid emas.**
+     Bandning butun ma'nosi shu: bozor kuchsizlanganda talab oshadi.
+     Ikki band orasidagi masofa endi kengroq, ya'ni moslashuvchi
+     chegara ilgarigidan KO'PROQ ish qiladi.
+
+Yakuniy qaror haqiqiy bozor ma'lumotida:
+`python -m scripts.backtest --compare --days 730`.
+
+### Uchidan-uchiga sinov
+
+Butun zanjir tarmoqsiz ishga tushirildi va ishladi: 27 sozlamadan
+15 nomzod, Salomatlik 72 -> chegara 50, 10 nomzod o'tdi, eng
+yuqorisi 68.2 ball. Signal kartochkasi va "Nega bu signal?" ekrani
+to'g'ri chiqdi — dalillar S/R va trend omillari ICHIDA ko'rinadi:
+
+```
+▰▰▰▰▰ 23/25 — S/R: ... RBS — buzilgan qarshilik endi qo'llab-quvvatlash;
+              🧲 Liquidity Sweep [tuzilma dalili: +1.5 ball]
+▰▰▰▰▱ 15/20 — Trend: 🔵 Ko'tarilish trendi (HH/HL), so'nggi BOS ...
+```
 
 ## 59. Bosqichlar holati
 
