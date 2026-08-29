@@ -113,12 +113,16 @@ for (let i = 7; i >= 0; i -= 1) {
   baza
     .prepare(
       `insert into market_health_log (value, band, btc_dominance_score, trend_breadth_score,
-         volatility_score, user_capacity_score, saturation_score, is_daily_preview,
+         volatility_score, user_capacity_score, saturation_score,
+         structure_breadth_score, quarterly_phase_score, is_daily_preview,
          created_at, updated_at)
-       values (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     )
+    // Omil ballari 0..1 — bot AYNAN shu shkalada yozadi
+    // (`HealthFactor.score`). Ilgari bu yerda 0-100 turardi va u
+    // saytdagi shkala xatosini yashirib kelgan edi.
     .run(qiymat, qiymat >= 65 ? "high" : qiymat >= 40 ? "mid" : "low",
-         62, 44, 71, 88, 79, oldin(i * 4), oldin(i * 4));
+         0.62, 0.44, 0.71, 0.88, 0.79, 0.58, 0.5, oldin(i * 4), oldin(i * 4));
 }
 
 // --- Rad etish sabablari (voronka) ---

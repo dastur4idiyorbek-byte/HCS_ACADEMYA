@@ -25,15 +25,24 @@ class HealthInputs:
 
     computed_at: datetime
 
-    # --- 1-omil: BTC Dominance ---
+    # --- 1-omil (ASOSIY): halol ro'yxatning SMC struktura kengligi ---
+    #: Har bir halol coin uchun STRUKTURA yo'nalishi
+    #: (`market_structure.analyze_structure()` natijasidan).
+    #:
+    #: Nima uchun bu asosiy omil bo'ldi: BTC Dominance foydali, lekin
+    #: ko'pchilik treyder uchun qaror mezoni emas. Struktura esa real
+    #: narx harakatining o'zi — "nechta coin HH/HL qadam tashlayapti".
+    universe_structures: dict[str, TrendDirection] = field(default_factory=dict)
+
+    # --- 2-omil: EMA asosidagi eski trend kengligi (ikkinchi darajali) ---
+    #: Har bir halol coin uchun trend yo'nalishi
+    universe_trends: dict[str, TrendDirection] = field(default_factory=dict)
+
+    # --- 6-omil (kichik vazn): BTC Dominance ---
     #: Hozirgi BTC dominance foizi (masalan 54.2)
     btc_dominance: float | None = None
     #: Sutkalik o'zgarish, foiz punktlarida (masalan +0.3 yoki -1.8)
     btc_dominance_change_24h: float | None = None
-
-    # --- 2-omil: Halol ro'yxat trend kengligi ---
-    #: Har bir halol coin uchun trend yo'nalishi
-    universe_trends: dict[str, TrendDirection] = field(default_factory=dict)
 
     # --- 3-omil: Volatillik rejimi ---
     #: Har bir coin uchun ADX qiymati
@@ -49,6 +58,20 @@ class HealthInputs:
     @property
     def universe_size(self) -> int:
         return len(self.universe_trends)
+
+    @property
+    def structure_uptrend_ratio(self) -> float | None:
+        """SMC strukturasi ko'tarilishda bo'lgan coinlar ulushi (0..1).
+
+        FLAT ("aniq emas") maxrajda qoladi, lekin ko'tarilish deb
+        sanalmaydi — noaniqlik dalil emas (0.3-band).
+        """
+        if not self.universe_structures:
+            return None
+        kotarilish = sum(
+            1 for y in self.universe_structures.values() if y is TrendDirection.UP
+        )
+        return kotarilish / len(self.universe_structures)
 
     @property
     def uptrend_ratio(self) -> float | None:

@@ -92,8 +92,12 @@ export function yopilgan(holat: SignalHolati): boolean {
 export type Salomatlik = {
   value: number;
   band: string;
+  /** ASOSIY omil (30) — SMC strukturasi bo'yicha kenglik */
+  structureBreadthScore: number | null;
   trendBreadthScore: number | null;
   btcDominanceScore: number | null;
+  /** QT (AMDX) davri (5) */
+  quarterlyPhaseScore: number | null;
   volatilityScore: number | null;
   userCapacityScore: number | null;
   saturationScore: number | null;
@@ -297,8 +301,10 @@ function salomatlikkaAylantir(q: Qator): Salomatlik {
   return {
     value: Number(q.value),
     band: q.band as string,
+    structureBreadthScore: son(q.structure_breadth_score),
     trendBreadthScore: son(q.trend_breadth_score),
     btcDominanceScore: son(q.btc_dominance_score),
+    quarterlyPhaseScore: son(q.quarterly_phase_score),
     volatilityScore: son(q.volatility_score),
     userCapacityScore: son(q.user_capacity_score),
     saturationScore: son(q.saturation_score),
@@ -306,8 +312,9 @@ function salomatlikkaAylantir(q: Qator): Salomatlik {
   };
 }
 
-const SALOMATLIK_USTUNLARI = `value, band, trend_breadth_score, btc_dominance_score,
-  volatility_score, user_capacity_score, saturation_score, created_at`;
+const SALOMATLIK_USTUNLARI = `value, band, structure_breadth_score, trend_breadth_score,
+  btc_dominance_score, quarterly_phase_score, volatility_score, user_capacity_score,
+  saturation_score, created_at`;
 
 /** Kunlik "oldindan ko'rish" yozuvlari chiqarib tashlanadi — ular
  *  bashorat, o'lchov emas (`is_daily_preview`). */

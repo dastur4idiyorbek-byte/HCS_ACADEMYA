@@ -30,6 +30,7 @@ from bot.middlewares import AdminOnlyMiddleware
 from bot.services.broadcast import broadcast_signal
 from bot.states import SignalFlow
 from core.analysis import decide_entry_plan
+from core.analysis.scoring import breakdown_from_json, breakdown_to_text
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
 from core.domain.models import PositionSuggestion, SignalLevels
@@ -623,8 +624,16 @@ async def explain_signal(
         tafsilot = yozuv.score_breakdown if yozuv else None
         izoh = yozuv.note if yozuv else None
 
-    matn = tafsilot or izoh or (
-        "Bu signal admin tomonidan qo'lda kiritilgan — avtomatik ball tafsiloti yo'q."
+    # Bazada JSON saqlanadi. Ilgari u FOYDALANUVCHIGA XUDDI SHU HOLDA
+    # ko'rsatilardi: ekranda `{"symbol": "DOT", "components": [...]}`
+    # chiqardi. `breakdown_to_text()` yozilgan edi, lekin hech qayerda
+    # chaqirilmagan — 2-naqsh, "e'lon qilingan, lekin ulanmagan".
+    yoyilgan = breakdown_from_json(tafsilot) if tafsilot else None
+    matn = (
+        breakdown_to_text(yoyilgan)
+        if yoyilgan is not None
+        else izoh
+        or "Bu signal admin tomonidan qo'lda kiritilgan — avtomatik ball tafsiloti yo'q."
     )
     await callback.message.answer(matn, reply_markup=back_button(language=language))
     await callback.answer()

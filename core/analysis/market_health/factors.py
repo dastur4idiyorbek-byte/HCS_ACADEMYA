@@ -3,22 +3,31 @@
 Har bir omil 0..1 oralig'ida baholanadi va vazniga ko'paytiriladi.
 Vaznlar `config/default.yaml` -> `market_health.weights` da (jami 100).
 
+ASOSIY OMIL O'ZGARDI. Ilgari eng og'ir omillar BTC Dominance (20) va
+EMA asosidagi trend kengligi (25) edi. Endi birinchi o'rinda halol
+ro'yxatning SMC STRUKTURA kengligi turadi (30), BTC Dominance esa 5 ga
+tushirildi — u foydali, lekin ko'pchilik treyder uchun qaror mezoni
+emas (`docs/ARXITEKTURA.md`, 57-bo'lim).
+
 MA'LUMOT YO'Q BO'LGANDA nima bo'ladi — har bir omil uchun alohida qaror,
 chunki "ma'lumot yo'q" har doim ham "yomon" degani emas:
 
-  BTC dominance   -> 0.0  (bozor holati noma'lum — ehtiyotkorlik)
-  Trend kengligi  -> 0.0  (halol ro'yxat tahlil qilinmagan — signal bermaslik)
-  Volatillik      -> 0.0  (tekis bozorni ajratib bo'lmaydi)
-  Sig'im          -> 1.0  (foydalanuvchi yo'q -> tizim o'zini cheklamasin)
-  To'yinganlik    -> hisoblanadi (ochiq signal soni doim ma'lum)
+  Struktura kengligi -> 0.0  (halol ro'yxat tahlil qilinmagan)
+  Trend kengligi     -> 0.0  (o'sha sabab)
+  Volatillik         -> 0.0  (tekis bozorni ajratib bo'lmaydi)
+  BTC dominance      -> 0.0  (bozor holati noma'lum — ehtiyotkorlik)
+  Sig'im             -> 1.0  (foydalanuvchi yo'q -> tizim o'zini cheklamasin)
+  To'yinganlik       -> hisoblanadi (ochiq signal soni doim ma'lum)
+  QT davri           -> hisoblanadi (soat doim ma'lum)
 
-Birinchi uchtasi 0.0 bo'lgani uchun ma'lumotsiz indeks 40 dan past chiqadi
-va 4.9-band bo'yicha yangi signal berilmaydi — bu ataylab (0.3-band).
+Ma'lumotsiz indeks 40 dan past chiqadi va 4.9-band bo'yicha yangi signal
+berilmaydi — bu ataylab (0.3-band).
 """
 
 from __future__ import annotations
 
 from core.analysis.market_health.inputs import HealthInputs
+from core.analysis.market_health.quarterly import quarterly_phase
 from core.config.schema import BtcDominanceConfig, MarketHealthWeights
 from core.domain.models import HealthFactor
 
@@ -28,7 +37,7 @@ def btc_dominance_factor(
     config: BtcDominanceConfig,
     weight: float,
 ) -> HealthFactor:
-    """1-omil: BTC Dominance barqarormi yoki keskin o'zgaryaptimi.
+    """6-omil (KICHIK vazn): BTC Dominance barqarormi.
 
     Keskin o'zgarish — bozorda kapital oqimi almashayotganini bildiradi:
     dominance keskin oshsa altcoinlardan chiqish, keskin tushsa esa
@@ -61,8 +70,45 @@ def btc_dominance_factor(
     )
 
 
+def structure_breadth_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
+    """1-omil (ASOSIY): halol ro'yxatning necha foizi HH/HL strukturada.
+
+    Bu — SMC (`market_structure.py`) natijasidan keladi va EMA asosidagi
+    kenglikdan FARQ QILADI: EMA o'rtacha qiymat, ya'ni kechikadi;
+    struktura esa narxning o'z qadamlari — cho'qqi va chuqurliklar
+    ketma-ketligi. Trend burilganda struktura birinchi bo'lib xabar
+    beradi, EMA esa oxirida.
+    """
+    ulush = inputs.structure_uptrend_ratio
+    if ulush is None:
+        return HealthFactor(
+            "halal_structure_breadth", 0.0, weight, "Struktura tahlil qilinmagan"
+        )
+
+    return HealthFactor(
+        "halal_structure_breadth",
+        ulush,
+        weight,
+        f"Halol coinlarning {ulush:.0%}i ko'tarilish strukturasida "
+        f"(HH/HL, {len(inputs.universe_structures)} tadan)",
+    )
+
+
+def quarterly_phase_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
+    """QT (AMDX) davri — CryptoSpot3% metodikasining 5-qismi.
+
+    DIQQAT, vazni ataylab KICHIK. Davr soat bo'yicha aniqlanadi, ya'ni
+    u bozor holatidan qat'i nazar har kuni bir xil ritmda o'zgaradi —
+    bu o'lchanmagan taxmin. Haddan tashqari vazn berilgan, lekin
+    bashorat kuchi tekshirilmagan ko'rsatkich bu loyihada allaqachon
+    zarar keltirgan (33-bo'lim).
+    """
+    davr = quarterly_phase(inputs.computed_at)
+    return HealthFactor("quarterly_phase", davr.score, weight, f"Joriy davr: {davr.label}")
+
+
 def trend_breadth_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
-    """2-omil: Halol ro'yxatdagi coinlarning necha foizi ko'tarilish trendida.
+    """2-omil: EMA bo'yicha kenglik — strukturadan keyingi ikkinchi o'lchov.
 
     Bu — bozorning "kengligi" (breadth). Bir nechta coin ko'tarilib, qolgani
     tushayotgan bo'lsa, bu haqiqiy ko'tarilish emas.
@@ -164,13 +210,15 @@ def build_factors(
     adx_threshold: float,
     strong_trend_adx: float = 30.0,
 ) -> list[HealthFactor]:
-    """Barcha besh omilni hisoblaydi."""
+    """Barcha omillarni hisoblaydi — eng og'iridan boshlab."""
     return [
-        btc_dominance_factor(inputs, dominance_config, weights.btc_dominance_stability),
+        structure_breadth_factor(inputs, weights.halal_structure_breadth),
         trend_breadth_factor(inputs, weights.halal_trend_breadth),
         volatility_regime_factor(
             inputs, adx_threshold, weights.volatility_regime, strong_trend_adx
         ),
         user_capacity_factor(inputs, weights.aggregate_user_capacity),
         saturation_factor(inputs, weights.signal_saturation),
+        btc_dominance_factor(inputs, dominance_config, weights.btc_dominance_stability),
+        quarterly_phase_factor(inputs, weights.quarterly_phase),
     ]

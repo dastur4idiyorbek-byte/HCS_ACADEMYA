@@ -6,6 +6,8 @@ To'g'ri tartib:
     2. Narx Support zonasida VA Discount zonadami (3.1-band davomi)
     3. Stop/TP darajalari S/R va ATR asosida quriladi (3.3 chegaralari bilan)
     4. KEYIN: indikatorlar va yuqori timeframelar BALLGA qo'shiladi
+    5. CryptoSpot3% qatlami (SMC struktura, MSNR daraja turi, LIT
+       yalash, ICT sessiya oynasi) — BONUS ball, to'siq emas
 
 KIM QAROR QILADI. "Signal berilsinmi" degan savolga STRUKTURA (S/R
 zonasi) va RISK QOIDASI (3.3-band) javob beradi. Indikatorlar esa
@@ -33,9 +35,14 @@ import dataclasses
 from dataclasses import dataclass
 
 from core.analysis.indicators import build_snapshot, confirm
+from core.analysis.level_types import classify_level_type
+from core.analysis.market_structure import analyze_structure
 from core.analysis.scoring import Scorer, build_levels
 from core.analysis.strategies.base import Strategy, StrategyInput
-from core.analysis.support_resistance import SupportResistanceDetector
+from core.analysis.support_resistance import (
+    SupportResistanceDetector,
+    detect_liquidity_sweep,
+)
 from core.config.schema import AppConfig, TradeRulesConfig
 from core.domain.enums import SignalSource, TrendDirection, ZoneKind
 from core.domain.models import MultiTimeframeView, SignalCandidate, TimeframeTrend
@@ -164,7 +171,28 @@ class ClassicTaStrategy(Strategy):
         if not daraja_natijasi.ok:
             return self._reject(daraja_natijasi.stage, daraja_natijasi.reason)
 
-        # 6) Ball
+        # 6) CryptoSpot3% qatlami — BONUS uchun, TO'SIQ EMAS
+        #
+        # Uchalasi ham "yo'q" bo'lishi mumkin va bu normal: nomzod
+        # bazaviy 100 ballik tizimda baholanishda davom etadi. Metodika
+        # hujjatining o'zi ham shuni talab qiladi — yangi omillar
+        # qat'iy filtr sifatida qo'shilmasin.
+        struktura = analyze_structure(
+            shamlar,
+            analysis.market_structure.swing_lookback,
+            analysis.market_structure.min_swings,
+        )
+        if analysis.require_structure_alignment and struktura.direction is TrendDirection.DOWN:
+            return self._reject(
+                "structure",
+                f"Struktura pasayishda ({struktura.describe()}) — "
+                "spot xaridi tuzilmaga qarshi",
+            )
+
+        daraja_turi = classify_level_type(zona, shamlar, zona_xaritasi.atr, struktura)
+        yalash = detect_liquidity_sweep(shamlar, zona, analysis.liquidity_sweep)
+
+        # 7) Ball
         tafsilot = self._scorer.score(
             symbol=data.symbol,
             zone_map=zona_xaritasi,
@@ -174,13 +202,21 @@ class ClassicTaStrategy(Strategy):
             levels=daraja_natijasi.levels,
             htf_alignment=moslik,
             rules=qoidalar,
+            structure=struktura,
+            level_type=daraja_turi,
+            sweep=yalash,
+            moment=shamlar[-1].open_time,
         )
 
         logger.info(
-            "Nomzod tayyor: %s ball=%.1f zona=%s TP manbai=%s",
+            "Nomzod tayyor: %s ball=%.1f (bazaviy %.1f + bonus %.1f) zona=%s "
+            "struktura=%s TP manbai=%s",
             data.symbol,
             tafsilot.total,
+            tafsilot.base_total,
+            tafsilot.bonus_total,
             f"{zona.low:.4g}-{zona.high:.4g}",
+            struktura.direction.value,
             "tuzilma" if daraja_natijasi.tp_from_structure else "o'lchangan",
         )
         return SignalCandidate(

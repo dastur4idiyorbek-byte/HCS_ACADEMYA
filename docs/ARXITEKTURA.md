@@ -3380,7 +3380,137 @@ Sabab: `kalkulyatorMatnlari` ichidagi `kirish` kaliti
 kalitlari `kalk_` prefiksiga o'tkazildi, `tests/i18n.test.ts` ga esa
 "kartochka matnlari bosib ketilmaydi" testi qo'shildi.
 
-## 57. Bosqichlar holati
+## 57. CryptoSpot3% (ISC 1.0) metodikasi qo'shildi
+
+Admin o'zining mualliflik kursidan besh qismli metodikani strategiyaga
+kiritishni so'radi: **MSNR -> SMC -> LIT -> ICT -> QT+SMT**.
+
+### Qaerga joylashdi
+
+| Qism | Modul | Qanday ta'sir qiladi |
+|---|---|---|
+| SMC (HH/HL, BOS/CHOCH) | `core/analysis/market_structure.py` | ball bonusi + Salomatlik indeksining ASOSIY omili |
+| MSNR (RBS/SBR/OCL/Qm/OB) | `core/analysis/level_types.py` | struktura bonusi ichida daraja sifati |
+| LIT (Liquidity Sweep) | `support_resistance/liquidity.py` | ball bonusi |
+| ICT (Kill Zone) | `scoring/bonuses.py` | ball bonusi |
+| QT (AMDX) | `market_health/quarterly.py` | Salomatlik omili (kichik vazn) + saytda kontekst |
+| SMT (divergensiya) | — | V2 ga qoldirildi (metodika hujjatining o'z tavsiyasi) |
+
+### Eng muhim qaror: BONUS, VAZN EMAS
+
+Yangi omillarni mavjud 100 ballik vazn taqsimotiga qo'shish oson yo'l
+edi. Lekin bazaviy vaznlar O'LCHAB tanlangan: `scripts.kalibrlash` 27
+ta sozlamada eng yuqori ballni 59.7 deb topgan va chegaralar (50/55)
+aynan shu taqsimotdan olingan. Eski omillarni siqish ballarni pastga
+tushirardi — bot 48 soat jim turgan holat aynan shunday paydo bo'lgan
+(40- va 46-bo'limlar).
+
+Shuning uchun uch bonus bazaviy 100 USTIGA qo'shiladi (jami 125):
+struktura +10, sweep +10, Kill Zone +5. Topilmasa nol — ya'ni yangi
+bilim signalni TO'SA OLMAYDI. Bu metodika hujjatining o'z talabi ham.
+
+### Ikkinchi muhim qaror: darvoza bazaviy ballda
+
+Bonuslar hammaning ballini ko'taradi. Agar chegara TO'LIQ ballga
+qo'llansa, u jimgina yumshab qolardi:
+`tests/core/test_chegara_erishiladi.py` buni darhol ushladi —
+nomzodlarning 80% i o'tib ketdi va "eng yaxshi 33%" degan tanlov
+ma'nosini yo'qotdi.
+
+Yechim loyihaning o'z tamoyilidan keldi: **struktura "signal
+berilsinmi" deydi, sifat omillari "qaysi biri" deydi.** Bonuslar —
+sifat omillari, ya'ni ular REYTINGGA ta'sir qiladi, DARVOZAGA emas.
+`Scorer.rank()` chegarani `breakdown.base_total` bilan solishtiradi,
+saralashni esa to'liq ball bo'yicha qiladi.
+
+Natijada yangi qatlam na botni jimlatadi, na chegarani yuvib yuboradi.
+
+### O'lchov
+
+`python -m scripts.cryptospot3_olchov` (tarmoq talab qilmaydi):
+
+```
+Nomzodlar soni:        15 -> 15   (o'zgarmadi — hech biri to'siq emas)
+Chegaradan o'tganlar:   8 ->  8   (o'zgarmadi — darvoza bazaviy ballda)
+Bazaviy ball:  19.5 .. 63.8  (o'rtacha 50.4)
+Bonus:          4.6 .. 16.8  (o'rtacha 10.7, shift 25)
+Reyting tartibi bonusdan o'zgardimi: HA
+```
+
+Oxirgi qator — qatlamning butun ma'nosi. Bazaviy balli 63.8 bo'lgan
+nomzod to'liq ball bo'yicha 5-o'ringa tushdi, 59.7 balligi esa
+1-o'ringa chiqdi: strukturasi va sweep'i kuchliroq. Ya'ni QAYSI signal
+chiqishi o'zgardi, QANCHA signal chiqishi esa o'zgarmadi.
+
+**Bu haqiqiy bozorda tasdiqlanishi kerak.** Sun'iy to'plam chegara
+kalibrlash uchun qurilgan, foydani o'lchash uchun emas. Serverda:
+`python -m scripts.backtest --compare --days 730`.
+
+### BTC Dominance asosiy omil bo'lishdan chiqarildi
+
+Tajribali treyderlar bilan maslahat: dominance foydali, lekin
+ko'pchilik uchun qaror mezoni emas. Vaznlar qayta taqsimlandi:
+
+| Omil | Eski | Yangi |
+|---|---|---|
+| Halol ro'yxat STRUKTURA kengligi (SMC) | — | **30** |
+| Halol ro'yxat trend kengligi (EMA) | 25 | 15 |
+| Volatillik rejimi | 20 | 15 |
+| Agregat foydalanuvchi sig'imi | 20 | 20 |
+| Signal to'yinganligi | 15 | 10 |
+| BTC Dominance | **20** | **5** |
+| QT davri (AMDX) | — | 5 |
+
+Kunlik oldindan tahlil ham dominance'dan strukturaga o'tdi: endi u
+"nechta coin HH/HL qadam tashlayapti" degan savolga tayanadi.
+
+### QT haqida ochiq ogohlantirish
+
+QT davri SOAT bo'yicha aniqlanadi, ya'ni u bozor holatidan qat'i nazar
+har kuni bir xil ritmda o'zgaradi. Bu — o'lchanmagan taxmin. Shuning
+uchun vazni ataylab kichik (5) va davr -> ball moslashuvi
+(`QuarterPhase.score`) BOSHLANG'ICH qiymat.
+
+Yon ta'siri qayd etildi va test bilan qulflandi: QT omili indeks
+shiftini soatga bog'liq qiladi (95..100). "Erishib bo'lmas shift" bu
+loyihada uch marta muammo bo'lgan (32, 46, 47-bo'limlar), shuning
+uchun `test_qt_omili_shiftni_soatga_bogliq_qiladi` shiftning 95 dan
+pastga tushmasligini tekshiradi.
+
+### Struktura darvozasi — bor, lekin O'CHIRIQ
+
+`analysis.require_structure_alignment: false`. Yoqilsa, pasayish
+strukturasidagi (LH/LL) coin butunlay rad etiladi va voronkada
+`classic_ta:structure` qatori paydo bo'ladi. Bu `require_htf_alignment`
+va `require_confirmation` bilan bir xil naqsh: imkoniyat bor, lekin
+standart holatda yopiq — backtest tasdiqlamaguncha yoqilmaydi.
+
+### Yo'l-yo'lakay topilgan ikkita eski xato
+
+**1. `breakdown_to_text()` hech qayerda chaqirilmagan edi** (2-naqsh:
+"e'lon qilingan, lekin ulanmagan"). Bot "Nega bu signal?" tugmasida
+bazadagi XOM JSON ni ko'rsatib turardi — foydalanuvchi ekranida
+`{"symbol": "DOT", "components": [...]}` chiqardi. `breakdown_from_json()`
+qo'shildi va handler ulandi.
+
+**2. Salomatlik omillari shkalasi mos kelmasdi** (1-naqsh). Bot
+`HealthFactor.score` ni 0..1 oralig'ida yozadi, sayt esa uni
+to'g'ridan-to'g'ri foiz deb chizardi: haqiqiy ma'lumotda har bir omil
+"0" yoki "1" ko'rinardi. Xato bir necha oy sezilmadi, chunki demo
+ma'lumot 0-100 shkalada yozilgan edi va ekranni to'g'ri ko'rsatardi.
+Sahifa ham, demo skript ham tuzatildi, `web/tests/i18n.test.ts` ikkala
+tomonni qulfladi.
+
+### Admin panel
+
+Bot `/panel` da ham, veb admin panelida ham "SMC / LIT sozlamalari"
+bo'limi bor — FAQAT KO'RSATISH. Bu loyihada strategiya parametrlari
+`config/default.yaml` da yashaydi; ishga tushgan tizimda ularni
+saqlaydigan mexanizm yo'q. Tahrirlash tugmasini qo'yib, aslida hech
+narsa yozmaslik eng yomon variant bo'lardi: admin o'zgartirdim deb
+o'ylaydi, tizim esa eski qiymat bilan ishlashda davom etadi.
+
+## 58. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

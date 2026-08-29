@@ -840,6 +840,67 @@ async def self_audit_report(
 
 
 # --------------------------------------------------------------------------- #
+#  CryptoSpot3% (SMC / LIT / ICT) sozlamalari — FAQAT KO'RSATISH
+# --------------------------------------------------------------------------- #
+
+
+@router.callback_query(F.data == "admin:smc")
+async def smc_settings(
+    callback: CallbackQuery, config: AppConfig, language: str, **_: object
+) -> None:
+    """SMC/LIT/ICT qatlamining amaldagi sozlamalari.
+
+    NIMA UCHUN TAHRIRLASH YO'Q. Bu loyihada barcha strategiya
+    parametrlari `config/default.yaml` da yashaydi va joylashtirishda
+    o'zgaradi; ishga tushgan tizimda ularni saqlaydigan mexanizm yo'q.
+    Tugma qo'yib, aslida hech narsa yozmaslik — eng yomon variant:
+    admin o'zgartirdim deb o'ylaydi, tizim esa eski qiymat bilan
+    ishlashda davom etadi. Shuning uchun ekran amaldagi holatni
+    ko'rsatadi va qiymatlar qayerdan kelishini ochiq aytadi.
+    """
+    await callback.message.edit_text(
+        _smc_matni(config, language), reply_markup=back_button("home", language)
+    )
+    await callback.answer()
+
+
+def _smc_matni(config: AppConfig, language: str) -> str:
+    analysis = config.analysis
+    yalash = analysis.liquidity_sweep
+    sessiya = analysis.session_overlap
+    bonuslar = config.scoring.bonuses
+
+    def holat(yoqilgan: bool) -> str:
+        return "yoqilgan" if yoqilgan else "o'chirilgan"
+
+    oyna = (
+        f"{sessiya.start_hour_utc:02d}:00-{sessiya.end_hour_utc:02d}:00 UTC"
+        if sessiya.enabled
+        else "o'chirilgan"
+    )
+
+    qatorlar = [
+        t("admin.smc_sarlavha", language),
+        "",
+        f"<code>Struktura majburiy   {holat(analysis.require_structure_alignment)}</code>",
+        f"<code>Liquidity Sweep      {holat(yalash.enabled)}</code>",
+        f"<code>Yalash chuqurligi    {yalash.min_sweep_pct}%</code>",
+        f"<code>Qidiruv oynasi       {yalash.lookback_bars} sham</code>",
+        f"<code>Qaytish muddati      {yalash.max_reclaim_bars} sham</code>",
+        f"<code>Kill Zone            {oyna}</code>",
+        "",
+        f"<code>🔵 Struktura         +{bonuslar.structure:.0f}</code>",
+        f"<code>🧲 Liquidity Sweep   +{bonuslar.liquidity_sweep:.0f}</code>",
+        f"<code>⏰ Kill Zone         +{bonuslar.session_overlap:.0f}</code>",
+        "",
+        t("admin.smc_bonus_izoh", language),
+        "",
+        t("admin.smc_izoh", language),
+    ]
+    return "\n".join(qatorlar)
+
+
+# --------------------------------------------------------------------------- #
 #  Hali qurilmagan bo'limlar (10, 13 va 9-bosqichlarda ulanadi)
 # --------------------------------------------------------------------------- #
 

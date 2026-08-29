@@ -483,8 +483,14 @@ class MarketHealthLog(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     value: Mapped[float] = mapped_column(Float, nullable=False)
     band: Mapped[str] = mapped_column(String(8), nullable=False)
-    btc_dominance_score: Mapped[float | None] = mapped_column(Float)
+    #: ASOSIY omil (30) — SMC strukturasi bo'yicha kenglik
+    structure_breadth_score: Mapped[float | None] = mapped_column(Float)
+    #: EMA asosidagi eski kenglik — ikkinchi darajali (15)
     trend_breadth_score: Mapped[float | None] = mapped_column(Float)
+    #: Kichik vazn (5) — qo'shimcha kontekst
+    btc_dominance_score: Mapped[float | None] = mapped_column(Float)
+    #: QT (AMDX) davri (5)
+    quarterly_phase_score: Mapped[float | None] = mapped_column(Float)
     volatility_score: Mapped[float | None] = mapped_column(Float)
     user_capacity_score: Mapped[float | None] = mapped_column(Float)
     saturation_score: Mapped[float | None] = mapped_column(Float)

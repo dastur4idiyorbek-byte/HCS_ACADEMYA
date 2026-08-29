@@ -132,6 +132,7 @@ ADMIN_SECTIONS: list[tuple[str, str]] = [
     ("salomatlik", "admin.salomatlik"),
     ("sokinlik", "admin.sokinlik"),
     ("hisobot", "admin.hisobot"),
+    ("smc", "admin.smc"),
     ("risk", "admin.risk_sozlamalari"),
 ]
 

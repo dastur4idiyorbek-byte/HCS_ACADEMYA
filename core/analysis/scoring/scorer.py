@@ -16,12 +16,22 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 
 from core.analysis.indicators import Confirmation, IndicatorSnapshot
+from core.analysis.level_types import LevelType
+from core.analysis.market_structure import MarketStructure
+from core.analysis.scoring.bonuses import build_bonus_components
 from core.analysis.scoring.factors import build_components
-from core.analysis.support_resistance import ZoneMap
+from core.analysis.support_resistance import LiquiditySweep, ZoneMap
 from core.config.schema import AppConfig, TradeRulesConfig
-from core.domain.models import ScoreBreakdown, SignalCandidate, SignalLevels, SRZone
+from core.domain.models import (
+    ScoreBreakdown,
+    ScoreComponent,
+    SignalCandidate,
+    SignalLevels,
+    SRZone,
+)
 from core.utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -38,6 +48,11 @@ class RankedCandidate:
     @property
     def score(self) -> float:
         return self.candidate.score
+
+    @property
+    def base_score(self) -> float:
+        """Chegara TEKSHIRILADIGAN ball — bonussiz."""
+        return self.candidate.breakdown.base_total
 
 
 class Scorer:
@@ -56,6 +71,10 @@ class Scorer:
         levels: SignalLevels,
         htf_alignment: float | None = None,
         rules: TradeRulesConfig | None = None,
+        structure: MarketStructure | None = None,
+        level_type: LevelType = LevelType.PLAIN,
+        sweep: LiquiditySweep | None = None,
+        moment: datetime | None = None,
     ) -> ScoreBreakdown:
         """Bitta nomzod uchun ball tafsilotini quradi.
 
@@ -72,6 +91,10 @@ class Scorer:
         komponenti "minimaldan past" deb 0 qaytaradi — 15 balldan
         ayrilish esa chegaradan o'tishni imkonsiz qiladi. Ya'ni
         3-tuzatish jimgina bekor bo'lardi.
+
+        `structure`, `level_type`, `sweep`, `moment` — CryptoSpot3%
+        omillari. Ular BONUS beradi: berilmasa nomzod bazaviy 100
+        ballik tizimda baholanadi va hech narsa yo'qotmaydi.
         """
         komponentlar = build_components(
             zone_map=zone_map,
@@ -85,6 +108,14 @@ class Scorer:
             rules=rules if rules is not None else self._config.trade_rules,
             htf_alignment=htf_alignment,
         )
+        komponentlar += build_bonus_components(
+            structure=structure,
+            level_type=level_type,
+            sweep=sweep,
+            moment=moment,
+            bonuses=self._config.scoring.bonuses,
+            session=self._config.analysis.session_overlap,
+        )
         return ScoreBreakdown(symbol=symbol, components=komponentlar)
 
     def rank(
@@ -94,10 +125,25 @@ class Scorer:
     ) -> list[RankedCandidate]:
         """Nomzodlarni ballga qarab saralaydi va chegarani qo'llaydi.
 
+        DARVOZA BAZAVIY BALLDA, SARALASH TO'LIQ BALLDA.
+
+        Chegara (50/55) `scripts.kalibrlash` bilan BAZAVIY 100 ballik
+        shkalada o'lchangan. CryptoSpot3% bonuslari shkalani 125 ga
+        kengaytiradi — agar chegara to'liq ballga qo'llansa, u jimgina
+        yumshab qolardi: o'lchovda nomzodlarning 80% i o'tib ketdi va
+        "eng yaxshi 33%" degan tanlov ma'nosini yo'qotdi
+        (`tests/core/test_chegara_erishiladi.py` shuni ushladi).
+
+        Shuning uchun ikki savol ajratilgan — bu loyihaning o'z
+        tamoyili: STRUKTURA "signal berilsinmi" deydi, sifat omillari
+        esa "ko'p nomzod ichidan qaysi biri" deydi. Bonuslar aynan
+        sifat omillari, ya'ni ular reytingga ta'sir qiladi, darvozaga
+        emas. Natijada yangi bilim na botni jimlatadi, na chegarani
+        yuvib yuboradi.
+
         Args:
-            threshold: minimal ball. `None` — Bozor Salomatligi past, hech
-                kim o'tmaydi (3.5-band: "indeks past -> yangi signal umuman
-                berilmaydi").
+            threshold: minimal BAZAVIY ball. `None` — Bozor Salomatligi
+                past, hech kim o'tmaydi (3.5-band).
         """
         tartiblangan = sorted(candidates, key=lambda c: c.score, reverse=True)
 
@@ -105,16 +151,18 @@ class Scorer:
             RankedCandidate(
                 candidate=nomzod,
                 rank=index + 1,
-                passed_threshold=threshold is not None and nomzod.score >= threshold,
+                passed_threshold=(
+                    threshold is not None and nomzod.breakdown.base_total >= threshold
+                ),
             )
             for index, nomzod in enumerate(tartiblangan)
         ]
 
         otganlar = sum(1 for r in natija if r.passed_threshold)
         if natija and not otganlar:
-            eng_yuqori = natija[0].score
+            eng_yuqori = max(r.base_score for r in natija)
             logger.info(
-                "Chegaradan hech kim o'tmadi: eng yuqori ball %.1f, chegara %s — "
+                "Chegaradan hech kim o'tmadi: eng yuqori bazaviy ball %.1f, chegara %s — "
                 "signal berilmaydi (normal holat)",
                 eng_yuqori,
                 f"{threshold:.0f}" if threshold is not None else "yopiq",
@@ -139,12 +187,16 @@ def breakdown_to_json(breakdown: ScoreBreakdown) -> str:
             "symbol": breakdown.symbol,
             "total": round(breakdown.total, 2),
             "maximum": round(breakdown.maximum, 2),
+            # Chegara BAZAVIY shkalada o'lchanadi — postmortem uchun
+            # ikkalasi ham kerak.
+            "base_total": round(breakdown.base_total, 2),
             "components": [
                 {
                     "name": komponent.name,
                     "earned": round(komponent.earned, 2),
                     "maximum": round(komponent.maximum, 2),
                     "explanation": komponent.explanation,
+                    "bonus": komponent.bonus,
                 }
                 for komponent in breakdown.components
             ],
@@ -153,10 +205,67 @@ def breakdown_to_json(breakdown: ScoreBreakdown) -> str:
     )
 
 
+def breakdown_from_json(raw: str) -> ScoreBreakdown | None:
+    """Bazada saqlangan JSON dan ball tafsilotini tiklaydi.
+
+    NIMA UCHUN KERAK BO'LIB QOLDI: `breakdown_to_text()` yozilgan, lekin
+    HECH QAYERDA CHAQIRILMAGAN edi — bot "Nega bu signal?" tugmasida
+    bazadagi XOM JSON ni ko'rsatib turardi. Bu loyihaning 2-naqshi:
+    "e'lon qilingan, lekin ulanmagan".
+
+    Eski yozuvlarda `bonus` kaliti yo'q — u `False` deb olinadi.
+
+    Buzuq yoki begona matn kelsa `None` qaytadi: chaqiruvchi tomon
+    matnning o'zini ko'rsatadi (qo'lda kiritilgan signalda izoh turadi).
+    """
+    try:
+        xom = json.loads(raw)
+        komponentlar = [
+            ScoreComponent(
+                name=str(k["name"]),
+                earned=float(k["earned"]),
+                maximum=float(k["maximum"]),
+                explanation=str(k.get("explanation", "")),
+                bonus=bool(k.get("bonus", False)),
+            )
+            for k in xom["components"]
+        ]
+    except (TypeError, ValueError, KeyError):
+        return None
+    if not komponentlar:
+        return None
+    return ScoreBreakdown(symbol=str(xom.get("symbol", "")), components=komponentlar)
+
+
+#: Bonus omillari uchun belgi — "Nega bu signal?" ekranida ajratib turadi.
+BONUS_BELGILARI = {
+    "structure": "🔵",
+    "liquidity_sweep": "🧲",
+    "session_overlap": "⏰",
+}
+
+
 def breakdown_to_text(breakdown: ScoreBreakdown) -> str:
-    """3.6-band: "Nega bu signal?" tugmasi uchun o'qiladigan matn."""
-    qatorlar = [f"📊 {breakdown.symbol} — {breakdown.total:.0f}/{breakdown.maximum:.0f} ball", ""]
+    """3.6-band: "Nega bu signal?" tugmasi uchun o'qiladigan matn.
+
+    TOPILMAGAN BONUS KO'RSATILMAYDI. "Liquidity Sweep topilmadi"
+    qatorini chiqarish foydalanuvchini chalkashtiradi: u yo'qlikni
+    kamchilik deb o'qiydi, holbuki bu omil bo'lmasligi mutlaqo normal.
+    Bazaviy omillar esa DOIM ko'rsatiladi — ular ballning o'zagi.
+    """
+    qatorlar = [
+        f"📊 {breakdown.symbol} — {breakdown.total:.0f}/{breakdown.maximum:.0f} ball",
+        "",
+    ]
     for komponent in breakdown.components:
+        if komponent.bonus and komponent.earned <= 0:
+            continue
+        if komponent.bonus:
+            belgi = BONUS_BELGILARI.get(komponent.name, "✨")
+            qatorlar.append(
+                f"{belgi} +{komponent.earned:.0f} — {komponent.explanation}"
+            )
+            continue
         ulush = "▰" * round(komponent.ratio * 5) + "▱" * (5 - round(komponent.ratio * 5))
         qatorlar.append(
             f"{ulush} {komponent.earned:.0f}/{komponent.maximum:.0f} — {komponent.explanation}"

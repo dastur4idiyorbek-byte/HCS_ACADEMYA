@@ -23,6 +23,7 @@ from bot.services.broadcast import broadcast_signal, obunachilar
 from core.analysis import decide_entry_plan
 from core.analysis.indicators import adx, atr_pct, timeframe_trend
 from core.analysis.market_health import HealthInputs, MarketHealthCalculator
+from core.analysis.market_structure import analyze_structure
 from core.analysis.scoring import breakdown_to_json
 from core.analysis.strategies import build_strategies, required_timeframes
 from core.config.schema import AppConfig
@@ -200,6 +201,7 @@ class PipelineRunner:
         kunlik = self._config.analysis.market_health_timeframe
 
         trendlar = {}
+        strukturalar = {}
         adx_qiymatlari = {}
         for symbol, tf_shamlar in candles.items():
             seriya = tf_shamlar.get(kunlik) or tf_shamlar.get(
@@ -232,6 +234,17 @@ class PipelineRunner:
                 indicators.ema_slow,
                 indicators.htf_trend_requires_price_above_fast,
             )
+            # 3.7-band, ASOSIY omil: SMC strukturasi. EMA kengligidan
+            # farqi — u narxning O'Z qadamlarini (HH/HL) o'qiydi, ya'ni
+            # o'rtacha bilan silliqlanmaydi va burilishni birinchi
+            # bo'lib ko'rsatadi (57-bo'lim).
+            struktura = analyze_structure(
+                seriya,
+                self._config.analysis.market_structure.swing_lookback,
+                self._config.analysis.market_structure.min_swings,
+            )
+            strukturalar[symbol] = struktura.direction
+
             qiymat = adx(seriya, indicators.adx_period)
             if qiymat is not None:
                 adx_qiymatlari[symbol] = qiymat
@@ -256,6 +269,7 @@ class PipelineRunner:
                 computed_at=utc_now(),
                 btc_dominance=dominance.value if dominance else None,
                 btc_dominance_change_24h=dominance.change_24h if dominance else None,
+                universe_structures=strukturalar,
                 universe_trends=trendlar,
                 universe_adx=adx_qiymatlari,
                 capacity=sigim,

@@ -2,7 +2,7 @@ import { SalomatlikShkalasi, SalomatlikYoq } from "@/components/Salomatlik";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { salomatlikBandlari } from "@/lib/config";
+import { salomatlikBandlari, smcSozlamalari } from "@/lib/config";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import { kutilayotganTolovlar, salomatlikOxirgi, salomatlikTarixi } from "@/lib/queries";
@@ -18,6 +18,8 @@ export default async function Admin() {
   const tolovlar = kutilayotganTolovlar(50);
   const salomatlik = salomatlikOxirgi();
   const tarix = salomatlikTarixi(8);
+  const smc = smcSozlamalari();
+  const holat = (yoq: boolean) => t(yoq ? "admin.yoqilgan" : "admin.ochirilgan");
   const bandlar = salomatlikBandlari();
 
   return (
@@ -131,7 +133,58 @@ export default async function Admin() {
             </>
           )}
         </Card>
+
+        {/* CryptoSpot3% qatlami — FAQAT KO'RSATISH.
+            Tahrirlash tugmasini qo'yib, aslida saqlamaslik eng yomon
+            variant bo'lardi: admin o'zgartirdim deb o'ylaydi, tizim
+            esa eski qiymat bilan ishlashda davom etadi. */}
+        <Card>
+          <CardTitle>{t("admin.smc")}</CardTitle>
+          <CardHint>{t("admin.smc_izoh")}</CardHint>
+
+          <dl className="mt-3 space-y-2 text-sm">
+            <SozlamaQatori
+              nom={t("admin.smc_struktura_majburiy")}
+              qiymat={holat(smc.strukturaMajburiy)}
+            />
+            <SozlamaQatori nom={t("admin.smc_yalash")} qiymat={holat(smc.yalashYoqilgan)} />
+            <SozlamaQatori
+              nom={t("admin.smc_yalash_chuqurlik")}
+              qiymat={`${smc.yalashChuqurligi}%`}
+            />
+            <SozlamaQatori nom={t("admin.smc_yalash_oyna")} qiymat={String(smc.yalashOynasi)} />
+            <SozlamaQatori nom={t("admin.smc_qaytish")} qiymat={String(smc.qaytishShamlari)} />
+            <SozlamaQatori
+              nom={t("admin.smc_sessiya")}
+              qiymat={
+                smc.sessiyaYoqilgan
+                  ? `${String(smc.sessiyaBoshi).padStart(2, "0")}:00-` +
+                    `${String(smc.sessiyaOxiri).padStart(2, "0")}:00 UTC`
+                  : holat(false)
+              }
+            />
+          </dl>
+
+          <p className="text-matn-past mt-4 text-xs uppercase">{t("admin.smc_bonuslar")}</p>
+          <dl className="mt-2 space-y-2 text-sm">
+            <SozlamaQatori nom="🔵 Struktura" qiymat={`+${smc.bonusStruktura}`} />
+            <SozlamaQatori nom="🧲 Liquidity Sweep" qiymat={`+${smc.bonusYalash}`} />
+            <SozlamaQatori nom="⏰ Kill Zone" qiymat={`+${smc.bonusSessiya}`} />
+          </dl>
+          <p className="text-matn-past mt-3 text-xs leading-relaxed">
+            {t("admin.smc_bonus_izoh")}
+          </p>
+        </Card>
       </div>
     </>
+  );
+}
+
+function SozlamaQatori({ nom, qiymat }: { nom: string; qiymat: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-matn-past">{nom}</dt>
+      <dd className="raqam text-sarlavha font-semibold">{qiymat}</dd>
+    </div>
   );
 }

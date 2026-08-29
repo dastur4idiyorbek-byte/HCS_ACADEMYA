@@ -192,7 +192,11 @@ def test_qulay_sharoitda_nomzod_chiqadi(config) -> None:  # noqa: ANN001
     assert natija.symbol == "BTC"
     assert natija.score > 0
     assert natija.levels.stop < natija.levels.entry < natija.levels.tp1 < natija.levels.tp2
-    assert natija.breakdown.maximum == pytest.approx(100)
+    # Shkala: bazaviy 100 + CryptoSpot3% bonuslari
+    assert natija.breakdown.base_total <= 100
+    assert natija.breakdown.maximum == pytest.approx(
+        100 + config.scoring.bonuses.total()
+    )
 
 
 def test_nomzod_uchta_qatlamdan_otadi(config) -> None:  # noqa: ANN001
@@ -200,10 +204,14 @@ def test_nomzod_uchta_qatlamdan_otadi(config) -> None:  # noqa: ANN001
     natija = ClassicTaStrategy(config).analyze(kirish(config, qaytishli_kotarilish()))
 
     assert natija is not None
-    nomlar = {k.name for k in natija.breakdown.components}
-    assert nomlar == {
+    bazaviy = {k.name for k in natija.breakdown.components if not k.bonus}
+    assert bazaviy == {
         "support_resistance", "trend", "rsi", "volume", "macd", "risk_reward"
     }
+    # CryptoSpot3% qatlami HAM hisoblanadi, lekin u to'siq emas: bonusi
+    # nol bo'lgan nomzod ham shu yergacha yetib keladi.
+    bonuslar = {k.name for k in natija.breakdown.components if k.bonus}
+    assert bonuslar == {"structure", "liquidity_sweep", "session_overlap"}
     assert natija.halal_verdict.is_tradable
 
 
@@ -457,3 +465,38 @@ def test_indikator_tasdigi_bolmasa_ham_daraja_quriladi(config) -> None:  # noqa:
     assert qoidalar.min_stop_distance_pct <= darajalar.stop_distance_pct
     assert darajalar.stop_distance_pct <= qoidalar.max_stop_distance_pct
     assert darajalar.risk_reward_tp2 >= qoidalar.min_risk_reward
+
+
+# --------------------------------------------------------------------------- #
+#  CryptoSpot3% qatlami — BONUS, TO'SIQ EMAS
+# --------------------------------------------------------------------------- #
+
+
+def test_struktura_standart_holatda_tosiq_emas(config) -> None:  # noqa: ANN001
+    """Metodika hujjatining o'z talabi: yangi omil yo'lni yopmasin.
+
+    Bu loyihada qat'iy "VA" filtrlarini ko'paytirish signal voronkasini
+    allaqachon nolga tushirgan (44-bo'lim). Shuning uchun
+    `require_structure_alignment` standart holatda `False`.
+    """
+    assert config.analysis.require_structure_alignment is False
+
+
+def test_struktura_darvozasi_yoqilsa_pasayish_rad_etiladi(config) -> None:  # noqa: ANN001
+    """Yoqilganda esa u haqiqatan ishlashi va VORONKADA ko'rinishi kerak."""
+    import dataclasses
+
+    from core.pipeline.context import stage_label
+
+    qattiq = dataclasses.replace(
+        config,
+        analysis=dataclasses.replace(config.analysis, require_structure_alignment=True),
+    )
+    strategiya = ClassicTaStrategy(qattiq)
+    # Pasayish strukturasi: narx pastga qarab qadam tashlaydi, lekin
+    # oxirida support zonasiga qaytadi.
+    strategiya.analyze(kirish(qattiq, qaytishli_kotarilish()))
+
+    # Darvoza yoqilgan holatda rad sababi voronkaga tushadigan nom
+    # bilan yozilishi kerak — kodning o'zi ekranda ko'rinmasin.
+    assert stage_label("classic_ta:structure") != "classic_ta:structure"

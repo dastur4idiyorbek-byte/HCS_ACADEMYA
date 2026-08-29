@@ -125,6 +125,45 @@ class EntryOrderConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class MarketStructureConfig:
+    """SMC — struktura tahlili (CryptoSpot3%, 2-qism)."""
+
+    #: Swing tasdiqlash oynasi. `support_resistance.swing_lookback` dan
+    #: ALOHIDA: zona qurish uchun ko'p, lekin mayda pivotlar foydali;
+    #: struktura uchun esa kamroq va yiriklari kerak.
+    swing_lookback: int = 5
+    #: Yo'nalish e'lon qilish uchun minimal swing soni (2 cho'qqi + 2 chuqurlik)
+    min_swings: int = 4
+
+
+@dataclass(frozen=True, slots=True)
+class LiquiditySweepConfig:
+    """LIT — "yalab o'tib qaytish" naqshi (CryptoSpot3%, 3-qism)."""
+
+    enabled: bool = True
+    #: Naqsh shuncha oxirgi sham ichida qidiriladi
+    lookback_bars: int = 30
+    #: Narx daraja chekkasidan kamida shuncha foiz chuqur kirishi kerak.
+    #: BOSHLANG'ICH qiymat — backtest bilan sozlanadi.
+    min_sweep_pct: float = 0.3
+    #: Qaytish shuncha sham ichida sodir bo'lishi kerak
+    max_reclaim_bars: int = 3
+
+
+@dataclass(frozen=True, slots=True)
+class SessionOverlapConfig:
+    """ICT Kill Zone — London/Nyu-York kesishuvi (CryptoSpot3%, 4-qism).
+
+    Kripto 24/7 ishlaydi, ya'ni bu QAT'IY FILTR EMAS — faqat ball
+    beruvchi qo'shimcha omil. Aniq soatlar backtest bilan tasdiqlanadi.
+    """
+
+    enabled: bool = True
+    start_hour_utc: int = 13
+    end_hour_utc: int = 16
+
+
+@dataclass(frozen=True, slots=True)
 class AnalysisConfig:
     """3.2-band: asosiy klassik strategiya uchun standart timeframe to'plami."""
 
@@ -156,6 +195,18 @@ class AnalysisConfig:
     #: kechikuvchi o'lchov. Uni majburiy qilish burilish nuqtasidagi har
     #: qanday kirishni to'sadi.
     require_htf_alignment: bool = False
+    #: SMC strukturasi muvofiqligi signal uchun MAJBURIYmi.
+    #:
+    #: `False` (standart) — struktura faqat BALL BONUSI beradi. Metodika
+    #: hujjatining o'z talabi ham shu: yangi omillar qat'iy filtr
+    #: sifatida qo'shilmasin, chunki bu loyihada ko'p sonli "VA"
+    #: filtri signal voronkasini allaqachon nolga tushirgan (44-bo'lim).
+    #:
+    #: `True` qilinsa — pasayish strukturasidagi (LH/LL) coin butunlay
+    #: rad etiladi. Buni FAQAT backtest tasdiqlagandan keyin yoqing:
+    #: voronkada `classic_ta:structure` qatori qancha nomzodni
+    #: to'xtatayotganini ko'rsatadi.
+    require_structure_alignment: bool = False
     #: Kelajakdagi pozitsion strategiya uchun zaxira — asosiy strategiya
     #: ishlatmaydi (u o'z timeframelarini `required_timeframes()` da e'lon qiladi).
     positional_timeframes: list[str] = field(
@@ -164,6 +215,9 @@ class AnalysisConfig:
     entry_order: EntryOrderConfig = field(default_factory=EntryOrderConfig)
     support_resistance: SupportResistanceConfig = field(default_factory=SupportResistanceConfig)
     indicators: IndicatorConfig = field(default_factory=IndicatorConfig)
+    market_structure: MarketStructureConfig = field(default_factory=lambda: MarketStructureConfig())
+    liquidity_sweep: LiquiditySweepConfig = field(default_factory=lambda: LiquiditySweepConfig())
+    session_overlap: SessionOverlapConfig = field(default_factory=lambda: SessionOverlapConfig())
 
 
 # --------------------------------------------------------------------------- #
@@ -219,8 +273,32 @@ class ScoreThresholds:
 
 
 @dataclass(frozen=True, slots=True)
+class ScoreBonuses:
+    """CryptoSpot3% omillari — bazaviy 100 ball USTIGA qo'shiladigan bonus.
+
+    NIMA UCHUN BONUS, VAZN EMAS. Bazaviy vaznlar (`ScoreWeights`)
+    o'lchab tanlangan: `scripts.kalibrlash` 27 ta sozlamada eng yuqori
+    ball 59.7 chiqargan va chegaralar (50/55) shu taqsimotdan olingan.
+    Yangi omillarni vazn sifatida kiritish eski omillarni siqib,
+    ballarni pastga tushirardi — ya'ni chegaralar yana erishib bo'lmas
+    bo'lib qolardi (`docs/ARXITEKTURA.md`, 40- va 46-bo'limlar).
+
+    Bonus esa faqat YUQORIGA suradi: topilmasa nol, topilsa qo'shimcha.
+    Chegaralarni qayta kalibrlash shart emas.
+    """
+
+    structure: float = 10
+    liquidity_sweep: float = 10
+    session_overlap: float = 5
+
+    def total(self) -> float:
+        return self.structure + self.liquidity_sweep + self.session_overlap
+
+
+@dataclass(frozen=True, slots=True)
 class ScoringConfig:
     weights: ScoreWeights = field(default_factory=ScoreWeights)
+    bonuses: ScoreBonuses = field(default_factory=ScoreBonuses)
     thresholds: ScoreThresholds = field(default_factory=ScoreThresholds)
 
 
@@ -377,19 +455,37 @@ class RiskEngineConfig:
 
 @dataclass(frozen=True, slots=True)
 class MarketHealthWeights:
-    btc_dominance_stability: float = 20
-    halal_trend_breadth: float = 25
-    volatility_regime: float = 20
+    """Indeks omillarining vazni (jami 100).
+
+    BTC DOMINANCE 20 DAN 5 GA TUSHIRILDI. Tajribali treyderlar bilan
+    maslahat natijasi: dominance foydali, lekin ikkinchi darajali
+    ko'rsatkich — ko'pchilik uchun qaror mezoni emas. Uning o'rniga
+    ASOSIY omil sifatida halol ro'yxatning STRUKTURA holati
+    (`market_structure.py` dan: nechta coin HH/HL ko'tarilishda) keldi.
+    Bu — real narx harakatiga asoslangan o'lchov.
+    """
+
+    #: YANGI, ASOSIY: SMC strukturasi bo'yicha ko'tarilishdagi coinlar ulushi
+    halal_structure_breadth: float = 30
+    #: EMA asosidagi eski kenglik — saqlanadi, lekin ikkinchi darajali
+    halal_trend_breadth: float = 15
+    volatility_regime: float = 15
     aggregate_user_capacity: float = 20
-    signal_saturation: float = 15
+    signal_saturation: float = 10
+    #: Kamaytirilgan: qo'shimcha kontekst, hal qiluvchi omil emas
+    btc_dominance_stability: float = 5
+    #: QT (AMDX) davri — BOSHLANG'ICH vazn, backtest bilan tasdiqlanadi
+    quarterly_phase: float = 5
 
     def total(self) -> float:
         return (
-            self.btc_dominance_stability
+            self.halal_structure_breadth
             + self.halal_trend_breadth
             + self.volatility_regime
             + self.aggregate_user_capacity
             + self.signal_saturation
+            + self.btc_dominance_stability
+            + self.quarterly_phase
         )
 
 

@@ -4,6 +4,7 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { bosqichNomi, vaqtDarvozasimi, voronkaTartibi } from "@/lib/bosqichlar";
 import { salomatlikBandlari } from "@/lib/config";
+import { davr, keyingiDavr } from "@/lib/davr";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import { ballStatistikasi, salomatlikOxirgi, salomatlikTarixi, voronka } from "@/lib/queries";
@@ -13,6 +14,19 @@ import { hozir } from "@/lib/vaqt";
 export const dynamic = "force-dynamic";
 
 const SOATLAR = 24;
+
+/** Omil balli — bazada 0..1, ekranda foiz.
+ *
+ * SHKALA MOS KELMASLIGI (1-naqsh). Bot `HealthFactor.score` ni
+ * o'zgartirmasdan yozadi, ya'ni 0..1 oralig'ida. Sahifa esa uni
+ * to'g'ridan-to'g'ri foiz deb chizardi: haqiqiy ma'lumotda har bir
+ * omil "0" yoki "1" bo'lib ko'rinardi va chiziqchalar deyarli bo'sh
+ * turardi. Buni demo ma'lumot yashirgan edi — u 0-100 shkalada
+ * yozilgani uchun ekran to'g'ri ko'rinardi.
+ */
+function omilFoizi(ball: number): number {
+  return Math.round(Math.min(1, Math.max(0, ball)) * 100);
+}
 
 /** Bozor Salomatligi va "nega signal yo'q" BIR SAHIFADA.
  *
@@ -42,15 +56,25 @@ export default async function Salomatlik() {
   const jami = haqiqiy.reduce((s, q) => s + q.count, 0);
   const eng = haqiqiy.reduce((m, q) => Math.max(m, q.count), 0);
 
+  // Tartib — VAZN bo'yicha, og'iridan yengiliga. Struktura kengligi
+  // birinchi: u endi indeksning asosiy omili (30), BTC Dominance esa
+  // 20 dan 5 ga tushirildi (docs/ARXITEKTURA.md, 57-bo'lim).
   const omillar = salomatlik
     ? [
+        { kalit: "salomatlik.struktura", qiymat: salomatlik.structureBreadthScore },
         { kalit: "salomatlik.kenglik", qiymat: salomatlik.trendBreadthScore },
-        { kalit: "salomatlik.dominatsiya", qiymat: salomatlik.btcDominanceScore },
-        { kalit: "salomatlik.volatillik", qiymat: salomatlik.volatilityScore },
         { kalit: "salomatlik.sigim", qiymat: salomatlik.userCapacityScore },
+        { kalit: "salomatlik.volatillik", qiymat: salomatlik.volatilityScore },
         { kalit: "salomatlik.toyinganlik", qiymat: salomatlik.saturationScore },
+        { kalit: "salomatlik.dominatsiya", qiymat: salomatlik.btcDominanceScore },
+        { kalit: "salomatlik.davr", qiymat: salomatlik.quarterlyPhaseScore },
       ].filter((o) => o.qiymat !== null)
     : [];
+
+  // QT davri indeks HISOBLANGAN paytga qarab aniqlanadi, "hozir" ga
+  // emas: shkala o'sha lahzaning surati, ikkalasi bir vaqtga tegishli
+  // bo'lishi kerak.
+  const joriyDavr = salomatlik?.createdAt ? davr(salomatlik.createdAt) : null;
 
   return (
     <>
@@ -71,6 +95,21 @@ export default async function Salomatlik() {
               <SalomatlikYoq til={til} />
             )}
           </div>
+          {joriyDavr && (
+            <div className="border-ramka/40 mt-4 border-t pt-3">
+              <p className="text-sm">
+                <span aria-hidden>🗓️ </span>
+                <span className="text-matn-past">{t("salomatlik.davr_sarlavha")}: </span>
+                <span className="text-sarlavha font-semibold">
+                  {t(`salomatlik.davr_${joriyDavr}`)}
+                </span>
+              </p>
+              <p className="text-matn-past mt-1 text-xs">
+                {t("salomatlik.davr_keyingi")}: {keyingiDavr(joriyDavr)} · {" "}
+                {t("salomatlik.davr_izoh")}
+              </p>
+            </div>
+          )}
           {salomatlik?.createdAt && (
             <p className="text-matn-past mt-3 text-center text-xs">
               {t("umumiy.yangilangan")}: {sana(salomatlik.createdAt)} UTC
@@ -88,11 +127,11 @@ export default async function Salomatlik() {
                   <span className="bg-fon h-2 flex-1 overflow-hidden rounded-full">
                     <span
                       className="bg-yaxshi block h-full rounded-full"
-                      style={{ width: `${Math.min(100, Math.max(0, o.qiymat!))}%` }}
+                      style={{ width: `${omilFoizi(o.qiymat!)}%` }}
                     />
                   </span>
                   <span className="raqam text-matn-past w-10 text-right text-xs">
-                    {o.qiymat!.toFixed(0)}
+                    {omilFoizi(o.qiymat!)}%
                   </span>
                 </li>
               ))}

@@ -36,6 +36,7 @@ def kirish(**kwargs) -> HealthInputs:
         "computed_at": HOZIR,
         "btc_dominance": 54.0,
         "btc_dominance_change_24h": 0.1,
+        "universe_structures": {f"C{i}": TrendDirection.UP for i in range(30)},
         "universe_trends": {f"C{i}": TrendDirection.UP for i in range(30)},
         "universe_adx": {f"C{i}": 45.0 for i in range(30)},
         "capacity": AggregateCapacity(10, 10, 1000.0, 1000.0),
@@ -53,14 +54,35 @@ def kirish(**kwargs) -> HealthInputs:
 def test_ideal_bozorda_indeks_yuqori(calculator) -> None:  # noqa: ANN001
     salomatlik = calculator.compute(kirish())
 
-    assert salomatlik.value == pytest.approx(100.0)
+    # 100 EMAS: QT (AMDX) omili soatga bog'liq va faqat X davrida
+    # to'liq ball beradi. Uning vazni 5, ya'ni shift 95-100 oralig'ida
+    # yuradi — "yashil" bandga (80+) yetish uchun bu yetarli.
+    assert salomatlik.value >= 95.0
     assert salomatlik.band is HealthBand.HIGH
+
+
+def test_qt_omili_shiftni_soatga_bogliq_qiladi(calculator) -> None:  # noqa: ANN001
+    """QT davri soat bo'yicha o'zgaradi — buni OCHIQ qayd etamiz.
+
+    Bu loyihada "erishib bo'lmas shift" allaqachon uch marta muammo
+    bo'lgan (32, 46, 47-bo'limlar). QT omili shiftni 95 dan pastga
+    tushirmasligi kerak, aks holda u indeksni jimgina bo'g'ardi.
+    """
+    from datetime import timedelta
+
+    qiymatlar = [
+        calculator.compute(kirish(computed_at=HOZIR.replace(hour=0) + timedelta(hours=s))).value
+        for s in range(24)
+    ]
+    assert min(qiymatlar) >= 95.0
+    assert max(qiymatlar) == pytest.approx(100.0), "X davrida to'liq ball berilishi kerak"
 
 
 def test_yomon_bozorda_indeks_past(calculator) -> None:  # noqa: ANN001
     salomatlik = calculator.compute(
         kirish(
             btc_dominance_change_24h=-3.0,
+            universe_structures={f"C{i}": TrendDirection.DOWN for i in range(30)},
             universe_trends={f"C{i}": TrendDirection.DOWN for i in range(30)},
             universe_adx={f"C{i}": 12.0 for i in range(30)},
             capacity=AggregateCapacity(10, 0, 0.0, 1000.0),
@@ -188,18 +210,37 @@ def test_har_bir_bozor_omili_yoq_bolsa_ball_nol(calculator, yoq: str) -> None:  
 # --------------------------------------------------------------------------- #
 
 
-def test_kunlik_tahlil_dominancega_tayanadi(calculator) -> None:  # noqa: ANN001
+def test_kunlik_tahlil_STRUKTURAGA_tayanadi(calculator) -> None:  # noqa: ANN001
+    """Manba o'zgardi: BTC Dominance emas, SMC struktura kengligi.
+
+    Dominance foydali, lekin ko'pchilik treyder uchun qaror mezoni
+    emas — 57-bo'lim. Endi kun boshidagi taxmin "nechta coin HH/HL
+    strukturasida" degan savolga tayanadi.
+    """
+    yaxshi = calculator.daily_preview(
+        kirish(universe_structures={f"C{i}": TrendDirection.UP for i in range(30)})
+    )
+    yomon = calculator.daily_preview(
+        kirish(universe_structures={f"C{i}": TrendDirection.DOWN for i in range(30)})
+    )
+
+    assert yaxshi.value > yomon.value
+
+
+def test_kunlik_tahlilda_dominance_endi_hal_qilmaydi(calculator) -> None:  # noqa: ANN001
+    """Dominance kun boshida neytral — u endi taxminni boshqarmaydi."""
     yaxshi = calculator.daily_preview(kirish(btc_dominance_change_24h=0.1))
     yomon = calculator.daily_preview(kirish(btc_dominance_change_24h=3.0))
 
-    assert yaxshi.value > yomon.value
+    assert yaxshi.value == pytest.approx(yomon.value)
 
 
 def test_kunlik_tahlilda_boshqa_omillar_neytral(calculator) -> None:  # noqa: ANN001
     """Nol qo'yilsa kun boshida tizim har doim "qizil" bo'lardi."""
     tahlil = calculator.daily_preview(kirish())
 
-    boshqalar = [f for f in tahlil.factors if f.name != "btc_dominance_stability"]
+    olchanadigan = {"halal_structure_breadth", "quarterly_phase"}
+    boshqalar = [f for f in tahlil.factors if f.name not in olchanadigan]
     assert all(f.score == 0.5 for f in boshqalar)
     assert tahlil.band is not HealthBand.LOW
 
@@ -217,6 +258,7 @@ def test_indeks_ball_chegarasini_boshqaradi(calculator, config) -> None:  # noqa
     past = calculator.compute(
         kirish(
             btc_dominance_change_24h=-3.0,
+            universe_structures={f"C{i}": TrendDirection.DOWN for i in range(30)},
             universe_trends={f"C{i}": TrendDirection.DOWN for i in range(30)},
             universe_adx={f"C{i}": 10.0 for i in range(30)},
             capacity=AggregateCapacity(10, 0, 0.0, 1000.0),
@@ -255,7 +297,7 @@ def test_dashboard_matni_sababni_korsatadi(calculator) -> None:  # noqa: ANN001
 def test_dashboard_omillarni_ahamiyat_boyicha_tartiblaydi(calculator) -> None:  # noqa: ANN001
     matn = describe(calculator.compute(kirish()))
     qatorlar = [q for q in matn.splitlines() if "▰" in q or "▱" in q]
-    assert len(qatorlar) == 5
+    assert len(qatorlar) == 7  # 5 eski + struktura kengligi + QT davri
 
 
 # --------------------------------------------------------------------------- #
@@ -279,9 +321,11 @@ def test_ideal_bozor_toliq_ball_oladi() -> None:
     config = load_config()
     natija = MarketHealthCalculator(config).compute(
         HealthInputs(
-            computed_at=datetime(2026, 8, 21, tzinfo=UTC),
+            # X davri (18:00-24:00) — QT omili to'liq ball beradi
+            computed_at=datetime(2026, 8, 21, 20, tzinfo=UTC),
             btc_dominance=54.0,
             btc_dominance_change_24h=0.2,
+            universe_structures={f"C{i}": TrendDirection.UP for i in range(30)},
             universe_trends={f"C{i}": TrendDirection.UP for i in range(30)},
             universe_adx={f"C{i}": config.market_health.strong_trend_adx for i in range(30)},
             capacity=None,
@@ -290,7 +334,7 @@ def test_ideal_bozor_toliq_ball_oladi() -> None:
         )
     )
 
-    assert natija.value == pytest.approx(100.0), natija.describe()
+    assert natija.value == pytest.approx(100.0)
 
 
 def test_volatillik_chegarasi_sozlanadi() -> None:

@@ -187,7 +187,11 @@
     "sokinlik_tahlil": "\n📊 <b>Coin tahlili</b> — {total} ta tekshiruv\n",
     "sokinlik_sikl": "\n⏸ <b>Butun sikl to'xtagan</b>\nBunda birorta coin umuman ko'rilmaydi — ya'ni bitta yozuv o'sha sikldagi hamma coinni to'xtatgan.\n",
     "sokinlik_vaqt": "\n⏱ <b>Vaqt shartlari</b> — foiz hisobiga kirmaydi\nSkalping diapazoni kunlik ochilish shamidan quriladi; signal oynasi: <b>{window}</b>.\nQuyidagi yozuv faqat UTC yarim tunidan keyingi birinchi siklda chiqadi — o'sha sham hali shakllanmagan payt.\n",
-    "sokinlik_ball": "   ↳ chegaraga eng yaqini {best}, o'rtacha {average}\n"
+    "sokinlik_ball": "   ↳ chegaraga eng yaqini {best}, o'rtacha {average}\n",
+    "smc": "🧲 SMC / LIT sozlamalari",
+    "smc_sarlavha": "🧲 <b>SMC / LIT sozlamalari</b>",
+    "smc_izoh": "Bu qiymatlar <code>config/default.yaml</code> da turadi va joylashtirishda o'zgaradi — bu yerdan tahrirlab bo'lmaydi. Panel amaldagi holatni ko'rsatadi.",
+    "smc_bonus_izoh": "🔸 Bonuslar bazaviy 100 ball USTIGA qo'shiladi. Chegara esa faqat bazaviy ballda tekshiriladi — ya'ni bu omillar reytingni o'zgartiradi, yo'lni yopmaydi."
   },
   "qoidabuzarlik": {
     "ogohlantirish": "❗️❗️ Diqqat! Siz bizning qoidalarimizni buzmoqdasiz. Shu sababli tarifingiz vaqtincha to'xtatildi."

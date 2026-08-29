@@ -868,8 +868,10 @@ class MarketHealthRepository:
         yozuv = MarketHealthLog(
             value=health.value,
             band=health.band.value,
-            btc_dominance_score=ballar.get("btc_dominance_stability"),
+            structure_breadth_score=ballar.get("halal_structure_breadth"),
             trend_breadth_score=ballar.get("halal_trend_breadth"),
+            btc_dominance_score=ballar.get("btc_dominance_stability"),
+            quarterly_phase_score=ballar.get("quarterly_phase"),
             volatility_score=ballar.get("volatility_regime"),
             user_capacity_score=ballar.get("aggregate_user_capacity"),
             saturation_score=ballar.get("signal_saturation"),

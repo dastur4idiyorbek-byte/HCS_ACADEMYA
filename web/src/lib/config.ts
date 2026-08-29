@@ -133,3 +133,43 @@ export function tp1Ulushi(): number {
 export function engKichikPozitsiya(): number {
   return yol(["portfolio", "min_position_usd"], 1);
 }
+
+/** CryptoSpot3% (SMC/LIT/ICT) sozlamalari — admin panelida KO'RSATISH uchun.
+ *
+ * FAQAT O'QISH. Bu loyihada barcha strategiya parametrlari
+ * `config/default.yaml` da yashaydi va joylashtirishda o'zgaradi;
+ * ishga tushgan tizimda ularni tahrirlaydigan mexanizm yo'q. Panelda
+ * "tahrirlash" tugmasini ko'rsatib, aslida hech narsa saqlamaslik —
+ * eng yomon variant: admin o'zgartirdim deb o'ylaydi, tizim esa eski
+ * qiymat bilan ishlaydi.
+ *
+ * Shuning uchun panel amaldagi qiymatni ko'rsatadi va ular qayerdan
+ * kelishini ochiq aytadi.
+ */
+export function smcSozlamalari(): {
+  strukturaMajburiy: boolean;
+  yalashYoqilgan: boolean;
+  yalashChuqurligi: number;
+  yalashOynasi: number;
+  qaytishShamlari: number;
+  sessiyaYoqilgan: boolean;
+  sessiyaBoshi: number;
+  sessiyaOxiri: number;
+  bonusStruktura: number;
+  bonusYalash: number;
+  bonusSessiya: number;
+} {
+  return {
+    strukturaMajburiy: yol(["analysis", "require_structure_alignment"], false),
+    yalashYoqilgan: yol(["analysis", "liquidity_sweep", "enabled"], true),
+    yalashChuqurligi: yol(["analysis", "liquidity_sweep", "min_sweep_pct"], 0.3),
+    yalashOynasi: yol(["analysis", "liquidity_sweep", "lookback_bars"], 30),
+    qaytishShamlari: yol(["analysis", "liquidity_sweep", "max_reclaim_bars"], 3),
+    sessiyaYoqilgan: yol(["analysis", "session_overlap", "enabled"], true),
+    sessiyaBoshi: yol(["analysis", "session_overlap", "start_hour_utc"], 13),
+    sessiyaOxiri: yol(["analysis", "session_overlap", "end_hour_utc"], 16),
+    bonusStruktura: yol(["scoring", "bonuses", "structure"], 10),
+    bonusYalash: yol(["scoring", "bonuses", "liquidity_sweep"], 10),
+    bonusSessiya: yol(["scoring", "bonuses", "session_overlap"], 5),
+  };
+}

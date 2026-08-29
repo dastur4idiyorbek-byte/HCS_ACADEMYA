@@ -168,6 +168,27 @@ analysis:
     require_confirmation: false
 
 # --- 3.5-band: ball tizimi ---
+  # --- CryptoSpot3% (ISC 1.0) qo'shimchalari ---
+  # Uchalasi ham BALL BONUSI beradi, YO'LNI YOPMAYDI. Sabab: qat'iy
+  # "VA" filtrlarini ko'paytirish bu loyihada allaqachon signal
+  # voronkasini nolga tushirgan (docs/ARXITEKTURA.md, 40 va 44-bo'lim).
+  # Struktura MAJBURIYmi. false — faqat bonus (standart va tavsiya
+  # etilgan). true qilishdan oldin backtest bilan o'lchang: voronkadagi
+  # `classic_ta:structure` qatori qancha nomzod yo'qotilishini aytadi.
+  require_structure_alignment: false
+  market_structure:                # SMC: HH/HL/LH/LL, BOS/CHOCH
+    swing_lookback: 5
+    min_swings: 4
+  liquidity_sweep:                 # LIT: "yalab o'tib qaytish"
+    enabled: true
+    lookback_bars: 30
+    min_sweep_pct: 0.3             # BOSHLANG'ICH — backtest bilan sozlanadi
+    max_reclaim_bars: 3
+  session_overlap:                 # ICT Kill Zone: London-NY kesishuvi
+    enabled: true
+    start_hour_utc: 13
+    end_hour_utc: 16
+
 scoring:
   weights:
     support_resistance: 25
@@ -206,6 +227,13 @@ scoring:
     threshold_high_health: 50      # bozor kuchli — chegara pastroq
     threshold_mid_health: 55       # bozor o'rtacha — talab qattiqroq
     # indeks < health_mid_min bo'lsa yangi signal umuman berilmaydi
+  # CryptoSpot3% omillari — bazaviy 100 USTIGA qo'shiladi (jami 125).
+  # Vazn sifatida kiritilmadi: bazaviy vaznlar o'lchab tanlangan va
+  # ularni siqish ballarni chegaradan pastga tushirardi (46-bo'lim).
+  bonuses:
+    structure: 10                  # SMC yo'nalishi + BOS + daraja turi
+    liquidity_sweep: 10            # sweep + qaytish naqshi
+    session_overlap: 5             # Kill Zone vaqtida
 
 # --- 3.3-band: universal risk qoidasi ---
 trade_rules:
@@ -308,11 +336,16 @@ market_health:
   # vaqtda trendga kiradi. Batafsil: docs/ARXITEKTURA.md, 32-bo'lim.
   strong_trend_adx: 30
   weights:                         # yig'indisi 100 bo'lishi kerak
-    btc_dominance_stability: 20
-    halal_trend_breadth: 25
-    volatility_regime: 20
+    # BTC Dominance 20 -> 5. Tajribali treyderlar bilan maslahat
+    # natijasi: dominance foydali, lekin qaror mezoni emas. Uning
+    # o'rniga ASOSIY omil — halol ro'yxatning SMC strukturasi.
+    halal_structure_breadth: 30    # YANGI, ASOSIY: nechta coin HH/HL da
+    halal_trend_breadth: 15        # eski EMA kengligi — ikkinchi darajali
+    volatility_regime: 15
     aggregate_user_capacity: 20
-    signal_saturation: 15
+    signal_saturation: 10
+    btc_dominance_stability: 5     # faqat qo'shimcha kontekst
+    quarterly_phase: 5             # QT (AMDX) — BOSHLANG'ICH vazn
   recompute_on_candle_close: true
   daily_preview_utc_hour: 0        # UTC 00:00 atrofida kunlik oldindan tahlil
   btc_dominance:

@@ -195,6 +195,13 @@ class ScoreComponent:
     earned: float
     maximum: float
     explanation: str
+    #: BONUS omilmi — bazaviy 100 ballik tizimdan TASHQARIDA.
+    #:
+    #: CryptoSpot3% omillari (struktura, sweep, Kill Zone) ball
+    #: BERADI, lekin bermasligi ham normal. "Nega bu signal?" ekrani
+    #: topilmagan bonusni umuman ko'rsatmaydi: bo'sh "yo'q" qatori
+    #: foydalanuvchini chalkashtiradi.
+    bonus: bool = False
 
     @property
     def ratio(self) -> float:
@@ -215,6 +222,20 @@ class ScoreBreakdown:
     @property
     def maximum(self) -> float:
         return sum(c.maximum for c in self.components)
+
+    @property
+    def base_total(self) -> float:
+        """Faqat bazaviy omillar — chegara SHU shkalada o'lchangan.
+
+        Chegaralar (50/55) `scripts.kalibrlash` bilan 100 ballik
+        bazaviy shkalada o'lchangan. Bonuslar shkalani 125 ga
+        kengaytiradi, ya'ni ular faqat nomzodni YUQORIGA suradi.
+        """
+        return sum(c.earned for c in self.components if not c.bonus)
+
+    @property
+    def bonus_total(self) -> float:
+        return sum(c.earned for c in self.components if c.bonus)
 
     def component(self, name: str) -> ScoreComponent | None:
         for item in self.components:

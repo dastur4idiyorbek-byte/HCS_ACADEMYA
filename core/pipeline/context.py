@@ -144,6 +144,7 @@ STAGE_LABELS: dict[str, str] = {
     # 3.1 — klassik texnik tahlil
     "classic_ta:halal": "Halol ro'yxatda emas",
     "classic_ta:data": "Sham ma'lumoti yetarli emas",
+    "classic_ta:structure": "Struktura pasayishda (SMC: LH/LL)",
     "classic_ta:zones": "Support/Resistance zonasi topilmadi",
     "classic_ta:zone_position": "Narx support zonasidan uzoq",
     "classic_ta:timeframes": "Timeframelar bir-biriga zid",

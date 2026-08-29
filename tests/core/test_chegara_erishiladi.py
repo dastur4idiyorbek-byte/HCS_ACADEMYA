@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pytest
 
+from core.analysis.scoring import Scorer
 from core.config import load_config
 from core.risk_engine import RiskEngine
 
@@ -38,16 +39,28 @@ from core.analysis.strategies.classic_ta import ClassicTaStrategy  # noqa: E402
 
 
 @pytest.fixture(scope="module")
-def ballar() -> list[float]:
-    """Turli sifatdagi sozlamalarda chiqqan haqiqiy ballar."""
+def nomzodlar() -> list:  # noqa: ANN201
+    """Turli sifatdagi sozlamalarda chiqqan haqiqiy nomzodlar."""
     config = load_config()
     strategiya = ClassicTaStrategy(config)
     natija = []
     for s in sozlamalar():
         nomzod = strategiya.analyze(kirish(config, shamlar_yasa(s)))
         if nomzod is not None:
-            natija.append(nomzod.score)
+            natija.append(nomzod)
     return natija
+
+
+@pytest.fixture(scope="module")
+def ballar(nomzodlar: list) -> list[float]:  # noqa: ANN001
+    """BAZAVIY ballar — chegara aynan shu shkalada o'lchangan.
+
+    CryptoSpot3% bonuslari shkalani 125 ga kengaytiradi, lekin ular
+    darvozaga emas, REYTINGGA ta'sir qiladi. Bu yerda to'liq ball
+    olinsa, test chegarani noto'g'ri shkalada tekshirardi va "chegara
+    juda past" degan ogohlantirish yolg'on chiqardi.
+    """
+    return [n.breakdown.base_total for n in nomzodlar]
 
 
 def test_kalibrlash_nomzod_chiqaradi(ballar: list[float]) -> None:
@@ -88,6 +101,39 @@ def test_chegara_hammani_otkazib_yubormaydi(ballar: list[float]) -> None:
         f"nomzodlarning {ulush:.0%} i o'tyapti — chegara juda past, "
         "saralash ma'nosini yo'qotgan"
     )
+
+
+def test_bonus_darvozani_yuvib_yubormaydi(nomzodlar: list) -> None:  # noqa: ANN001
+    """CryptoSpot3% bonuslari chegarani JIMGINA yumshatmasligi kerak.
+
+    Bonuslar qo'shilganda ballar 100 dan oshadi. Agar chegara to'liq
+    ballga qo'llansa, o'lchovda nomzodlarning 80% i o'tib ketardi —
+    ya'ni "eng yaxshi 33%" degan tanlov ma'nosini yo'qotardi. Shuning
+    uchun `Scorer.rank()` darvozani BAZAVIY ballda tekshiradi.
+    """
+    chegara = load_config().scoring.thresholds.threshold_mid_health
+    reyting = Scorer(load_config()).rank(nomzodlar, chegara)
+
+    otganlar = [r for r in reyting if r.passed_threshold]
+    assert all(r.base_score >= chegara for r in otganlar)
+
+    # Bonusi bor, lekin bazaviy balli past nomzod O'TMASLIGI kerak
+    bonusli = [r for r in reyting if r.score > r.base_score]
+    assert bonusli, "bonus umuman berilmayapti — qatlam ulanmaganmi?"
+    for r in bonusli:
+        if r.base_score < chegara:
+            assert not r.passed_threshold
+
+
+def test_reyting_toliq_ball_boyicha_saralanadi(nomzodlar: list) -> None:  # noqa: ANN001
+    """Darvoza bazaviy ballda, lekin SARALASH to'liq ballda.
+
+    Bonuslarning butun ma'nosi shu: bir xil sifatdagi ikki nomzoddan
+    strukturasi va sweep'i borini yuqoriga chiqarish.
+    """
+    reyting = Scorer(load_config()).rank(nomzodlar, 0.0)
+    ballar = [r.score for r in reyting]
+    assert ballar == sorted(ballar, reverse=True)
 
 
 def test_orta_chegara_yuqoridan_qattiqroq() -> None:

@@ -51,42 +51,47 @@ class MarketHealthCalculator:
         )
         return salomatlik
 
+    #: Kunlik oldindan tahlilda HAQIQATAN o'lchanadigan omillar.
+    #: Qolganlari neytral (0.5) deb olinadi.
+    PREVIEW_FACTORS = ("halal_structure_breadth", "quarterly_phase")
+
     def daily_preview(self, inputs: HealthInputs) -> MarketHealth:
         """3.7-band: kunlik oldindan tahlil (UTC 00:00 atrofida).
 
-        Yangi sham ochilishidan oldin tizim BTC Dominance asosida kunning
-        umumiy yo'nalishini taxmin qiladi. Bu — indeksning BOSHLANG'ICH
-        qiymati, aniq o'lchov emas.
+        MANBA O'ZGARDI: ilgari bu tahlil BTC DOMINANCE ga tayanardi.
+        Endi u halol ro'yxatning UMUMIY STRUKTURA holatiga asoslanadi —
+        nechta coin HH/HL ko'tarilish, nechtasi LH/LL pasayish
+        strukturasida. Bu ko'proq treyder amalda ishlatadigan, real narx
+        harakatiga asoslangan yondashuv (`docs/ARXITEKTURA.md`,
+        57-bo'lim). Dominance saqlanadi, lekin kichik vazn bilan va
+        kun boshida u ham neytral hisoblanadi.
 
         Boshqa omillar hali ma'lum emas, shuning uchun ular NEYTRAL (0.5)
         deb olinadi — nol qo'yilsa kun boshida tizim har doim "qizil"
         bo'lardi va hech qachon ishga tushmasdi.
         """
         vaznlar = self._config.market_health.weights
-        dominance = build_factors(
+        barchasi = build_factors(
             inputs=inputs,
             weights=vaznlar,
             dominance_config=self._config.market_health.btc_dominance,
             adx_threshold=self._config.analysis.indicators.adx_trend_threshold,
             strong_trend_adx=self._config.market_health.strong_trend_adx,
-        )[0]
+        )
 
-        neytral = [
-            HealthFactor(
-                name=nom,
+        # Omillar NOMI bo'yicha tanlanadi, indeks bo'yicha emas: ro'yxat
+        # tartibi o'zgarganda indeks jimgina boshqa omilni olardi.
+        omillar = [
+            omil
+            if omil.name in self.PREVIEW_FACTORS
+            else HealthFactor(
+                name=omil.name,
                 score=0.5,
-                weight=vazn,
+                weight=omil.weight,
                 explanation="Kun boshi — hali o'lchanmagan (neytral)",
             )
-            for nom, vazn in (
-                ("halal_trend_breadth", vaznlar.halal_trend_breadth),
-                ("volatility_regime", vaznlar.volatility_regime),
-                ("aggregate_user_capacity", vaznlar.aggregate_user_capacity),
-                ("signal_saturation", vaznlar.signal_saturation),
-            )
+            for omil in barchasi
         ]
-
-        omillar = [dominance, *neytral]
         salomatlik = MarketHealth(
             value=sum(omil.weighted for omil in omillar),
             factors=omillar,

@@ -143,15 +143,23 @@ def _hukm(hammasi_tasdiq: bool = True) -> Confirmation:
     )
 
 
-def test_yigindi_ball_yuzdan_oshmaydi(config) -> None:  # noqa: ANN001
+def test_bazaviy_ball_yuzdan_oshmaydi(config) -> None:  # noqa: ANN001
+    """Bazaviy shkala 100 da qoladi — chegara aynan shunda o'lchangan.
+
+    CryptoSpot3% bonuslari shkalani 125 ga kengaytirdi, lekin BAZAVIY
+    qism o'zgarmasligi shart: chegaralar (50/55) `scripts.kalibrlash`
+    bilan shu shkalada o'lchangan.
+    """
     shamlar = [sham(i, 100 + i * 0.5) for i in range(250)]
     holat = build_snapshot(shamlar, config.analysis.indicators)
 
     tafsilot = Scorer(config).score(
         "BTC", xarita(), SUPPORT, holat, _hukm(True), darajalar(rr=6.0)
     )
-    assert 0 <= tafsilot.total <= 100
-    assert tafsilot.maximum == pytest.approx(100)
+    bazaviy_shift = sum(k.maximum for k in tafsilot.components if not k.bonus)
+    assert 0 <= tafsilot.base_total <= 100
+    assert bazaviy_shift == pytest.approx(100)
+    assert tafsilot.maximum == pytest.approx(100 + config.scoring.bonuses.total())
 
 
 def test_barcha_omillar_hisobga_olinadi(config) -> None:  # noqa: ANN001
@@ -159,8 +167,10 @@ def test_barcha_omillar_hisobga_olinadi(config) -> None:  # noqa: ANN001
     holat = build_snapshot(shamlar, config.analysis.indicators)
     tafsilot = Scorer(config).score("BTC", xarita(), SUPPORT, holat, _hukm(), darajalar())
 
-    nomlar = {k.name for k in tafsilot.components}
-    assert nomlar == {"support_resistance", "trend", "rsi", "volume", "macd", "risk_reward"}
+    bazaviy = {k.name for k in tafsilot.components if not k.bonus}
+    bonuslar = {k.name for k in tafsilot.components if k.bonus}
+    assert bazaviy == {"support_resistance", "trend", "rsi", "volume", "macd", "risk_reward"}
+    assert bonuslar == {"structure", "liquidity_sweep", "session_overlap"}
 
 
 def test_sr_eng_katta_vaznga_ega(config) -> None:  # noqa: ANN001
@@ -170,7 +180,7 @@ def test_sr_eng_katta_vaznga_ega(config) -> None:  # noqa: ANN001
     tafsilot = Scorer(config).score("BTC", xarita(), SUPPORT, holat, _hukm(), darajalar())
 
     sr = tafsilot.component("support_resistance")
-    assert sr.maximum == max(k.maximum for k in tafsilot.components)
+    assert sr.maximum == max(k.maximum for k in tafsilot.components if not k.bonus)
 
 
 def test_tasdiqlanmagan_omillar_ball_bermaydi(config) -> None:  # noqa: ANN001
@@ -245,8 +255,10 @@ def test_tafsilot_json_ga_aylanadi(config) -> None:  # noqa: ANN001
 
     xom = json.loads(breakdown_to_json(tafsilot))
     assert xom["symbol"] == "BTC"
-    assert len(xom["components"]) == 6
-    assert xom["maximum"] == 100
+    assert len(xom["components"]) == 9  # 6 bazaviy + 3 bonus
+    assert xom["maximum"] == 100 + config.scoring.bonuses.total()
+    # Chegara bazaviy shkalada tekshiriladi — postmortem uchun ham kerak
+    assert xom["base_total"] <= 100
 
 
 def test_tafsilot_oqiladigan_matn_beradi(config) -> None:  # noqa: ANN001
@@ -259,3 +271,74 @@ def test_tafsilot_oqiladigan_matn_beradi(config) -> None:  # noqa: ANN001
     assert "BTC" in matn
     assert "ball" in matn
     assert "▰" in matn or "▱" in matn, "vizual ko'rsatkich bo'lishi kerak"
+
+
+# --------------------------------------------------------------------------- #
+#  Bazadan qaytib o'qish — "Nega bu signal?" ekrani shu yo'l bilan to'ladi
+# --------------------------------------------------------------------------- #
+
+
+def test_json_dan_qaytib_oqiladi(config) -> None:  # noqa: ANN001
+    """Regressiya: `breakdown_to_text()` yozilgan, lekin ULANMAGAN edi.
+
+    Bot "Nega bu signal?" tugmasida bazadagi XOM JSON ni ko'rsatardi —
+    foydalanuvchi ekranida `{"symbol": "BTC", "components": [...]}`
+    chiqardi. Bu loyihaning 2-naqshi: "e'lon qilingan, lekin ulanmagan".
+    """
+    from core.analysis.scoring import breakdown_from_json
+
+    shamlar = [sham(i, 100 + i * 0.5) for i in range(250)]
+    holat = build_snapshot(shamlar, config.analysis.indicators)
+    asl = Scorer(config).score("BTC", xarita(), SUPPORT, holat, _hukm(), darajalar())
+
+    tiklangan = breakdown_from_json(breakdown_to_json(asl))
+
+    assert tiklangan is not None
+    assert tiklangan.symbol == "BTC"
+    assert tiklangan.total == pytest.approx(asl.total, abs=0.02)
+    assert tiklangan.base_total == pytest.approx(asl.base_total, abs=0.02)
+    # Bonus belgisi ham saqlanishi SHART: usiz chegara shkalasi buziladi
+    assert {k.name for k in tiklangan.components if k.bonus} == {
+        "structure", "liquidity_sweep", "session_overlap"
+    }
+
+
+def test_eski_yozuvda_bonus_kaliti_yoq_bolsa_ham_oqiladi() -> None:
+    """Bu o'zgarishdan OLDIN yozilgan signallar ham ochilishi kerak."""
+    from core.analysis.scoring import breakdown_from_json
+
+    eski = json.dumps(
+        {
+            "symbol": "ETH",
+            "total": 55.0,
+            "maximum": 100.0,
+            "components": [
+                {"name": "trend", "earned": 20.0, "maximum": 20.0, "explanation": "Trend"}
+            ],
+        }
+    )
+    tiklangan = breakdown_from_json(eski)
+
+    assert tiklangan is not None
+    assert tiklangan.components[0].bonus is False
+
+
+def test_buzuq_matn_xato_bermaydi() -> None:
+    """Qo'lda kiritilgan signalda JSON emas, oddiy izoh turadi."""
+    from core.analysis.scoring import breakdown_from_json
+
+    assert breakdown_from_json("admin qo'lda kiritdi") is None
+    assert breakdown_from_json("{}") is None
+
+
+def test_matnda_topilmagan_bonus_korsatilmaydi(config) -> None:  # noqa: ANN001
+    """Bo'sh "Sweep topilmadi" qatori foydalanuvchini chalkashtiradi."""
+    shamlar = [sham(i, 100 + i * 0.5) for i in range(250)]
+    holat = build_snapshot(shamlar, config.analysis.indicators)
+    tafsilot = Scorer(config).score("BTC", xarita(), SUPPORT, holat, _hukm(), darajalar())
+
+    matn = breakdown_to_text(tafsilot)
+
+    assert "Liquidity Sweep topilmadi" not in matn
+    # Bazaviy omillar esa DOIM ko'rinadi
+    assert "S/R" in matn

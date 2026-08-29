@@ -53,7 +53,16 @@
     "sahifa_kirish": "Bozor Salomatligi — bu tizimning yuragi. Har bir signal berilishidan oldin tizim bozorning umumiy holatini — yo'nalishini, kuchini va xavfsizligini — baholaydi. Quyidagi shkala shu bahoni ko'rsatadi: bozor qanchalik sog'lom bo'lsa, signal imkoniyati shunchalik ortadi.",
     "voronka_sarlavha": "Nega bugun signal kam yoki yo'q?",
     "voronka_kirish": "Signal berish — ko'p bosqichli tekshiruvdan iborat. Har bir bosqich nomzodlarni saralaydi, faqat eng munosib holatlar signalga aylanadi. Quyida aniq raqamlar: qaysi bosqichda qancha nomzod to'xtagani va sabab nimada.",
-    "tarix": "Oxirgi qiymatlar"
+    "tarix": "Oxirgi qiymatlar",
+    "struktura": "Struktura kengligi (SMC)",
+    "davr": "QT davri (AMDX)",
+    "davr_sarlavha": "Joriy davr",
+    "davr_izoh": "Sutka to'rt davrga bo'linadi. Bu — qo'shimcha kontekst, qaror mezoni emas: davr soat bo'yicha aniqlanadi va indeksdagi vazni kichik.",
+    "davr_A": "A (Accumulation) — yig'ish davri",
+    "davr_M": "M (Manipulation) — yolg'on harakat davri",
+    "davr_D": "D (Distribution) — asosiy harakat davri",
+    "davr_X": "X (Continuation) — tasdiqlanish va davom etish",
+    "davr_keyingi": "Keyingisi"
   },
   "signal": {
     "sarlavha": "Signallar",
@@ -284,7 +293,19 @@
     "havola_ikonka": "Ikonka",
     "havola_faol": "Saytda ko'rsatilsin",
     "yangi_havola": "Yangi havola",
-    "havola_yoq": "Hali havola qo'shilmagan."
+    "havola_yoq": "Hali havola qo'shilmagan.",
+    "smc": "SMC / LIT sozlamalari",
+    "smc_izoh": "Bu qiymatlar `config/default.yaml` da turadi va joylashtirishda o'zgaradi — bu yerdan tahrirlab bo'lmaydi. Panel amaldagi holatni ko'rsatadi.",
+    "smc_struktura_majburiy": "Struktura majburiy (to'siq)",
+    "smc_yalash": "Liquidity Sweep aniqlash",
+    "smc_yalash_chuqurlik": "Yalash chuqurligi (darajadan %)",
+    "smc_yalash_oyna": "Qidiruv oynasi (sham)",
+    "smc_qaytish": "Qaytish muddati (sham)",
+    "smc_sessiya": "Kill Zone (London-NY)",
+    "smc_bonuslar": "Bonus ballar",
+    "smc_bonus_izoh": "Bonuslar bazaviy 100 ball USTIGA qo'shiladi. Chegara esa faqat bazaviy ballda tekshiriladi — ya'ni bu omillar reytingni o'zgartiradi, yo'lni yopmaydi.",
+    "yoqilgan": "yoqilgan",
+    "ochirilgan": "o'chirilgan"
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",
