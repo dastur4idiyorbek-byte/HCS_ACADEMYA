@@ -83,7 +83,29 @@ test("sikl darajasidagi to'xtash alohida qaytadi", () => {
   assert.ok(!holat.coinlar.some((c) => c.symbol === "*"));
 });
 
+test("xulosa: nechta, qayerda to'xtadi, o'rtacha ball", () => {
+  // Kartochkalarni sanab chiqmasdan javob berish uchun — bitta qator.
+  const x = jonliHolat().xulosa!;
+  assert.equal(x.jami, 3);
+  assert.equal(x.signal, 1);
+  assert.equal(x.ortachaBall, 82); // faqat balli bor coinlar
+  assert.equal(x.engYuqoriBall, 82);
+});
+
+test("xulosa eng ko'p to'xtagan bosqichni topadi", () => {
+  yoz("BNB", "classic_ta:halal", "pass", null, null, YANGI);
+  yoz("BNB", "classic_ta:data", "fail", "sham yetarli emas", null, YANGI);
+  const x = jonliHolat().xulosa!;
+  assert.equal(x.engKopBosqich, "classic_ta:data");
+  assert.equal(x.engKopSoni, 2); // ETH va BNB
+});
+
 test("bo'sh jadval xato bermaydi", () => {
   db().prepare("delete from pipeline_events").run();
-  assert.deepEqual(jonliHolat(), { cycleAt: null, coinlar: [], siklToxtadi: null });
+  assert.deepEqual(jonliHolat(), {
+    cycleAt: null,
+    coinlar: [],
+    siklToxtadi: null,
+    xulosa: null,
+  });
 });

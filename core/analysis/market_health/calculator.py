@@ -17,6 +17,8 @@ funksiya qo'shiladi va vazn beriladi — butun tizim qayta qurilmaydi.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from core.analysis.market_health.factors import build_factors
 from core.analysis.market_health.inputs import HealthInputs
 from core.config.schema import AppConfig
@@ -41,6 +43,7 @@ class MarketHealthCalculator:
             adx_threshold=self._config.analysis.indicators.adx_trend_threshold,
             strong_trend_adx=self._config.market_health.strong_trend_adx,
         )
+        omillar = self._sinov_bilan(omillar, inputs.computed_at)
         qiymat = sum(omil.weighted for omil in omillar)
         salomatlik = MarketHealth(
             value=qiymat, factors=omillar, computed_at=inputs.computed_at
@@ -50,6 +53,52 @@ class MarketHealthCalculator:
             "Bozor Salomatligi: %.1f/100 (%s)", salomatlik.value, salomatlik.band.value
         )
         return salomatlik
+
+    def _sinov_bilan(
+        self, omillar: list[HealthFactor], at: datetime
+    ) -> list[HealthFactor]:
+        """Sinov davrida BIZGA tegishli omillarni indeksdan chiqaradi.
+
+        Chiqarilgan omil ro'yxatdan O'CHIRILMAYDI — vazni nolga
+        tushiriladi va sababi yoziladi. Sabab ko'rinib tursin: jimgina
+        yo'qolgan omil keyinchalik "nega indeks boshqacha?" degan
+        javobsiz savol qoldirardi.
+
+        Uning vazni qolgan omillarga ULUSHIGA QARAB bo'linadi, ya'ni
+        indeks 0-100 shkalasida qoladi. Aks holda yuqori chegara 80 ga
+        tushib, 55 va 70 chegaralari jimgina boshqa ma'no olardi.
+        """
+        sinov = self._config.market_health.sinov
+        if not sinov.faolmi(at):
+            return omillar
+
+        chiqarilgan = set(sinov.exclude_factors)
+        olib_tashlangan = sum(o.weight for o in omillar if o.name in chiqarilgan)
+        jami = sum(o.weight for o in omillar)
+        qolgan = jami - olib_tashlangan
+        if olib_tashlangan <= 0 or qolgan <= 0:
+            # Hamma omil chiqarilsa indeks ma'nosini yo'qotardi —
+            # bunday sozlama xato, o'zgartirmasdan qaytaramiz.
+            return omillar
+
+        koeff = jami / qolgan
+        kun = sinov.qolgan_kun(at)
+        natija: list[HealthFactor] = []
+        for omil in omillar:
+            if omil.name in chiqarilgan:
+                natija.append(
+                    HealthFactor(
+                        omil.name,
+                        omil.score,
+                        0.0,
+                        f"Sinov davri — indeksga qo'shilmadi ({kun} kun qoldi)",
+                    )
+                )
+            else:
+                natija.append(
+                    HealthFactor(omil.name, omil.score, omil.weight * koeff, omil.explanation)
+                )
+        return natija
 
     #: Kunlik oldindan tahlilda HAQIQATAN o'lchanadigan omillar.
     #: Qolganlari neytral (0.5) deb olinadi.
@@ -92,6 +141,7 @@ class MarketHealthCalculator:
             )
             for omil in barchasi
         ]
+        omillar = self._sinov_bilan(omillar, inputs.computed_at)
         salomatlik = MarketHealth(
             value=sum(omil.weighted for omil in omillar),
             factors=omillar,

@@ -34,6 +34,11 @@ export default async function JonliSahifa() {
     sikl_toxtadi: t("oshxona.sikl_toxtadi"),
     signal_chiqdi: t("oshxona.signal_chiqdi"),
     ball: t("oshxona.ball"),
+    jami: t("oshxona.jami"),
+    signal_soni: t("oshxona.signal_soni"),
+    eng_kop: t("oshxona.eng_kop"),
+    ortacha_ball: t("oshxona.ortacha_ball"),
+    eng_yuqori: t("oshxona.eng_yuqori"),
   };
 
   // Bosqich nomlari BIR MARTA, to'liq ro'yxat bilan uzatiladi — polling

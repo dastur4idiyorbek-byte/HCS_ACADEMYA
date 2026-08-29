@@ -362,6 +362,24 @@ market_health:
   btc_dominance:
     stable_change_pct: 0.5         # sutkalik o'zgarish shundan kichik bo'lsa "barqaror"
     sharp_change_pct: 2.0
+  # SINOV DAVRI — indeks faqat BOZOR ma'lumotidan hisoblanadi.
+  #
+  # `aggregate_user_capacity` bozorni emas, BIZNING holatimizni
+  # o'lchaydi: obunachilar balansi va kunlik xavf sig'imi. Sinov paytida
+  # obunachi yo'q, ya'ni bu omil bozor haqida hech narsa aytmaydi.
+  # Halollik talabi ham shu: ommaga ko'rsatiladigan sinov natijasiga
+  # bizning obunachilar soni aralashmasin.
+  #
+  # Vazn YO'QOLMAYDI — qolgan omillarga ulushiga qarab bo'linadi, ya'ni
+  # indeks 0-100 shkalasida qoladi (aks holda 55 va 70 chegaralari
+  # jimgina boshqa ma'no olardi).
+  #
+  # Muddat tugagach omil O'ZI qaytadi.
+  sinov:
+    enabled: true
+    start_date: "2026-08-29"
+    days: 100
+    exclude_factors: ["aggregate_user_capacity"]
 
 # --- 5-bo'lim: pozitsiya hajmi va portfel ---
 position_sizing:

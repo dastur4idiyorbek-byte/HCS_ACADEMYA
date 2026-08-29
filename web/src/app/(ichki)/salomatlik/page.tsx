@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { bosqichNomi, vaqtDarvozasimi, voronkaTartibi } from "@/lib/bosqichlar";
-import { salomatlikBandlari } from "@/lib/config";
+import { salomatlikBandlari, sinovHolati } from "@/lib/config";
 import { davr, keyingiDavr } from "@/lib/davr";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
@@ -63,16 +63,49 @@ export default async function Salomatlik() {
   // SHU savolni ("nechta coin ko'tarilishda") o'lchardi, faqat
   // kechikuvchi vosita bilan. Eski yozuvlarda ustun qoladi, lekin
   // ekranda ko'rsatilmaydi — ikki xil raqam chalkashtirardi.
+  // `nom` — Python tomonidagi omil nomi (`core/analysis/market_health/
+  // factors.py`). Sinov davrida qaysi omil indeksga qo'shilmaganini
+  // aynan shu nom bo'yicha bilamiz.
   const omillar = salomatlik
     ? [
-        { kalit: "salomatlik.struktura", qiymat: salomatlik.structureBreadthScore },
-        { kalit: "salomatlik.sigim", qiymat: salomatlik.userCapacityScore },
-        { kalit: "salomatlik.volatillik", qiymat: salomatlik.volatilityScore },
-        { kalit: "salomatlik.toyinganlik", qiymat: salomatlik.saturationScore },
-        { kalit: "salomatlik.dominatsiya", qiymat: salomatlik.btcDominanceScore },
-        { kalit: "salomatlik.davr", qiymat: salomatlik.quarterlyPhaseScore },
+        {
+          kalit: "salomatlik.struktura",
+          nom: "halal_structure_breadth",
+          qiymat: salomatlik.structureBreadthScore,
+        },
+        {
+          kalit: "salomatlik.sigim",
+          nom: "aggregate_user_capacity",
+          qiymat: salomatlik.userCapacityScore,
+        },
+        {
+          kalit: "salomatlik.volatillik",
+          nom: "volatility_regime",
+          qiymat: salomatlik.volatilityScore,
+        },
+        {
+          kalit: "salomatlik.toyinganlik",
+          nom: "signal_saturation",
+          qiymat: salomatlik.saturationScore,
+        },
+        {
+          kalit: "salomatlik.dominatsiya",
+          nom: "btc_dominance_stability",
+          qiymat: salomatlik.btcDominanceScore,
+        },
+        {
+          kalit: "salomatlik.davr",
+          nom: "quarterly_phase",
+          qiymat: salomatlik.quarterlyPhaseScore,
+        },
       ].filter((o) => o.qiymat !== null)
     : [];
+
+  // Sinov davri: ba'zi omillar indeksga QO'SHILMAYDI (59-bo'lim).
+  // Ular ro'yxatdan olib tashlanmaydi — o'lchov saqlanib qoladi,
+  // lekin "hisobga olinmadi" deb ochiq yoziladi. Jimgina yo'qolgan
+  // omil keyin "nega indeks boshqacha?" degan javobsiz savol qoldirardi.
+  const sinov = sinovHolati(salomatlik?.createdAt ?? (await hozir()));
 
   // QT davri indeks HISOBLANGAN paytga qarab aniqlanadi, "hozir" ga
   // emas: shkala o'sha lahzaning surati, ikkalasi bir vaqtga tegishli
@@ -124,21 +157,42 @@ export default async function Salomatlik() {
           <Card>
             <CardTitle>{t("salomatlik.omillar")}</CardTitle>
             <ul className="mt-3 space-y-2">
-              {omillar.map((o) => (
-                <li key={o.kalit} className="flex items-center gap-3">
-                  <span className="w-40 shrink-0 text-sm">{t(o.kalit)}</span>
-                  <span className="bg-fon h-2 flex-1 overflow-hidden rounded-full">
+              {omillar.map((o) => {
+                const chiqarilgan = sinov.faol && sinov.chiqarilgan.includes(o.nom);
+                return (
+                  <li key={o.kalit} className="flex items-center gap-3">
                     <span
-                      className="bg-yaxshi block h-full rounded-full"
-                      style={{ width: `${omilFoizi(o.qiymat!)}%` }}
-                    />
-                  </span>
-                  <span className="raqam text-matn-past w-10 text-right text-xs">
-                    {omilFoizi(o.qiymat!)}%
-                  </span>
-                </li>
-              ))}
+                      className={`w-40 shrink-0 text-sm${chiqarilgan ? " text-matn-past" : ""}`}
+                    >
+                      {t(o.kalit)}
+                    </span>
+                    {chiqarilgan ? (
+                      <span className="text-matn-past flex-1 text-xs">
+                        {t("salomatlik.sinov_omil")}
+                      </span>
+                    ) : (
+                      <>
+                        <span className="bg-fon h-2 flex-1 overflow-hidden rounded-full">
+                          <span
+                            className="bg-yaxshi block h-full rounded-full"
+                            style={{ width: `${omilFoizi(o.qiymat!)}%` }}
+                          />
+                        </span>
+                        <span className="raqam text-matn-past w-10 text-right text-xs">
+                          {omilFoizi(o.qiymat!)}%
+                        </span>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
+            {sinov.faol && (
+              <p className="text-matn-past mt-3 text-xs">
+                🧪 {t("salomatlik.sinov_izoh")} — {sinov.qolganKun}{" "}
+                {t("umumiy.kun_qoldi")}
+              </p>
+            )}
           </Card>
         )}
 

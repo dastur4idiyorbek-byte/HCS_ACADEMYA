@@ -361,3 +361,99 @@ def test_tekis_bozorda_volatillik_nol() -> None:
     )
 
     assert volatility_regime_factor(kirish, 20.0, 20.0).score == 0.0
+
+
+# --------------------------------------------------------------------------- #
+#  Sinov davri: indeks FAQAT bozor ma'lumotidan
+# --------------------------------------------------------------------------- #
+
+SINOV_ICHIDA = datetime(2026, 9, 15, 12, 0, tzinfo=UTC)
+SINOV_TUGAGACH = datetime(2027, 3, 1, 12, 0, tzinfo=UTC)
+
+
+def _omil(salomatlik, nom: str):  # noqa: ANN001, ANN202
+    return next(o for o in salomatlik.factors if o.name == nom)
+
+
+def test_sinov_davrida_sigim_indeksga_qoshilmaydi(calculator) -> None:  # noqa: ANN001
+    """Sig'im bozorni emas, BIZNING holatimizni o'lchaydi.
+
+    Sinov paytida obunachi yo'q — bu omil bozor haqida hech narsa
+    aytmaydi. Ommaga ko'rsatiladigan natijaga obunachilar soni
+    aralashmasligi kerak.
+    """
+    salomatlik = calculator.compute(kirish(computed_at=SINOV_ICHIDA))
+
+    sigim = _omil(salomatlik, "aggregate_user_capacity")
+    assert sigim.weight == 0.0
+    assert sigim.weighted == 0.0
+    assert "Sinov davri" in sigim.explanation
+
+
+def test_sinov_davrida_ham_shkala_0_100_qoladi(calculator) -> None:  # noqa: ANN001
+    """1-naqsh: "shkala mos kelmasligi".
+
+    Omil shunchaki olib tashlansa, indeksning yuqori chegarasi 100 dan
+    80 ga tushardi va 55 va 70 chegaralari jimgina boshqa ma'no olardi.
+    Shuning uchun vazn qolgan omillarga taqsimlanadi.
+    """
+    salomatlik = calculator.compute(kirish(computed_at=SINOV_ICHIDA))
+
+    jami_vazn = sum(o.weight for o in salomatlik.factors)
+    assert jami_vazn == pytest.approx(100.0)
+    # Ideal bozorda indeks avvalgidek yuqori bandga chiqa oladi
+    assert salomatlik.value >= 95.0
+    assert salomatlik.band is HealthBand.HIGH
+
+
+def test_sinov_davrida_bosh_sigim_indeksni_tushirmaydi(calculator) -> None:  # noqa: ANN001
+    """Aynan shu holat uchun qilindi: bitta test foydalanuvchisi
+    limitiga yaqinlashsa, indeks tushib ketardi — bozor esa
+    o'zgarmagan bo'lardi."""
+    tolgan = kirish(
+        computed_at=SINOV_ICHIDA, capacity=AggregateCapacity(10, 0, 0.0, 1000.0)
+    )
+    bosh = kirish(
+        computed_at=SINOV_ICHIDA, capacity=AggregateCapacity(10, 10, 1000.0, 1000.0)
+    )
+
+    assert calculator.compute(tolgan).value == pytest.approx(
+        calculator.compute(bosh).value
+    )
+
+
+def test_sinov_tugagach_omil_ozi_qaytadi(calculator) -> None:  # noqa: ANN001
+    """Muddat tugagach hech kim hech narsani yoqishi shart emas."""
+    salomatlik = calculator.compute(kirish(computed_at=SINOV_TUGAGACH))
+
+    sigim = _omil(salomatlik, "aggregate_user_capacity")
+    assert sigim.weight == 20.0
+    assert "Sinov davri" not in sigim.explanation
+
+
+def test_sinov_tugagach_sigim_yana_tasir_qiladi(calculator) -> None:  # noqa: ANN001
+    tolgan = kirish(
+        computed_at=SINOV_TUGAGACH, capacity=AggregateCapacity(10, 0, 0.0, 1000.0)
+    )
+    bosh = kirish(
+        computed_at=SINOV_TUGAGACH, capacity=AggregateCapacity(10, 10, 1000.0, 1000.0)
+    )
+
+    assert calculator.compute(tolgan).value < calculator.compute(bosh).value
+
+
+def test_kunlik_oldindan_tahlilda_ham_qollanadi(calculator) -> None:  # noqa: ANN001
+    """Kun boshidagi tahlil ham xuddi shu indeks — ikkalasi bir xil
+    qoidaga bo'ysunishi kerak, aks holda kun davomida shkala o'zgarardi."""
+    salomatlik = calculator.daily_preview(kirish(computed_at=SINOV_ICHIDA))
+
+    assert _omil(salomatlik, "aggregate_user_capacity").weight == 0.0
+    assert sum(o.weight for o in salomatlik.factors) == pytest.approx(100.0)
+
+
+def test_qolgan_kun_sanogi_kamayib_boradi(config) -> None:  # noqa: ANN001
+    sinov = config.market_health.sinov
+    assert sinov.qolgan_kun(SINOV_ICHIDA) > sinov.qolgan_kun(
+        datetime(2026, 11, 1, tzinfo=UTC)
+    )
+    assert sinov.qolgan_kun(SINOV_TUGAGACH) == 0

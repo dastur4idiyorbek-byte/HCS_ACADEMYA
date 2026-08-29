@@ -13,7 +13,8 @@
     "jami": "Jami",
     "ball": "ball",
     "dona": "ta",
-    "saqlash": "Saqlash"
+    "saqlash": "Saqlash",
+    "kun_qoldi": "kun qoldi"
   },
   "menyu": {
     "bosh": "Bosh sahifa",
@@ -62,7 +63,9 @@
     "davr_M": "M (Manipulation) — yolg'on harakat davri",
     "davr_D": "D (Distribution) — asosiy harakat davri",
     "davr_X": "X (Continuation) — tasdiqlanish va davom etish",
-    "davr_keyingi": "Keyingisi"
+    "davr_keyingi": "Keyingisi",
+    "sinov_omil": "Sinov davri — indeksga qo'shilmadi",
+    "sinov_izoh": "Sinov davri: tizim faqat BOZOR ma'lumotidan baholanadi. Foydalanuvchi balansi va sig'imi kabi bizga tegishli ko'rsatkichlar indeksga qo'shilmaydi — natija halol va tekshiriladigan bo'lishi uchun. Muddat tugagach omil o'zi qaytadi."
   },
   "signal": {
     "sarlavha": "Signallar",
@@ -352,6 +355,11 @@
     "b_risk_engine": "Risk Engine",
     "b_market_health": "Bozor Salomatligi",
     "b_no_setup": "Shart bajarilmadi",
-    "b_error": "Ichki xato"
+    "b_error": "Ichki xato",
+    "jami": "Tahlil qilindi",
+    "signal_soni": "signal",
+    "eng_kop": "Eng ko'p to'xtagan joy",
+    "ortacha_ball": "O'rtacha ball",
+    "eng_yuqori": "eng yuqori"
   }
 }

@@ -90,6 +90,42 @@ export function JonliOshxona({
           </span>
         </div>
         <CardHint>{matnlar.izoh}</CardHint>
+
+        {holat.xulosa && (
+          <div className="border-ramka/40 mt-3 flex flex-wrap gap-x-5 gap-y-1 border-t pt-3 text-xs">
+            <span>
+              <span className="text-matn-past">{matnlar.jami}: </span>
+              <span className="raqam text-sarlavha font-semibold">{holat.xulosa.jami}</span>
+            </span>
+            {holat.xulosa.signal > 0 && (
+              <span className="text-yaxshi font-semibold">
+                🎉 {holat.xulosa.signal} {matnlar.signal_soni}
+              </span>
+            )}
+            {holat.xulosa.engKopBosqich && (
+              <span>
+                <span className="text-matn-past">{matnlar.eng_kop}: </span>
+                <span className="text-sarlavha font-semibold">
+                  {nomi(holat.xulosa.engKopBosqich)}
+                </span>
+                <span className="raqam text-matn-past"> ({holat.xulosa.engKopSoni})</span>
+              </span>
+            )}
+            {holat.xulosa.ortachaBall !== null && (
+              <span>
+                <span className="text-matn-past">{matnlar.ortacha_ball}: </span>
+                <span className="raqam text-sarlavha font-semibold">
+                  {holat.xulosa.ortachaBall.toFixed(0)}
+                </span>
+                <span className="raqam text-matn-past">
+                  {" "}
+                  · {matnlar.eng_yuqori} {holat.xulosa.engYuqoriBall?.toFixed(0)}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
+
         <p className="text-matn-past mt-2 text-xs">{matnlar.kirish}</p>
         {xato && <p className="text-past mt-2 text-xs">⚠️ {matnlar.uzildi}</p>}
       </Card>

@@ -1420,11 +1420,25 @@ export type JonliCoin = {
   signal: boolean;
 };
 
+export type JonliXulosa = {
+  jami: number;
+  signal: number;
+  /** Eng ko'p coin to'xtagan bosqich va o'sha yerdagi soni */
+  engKopBosqich: string | null;
+  engKopSoni: number;
+  /** Ball chegarasigacha yetganlar — ya'ni butun tahlildan o'tganlar */
+  chegaraga: number;
+  ortachaBall: number | null;
+  engYuqoriBall: number | null;
+};
+
 export type JonliHolat = {
   cycleAt: Date | null;
   coinlar: JonliCoin[];
   /** Sikl darajasidagi to'xtash (`market_health`) — bo'lsa */
   siklToxtadi: string | null;
+  /** Tepadagi bir qatorli xulosa — kartochkalarni sanab chiqmaslik uchun */
+  xulosa: JonliXulosa | null;
 };
 
 /** Oxirgi siklning bosqichma-bosqich holati.
@@ -1438,7 +1452,7 @@ export function jonliHolat(): JonliHolat {
     .prepare(`select max(cycle_at) as v from pipeline_events`)
     .get() as Qator | undefined;
   const belgi = oxirgi?.v as string | undefined;
-  if (!belgi) return { cycleAt: null, coinlar: [], siklToxtadi: null };
+  if (!belgi) return { cycleAt: null, coinlar: [], siklToxtadi: null, xulosa: null };
 
   const qatorlar = db()
     .prepare(
@@ -1482,5 +1496,48 @@ export function jonliHolat(): JonliHolat {
     return b.bosqichlar.length - a.bosqichlar.length;
   });
 
-  return { cycleAt: vaqt(belgi), coinlar, siklToxtadi };
+  return { cycleAt: vaqt(belgi), coinlar, siklToxtadi, xulosa: xulosaHisobla(coinlar) };
+}
+
+/** Monitor tepasidagi bir qatorli xulosa.
+ *
+ * NIMA UCHUN SERVERDA: mijoz tomonda hisoblansak, bir xil savolga
+ * (nechta coin qayerda to'xtadi) ikki joyda javob bo'lardi — bu
+ * loyihaning 1-naqshi. Kartochkalar ham, xulosa ham bitta manbadan.
+ */
+function xulosaHisobla(coinlar: JonliCoin[]): JonliXulosa | null {
+  if (coinlar.length === 0) return null;
+
+  const sanoq = new Map<string, number>();
+  let chegaraga = 0;
+  const ballar: number[] = [];
+
+  for (const coin of coinlar) {
+    if (coin.score !== null) ballar.push(coin.score);
+    const yiqilgan = coin.bosqichlar.find((b) => b.status === "fail");
+    if (!yiqilgan) continue;
+    sanoq.set(yiqilgan.stage, (sanoq.get(yiqilgan.stage) ?? 0) + 1);
+    // "Chegaraga yetdi" — butun tahlildan o'tib, faqat ball yetmagan.
+    if (yiqilgan.stage === "threshold") chegaraga += 1;
+  }
+
+  let engKopBosqich: string | null = null;
+  let engKopSoni = 0;
+  for (const [bosqich, soni] of sanoq) {
+    if (soni > engKopSoni) {
+      engKopBosqich = bosqich;
+      engKopSoni = soni;
+    }
+  }
+
+  return {
+    jami: coinlar.length,
+    signal: coinlar.filter((c) => c.signal).length,
+    engKopBosqich,
+    engKopSoni,
+    chegaraga,
+    ortachaBall:
+      ballar.length > 0 ? ballar.reduce((a, b) => a + b, 0) / ballar.length : null,
+    engYuqoriBall: ballar.length > 0 ? Math.max(...ballar) : null,
+  };
 }

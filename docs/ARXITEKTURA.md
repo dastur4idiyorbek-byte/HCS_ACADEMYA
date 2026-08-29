@@ -3771,10 +3771,61 @@ bema'nilik chiqardi. Shuning uchun monitor neytral nomlarni
 (`oshxona.b_*`, uz va ru) ishlatadi; kod -> kalit aylantirish
 `web/src/lib/oshxona.ts` da, testi bilan.
 
+**Tepadagi xulosa qatori.** Kartochkalarni sanab chiqmaslik uchun:
+nechta coin tahlil qilindi, nechtasi signal berdi, eng ko'p qaysi
+bosqichda to'xtashdi va o'rtacha/eng yuqori ball. SERVERDA hisoblanadi
+(`xulosaHisobla()`) — mijoz tomonda hisoblansa, bir savolga ikki joyda
+javob bo'lardi.
+
 **Botda yo'q.** Bunday tezlikdagi yangilanish o'nlab Telegram xabariga
 aylanardi — bu funksiya faqat saytning admin panelida.
 
-## 60. Bosqichlar holati
+## 60. Sinov davri — indeks faqat BOZOR ma'lumotidan (100 kun)
+
+Bozor Salomatligi Indeksining bir omili — `aggregate_user_capacity`
+(vazni 20) — bozorni emas, BIZNING holatimizni o'lchaydi:
+obunachilarning balansi va kunlik xavf sig'imi. Sinov paytida obunachi
+yo'q, ya'ni bu omil bozor haqida hech narsa aytmaydi. U yo tekin 20
+ball beradi (indeks bor holidan sog'lomroq ko'rinadi), yo bitta test
+foydalanuvchisi limitiga yaqinlashsa indeksni tushiradi — bozor esa
+o'zgarmagan bo'ladi. Ikkala holat ham sinov natijasini buzadi.
+
+Halollik talabi ham shuni aytadi: ommaga "tizim shu natijani berdi"
+deb ko'rsatilganda, o'sha natijaga bizning obunachilar soni
+aralashmagan bo'lishi kerak.
+
+**Qanday ishlaydi** (`config/default.yaml` -> `market_health.sinov`):
+
+```yaml
+sinov:
+  enabled: true
+  start_date: "2026-08-29"
+  days: 100
+  exclude_factors: ["aggregate_user_capacity"]
+```
+
+`MarketHealthCalculator._sinov_bilan()` shu davrda:
+
+* chiqarilgan omilning vaznini 0 ga tushiradi va sababini yozadi —
+  omil ro'yxatdan O'CHIRILMAYDI (jimgina yo'qolgan omil keyin "nega
+  indeks boshqacha?" degan javobsiz savol qoldirardi);
+* uning vaznini qolgan omillarga ULUSHIGA QARAB bo'ladi, ya'ni
+  vaznlar yig'indisi 100 bo'lib qoladi.
+
+Ikkinchi qadam majburiy: omil shunchaki olib tashlansa, indeksning
+yuqori chegarasi 100 dan 80 ga tushardi va 55/70 chegaralari jimgina
+boshqa ma'no olardi — bu loyihaning 1-naqshi ("shkala mos
+kelmasligi"). Testlar ikkalasini ham qulflaydi.
+
+Muddat tugagach omil O'ZI qaytadi — hech kim hech narsani yoqishi
+shart emas. Sayt ham shu YAML dan o'qiydi (`sinovHolati()`), shuning
+uchun bot bilan sayt bir kunda bir xil qarorga keladi.
+
+Ekranda: Bozor Salomatligi sahifasida o'sha qator "Sinov davri —
+indeksga qo'shilmadi" deb ko'rsatiladi, ostida esa sababi va necha kun
+qolgani yoziladi.
+
+## 61. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

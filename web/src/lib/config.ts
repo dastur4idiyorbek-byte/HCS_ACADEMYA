@@ -173,3 +173,50 @@ export function smcSozlamalari(): {
     bonusSessiya: yol(["scoring", "bonuses", "session_overlap"], 5),
   };
 }
+
+/** Sinov davri — Bozor Salomatligidan chiqarilgan omillar (59-bo'lim).
+ *
+ * Saytga KO'CHIRIB YOZILMAYDI: sana va omillar ro'yxati YAML da, ya'ni
+ * bot bilan bitta manbada. Aks holda muddat tugagach bot omilni qaytarib
+ * hisoblardi, sayt esa hali ham "hisobga olinmadi" deb turardi.
+ */
+export function sinovDavri(): {
+  yoqilgan: boolean;
+  boshlanish: string;
+  kunlar: number;
+  chiqarilgan: string[];
+} {
+  return {
+    yoqilgan: sozlama(["market_health", "sinov", "enabled"], true),
+    boshlanish: String(sozlama(["market_health", "sinov", "start_date"], "2026-08-29")),
+    kunlar: sozlama(["market_health", "sinov", "days"], 100),
+    chiqarilgan: sozlama(
+      ["market_health", "sinov", "exclude_factors"],
+      ["aggregate_user_capacity"] as string[],
+    ),
+  };
+}
+
+/** Shu lahzada sinov davri kuchdami va necha kun qoldi.
+ *
+ * `paytida` — indeks HISOBLANGAN vaqt, "hozir" emas: ekrandagi shkala
+ * o'sha lahzaning surati, ikkalasi bir vaqtga tegishli bo'lishi kerak.
+ */
+export function sinovHolati(paytida: Date): {
+  faol: boolean;
+  qolganKun: number;
+  chiqarilgan: string[];
+} {
+  const s = sinovDavri();
+  const bosh = new Date(`${s.boshlanish}T00:00:00Z`);
+  const tugash = new Date(bosh.getTime() + s.kunlar * 86_400_000);
+  const kun = new Date(
+    Date.UTC(paytida.getUTCFullYear(), paytida.getUTCMonth(), paytida.getUTCDate()),
+  );
+  const faol = s.yoqilgan && kun >= bosh && kun < tugash;
+  return {
+    faol,
+    qolganKun: Math.max(0, Math.round((tugash.getTime() - kun.getTime()) / 86_400_000)),
+    chiqarilgan: s.chiqarilgan,
+  };
+}

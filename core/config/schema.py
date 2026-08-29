@@ -7,7 +7,7 @@ Kodning hech bir joyida raqam qattiq yozilmaydi.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import time
+from datetime import date, datetime, time, timedelta
 
 from core.utils.time_utils import parse_hhmm
 
@@ -572,6 +572,58 @@ class BtcDominanceConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class SinovDavriConfig:
+    """Sinov davri — indeks FAQAT bozor ma'lumotidan hisoblanadi.
+
+    NIMA UCHUN. `aggregate_user_capacity` omili bozorni emas, BIZNING
+    holatimizni o'lchaydi: obunachilarning balansi va kunlik xavf
+    sig'imi. Sinov paytida obunachi yo'q, ya'ni bu omil bozor haqida
+    HECH NARSA aytmaydi — u yo tekin 20 ball beradi, yo (bitta test
+    foydalanuvchisi limitga yaqinlashsa) indeksni tushiradi. Ikkala
+    holat ham sinov natijasini buzadi.
+
+    Halollik talabi ham shuni aytadi: ommaga "tizim shu natijani
+    berdi" deb ko'rsatilganda, o'sha natijaga bizning obunachilar soni
+    aralashmagan bo'lishi kerak.
+
+    VAZN YO'QOLMAYDI, QAYTA TAQSIMLANADI. Omil shunchaki olib
+    tashlansa, indeksning yuqori chegarasi 100 dan 80 ga tushardi va
+    barcha chegaralar (55, 70) jimgina boshqa ma'no olardi — bu
+    loyihadagi 1-naqsh ("shkala mos kelmasligi"). Shuning uchun qolgan
+    omillar vazni ulushiga qarab kattalashtiriladi.
+
+    Muddat tugagach omil O'ZI qaytadi — hech kim hech narsani yoqishi
+    shart emas.
+    """
+
+    enabled: bool = True
+    #: ISO sana: "YYYY-MM-DD". Sinov shu kundan boshlanadi.
+    start_date: str = "2026-08-29"
+    days: int = 100
+    #: Indeksdan chiqariladigan omillar (nomi `factors.py` dagidek)
+    exclude_factors: list[str] = field(
+        default_factory=lambda: ["aggregate_user_capacity"]
+    )
+
+    def boshlanish(self) -> date:
+        """YAML'da tirnoqsiz yozilsa PyYAML uni `date` qilib beradi —
+        ikkala ko'rinish ham qabul qilinadi."""
+        if isinstance(self.start_date, date):
+            return self.start_date
+        return date.fromisoformat(str(self.start_date))
+
+    def tugash(self) -> date:
+        return self.boshlanish() + timedelta(days=self.days)
+
+    def faolmi(self, moment: datetime) -> bool:
+        kun = moment.date()
+        return self.enabled and self.boshlanish() <= kun < self.tugash()
+
+    def qolgan_kun(self, moment: datetime) -> int:
+        return max(0, (self.tugash() - moment.date()).days)
+
+
+@dataclass(frozen=True, slots=True)
 class MarketHealthConfig:
     #: 3-omil to'liq ball oladigan O'RTACHA ADX (bitta coin emas, 30 ta
     #: coinning o'rtachasi — sabab `docs/ARXITEKTURA.md`, 32-bo'lim)
@@ -580,6 +632,8 @@ class MarketHealthConfig:
     recompute_on_candle_close: bool = True
     daily_preview_utc_hour: int = 0
     btc_dominance: BtcDominanceConfig = field(default_factory=BtcDominanceConfig)
+    #: Sinov davri — sig'im kabi BIZGA tegishli omillar chiqariladi
+    sinov: SinovDavriConfig = field(default_factory=SinovDavriConfig)
 
 
 # --------------------------------------------------------------------------- #
