@@ -175,7 +175,7 @@ def test_isinish_davri_eng_yuqori_timeframega_qarab_hisoblanadi() -> None:
     nisbat = max(1, eng_yuqori // kirish)
 
     assert nisbat > 1, "tasdiq timeframei kirishdan yuqori bo'lishi kerak"
-    assert kerak == analysis.indicators.ema_slow * nisbat + 10
+    assert kerak == analysis.indicators.min_candles * nisbat + 10
 
 
 def test_malumot_yetmasa_bosh_natija() -> None:
@@ -382,8 +382,7 @@ def tez_config():  # noqa: ANN201
     asos = load_config()
     ind = dataclasses.replace(
         asos.analysis.indicators,
-        ema_fast=10,
-        ema_slow=30,
+        min_candles=30,
         rsi_period=7,
         macd_fast=6,
         macd_slow=13,

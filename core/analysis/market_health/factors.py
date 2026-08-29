@@ -5,15 +5,19 @@ Vaznlar `config/default.yaml` -> `market_health.weights` da (jami 100).
 
 ASOSIY OMIL O'ZGARDI. Ilgari eng og'ir omillar BTC Dominance (20) va
 EMA asosidagi trend kengligi (25) edi. Endi birinchi o'rinda halol
-ro'yxatning SMC STRUKTURA kengligi turadi (30), BTC Dominance esa 5 ga
+ro'yxatning SMC STRUKTURA kengligi turadi (45), BTC Dominance esa 5 ga
 tushirildi — u foydali, lekin ko'pchilik treyder uchun qaror mezoni
-emas (`docs/ARXITEKTURA.md`, 57-bo'lim).
+emas (57-bo'lim).
+
+EMA kengligi omili BUTUNLAY olib tashlandi (58-bo'lim): u aynan SHU
+savolni ("nechta coin ko'tarilishda") o'lchardi, faqat kechikuvchi
+vosita bilan. Ikkita bir xil omil o'rniga bitta — vazni 30 dan 45 ga
+o'tdi.
 
 MA'LUMOT YO'Q BO'LGANDA nima bo'ladi — har bir omil uchun alohida qaror,
 chunki "ma'lumot yo'q" har doim ham "yomon" degani emas:
 
   Struktura kengligi -> 0.0  (halol ro'yxat tahlil qilinmagan)
-  Trend kengligi     -> 0.0  (o'sha sabab)
   Volatillik         -> 0.0  (tekis bozorni ajratib bo'lmaydi)
   BTC dominance      -> 0.0  (bozor holati noma'lum — ehtiyotkorlik)
   Sig'im             -> 1.0  (foydalanuvchi yo'q -> tizim o'zini cheklamasin)
@@ -73,11 +77,13 @@ def btc_dominance_factor(
 def structure_breadth_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
     """1-omil (ASOSIY): halol ro'yxatning necha foizi HH/HL strukturada.
 
-    Bu — SMC (`market_structure.py`) natijasidan keladi va EMA asosidagi
-    kenglikdan FARQ QILADI: EMA o'rtacha qiymat, ya'ni kechikadi;
-    struktura esa narxning o'z qadamlari — cho'qqi va chuqurliklar
-    ketma-ketligi. Trend burilganda struktura birinchi bo'lib xabar
-    beradi, EMA esa oxirida.
+    Bu — SMC (`market_structure.py`) natijasidan keladi: narxning o'z
+    qadamlari, cho'qqi va chuqurliklar ketma-ketligi. Trend burilganda
+    struktura birinchi bo'lib xabar beradi.
+
+    Ilgari yonida EMA asosidagi kenglik ham turardi. U olib tashlandi:
+    ikkalasi bir xil savolga javob berardi, farqi faqat vositada edi —
+    va EMA kechikuvchi vosita.
     """
     ulush = inputs.structure_uptrend_ratio
     if ulush is None:
@@ -105,27 +111,6 @@ def quarterly_phase_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
     """
     davr = quarterly_phase(inputs.computed_at)
     return HealthFactor("quarterly_phase", davr.score, weight, f"Joriy davr: {davr.label}")
-
-
-def trend_breadth_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
-    """2-omil: EMA bo'yicha kenglik — strukturadan keyingi ikkinchi o'lchov.
-
-    Bu — bozorning "kengligi" (breadth). Bir nechta coin ko'tarilib, qolgani
-    tushayotgan bo'lsa, bu haqiqiy ko'tarilish emas.
-    """
-    ulush = inputs.uptrend_ratio
-    if ulush is None:
-        return HealthFactor(
-            "halal_trend_breadth", 0.0, weight, "Halol ro'yxat tahlil qilinmagan"
-        )
-
-    return HealthFactor(
-        "halal_trend_breadth",
-        ulush,
-        weight,
-        f"Halol coinlarning {ulush:.0%}i ko'tarilish trendida "
-        f"({inputs.universe_size} tadan)",
-    )
 
 
 def volatility_regime_factor(
@@ -213,7 +198,6 @@ def build_factors(
     """Barcha omillarni hisoblaydi — eng og'iridan boshlab."""
     return [
         structure_breadth_factor(inputs, weights.halal_structure_breadth),
-        trend_breadth_factor(inputs, weights.halal_trend_breadth),
         volatility_regime_factor(
             inputs, adx_threshold, weights.volatility_regime, strong_trend_adx
         ),

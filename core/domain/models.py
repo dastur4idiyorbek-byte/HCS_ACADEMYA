@@ -285,10 +285,6 @@ class SignalLevels:
         return (self.tp2 - self.entry) / self.entry * 100
 
     @property
-    def risk_reward_tp1(self) -> float:
-        return (self.tp1 - self.entry) / (self.entry - self.stop)
-
-    @property
     def risk_reward_tp2(self) -> float:
         """TP2 kamida 1:3 bo'lishi kerak (3.3-band)."""
         return (self.tp2 - self.entry) / (self.entry - self.stop)

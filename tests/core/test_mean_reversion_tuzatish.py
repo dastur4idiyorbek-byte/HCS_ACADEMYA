@@ -13,6 +13,7 @@ from __future__ import annotations
 import pytest
 
 from core.analysis.strategies.classic_ta import classic_ta_rules
+from core.config import load_config
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource
 from core.risk_engine import RiskEngine
@@ -159,29 +160,24 @@ def test_past_nisbat_bilan_darajalar_quriladi(config: AppConfig) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_tarixi_yetmagan_coin_kenglikka_qoshilmaydi(config: AppConfig) -> None:
-    """Noaniqlik "ko'tarilishda emas" degani EMAS (0.3-band).
+def test_tarixi_yetmagan_coin_kenglikka_qoshilmaydi() -> None:
+    """Aniqlab bo'lmagan coin kenglik hisobiga KIRMAYDI (0.3-band).
 
-    `timeframe_trend()` sham soni EMA davridan kam bo'lsa `FLAT`
-    qaytaradi — ya'ni "aniqlab bo'lmadi" va "ko'tarilishda emas" bir xil
-    javob beradi.
+    Ilgari chegara EMA200 edi: haftalik timeframeda 200 sham ~3.8 yil
+    tarix degani va ko'p altcoinlar jimgina "ko'tarilishda emas" deb
+    sanalardi — kenglik sun'iy tushib, indeks signalni to'xtatardi.
 
-    Haftalik timeframeda bu halokatli: EMA200 uchun 200 hafta (~3.8 yil)
-    kerak, ko'p altcoinlarda bunday tarix yo'q. Ular jimgina
-    "ko'tarilishda emas" deb sanalsa, bozor kengligi sun'iy ravishda
-    tushadi va indeks 40 dan pastga o'tib SIGNALNI BUTUNLAY to'xtatadi.
+    EMA olib tashlangach chegara `min_candles` ga tushdi, lekin
+    QOIDANING O'ZI qoladi: tarixi yetmagan coin hisobga kirmasligi
+    kerak, "ko'tarilishda emas" deb sanalmasligi kerak.
     """
-    from core.analysis.indicators import timeframe_trend
-    from core.domain.enums import TrendDirection
+    ind = load_config().analysis.indicators
+    assert ind.min_candles < 200, "EMA200 chegarasi qolib ketmasin"
 
-    ind = config.analysis.indicators
-    qisqa = _shamlar(ind.ema_slow - 5)
-
-    assert timeframe_trend(qisqa, ind.ema_fast, ind.ema_slow) is TrendDirection.FLAT, (
-        "tarix yetmasa FLAT qaytadi — shuning uchun runner uni CHIQARIB TASHLASHI kerak"
-    )
-    assert len(qisqa) < ind.ema_slow
-
+    # Qoida `compute_health` da: tarixi yetmagan coin hisobga UMUMAN
+    # kirmaydi. Uni "ko'tarilishda emas" deb sanash kenglikni sun'iy
+    # tushirardi (33-bo'lim) — pastdagi test manbani tekshiradi.
+    assert len(_shamlar(ind.min_candles - 5)) < ind.min_candles
 
 def _shamlar(n: int):  # noqa: ANN202
     from datetime import UTC, datetime, timedelta
@@ -202,7 +198,7 @@ def test_qisqa_tarixli_coin_hisobdan_chiqariladi(config: AppConfig) -> None:
     from bot.services import runner as runner_moduli
 
     manba = inspect.getsource(runner_moduli.PipelineRunner.compute_health)
-    assert "len(seriya) < indicators.ema_slow" in manba, (
+    assert "len(seriya) < indicators.min_candles" in manba, (
         "tarix yetarliligi tekshiruvi olib tashlangan — haftalik indeks buziladi"
     )
 

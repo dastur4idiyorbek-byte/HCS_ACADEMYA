@@ -37,7 +37,6 @@ def kirish(**kwargs) -> HealthInputs:
         "btc_dominance": 54.0,
         "btc_dominance_change_24h": 0.1,
         "universe_structures": {f"C{i}": TrendDirection.UP for i in range(30)},
-        "universe_trends": {f"C{i}": TrendDirection.UP for i in range(30)},
         "universe_adx": {f"C{i}": 45.0 for i in range(30)},
         "capacity": AggregateCapacity(10, 10, 1000.0, 1000.0),
         "open_signals": 0,
@@ -83,7 +82,6 @@ def test_yomon_bozorda_indeks_past(calculator) -> None:  # noqa: ANN001
         kirish(
             btc_dominance_change_24h=-3.0,
             universe_structures={f"C{i}": TrendDirection.DOWN for i in range(30)},
-            universe_trends={f"C{i}": TrendDirection.DOWN for i in range(30)},
             universe_adx={f"C{i}": 12.0 for i in range(30)},
             capacity=AggregateCapacity(10, 0, 0.0, 1000.0),
             open_signals=5,
@@ -98,7 +96,7 @@ def test_indeks_har_doim_0_100_oraligida(calculator) -> None:  # noqa: ANN001
     holatlar = [
         kirish(),
         kirish(btc_dominance_change_24h=-10.0),
-        kirish(universe_trends={}, universe_adx={}, capacity=None),
+        kirish(universe_structures={}, universe_adx={}, capacity=None),
         kirish(open_signals=100, max_open_signals=5),
     ]
     for holat in holatlar:
@@ -135,8 +133,8 @@ def test_trend_kengligi_ulushga_mos(calculator) -> None:  # noqa: ANN001
     tor = {f"C{i}": (TrendDirection.UP if i < 6 else TrendDirection.DOWN) for i in range(30)}
 
     assert (
-        calculator.compute(kirish(universe_trends=keng)).value
-        > calculator.compute(kirish(universe_trends=tor)).value
+        calculator.compute(kirish(universe_structures=keng)).value
+        > calculator.compute(kirish(universe_structures=tor)).value
     )
 
 
@@ -190,15 +188,15 @@ def test_foydalanuvchi_yoq_bolsa_sigim_toliq(calculator) -> None:  # noqa: ANN00
 
 @pytest.mark.parametrize(
     "yoq",
-    ["btc_dominance_change_24h", "universe_trends", "universe_adx"],
+    ["btc_dominance_change_24h", "universe_structures", "universe_adx"],
 )
 def test_har_bir_bozor_omili_yoq_bolsa_ball_nol(calculator, yoq: str) -> None:  # noqa: ANN001
-    bosh = {"universe_trends": {}, "universe_adx": {}}.get(yoq)
+    bosh = {"universe_structures": {}, "universe_adx": {}}.get(yoq)
     salomatlik = calculator.compute(kirish(**{yoq: bosh}))
 
     tegishli = {
         "btc_dominance_change_24h": "btc_dominance_stability",
-        "universe_trends": "halal_trend_breadth",
+        "universe_structures": "halal_structure_breadth",
         "universe_adx": "volatility_regime",
     }[yoq]
     omil = next(f for f in salomatlik.factors if f.name == tegishli)
@@ -259,7 +257,6 @@ def test_indeks_ball_chegarasini_boshqaradi(calculator, config) -> None:  # noqa
         kirish(
             btc_dominance_change_24h=-3.0,
             universe_structures={f"C{i}": TrendDirection.DOWN for i in range(30)},
-            universe_trends={f"C{i}": TrendDirection.DOWN for i in range(30)},
             universe_adx={f"C{i}": 10.0 for i in range(30)},
             capacity=AggregateCapacity(10, 0, 0.0, 1000.0),
             open_signals=5,
@@ -297,7 +294,7 @@ def test_dashboard_matni_sababni_korsatadi(calculator) -> None:  # noqa: ANN001
 def test_dashboard_omillarni_ahamiyat_boyicha_tartiblaydi(calculator) -> None:  # noqa: ANN001
     matn = describe(calculator.compute(kirish()))
     qatorlar = [q for q in matn.splitlines() if "▰" in q or "▱" in q]
-    assert len(qatorlar) == 7  # 5 eski + struktura kengligi + QT davri
+    assert len(qatorlar) == 6  # EMA kengligi omili olib tashlandi (59-bo'lim)
 
 
 # --------------------------------------------------------------------------- #
@@ -326,7 +323,6 @@ def test_ideal_bozor_toliq_ball_oladi() -> None:
             btc_dominance=54.0,
             btc_dominance_change_24h=0.2,
             universe_structures={f"C{i}": TrendDirection.UP for i in range(30)},
-            universe_trends={f"C{i}": TrendDirection.UP for i in range(30)},
             universe_adx={f"C{i}": config.market_health.strong_trend_adx for i in range(30)},
             capacity=None,
             open_signals=0,

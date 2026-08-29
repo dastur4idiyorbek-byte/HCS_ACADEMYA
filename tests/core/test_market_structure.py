@@ -9,12 +9,10 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from core.analysis.market_structure import (
-    MarketStructure,
     SwingLabel,
     analyze_structure,
     label_swings,
     structure_alignment,
-    uptrend_ratio,
 )
 from core.analysis.support_resistance.pivots import Pivot
 from core.domain.enums import TrendDirection, ZoneKind
@@ -161,9 +159,28 @@ def test_aralash_swinglar_flat_beradi() -> None:
     assert natija.direction is TrendDirection.FLAT
 
 
-def test_malumot_yetarli_bolmasa_flat_va_xato_yoq() -> None:
+def test_malumot_yoq_bolsa_flat_va_xato_yoq() -> None:
     assert analyze_structure([]).direction is TrendDirection.FLAT
-    assert analyze_structure(zigzag([100, 110])).direction is TrendDirection.FLAT
+
+
+def test_swing_yetmasa_SOF_OZGARISH_ishlatiladi() -> None:
+    """Silliq ko'tarilishda burilish nuqtasi bo'lmaydi — lekin trend BOR.
+
+    Bu EMA olib tashlangandan keyin qolgan bo'shliq edi: to'xtovsiz
+    o'sish HH/HL ketma-ketligi hosil qilmaydi va struktura "aniq emas"
+    derdi — holbuki bu eng kuchli trendning o'zi.
+    """
+    # 100 -> 110: swing yo'q, lekin sof o'zgarish +10%
+    assert analyze_structure(zigzag([100, 110])).direction is TrendDirection.UP
+    assert analyze_structure(zigzag([110, 100])).direction is TrendDirection.DOWN
+
+
+def test_zaxira_olchov_shovqinni_kesadi() -> None:
+    """Bir foizdan kichik tebranish trend emas."""
+    assert (
+        analyze_structure(zigzag([100, 100.3]), fallback_min_pct=1.0).direction
+        is TrendDirection.FLAT
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -224,17 +241,6 @@ def test_alignment_kotarilishda_yuqori_beradi() -> None:
 def test_alignment_aniqlanmaganda_ortacha_beradi() -> None:
     """Aniqlab bo'lmagan struktura JAZO emas — o'rtacha bonus oladi."""
     assert structure_alignment(analyze_structure([])) == 0.4
-
-
-def test_uptrend_ratio_flatni_maxrajda_qoldiradi() -> None:
-    kotarilish = analyze_structure(zigzag([100, 112, 106, 124, 116, 138]))
-    aniqmas = MarketStructure(swings=[], direction=TrendDirection.FLAT)
-    ulush = uptrend_ratio({"A": kotarilish, "B": aniqmas})
-    assert ulush == 0.5
-
-
-def test_uptrend_ratio_bosh_royxatda_none() -> None:
-    assert uptrend_ratio({}) is None
 
 
 def test_describe_matn_beradi() -> None:

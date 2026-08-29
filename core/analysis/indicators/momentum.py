@@ -9,7 +9,38 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from core.analysis.indicators.trend import ema_series
+
+def _ema_series(values: list[float], period: int) -> list[float | None]:
+    """Eksponensial silliqlash — MACD ning ICHKI vositasi.
+
+    DIQQAT, bu olib tashlangan EMA TREND FILTRI emas (EMA50 > EMA200).
+    Bu — MACD ta'rifining bir qismi: MACD chizig'i ikki eksponensial
+    o'rtachaning ayirmasi. Ularsiz MACD umuman mavjud emas.
+
+    Trend YO'NALISHI uchun EMA endi ishlatilmaydi — u SMC
+    strukturasidan olinadi (`docs/ARXITEKTURA.md`, 58-bo'lim). Shuning
+    uchun funksiya `trend.py` dan bu yerga ko'chirildi va yopiq
+    (`_` bilan) qilindi: tashqaridan chaqirilmasligi kerak.
+
+    Dastlabki qiymat — birinchi `period` ta qiymatning oddiy o'rtachasi
+    (SMA). Yetarli ma'lumot bo'lmagan nuqtalarda `None` qaytadi.
+    """
+    if period <= 0:
+        raise ValueError("Davr musbat bo'lishi kerak")
+    if len(values) < period:
+        return [None] * len(values)
+
+    koeffitsient = 2 / (period + 1)
+    natija: list[float | None] = [None] * (period - 1)
+
+    joriy = sum(values[:period]) / period
+    natija.append(joriy)
+
+    for qiymat in values[period:]:
+        joriy = (qiymat - joriy) * koeffitsient + joriy
+        natija.append(joriy)
+
+    return natija
 
 
 def rsi_series(values: list[float], period: int = 14) -> list[float | None]:
@@ -118,8 +149,8 @@ def macd(
     if len(values) < slow + signal_period:
         return None
 
-    tez = ema_series(values, fast)
-    sekin = ema_series(values, slow)
+    tez = _ema_series(values, fast)
+    sekin = _ema_series(values, slow)
 
     macd_qatori = [
         t - s for t, s in zip(tez, sekin, strict=True) if t is not None and s is not None
@@ -127,7 +158,7 @@ def macd(
     if len(macd_qatori) < signal_period:
         return None
 
-    signal_qatori = ema_series(macd_qatori, signal_period)
+    signal_qatori = _ema_series(macd_qatori, signal_period)
     juftlar = [
         (m, s)
         for m, s in zip(macd_qatori[-len(signal_qatori):], signal_qatori, strict=True)

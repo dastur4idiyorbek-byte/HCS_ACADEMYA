@@ -41,9 +41,7 @@ def dalilsiz(config: AppConfig) -> AppConfig:
         config,
         scoring=dataclasses.replace(
             config.scoring,
-            uplift=dataclasses.replace(
-                config.scoring.uplift, support_resistance=0.0, trend=0.0
-            ),
+            uplift=dataclasses.replace(config.scoring.uplift, support_resistance=0.0),
             bonuses=dataclasses.replace(config.scoring.bonuses, session_overlap=0),
         ),
     )

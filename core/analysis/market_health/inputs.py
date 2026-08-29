@@ -34,10 +34,6 @@ class HealthInputs:
     #: narx harakatining o'zi — "nechta coin HH/HL qadam tashlayapti".
     universe_structures: dict[str, TrendDirection] = field(default_factory=dict)
 
-    # --- 2-omil: EMA asosidagi eski trend kengligi (ikkinchi darajali) ---
-    #: Har bir halol coin uchun trend yo'nalishi
-    universe_trends: dict[str, TrendDirection] = field(default_factory=dict)
-
     # --- 6-omil (kichik vazn): BTC Dominance ---
     #: Hozirgi BTC dominance foizi (masalan 54.2)
     btc_dominance: float | None = None
@@ -57,7 +53,7 @@ class HealthInputs:
 
     @property
     def universe_size(self) -> int:
-        return len(self.universe_trends)
+        return len(self.universe_structures)
 
     @property
     def structure_uptrend_ratio(self) -> float | None:
@@ -72,16 +68,6 @@ class HealthInputs:
             1 for y in self.universe_structures.values() if y is TrendDirection.UP
         )
         return kotarilish / len(self.universe_structures)
-
-    @property
-    def uptrend_ratio(self) -> float | None:
-        """Ko'tarilish trendidagi coinlar ulushi (0..1)."""
-        if not self.universe_trends:
-            return None
-        kotarilish = sum(
-            1 for yo_nalish in self.universe_trends.values() if yo_nalish is TrendDirection.UP
-        )
-        return kotarilish / len(self.universe_trends)
 
     @property
     def average_adx(self) -> float | None:

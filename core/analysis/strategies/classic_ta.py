@@ -119,11 +119,11 @@ class ClassicTaStrategy(Strategy):
             return self._reject("halal", f"{data.symbol}: {data.halal_verdict.reason}")
 
         shamlar = data.series(analysis.entry_timeframe)
-        if len(shamlar) < analysis.indicators.ema_slow:
+        if len(shamlar) < analysis.indicators.min_candles:
             return self._reject(
                 "data",
                 f"{analysis.entry_timeframe} uchun sham yetarli emas "
-                f"({len(shamlar)} < {analysis.indicators.ema_slow})",
+                f"({len(shamlar)} < {analysis.indicators.min_candles})",
             )
 
         # 1) S/R zonalari — BIRLAMCHI tahlil
@@ -184,6 +184,7 @@ class ClassicTaStrategy(Strategy):
             shamlar,
             analysis.market_structure.swing_lookback,
             analysis.market_structure.min_swings,
+            analysis.market_structure.fallback_min_pct,
         )
         if analysis.require_structure_alignment and struktura.direction is TrendDirection.DOWN:
             return self._reject(
@@ -248,29 +249,30 @@ class ClassicTaStrategy(Strategy):
     def _timeframe_view(self, data: StrategyInput) -> MultiTimeframeView:
         """3.2-band: har bir yuqori timeframe uchun trend yo'nalishi.
 
+        MANBA O'ZGARDI: ilgari bu EMA50 > EMA200 edi. Endi u SMC
+        STRUKTURASI — narxning o'z qadamlari (HH/HL yoki LH/LL).
+
+        Nima uchun: EMA200 kunlik grafikda 200 kunlik o'rtacha, ya'ni
+        eng sekin o'lchov. U tasdiqlaguncha narx Discount zonasidan
+        chiqib ketardi. Struktura esa burilishni birinchi bo'lib
+        ko'rsatadi. Qo'shimcha yutuq — 200 sham talabi yo'qoldi:
+        haftalik timeframeda u ~3.8 yil tarix degani edi va ko'p
+        altcoinlarni jimgina chetlab o'tardi (27- va 58-bo'limlar).
+
         Sham yetarli bo'lmagan timeframe `FLAT` deb belgilanadi — bu
-        muvofiqlikni buzadi va signal berilmaydi (0.3-band).
-
-        Diqqat: bu yerda `htf_trend_requires_price_above_fast` ishlatiladi,
-        `trend_requires_price_above_fast` emas. 3.1-band'ning "narx
-        EMA'lardan yuqori" sharti KIRISH qarori haqida; 3.2-band esa
-        yuqori timeframelarning TREND YO'NALISHI haqida. Ikkalasiga bir xil
-        qat'iy shartni qo'llash ularni bir-birini inkor qiladigan qilib
-        qo'yadi — o'lchov `docs/ARXITEKTURA.md` 27-bo'limda.
+        muvofiqlikni buzadi, lekin signalni to'xtatmaydi (0.3-band).
         """
-        from core.analysis.indicators import timeframe_trend
-
-        indicators = self._config.analysis.indicators
+        struktura = self._config.analysis.market_structure
         return MultiTimeframeView(
             trends=[
                 TimeframeTrend(
                     timeframe=tf,
-                    direction=timeframe_trend(
+                    direction=analyze_structure(
                         data.series(tf),
-                        indicators.ema_fast,
-                        indicators.ema_slow,
-                        indicators.htf_trend_requires_price_above_fast,
-                    ),
+                        struktura.swing_lookback,
+                        struktura.min_swings,
+                        struktura.fallback_min_pct,
+                    ).direction,
                 )
                 for tf in self._config.analysis.htf_confirmation
             ]

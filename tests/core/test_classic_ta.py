@@ -304,79 +304,6 @@ def test_tasdiqlanmagan_omil_ballni_tushiradi(config) -> None:  # noqa: ANN001
         )
 
 
-def test_yuqori_timeframe_trendi_alohida_qoida_bilan_tasniflanadi(config) -> None:  # noqa: ANN001
-    """3.2-band 3.1-band'dan alohida qoidaga ega — 27-bo'limda o'lchangan.
-
-    Support zonasiga qaytish kunlik grafikda narxni deyarli har doim EMA50
-    dan pastga tushiradi. Agar 3.1-band'ning "narx EMA'lardan yuqori"
-    sharti yuqori timeframe TRENDINI tasniflashda ham qo'llanilsa, kunlik
-    trend hech qachon `UP` bo'lmaydi va birorta signal chiqmaydi.
-
-    Standart sozlamada ikki bayroq FARQ QILISHI kerak — aks holda
-    tuzatish yo'qolgan bo'ladi.
-    """
-    indikatorlar = config.analysis.indicators
-
-    assert indikatorlar.trend_requires_price_above_fast is True, "3.1-band qat'iy qoladi"
-    assert indikatorlar.htf_trend_requires_price_above_fast is False, (
-        "3.2-band tuzilma bo'yicha tasniflanadi (EMA50 > EMA200)"
-    )
-
-
-def test_qatiy_htf_qoidasi_qaytishda_trendni_yoqotadi(config) -> None:  # noqa: ANN001
-    """Bayroq `True` bo'lsa, sog'lom qaytish "trend yo'q" deb o'qiladi.
-
-    Bu test tuzatishning SABABINI qayd etadi. Yuqori timeframe qatori —
-    haqiqiy pullback: EMA50 > EMA200 (trend buzilmagan), lekin narx EMA50
-    dan past. Qat'iy qoida buni `FLAT` deb tasniflaydi va 3.2-band
-    muvofiqligini abadiy buzadi — 27-bo'limdagi o'lchov shuni ko'rsatdi.
-    """
-    from core.analysis.indicators import timeframe_trend
-    from core.domain.enums import TrendDirection
-
-    shamlar = qaytishdagi_kotarilish()
-    ind = config.analysis.indicators
-
-    qatiy = timeframe_trend(shamlar, ind.ema_fast, ind.ema_slow, True)
-    yumshoq = timeframe_trend(shamlar, ind.ema_fast, ind.ema_slow, False)
-
-    assert qatiy is TrendDirection.FLAT, "qat'iy qoida sog'lom qaytishni ham rad etadi"
-    assert yumshoq is TrendDirection.UP, "tuzilma bo'yicha trend hali ham ko'tarilishda"
-
-
-def test_htf_bayrogi_strategiyada_qollaniladi(config) -> None:  # noqa: ANN001
-    """Strategiya HTF trendini aynan `htf_trend_requires_price_above_fast` bilan tasniflaydi.
-
-    Yuqori timeframe qaytishda bo'lganda: standart sozlama o'tkazadi,
-    qat'iy sozlama `timeframes` bosqichida to'xtatadi.
-    """
-    qatiy_ind = dataclasses.replace(
-        config.analysis.indicators, htf_trend_requires_price_above_fast=True
-    )
-    # To'siq faqat `require_htf_alignment` yoqilganda ishlaydi — standart
-    # holatda yuqori timeframe BALLGA qo'shiladi, signalni to'xtatmaydi.
-    qatiy = dataclasses.replace(
-        config,
-        analysis=dataclasses.replace(
-            config.analysis, indicators=qatiy_ind, require_htf_alignment=True
-        ),
-    )
-    kiruvchi_shamlar = qaytishli_kotarilish()
-    yuqori_shamlar = qaytishdagi_kotarilish()
-
-    qatiy_strategiya = ClassicTaStrategy(qatiy)
-    qatiy_strategiya.analyze(kirish(qatiy, kiruvchi_shamlar, htf=yuqori_shamlar))
-    assert qatiy_strategiya.last_rejection is not None
-    assert qatiy_strategiya.last_rejection.stage == "timeframes"
-
-    standart = ClassicTaStrategy(config)
-    natija = standart.analyze(kirish(config, kiruvchi_shamlar, htf=yuqori_shamlar))
-    sabab = standart.last_rejection
-    assert natija is not None or (sabab is not None and sabab.stage != "timeframes"), (
-        "standart sozlamada yuqori timeframe to'sig'i chiqmasligi kerak"
-    )
-
-
 # --------------------------------------------------------------------------- #
 #  Strategiya interfeysi (6.1-band)
 # --------------------------------------------------------------------------- #
@@ -421,8 +348,38 @@ def test_yuqori_timeframe_zid_bolsa_ham_nomzod_chiqadi(config) -> None:  # noqa:
 
 
 def pasayish(n: int = 260) -> list[Candle]:
-    """Aniq tushish trendi — EMA50 EMA200 dan past."""
+    """Aniq tushish trendi."""
     return [sham(i, 200 - i * 0.4) for i in range(n)]
+
+
+def kotarilish_htf(n: int = 260) -> list[Candle]:
+    """Aniq ko'tarilish trendi — yuqori timeframe uchun."""
+    return [sham(i, 100 + i * 0.4) for i in range(n)]
+
+
+def test_yuqori_timeframe_STRUKTURA_bilan_tasniflanadi(config) -> None:  # noqa: ANN001
+    """3.2-band: HTF trendi endi EMA bilan emas, SMC strukturasi bilan.
+
+    Ilgari bu yerda `htf_trend_requires_price_above_fast` bayrog'i
+    turardi: kunlik EMA50 dan yuqori bo'lish talab qilinsa, support
+    zonasiga qaytish HECH QACHON "UP" bermasdi (27-bo'lim). Bayroq
+    bilan birga muammoning o'zi ham yo'qoldi — struktura narxning
+    EMA ga nisbatan holatini umuman so'ramaydi.
+    """
+    import inspect
+
+    from core.analysis.strategies.classic_ta import ClassicTaStrategy
+
+    manba = inspect.getsource(ClassicTaStrategy._timeframe_view)
+    # Izohlarni chiqarib tashlaymiz: ular EMA ni TARIX sifatida eslatadi
+    kod = "\n".join(
+        q for q in manba.splitlines() if not q.strip().startswith("#")
+    )
+    kod = kod[: kod.index('"""')] + kod[kod.rindex('"""') :]
+
+    assert "analyze_structure" in kod
+    assert "timeframe_trend" not in kod, "EMA asosidagi tasnif qolib ketgan"
+    assert "ema" not in kod.lower(), "HTF tasnifida EMA qolmasligi kerak"
 
 
 def test_yuqori_timeframe_moslikka_qarab_ball_ozgaradi(config) -> None:  # noqa: ANN001
@@ -435,7 +392,7 @@ def test_yuqori_timeframe_moslikka_qarab_ball_ozgaradi(config) -> None:  # noqa:
     """
     strategiya = ClassicTaStrategy(config)
 
-    mos = strategiya.analyze(kirish(config, qaytishli_kotarilish()))
+    mos = strategiya.analyze(kirish(config, qaytishli_kotarilish(), htf=kotarilish_htf()))
     zid = strategiya.analyze(kirish(config, qaytishli_kotarilish(), htf=pasayish()))
 
     assert mos is not None and zid is not None

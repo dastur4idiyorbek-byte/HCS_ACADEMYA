@@ -294,7 +294,7 @@ def test_skalp_signali_risk_engine_dan_otadi(strategy, config) -> None:  # noqa:
         HealthInputs(
             computed_at=KUN,
             btc_dominance_change_24h=0.1,
-            universe_trends={"BTC": __import__(
+            universe_structures={"BTC": __import__(
                 "core.domain.enums", fromlist=["TrendDirection"]
             ).TrendDirection.UP},
             universe_adx={"BTC": 45.0},

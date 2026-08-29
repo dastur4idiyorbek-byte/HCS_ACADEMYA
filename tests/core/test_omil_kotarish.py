@@ -4,7 +4,9 @@ Bu qatlamning butun ma'nosi shu yerda sinaladi. Dalillar alohida
 omil emas:
 
     daraja turi + sweep  ->  S/R omilini ko'taradi (25 ball)
-    SMC strukturasi      ->  trend omilini ko'taradi (20 ball)
+
+SMC strukturasi esa endi "ko'tarish" emas: EMA olib tashlangach u
+trend omilining TO'LIQ HUQUQLI qismiga aylandi (59-bo'lim).
 
 Ikki xossa QAT'IY talab qilinadi:
   1. dalil ballni hech qachon PASAYTIRMAYDI;
@@ -18,8 +20,6 @@ qilmasdi.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
-
 import pytest
 
 from core.analysis.level_types import LevelType
@@ -32,9 +32,8 @@ from core.analysis.scoring.factors import (
 from core.analysis.support_resistance.liquidity import LiquiditySweep
 from core.config.schema import IndicatorConfig
 from core.domain.enums import TrendDirection, ZoneKind
-from core.domain.models import Candle, SRZone
+from core.domain.models import SRZone
 
-BOSH = datetime(2026, 1, 1, tzinfo=UTC)
 ZONA = SRZone(kind=ZoneKind.SUPPORT, low=99.0, high=101.0, touches=3)
 
 
@@ -167,12 +166,8 @@ def test_sr_omili_bonus_deb_belgilanmaydi() -> None:
 
 
 # --------------------------------------------------------------------------- #
-#  Trend omili — SMC strukturasi
+#  Trend omili — SMC strukturasi EMA ning O'RNIGA
 # --------------------------------------------------------------------------- #
-
-
-def sham(i: int) -> Candle:
-    return Candle(BOSH + timedelta(hours=i), 100, 101, 99, 100, 1000.0)
 
 
 class SoxtaHolat:
@@ -184,49 +179,65 @@ class SoxtaHukm:
         return None
 
 
-def test_struktura_trend_omilini_kotaradi() -> None:
-    config = IndicatorConfig()
-    dalilsiz = score_trend(SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, uplift=0.5)
-    dalilli = score_trend(
-        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(), uplift=0.5
-    )
+def test_struktura_trend_omilining_TO_LIQ_qismi() -> None:
+    """EMA olib tashlangach struktura "qo'shimcha dalil" bo'lishdan chiqdi.
 
-    assert dalilli.earned > dalilsiz.earned
-    assert dalilli.earned <= 20.0
-    assert "🔵" in dalilli.explanation
-
-
-def test_pasayish_strukturasi_JAZOLAMAYDI() -> None:
-    """Nol dalil — ball o'zgarmaydi, kamaymaydi.
-
-    Qat'iy rad etish kerak bo'lsa `require_structure_alignment` bor va
-    u ataylab o'chiq: qat'iy "VA" filtrlari bu loyihada voronkani
-    allaqachon nolga tushirgan.
+    U endi trend omilining eng katta ulushiga ega qismi
+    (`TREND_ULUSHLARI["struktura"]`) — ya'ni u ballni ko'taruvchi
+    bezak emas, o'lchovning o'zi.
     """
-    config = IndicatorConfig()
-    dalilsiz = score_trend(SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, uplift=0.5)
-    pastga = score_trend(
-        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=pasayish(), uplift=0.5
-    )
+    from core.analysis.scoring.factors import TREND_ULUSHLARI
 
-    assert pastga.earned == pytest.approx(dalilsiz.earned)
+    assert "ema" not in TREND_ULUSHLARI
+    assert "struktura" in TREND_ULUSHLARI
+    # Yuqori timeframe ham STRUKTURA bilan aniqlanadi (`_timeframe_view`),
+    # ya'ni trend omilining katta qismi tuzilmaga tayanadi.
+    tuzilma = TREND_ULUSHLARI["struktura"] + TREND_ULUSHLARI["htf"]
+    assert tuzilma > TREND_ULUSHLARI["adx"]
+
+
+def test_kotarilish_strukturasi_koproq_ball_beradi() -> None:
+    config = IndicatorConfig()
+    pastga = score_trend(SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=pasayish())
+    yuqoriga = score_trend(SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish())
+
+    assert yuqoriga.earned > pastga.earned
+    assert yuqoriga.earned <= 20.0
+    assert "🔵" in yuqoriga.explanation
+
+
+def test_pasayish_strukturasi_qolgan_qismlarni_YO_QOTMAYDI() -> None:
+    """Nol struktura balli — jazo emas: ADX va yuqori TF o'z ulushini saqlaydi.
+
+    Ilgari `score_trend` trend tasdiqlanmasa DARHOL 0 qaytarardi va
+    "yaxshi qaytish" holati 20 balldan 0 olardi (28-bo'lim).
+    """
+    omil = score_trend(
+        SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 1.0, structure=pasayish()
+    )
+    assert omil.earned > 0.0
 
 
 def test_bos_tasdiqli_struktura_koproq_beradi() -> None:
     config = IndicatorConfig()
     tasdiqsiz = score_trend(
-        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(bos=False), uplift=0.5
+        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(bos=False)
     )
     tasdiqli = score_trend(
-        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(bos=True), uplift=0.5
+        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(bos=True)
     )
 
     assert tasdiqli.earned > tasdiqsiz.earned
 
 
+def test_struktura_hisoblanmasa_xato_bermaydi() -> None:
+    omil = score_trend(SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 0.5)
+    assert omil.earned >= 0.0
+    assert "hisoblanmadi" in omil.explanation
+
+
 def test_trend_omili_bonus_deb_belgilanmaydi() -> None:
     omil = score_trend(
-        SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 0.5,
-        structure=kotarilish(), uplift=0.5,
+        SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 0.5, structure=kotarilish()
     )
     assert omil.bonus is False

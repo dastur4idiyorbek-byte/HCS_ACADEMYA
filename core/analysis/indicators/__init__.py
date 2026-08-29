@@ -7,7 +7,9 @@ va shu holatni tasdiqlaydimi degan savolga javob beradi.
 Yolg'iz "RSI 30dan past chiqdi" kabi indikator-asosli signal YO'Q.
 
     volatility.py    — ATR (o'lchov birligi, 6-bosqichda qo'shilgan)
-    trend.py         — EMA50/EMA200, ADX
+    trend.py         — ADX (trend KUCHI). EMA olib tashlandi: trend
+                       YO'NALISHINI endi SMC strukturasi aniqlaydi
+                       (`core/analysis/market_structure.py`, 58-bo'lim)
     momentum.py      — RSI(14), MACD(12/26/9)
     volume.py        — hajm o'rtachasi va nisbati
     snapshot.py      — barcha qiymatlarni bitta obyektga yig'ish
@@ -24,19 +26,11 @@ from core.analysis.indicators.momentum import (
     macd,
     rsi,
     rsi_recovering_from_oversold,
-    rsi_series,
 )
 from core.analysis.indicators.snapshot import IndicatorSnapshot, build_snapshot
-from core.analysis.indicators.trend import (
-    adx,
-    ema,
-    ema_series,
-    is_trending,
-    timeframe_trend,
-    trend_direction,
-)
-from core.analysis.indicators.volatility import atr, atr_pct, true_range, true_ranges
-from core.analysis.indicators.volume import volume_average, volume_confirms, volume_ratio
+from core.analysis.indicators.trend import adx
+from core.analysis.indicators.volatility import atr, atr_pct, true_range
+from core.analysis.indicators.volume import volume_average, volume_ratio
 
 __all__ = [
     "Confirmation",
@@ -48,18 +42,10 @@ __all__ = [
     "atr_pct",
     "build_snapshot",
     "confirm",
-    "ema",
-    "ema_series",
-    "is_trending",
     "macd",
     "rsi",
     "rsi_recovering_from_oversold",
-    "rsi_series",
-    "timeframe_trend",
-    "trend_direction",
     "true_range",
-    "true_ranges",
     "volume_average",
-    "volume_confirms",
     "volume_ratio",
 ]

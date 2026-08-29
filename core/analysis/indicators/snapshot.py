@@ -13,11 +13,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from core.analysis.indicators.momentum import MacdResult, macd, rsi, rsi_recovering_from_oversold
-from core.analysis.indicators.trend import adx, closes, ema, trend_direction
+from core.analysis.indicators.trend import adx, closes
 from core.analysis.indicators.volatility import atr, atr_pct
 from core.analysis.indicators.volume import volume_ratio
 from core.config.schema import IndicatorConfig
-from core.domain.enums import TrendDirection
 from core.domain.models import Candle
 
 
@@ -26,8 +25,6 @@ class IndicatorSnapshot:
     """Bitta coin, bitta timeframe uchun barcha indikator qiymatlari."""
 
     price: float
-    ema_fast: float | None
-    ema_slow: float | None
     rsi: float | None
     rsi_recovering: bool
     macd: MacdResult | None
@@ -35,13 +32,6 @@ class IndicatorSnapshot:
     adx: float | None
     atr: float | None
     atr_pct: float | None
-    require_price_above_fast: bool = True
-
-    @property
-    def trend(self) -> TrendDirection:
-        return trend_direction(
-            self.price, self.ema_fast, self.ema_slow, self.require_price_above_fast
-        )
 
     @property
     def is_complete(self) -> bool:
@@ -52,8 +42,6 @@ class IndicatorSnapshot:
         return all(
             qiymat is not None
             for qiymat in (
-                self.ema_fast,
-                self.ema_slow,
                 self.rsi,
                 self.macd,
                 self.volume_ratio,
@@ -75,8 +63,6 @@ def build_snapshot(candles: list[Candle], config: IndicatorConfig) -> IndicatorS
     narxlar = closes(candles)
     return IndicatorSnapshot(
         price=narxlar[-1],
-        ema_fast=ema(narxlar, config.ema_fast),
-        ema_slow=ema(narxlar, config.ema_slow),
         rsi=rsi(narxlar, config.rsi_period),
         rsi_recovering=rsi_recovering_from_oversold(
             narxlar, config.rsi_period, config.rsi_oversold
@@ -86,5 +72,4 @@ def build_snapshot(candles: list[Candle], config: IndicatorConfig) -> IndicatorS
         adx=adx(candles, config.adx_period),
         atr=atr(candles, config.atr_period),
         atr_pct=atr_pct(candles, config.atr_period),
-        require_price_above_fast=config.trend_requires_price_above_fast,
     )

@@ -57,12 +57,15 @@ export default async function Salomatlik() {
   const eng = haqiqiy.reduce((m, q) => Math.max(m, q.count), 0);
 
   // Tartib — VAZN bo'yicha, og'iridan yengiliga. Struktura kengligi
-  // birinchi: u endi indeksning asosiy omili (30), BTC Dominance esa
-  // 20 dan 5 ga tushirildi (docs/ARXITEKTURA.md, 57-bo'lim).
+  // birinchi: u indeksning asosiy omili (45).
+  //
+  // EMA asosidagi "Trend kengligi" olib tashlandi (58-bo'lim): u aynan
+  // SHU savolni ("nechta coin ko'tarilishda") o'lchardi, faqat
+  // kechikuvchi vosita bilan. Eski yozuvlarda ustun qoladi, lekin
+  // ekranda ko'rsatilmaydi — ikki xil raqam chalkashtirardi.
   const omillar = salomatlik
     ? [
         { kalit: "salomatlik.struktura", qiymat: salomatlik.structureBreadthScore },
-        { kalit: "salomatlik.kenglik", qiymat: salomatlik.trendBreadthScore },
         { kalit: "salomatlik.sigim", qiymat: salomatlik.userCapacityScore },
         { kalit: "salomatlik.volatillik", qiymat: salomatlik.volatilityScore },
         { kalit: "salomatlik.toyinganlik", qiymat: salomatlik.saturationScore },

@@ -92,9 +92,8 @@ export function yopilgan(holat: SignalHolati): boolean {
 export type Salomatlik = {
   value: number;
   band: string;
-  /** ASOSIY omil (30) — SMC strukturasi bo'yicha kenglik */
+  /** ASOSIY omil (45) — SMC strukturasi bo'yicha kenglik */
   structureBreadthScore: number | null;
-  trendBreadthScore: number | null;
   btcDominanceScore: number | null;
   /** QT (AMDX) davri (5) */
   quarterlyPhaseScore: number | null;
@@ -302,7 +301,6 @@ function salomatlikkaAylantir(q: Qator): Salomatlik {
     value: Number(q.value),
     band: q.band as string,
     structureBreadthScore: son(q.structure_breadth_score),
-    trendBreadthScore: son(q.trend_breadth_score),
     btcDominanceScore: son(q.btc_dominance_score),
     quarterlyPhaseScore: son(q.quarterly_phase_score),
     volatilityScore: son(q.volatility_score),
@@ -312,7 +310,9 @@ function salomatlikkaAylantir(q: Qator): Salomatlik {
   };
 }
 
-const SALOMATLIK_USTUNLARI = `value, band, structure_breadth_score, trend_breadth_score,
+// `trend_breadth_score` ustuni bazada QOLADI (eski yozuvlarda ma'lumot
+// bor), lekin o'qilmaydi: EMA asosidagi kenglik omili olib tashlandi.
+const SALOMATLIK_USTUNLARI = `value, band, structure_breadth_score,
   btc_dominance_score, quarterly_phase_score, volatility_score, user_capacity_score,
   saturation_score, created_at`;
 

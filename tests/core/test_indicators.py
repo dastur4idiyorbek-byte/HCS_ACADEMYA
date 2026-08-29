@@ -15,20 +15,13 @@ from core.analysis.indicators import (
     adx,
     build_snapshot,
     confirm,
-    ema,
-    ema_series,
-    is_trending,
     macd,
     rsi,
     rsi_recovering_from_oversold,
-    timeframe_trend,
-    trend_direction,
     volume_average,
-    volume_confirms,
     volume_ratio,
 )
 from core.config.schema import IndicatorConfig
-from core.domain.enums import TrendDirection
 from core.domain.models import Candle
 
 BOSH = datetime(2026, 1, 1, tzinfo=UTC)
@@ -55,74 +48,6 @@ def qator(narxlar: list[float], hajmlar: list[float] | None = None) -> list[Cand
 
 # --------------------------------------------------------------------------- #
 #  EMA — ma'lum misol bilan tekshiruv
-# --------------------------------------------------------------------------- #
-
-MASHHUR_NARXLAR = [
-    22.27, 22.19, 22.08, 22.17, 22.18, 22.13, 22.23, 22.43,
-    22.24, 22.29, 22.15, 22.39, 22.38, 22.61, 23.36,
-]
-
-
-def test_ema_malum_misolga_mos() -> None:
-    """StockCharts'ning klassik EMA(10) misoli."""
-    qiymatlar = ema_series(MASHHUR_NARXLAR, 10)
-    kutilgan = [22.22, 22.21, 22.24, 22.27, 22.33, 22.52]
-    olingan = [round(q, 2) for q in qiymatlar[9:]]
-    assert olingan == kutilgan
-
-
-def test_ema_birinchi_qiymat_sma() -> None:
-    """EMA'ni birinchi narxdan boshlash uzoq vaqt noto'g'ri natija berardi."""
-    qiymatlar = ema_series([10, 20, 30, 40], 4)
-    assert qiymatlar[:3] == [None, None, None]
-    assert qiymatlar[3] == pytest.approx(25.0)
-
-
-def test_ema_malumot_yetmasa_none() -> None:
-    assert ema([1, 2, 3], 10) is None
-    assert ema([], 10) is None
-
-
-def test_ema_notogri_davr_rad_etiladi() -> None:
-    with pytest.raises(ValueError, match="musbat"):
-        ema_series([1, 2, 3], 0)
-
-
-# --------------------------------------------------------------------------- #
-#  Trend yo'nalishi (3.1-band qat'iy sharti)
-# --------------------------------------------------------------------------- #
-
-
-def test_kotarilish_trendi_uchta_shart_bilan() -> None:
-    """Narx ikkala EMA'dan yuqori VA tez EMA sekinidan baland."""
-    assert trend_direction(110, ema_fast=105, ema_slow=100) is TrendDirection.UP
-
-
-@pytest.mark.parametrize(
-    ("narx", "tez", "sekin", "izoh"),
-    [
-        (95, 105, 100, "narx EMA'lardan past"),
-        (110, 100, 105, "tez EMA sekinidan past"),
-        (102, 105, 100, "narx tez EMA'dan past"),
-    ],
-)
-def test_kotarilish_trendi_bir_shart_buzilsa_yoq(
-    narx: float, tez: float, sekin: float, izoh: str
-) -> None:
-    assert trend_direction(narx, tez, sekin) is not TrendDirection.UP, izoh
-
-
-def test_ema_hisoblanmasa_trend_flat() -> None:
-    """0.3-band: noaniqlik "trend bor" degani emas."""
-    assert trend_direction(100, None, None) is TrendDirection.FLAT
-    assert timeframe_trend(qator([100] * 10), fast=50, slow=200) is TrendDirection.FLAT
-
-
-def test_timeframe_trendi_kotarilishda() -> None:
-    kotarilish = qator([100 + i * 0.5 for i in range(250)])
-    assert timeframe_trend(kotarilish, fast=50, slow=200) is TrendDirection.UP
-
-
 # --------------------------------------------------------------------------- #
 #  RSI
 # --------------------------------------------------------------------------- #
@@ -243,15 +168,6 @@ def test_adx_malumot_yetmasa_none() -> None:
     assert adx([sham(i, 100) for i in range(10)], 14) is None
 
 
-def test_trendda_ekanini_aniqlash() -> None:
-    kuchli = [sham(i, 100 + i * 2) for i in range(60)]
-    tekis = [sham(i, 100 + (1 if i % 2 else -1)) for i in range(60)]
-
-    assert is_trending(kuchli, 14, threshold=20) is True
-    assert is_trending(tekis, 14, threshold=20) is False
-    assert is_trending([sham(0, 100)], 14, threshold=20) is None
-
-
 # --------------------------------------------------------------------------- #
 #  Hajm
 # --------------------------------------------------------------------------- #
@@ -264,20 +180,6 @@ def test_hajm_ortachasi_oxirgi_shamni_hisobga_olmaydi() -> None:
 
     assert volume_average(shamlar, 20) == pytest.approx(100.0)
     assert volume_ratio(shamlar, 20) == pytest.approx(100.0)
-
-
-def test_hajm_tasdigi() -> None:
-    kuchli = qator([100.0] * 21, [100.0] * 20 + [200.0])
-    zaif = qator([100.0] * 21, [100.0] * 20 + [50.0])
-
-    assert volume_confirms(kuchli, 20)
-    assert not volume_confirms(zaif, 20)
-
-
-def test_hajm_malumot_yetmasa_tasdiq_yoq() -> None:
-    """0.3-band: noaniqlik tasdiq emas."""
-    assert volume_average(qator([100.0] * 5), 20) is None
-    assert not volume_confirms(qator([100.0] * 5), 20)
 
 
 # --------------------------------------------------------------------------- #
@@ -296,7 +198,6 @@ def test_snapshot_barcha_qiymatlarni_yigadi(config: IndicatorConfig) -> None:
 
     assert holat is not None
     assert holat.is_complete
-    assert holat.trend is TrendDirection.UP
 
 
 def test_snapshot_malumot_yetmasa_toliq_emas(config: IndicatorConfig) -> None:
@@ -343,15 +244,30 @@ def test_zona_tayyor_va_indikatorlar_tasdiqlasa_signal(config: IndicatorConfig) 
     holat = build_snapshot(kotarilish_shamlari(), config)
     hukm = confirm(holat, config, zone_ready=True)
 
-    assert hukm.confirmed_count >= 3, hukm.describe()
+    # Uchta omil qoldi: RSI, MACD, hajm. Trend omili EMA bilan birga
+    # olib tashlandi — yo'nalishni endi SMC strukturasi aytadi.
+    assert hukm.confirmed_count >= 2, hukm.describe()
+    assert {o.name for o in hukm.factors} == {"rsi", "macd", "volume"}
 
 
-def test_tushayotgan_bozorda_trend_tasdiqlamaydi(config: IndicatorConfig) -> None:
+def test_tushayotgan_bozorda_momentum_tasdiqlamaydi(config: IndicatorConfig) -> None:
+    """Trend omili EMA bilan birga olib tashlandi — MACD tekshiriladi."""
     tushish = [sham(i, 300 - i * 0.5) for i in range(250)]
     hukm = confirm(build_snapshot(tushish, config), config, zone_ready=True)
 
     assert not hukm.is_confirmed
-    assert not hukm.factor("trend").confirmed
+    assert not hukm.factor("macd").confirmed
+
+
+def test_trend_omili_endi_yoq(config: IndicatorConfig) -> None:
+    """EMA olib tashlandi — u bilan birga "trend" tasdiq omili ham.
+
+    Trend YO'NALISHI endi tasdiqlash qatlamida emas, SMC strukturasida
+    (`market_structure.py`) va u to'g'ridan-to'g'ri ball omiliga
+    kiradi (`score_trend`).
+    """
+    hukm = confirm(build_snapshot(kotarilish_shamlari(), config), config, zone_ready=True)
+    assert hukm.factor("trend") is None
 
 
 def test_zaif_hajm_tasdiqlamaydi(config: IndicatorConfig) -> None:
@@ -381,73 +297,12 @@ def test_omillar_darajali_baholanadi(config: IndicatorConfig) -> None:
         assert 0.0 <= omil.strength <= 1.0, f"{omil.name}: {omil.strength}"
 
 
-def test_trend_kuchi_timeframedan_mustaqil(config: IndicatorConfig) -> None:
-    """28-bo'lim: trend kuchi ATR birligida o'lchanadi, foizda emas.
-
-    Bir xil SHAKLDAGI, lekin har xil volatillikdagi ikki qator bir xil
-    trend kuchini berishi kerak. Foiz bilan o'lchanganda bunday bo'lmasdi:
-    past timeframeda EMA50—EMA200 ajralishi 0.2%, kunlikda 15% — bitta
-    foiz chegarasi ikkalasiga ham to'g'ri kelmaydi va past timeframeda bu
-    omil doim nolga yaqin bo'lib qolardi.
-    """
-    mayin = [sham(i, 100 + i * 0.01) for i in range(250)]
-    keskin = [
-        Candle(
-            open_time=sham_obyekti.open_time,
-            open=sham_obyekti.open,
-            high=sham_obyekti.close * 1.02,
-            low=sham_obyekti.close * 0.98,
-            close=sham_obyekti.close,
-            volume=sham_obyekti.volume,
-        )
-        for sham_obyekti in mayin
-    ]
-
-    mayin_kuch = confirm(build_snapshot(mayin, config), config, zone_ready=True).factor(
-        "trend"
-    )
-    keskin_kuch = confirm(build_snapshot(keskin, config), config, zone_ready=True).factor(
-        "trend"
-    )
-
-    assert mayin_kuch.confirmed and keskin_kuch.confirmed
-    # Keskin qatorda ATR kattaroq -> bir xil EMA ajralishi kamroq ATR beradi.
-    assert keskin_kuch.strength < mayin_kuch.strength
-
-
-def test_trend_kuchi_sozlanadigan_chegara_bilan_olchanadi() -> None:
-    """Sehrli raqam yo'q (6.4-band): chegara konfiguratsiyadan keladi."""
-    shamlar = [sham(i, 100 + i * 0.01) for i in range(250)]
-
-    keng = IndicatorConfig(ema_separation_full_atr=10.0)
-    tor = IndicatorConfig(ema_separation_full_atr=0.2)
-
-    keng_kuch = confirm(build_snapshot(shamlar, keng), keng, zone_ready=True).factor("trend")
-    tor_kuch = confirm(build_snapshot(shamlar, tor), tor, zone_ready=True).factor("trend")
-
-    assert keng_kuch.strength < tor_kuch.strength
-    assert tor_kuch.strength == 1.0, "past chegarada to'liq ball berilishi kerak"
-
-
-def test_atr_yoq_bolsa_trend_kuchi_nol(config: IndicatorConfig) -> None:
-    """0.3-band: o'lchab bo'lmasa, qo'shimcha ball berilmaydi."""
-    import dataclasses
-
-    holat = build_snapshot([sham(i, 100 + i * 0.01) for i in range(250)], config)
-    atrsiz = dataclasses.replace(holat, atr=None)
-
-    omil = confirm(atrsiz, config, zone_ready=True).factor("trend")
-
-    assert omil.confirmed, "yo'nalish hali ham tasdiqlangan"
-    assert omil.strength == 0.0
-
-
 def test_hukm_tushuntirish_beradi(config: IndicatorConfig) -> None:
     """3.6-band: "Nega bu signal?" tugmasi shu matndan to'ladi."""
     hukm = confirm(build_snapshot(kotarilish_shamlari(), config), config, zone_ready=True)
     matn = hukm.describe()
 
-    assert "Trend:" in matn
+    assert "MACD:" in matn
     assert "RSI:" in matn
     assert "MACD:" in matn
     assert "Hajm:" in matn
@@ -458,43 +313,3 @@ def test_hukm_tushuntirish_beradi(config: IndicatorConfig) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_qatiy_talab_pullbackni_rad_etadi() -> None:
-    """3.1-banddagi qat'iy talab: narx IKKALA EMA'dan yuqori bo'lishi shart.
-
-    Support zonasiga qaytish deyarli har doim narxni EMA50 dan pastga
-    tushiradi — shuning uchun qat'iy talab bilan bunday kirish rad etiladi.
-    Bu — spetsifikatsiyaning ataylab tanlangan xatti-harakati, xato emas.
-    """
-    natija = trend_direction(
-        price=61_141, ema_fast=61_387, ema_slow=58_876, require_price_above_fast=True
-    )
-    assert natija is TrendDirection.FLAT
-
-
-def test_yumshoq_talab_pullbackni_qabul_qiladi() -> None:
-    """`false` bo'lsa: trend tuzilishi saqlanadi, pasayish imkoniyat deb qaraladi."""
-    natija = trend_direction(
-        price=61_141, ema_fast=61_387, ema_slow=58_876, require_price_above_fast=False
-    )
-    assert natija is TrendDirection.UP
-
-
-def test_yumshoq_talabda_ham_tuzilma_buzilsa_trend_yoq() -> None:
-    """EMA50 < EMA200 bo'lsa — tuzilma tushishda, yumshatish yordam bermaydi."""
-    natija = trend_direction(
-        price=61_141, ema_fast=58_000, ema_slow=60_000, require_price_above_fast=False
-    )
-    assert natija is not TrendDirection.UP
-
-
-def test_yumshoq_talabda_narx_ema200_dan_past_bolsa_trend_yoq() -> None:
-    natija = trend_direction(
-        price=57_000, ema_fast=61_387, ema_slow=58_876, require_price_above_fast=False
-    )
-    assert natija is not TrendDirection.UP
-
-
-def test_snapshot_konfiguratsiyadan_bayroqni_oladi() -> None:
-    yumshoq = IndicatorConfig(trend_requires_price_above_fast=False)
-    shamlar = [sham(i, 100 + i * 0.5) for i in range(250)]
-    assert build_snapshot(shamlar, yumshoq).require_price_above_fast is False

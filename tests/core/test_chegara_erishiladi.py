@@ -63,9 +63,7 @@ def nomzodlar_dalilsiz() -> list:  # noqa: ANN201
         config,
         scoring=dataclasses.replace(
             config.scoring,
-            uplift=dataclasses.replace(
-                config.scoring.uplift, support_resistance=0.0, trend=0.0
-            ),
+            uplift=dataclasses.replace(config.scoring.uplift, support_resistance=0.0),
         ),
     )
     return nomzodlar(ochiq)
@@ -209,24 +207,46 @@ def _salomatlik_shifti(config, breadth_ratio: float) -> float:
 
     Qolgan barcha omillar MUKAMMAL deb hisoblanadi.
     """
-    vazn = config.market_health.weights.halal_trend_breadth
+    vazn = config.market_health.weights.halal_structure_breadth
     return (100.0 - vazn) + vazn * breadth_ratio
 
 
-def test_yuqori_band_kengliksiz_ham_erishiladi(config) -> None:  # noqa: ANN001
+#: YUQORI band ochilishi uchun kerakli eng kam kenglik.
+#:
+#: Struktura kengligi endi indeksning ASOSIY omili (45 ball), ya'ni u
+#: bandni chindan ham boshqaradi: kenglik nol bo'lsa "bozor kuchli"
+#: degan gap ma'nosiz. Shuning uchun bu yerda kenglik 0 da emas,
+#: REAL darajada tekshiriladi.
+#:
+#: Chegara ataylab past qo'yilgan: 30% dan ko'p talab qilinsa, band
+#: yana "erishib bo'lmas" toifasiga tushib qolardi (46-bo'lim).
+KENGLIK_TALABI = 0.30
+
+
+def test_yuqori_band_real_kenglikda_erishiladi(config) -> None:  # noqa: ANN001
     """Bitta omil butun bandni qulflab qo'ymasligi kerak.
 
-    Kenglik omili 25 ball turadi. Ya'ni kenglik nolga yaqin bo'lsa,
-    indeks 75 dan yuqoriga chiqa OLMAYDI — qolgan hamma narsa mukammal
-    bo'lsa ham. 80 lik band shunda butunlay yopiq bo'lardi.
+    Bu — "erishib bo'lmas chegara" xatosiga qarshi qo'riqchi. Lekin
+    endi u kenglik NOL bo'lgan holatni talab qilmaydi: kenglik
+    indeksning asosiy omili (45), va kenglik nol bo'lganda "bozor
+    kuchli" deyish mantiqan noto'g'ri bo'lardi.
+
+    Talab: ro'yxatning 30% i ko'tarilish strukturasida bo'lsa, YUQORI
+    band ochilishi SHART.
     """
-    shift = _salomatlik_shifti(config, breadth_ratio=0.0)
+    shift = _salomatlik_shifti(config, breadth_ratio=KENGLIK_TALABI)
     chegara = config.scoring.thresholds.health_high_min
 
     assert chegara <= shift, (
-        f"YUQORI band {chegara}, lekin kenglik nolga yaqin bo'lganda indeks "
-        f"{shift:.0f} dan oshmaydi — band hech qachon ochilmaydi"
+        f"YUQORI band {chegara}, lekin kenglik {KENGLIK_TALABI:.0%} bo'lganda "
+        f"indeks {shift:.0f} dan oshmaydi — band amalda ochilmaydi"
     )
+
+
+def test_toliq_kenglikda_band_albatta_ochiladi(config) -> None:  # noqa: ANN001
+    """Eng yaxshi holatda band ochilmasa, u umuman ma'nosiz."""
+    shift = _salomatlik_shifti(config, breadth_ratio=1.0)
+    assert config.scoring.thresholds.health_high_min <= shift
 
 
 def test_kuzatilgan_oraliq_yuqori_bandga_tushadi(config) -> None:  # noqa: ANN001

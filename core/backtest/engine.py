@@ -18,8 +18,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from core.analysis.indicators import adx, atr_pct, timeframe_trend
+from core.analysis.indicators import adx, atr_pct
 from core.analysis.market_health import HealthInputs, MarketHealthCalculator
+from core.analysis.market_structure import analyze_structure
 from core.analysis.strategies import build_strategies
 from core.backtest.dataset import Dataset
 from core.config.schema import AppConfig
@@ -239,7 +240,7 @@ class Backtester:
                 "(eng yuqori timeframedagi EMA%d uchun)",
                 len(qadamlar),
                 eng_kam,
-                self._config.analysis.indicators.ema_slow,
+                self._config.analysis.indicators.min_candles,
             )
             return BacktestResult(label=self._label, steps=0)
 
@@ -325,7 +326,7 @@ class Backtester:
             default=kirish_daqiqa,
         )
         nisbat = max(1, eng_yuqori // kirish_daqiqa)
-        return analysis.indicators.ema_slow * nisbat + 10
+        return analysis.indicators.min_candles * nisbat + 10
 
     # ------------------------------------------------------------------ #
 
@@ -455,12 +456,12 @@ class Backtester:
         coinlar = []
         adx_qiymatlari = {}
         atr_qiymatlari = {}
-        trendlar = {}
+        strukturalar = {}
 
         for symbol in dataset.symbols:
             oyna = dataset.window(symbol, moment)
             seriya = oyna.get(entry_tf, [])
-            if len(seriya) < indicators.ema_slow:
+            if len(seriya) < indicators.min_candles:
                 continue
 
             coinlar.append(
@@ -482,17 +483,14 @@ class Backtester:
             atr = atr_pct(seriya, indicators.atr_period)
             if atr is not None:
                 atr_qiymatlari[symbol] = atr
-            # 3.7-band, 2-omil: bozor KENGLIGI — "katta rasm ko'tarilishdami".
-            # Bu rejim savoli, kirish qarori emas, shuning uchun tuzilma
-            # qoidasi ishlatiladi (EMA50 > EMA200), qat'iy "narx EMA50 dan
-            # yuqori" emas. Qat'iy qoida bilan jonli botda 27 coindan
-            # atigi 1 tasi "ko'tarilishda" chiqardi — 32-bo'lim.
-            trendlar[symbol] = timeframe_trend(
+            # 3.7-band, ASOSIY omil: SMC strukturasi. Bu "katta rasm
+            # ko'tarilishdami" degan REJIM savoli, kirish qarori emas.
+            strukturalar[symbol] = analyze_structure(
                 seriya,
-                indicators.ema_fast,
-                indicators.ema_slow,
-                indicators.htf_trend_requires_price_above_fast,
-            )
+                self._config.analysis.market_structure.swing_lookback,
+                self._config.analysis.market_structure.min_swings,
+                self._config.analysis.market_structure.fallback_min_pct,
+            ).direction
 
         limitlar = self._config.risk_engine.max_open_signals_by_health
         ochiqlar = tracker.open_signals
@@ -504,7 +502,7 @@ class Backtester:
                 # qiymat olinadi. Bu OSHIRIB ko'rsatish emas: dominance
                 # ma'lumoti bo'lsa, natija yaxshiroq bo'lishi mumkin.
                 btc_dominance_change_24h=0.0,
-                universe_trends=trendlar,
+                universe_structures=strukturalar,
                 universe_adx=adx_qiymatlari,
                 capacity=None,
                 open_signals=len(ochiqlar),

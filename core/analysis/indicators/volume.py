@@ -32,10 +32,3 @@ def volume_ratio(candles: list[Candle], period: int = 20) -> float | None:
     return candles[-1].volume / ortacha
 
 
-def volume_confirms(candles: list[Candle], period: int = 20, min_ratio: float = 1.0) -> bool:
-    """Hajm harakatni tasdiqlaydimi.
-
-    Ma'lumot yetishmasa `False` — noaniqlik tasdiq emas (0.3-band).
-    """
-    nisbat = volume_ratio(candles, period)
-    return nisbat is not None and nisbat >= min_ratio

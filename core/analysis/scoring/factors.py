@@ -136,11 +136,17 @@ def score_support_resistance(
     return ScoreComponent("support_resistance", xom * weight, weight, izoh)
 
 
-#: Trend balli uchun uch qismning ulushi. Yuqori timeframelar eng katta
-#: ulushni oladi: kirish timeframedagi trend qaytish paytida deyarli har
-#: doim pastga qaragan bo'ladi (aynan shu sababli narx Discount zonasiga
-#: tushgan), katta rasm esa o'sha paytda ham ko'tarilishda bo'lishi mumkin.
-TREND_ULUSHLARI = {"ema": 0.30, "adx": 0.30, "htf": 0.40}
+#: Trend balli uchun uch qismning ulushi.
+#:
+#: EMA ning o'rnini SMC STRUKTURASI egalladi va u eng katta ulushni
+#: oladi: struktura narxning o'z qadamlarini o'qiydi, ya'ni EMA kabi
+#: kechikmaydi. Aynan shu kechikish tufayli eski tizim "arzon joydan
+#: kirish" holatini past baholardi (`docs/ARXITEKTURA.md`, 58-bo'lim).
+#:
+#: Yuqori timeframe ham katta ulushga ega: kirish timeframedagi trend
+#: qaytish paytida deyarli har doim pastga qaragan bo'ladi, katta rasm
+#: esa o'sha paytda ham ko'tarilishda bo'lishi mumkin.
+TREND_ULUSHLARI = {"struktura": 0.35, "adx": 0.25, "htf": 0.40}
 
 
 def score_trend(
@@ -150,23 +156,25 @@ def score_trend(
     weight: float,
     htf_alignment: float | None = None,
     structure: MarketStructure | None = None,
-    uplift: float = 0.0,
 ) -> ScoreComponent:
-    """Trend kuchi — EMA ajralishi, ADX va yuqori timeframelar (20 ball).
+    """Trend kuchi — SMC strukturasi, ADX va yuqori timeframelar (20 ball).
 
-    Ilgari bu funksiya trend tasdiqlanmagan bo'lsa DARHOL 0 qaytarardi.
-    Bu kechikish muammosini ballga ham olib kirardi: narx support
-    zonasiga qaytganda kirish timeframedagi trend deyarli har doim
-    pastga qaragan bo'ladi — aynan shuning uchun narx pastga tushgan.
-    Ya'ni "yaxshi qaytish" holati 20 balldan 0 olardi.
+    EMA OLIB TASHLANDI. Uning o'rnini struktura egalladi: HH/HL
+    ketma-ketligi ham trendni aytadi, lekin KECHIKMASDAN. EMA200 esa
+    200 shamlik o'rtacha — u tasdiqlaguncha narx Discount zonasidan
+    chiqib ketardi, ya'ni "arzon paytda ol" strategiyasining o'z
+    maqsadiga zid ishlardi.
 
-    Endi uch qism alohida baholanadi va qo'shiladi. Yuqori timeframe
+    Uch qism alohida baholanadi va qo'shiladi. Yuqori timeframe
     ko'tarilishda bo'lsa, kirish timeframedagi vaqtinchalik pasayish
     ballni butunlay yo'q qilmaydi.
     """
-    omil = confirmation.factor("trend")
-    ema_kuchi = omil.strength if omil is not None else 0.0
-    ema_matn = "EMA muvofiq" if omil is not None and omil.confirmed else "EMA muvofiq emas"
+    if structure is None:
+        struktura_kuchi = 0.0
+        struktura_matn = "struktura hisoblanmadi"
+    else:
+        struktura_kuchi = structure_alignment(structure)
+        struktura_matn = structure.describe()
 
     # ADX trend KUCHINI o'lchaydi: chegaradan pastda — tekis bozor.
     adx_qiymati = snapshot.adx
@@ -183,7 +191,7 @@ def score_trend(
         # taqsimlanadi. Aks holda hisoblab bo'lmagan narsa jazoga aylanardi
         # (0.3-band: noaniqlik jarima emas).
         qoshimcha = ulush.pop("htf") / 2
-        ulush["ema"] += qoshimcha
+        ulush["struktura"] += qoshimcha
         ulush["adx"] += qoshimcha
         htf_matn = "yuqori TF hisoblanmadi"
         htf_kuchi = 0.0
@@ -191,30 +199,16 @@ def score_trend(
         htf_kuchi = htf_alignment
         htf_matn = f"yuqori TF {htf_alignment:.0%} ko'tarilishda"
 
+    # Pasayish strukturasi nol ball beradi, lekin JAZOLAMAYDI: qolgan
+    # ikki qism o'z ulushini saqlaydi. Qat'iy rad etish kerak bo'lsa
+    # `require_structure_alignment` alohida sozlama sifatida bor va
+    # standart holatda o'chiq.
     xom = (
-        ema_kuchi * ulush["ema"]
+        struktura_kuchi * ulush["struktura"]
         + adx_kuchi * ulush["adx"]
         + htf_kuchi * ulush.get("htf", 0.0)
     )
-
-    # SMC STRUKTURASI SHU YERGA QO'SHILADI. HH/HL ketma-ketligi —
-    # bu ham trend, faqat EMA dan OLDINROQ ko'rinadigan ko'rinishi:
-    # EMA200 — 200 shamlik o'rtacha, struktura esa narxning o'z
-    # qadamlari. Aynan shu sababli u alohida omil emas, balki shu
-    # omilning yetishmayotgan yarmi.
-    #
-    # Pasayish strukturasi JAZOLAMAYDI (dalil 0 -> ball o'zgarmaydi).
-    # Qat'iy rad etish kerak bo'lsa, `require_structure_alignment`
-    # alohida sozlama sifatida bor va standart holatda o'chiq.
-    izoh = f"Trend: {ema_matn}, {adx_matn}, {htf_matn}"
-    if structure is not None and uplift > 0:
-        moslik = structure_alignment(structure)
-        oldingi = xom
-        xom = _uplift(xom, moslik, uplift)
-        izoh += f", 🔵 {structure.describe()}"
-        if xom > oldingi:
-            izoh += f" [+{(xom - oldingi) * weight:.1f} ball]"
-
+    izoh = f"Trend: 🔵 {struktura_matn}, {adx_matn}, {htf_matn}"
     return ScoreComponent("trend", xom * weight, weight, izoh)
 
 
@@ -303,7 +297,6 @@ def build_components(
             weights.trend,
             htf_alignment,
             structure=structure,
-            uplift=kotarish.trend,
         ),
         score_rsi(snapshot, confirmation, weights.rsi),
         score_volume(confirmation, weights.volume),

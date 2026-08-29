@@ -103,30 +103,15 @@ analysis:
     fibonacci_levels: [0.382, 0.5, 0.618]
 
   indicators:
-    ema_fast: 50
-    ema_slow: 200
-    # 3.1-band: "narx ikkala EMA'dan yuqorida" — qat'iy talab (standart).
+    # EMA OLIB TASHLANDI (58-bo'lim). Trend YO'NALISHINI endi SMC
+    # strukturasi aniqlaydi — u narxning o'z qadamlarini (HH/HL/LH/LL)
+    # o'qiydi va kechikmaydi. EMA200 esa 200 shamlik o'rtacha edi:
+    # haftalik timeframeda ~3.8 yil tarix talab qilardi va ko'p
+    # altcoinlarni jimgina chetlab o'tardi.
     #
-    # DIQQAT: bu talab "Support zonasiga qaytishda kirish" bilan ziddiyatga
-    # kirishi mumkin. Support'ga qaytish (pullback) deyarli har doim narxni
-    # EMA50 dan pastga tushiradi — aks holda u support'ga yetib bormaydi.
-    #
-    # `false` qilinsa: trend tuzilishi EMA50 > EMA200 va narx > EMA200 bilan
-    # aniqlanadi, narxning EMA50 dan pastga tushishi esa kirish imkoniyati
-    # deb qaraladi ("uptrendda pasayishdan foydalanish").
-    # Qaysi variant yaxshiroq — 16-bosqichdagi backtest ko'rsatadi.
-    trend_requires_price_above_fast: true
-    # 3.2-band: yuqori timeframe TRENDINI tasniflashda narx EMA50 dan yuqori
-    # bo'lishi talab qilinmaydi. Sabab (o'lchangan): support zonasiga qaytish
-    # kunlik grafikda narxni deyarli har doim EMA50 dan pastga tushiradi, shu
-    # sababli qat'iy talab bilan kunlik trend HECH QACHON "UP" bo'lmaydi va
-    # birorta signal chiqmaydi. Batafsil: docs/ARXITEKTURA.md, 27-bo'lim.
-    htf_trend_requires_price_above_fast: false
-    # Trend balli uchun EMA50—EMA200 ajralishi necha ATR bo'lganda to'liq
-    # hisoblanadi. ATR birligi tanlangan, chunki foiz timeframega bog'liq:
-    # 15m grafikda ajralish 0.2%, kunlikda 15% — bitta foiz chegarasi ikkalasiga
-    # ham to'g'ri kelmaydi. Batafsil: docs/ARXITEKTURA.md, 28-bo'lim.
-    ema_separation_full_atr: 1.5
+    # ADX qoldi: u yo'nalishni emas, KUCHNI o'lchaydi — struktura
+    # javob bermaydigan savol.
+    min_candles: 60                # tahlil uchun minimal sham (avval 200 edi)
     rsi_period: 14
     rsi_oversold: 30
     rsi_overbought: 70
@@ -179,6 +164,10 @@ analysis:
   market_structure:                # SMC: HH/HL/LH/LL, BOS/CHOCH
     swing_lookback: 5
     min_swings: 4
+    # Silliq ko'tarilishda burilish nuqtalari bo'lmaydi va struktura
+    # "aniq emas" deb qoladi — holbuki bu eng kuchli trendning o'zi.
+    # Zaxira o'lchov: oynadagi sof narx o'zgarishi.
+    fallback_min_pct: 1.0
   liquidity_sweep:                 # LIT: "yalab o'tib qaytish"
     enabled: true
     lookback_bars: 30
@@ -244,7 +233,8 @@ scoring:
   # tartibini. Ilgari u faqat bonus edi va son o'zgarmasdi.
   uplift:
     support_resistance: 0.5        # daraja turi + sweep -> S/R sifati
-    trend: 0.5                     # SMC strukturasi -> trend kuchi
+    # Trend uchun ko'tarish YO'Q: EMA olib tashlangach struktura trend
+    # omilining to'liq huquqli qismiga aylandi, "qo'shimcha" emas.
 
   # Metodikaning TO'LIQ shartnomasi bajarildimi — YORLIQ, darvoza emas.
   # "Nega bu signal?" ekranida ko'rsatiladi va o'lchovda sanaladi.
@@ -358,8 +348,10 @@ market_health:
     # BTC Dominance 20 -> 5. Tajribali treyderlar bilan maslahat
     # natijasi: dominance foydali, lekin qaror mezoni emas. Uning
     # o'rniga ASOSIY omil — halol ro'yxatning SMC strukturasi.
-    halal_structure_breadth: 30    # YANGI, ASOSIY: nechta coin HH/HL da
-    halal_trend_breadth: 15        # eski EMA kengligi — ikkinchi darajali
+    # ASOSIY: nechta coin HH/HL strukturasida. 30 dan 45 ga oshdi —
+    # EMA olib tashlangach eski `halal_trend_breadth` (15) aynan shu
+    # savolni kechikuvchi vosita bilan o'lchardi, ya'ni takror edi.
+    halal_structure_breadth: 45
     volatility_regime: 15
     aggregate_user_capacity: 20
     signal_saturation: 10

@@ -3557,7 +3557,113 @@ saqlaydigan mexanizm yo'q. Tahrirlash tugmasini qo'yib, aslida hech
 narsa yozmaslik eng yomon variant bo'lardi: admin o'zgartirdim deb
 o'ylaydi, tizim esa eski qiymat bilan ishlashda davom etadi.
 
-## 58. Bosqichlar holati
+## 58. EMA olib tashlandi va takroriy tahlil tozalandi
+
+Admin ikkita ish so'radi: **EMA indikatorini olib tashlash** va **eski
+hamda yangi modulni tahlil qilib, bir ishni ikki marta qiladigan yoki
+umumiy tahlilga ta'sir qilmaydigan qismlarni chiqarib tashlash**.
+
+### Nima uchun EMA ni olib tashlash MUMKIN bo'ldi
+
+EMA ning ikkita ishi bor edi:
+
+  1. trend YO'NALISHINI aniqlash (EMA50 > EMA200);
+  2. uni tasdiqlash (`confirm()` dagi "trend" omili).
+
+Ikkalasini ham endi SMC strukturasi bajaradi — u narxning O'Z
+qadamlarini (HH/HL/LH/LL) o'qiydi. Ya'ni EMA olib tashlangach
+bo'shliq qolmadi; aksincha, ikkita takror o'lchov bittaga tushdi.
+
+EMA ning zarari o'lchangan edi:
+
+  * **kechikish** — EMA200 200 shamlik o'rtacha. U tasdiqlaguncha narx
+    Discount zonasidan chiqib ketardi, ya'ni "arzon paytda ol"
+    strategiyasining o'z maqsadiga zid ishlardi (27- va 28-bo'limlar);
+  * **tarix talabi** — haftalik timeframeda 200 sham ~3.8 yil degani.
+    Ko'p altcoinlarda bunday tarix yo'q va ular jimgina "ko'tarilishda
+    emas" deb sanalardi; bozor kengligi sun'iy tushib, indeks signalni
+    butunlay to'xtatardi (33-bo'lim).
+
+Tahlil uchun minimal sham chegarasi 200 dan **60** ga tushdi
+(`indicators.min_candles`) — u faqat EMA200 uchun kerak edi.
+
+### EMA o'rniga nima keldi
+
+Trend omili (20 ball) ichidagi ulushlar:
+
+| Qism | Eski | Yangi |
+|---|---|---|
+| EMA ajralishi | 0.30 | **yo'q** |
+| SMC strukturasi | — | **0.35** |
+| ADX (trend KUCHI) | 0.30 | 0.25 |
+| Yuqori timeframe | 0.40 | 0.40 |
+
+ADX qoldi, chunki u boshqa savolga javob beradi: struktura
+YO'NALISHNI aytadi, ADX esa KUCHNI. Ular takror emas.
+
+Yuqori timeframe tasnifi ham EMA dan strukturaga o'tdi
+(`_timeframe_view`), ya'ni `htf_trend_requires_price_above_fast`
+bayrog'i bilan birga 27-bo'limdagi muammoning o'zi ham yo'qoldi.
+
+### EMA olib tashlangach chiqqan BO'SHLIQ va uning yopilishi
+
+Sinov paytida ma'lum bo'ldi: **silliq, to'xtovsiz ko'tarilishda
+burilish nuqtalari umuman bo'lmaydi**, ya'ni HH/HL ketma-ketligi ham
+yo'q va struktura "aniq emas" deydi — holbuki bu eng kuchli trendning
+o'zi. EMA bu holatni ushlab turardi.
+
+Bo'shliq zaxira o'lchov bilan yopildi: swing yetarli bo'lmaganda
+oynadagi SOF NARX O'ZGARISHI qaraladi
+(`market_structure.fallback_min_pct`, standart 1%). Bu EMA emas —
+o'rtacha ham, uzoq tarix ham talab qilinmaydi, faqat "narx oynaning
+boshidan balandmi" degan to'g'ridan-to'g'ri savol.
+
+### Takroriy va o'lik qismlar olib tashlandi
+
+| Nima | Nima uchun |
+|---|---|
+| `ema`, `ema_series`, `trend_direction`, `timeframe_trend` | struktura bilan takror |
+| `confirm()` dagi "trend" omili | o'sha EMA, ikkinchi joyda |
+| `halal_trend_breadth` (Salomatlik omili, 15) | `halal_structure_breadth` bilan AYNAN bir savol; vazni unga qo'shildi (30 -> **45**) |
+| `market_structure.uptrend_ratio()` | `HealthInputs.structure_uptrend_ratio` bilan takror |
+| `is_trending()` | e'lon qilingan, hech qayerda chaqirilmagan |
+| `volume_confirms()` | o'sha holat |
+| `MarketStructure.last_high/last_low` | ishlatilmagan aksessorlar |
+| `SignalLevels.risk_reward_tp1` | ishlatilmagan |
+| `ScoreUplift.trend` | struktura endi "ko'tarish" emas, omilning to'liq qismi |
+
+`ema_series` MACD ichiga ko'chdi va yopiq qilindi (`_ema_series`): u
+MACD ta'rifining bir qismi (ikki eksponensial o'rtachaning ayirmasi),
+olib tashlangan EMA TREND FILTRI emas.
+
+### O'lchov
+
+`python -m scripts.cryptospot3_olchov`, EMA olib tashlangandan keyin:
+
+```
+Chegaradan o'tganlar:  2 -> 3     (dalilsiz -> dalil bilan)
+Bazaviy ball:  dalilsiz 32.4..66.7 (o'rt. 49.0)
+               dalilli  38.4..68.2 (o'rt. 51.3)
+
+Chegaradan o'tgan uchala nomzodda ham CryptoSpot3% shartnomasi TO'LIQ.
+```
+
+Ikki narsa muhim:
+
+1. **Joriy chegarada signal soni o'zgardi (2 -> 3)** — ya'ni yangi
+   modul endi haqiqatan "qancha signal chiqadi" degan savolga ham
+   javob beradi.
+2. **O'tganlarning hammasi to'liq shartnomali** — tasodif emas,
+   tanlov endi tuzilma sifatiga qarab ishlayapti.
+
+**LEKIN ballar taqsimoti O'ZGARDI.** EMA olib tashlangach sun'iy
+to'plamda chegaradan o'tganlar 8 tadan 3 taga tushdi. Chegaralar
+(50/55) EMA bor paytda kalibrlangan, ya'ni ular endi eskirgan
+bo'lishi mumkin. Ularni haqiqiy bozorda qayta o'lchash SHART:
+`python -m scripts.kalibrlash` va `python -m scripts.backtest`.
+Sun'iy 15 ta nomzodga qarab chegarani sozlash — shovqinni sozlash.
+
+## 59. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

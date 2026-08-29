@@ -869,7 +869,9 @@ class MarketHealthRepository:
             value=health.value,
             band=health.band.value,
             structure_breadth_score=ballar.get("halal_structure_breadth"),
-            trend_breadth_score=ballar.get("halal_trend_breadth"),
+            # `trend_breadth_score` — eski EMA kengligi. Omil olib
+            # tashlandi (58-bo'lim), ustun esa qoldi: eski yozuvlarda
+            # ma'lumot bor va tarixni buzish ma'nosiz.
             btc_dominance_score=ballar.get("btc_dominance_stability"),
             quarterly_phase_score=ballar.get("quarterly_phase"),
             volatility_score=ballar.get("volatility_regime"),

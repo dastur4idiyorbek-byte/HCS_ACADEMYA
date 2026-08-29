@@ -94,14 +94,6 @@ class MarketStructure:
     def is_uptrend(self) -> bool:
         return self.direction is TrendDirection.UP
 
-    @property
-    def last_high(self) -> Swing | None:
-        return next((s for s in reversed(self.swings) if s.is_high), None)
-
-    @property
-    def last_low(self) -> Swing | None:
-        return next((s for s in reversed(self.swings) if not s.is_high), None)
-
     def describe(self) -> str:
         """Odam o'qiydigan bir qatorli xulosa — "Nega bu signal?" uchun."""
         if not self.swings:
@@ -131,6 +123,7 @@ def analyze_structure(
     candles: list[Candle],
     lookback: int = 5,
     min_swings: int = MIN_SWINGS,
+    fallback_min_pct: float = 1.0,
 ) -> MarketStructure:
     """Sham tarixidan struktura holatini quradi.
 
@@ -139,16 +132,28 @@ def analyze_structure(
         lookback: swing tasdiqlash oynasi (`find_pivots` bilan bir xil).
         min_swings: yo'nalish e'lon qilish uchun minimal swing soni.
 
-    Ma'lumot yetarli bo'lmasa `FLAT` va bo'sh ro'yxat qaytadi — XATO
-    EMAS. 0.3-band: "aniqlab bo'lmadi" jazoga aylanmaydi, u shunchaki
-    ball bermaydi.
+        fallback_min_pct: swing yetarli bo'lmaganda ishlatiladigan sof
+            narx o'zgarishi chegarasi (foizda).
+
+    Ma'lumot yetarli bo'lmasa `FLAT` qaytadi — XATO EMAS. 0.3-band:
+    "aniqlab bo'lmadi" jazoga aylanmaydi, u shunchaki ball bermaydi.
     """
     if not candles:
         return MarketStructure(swings=[], direction=TrendDirection.FLAT)
 
     swings = label_swings(find_pivots(candles, lookback))
     if len(swings) < min_swings:
-        return MarketStructure(swings=swings, direction=TrendDirection.FLAT)
+        # ZAXIRA O'LCHOV. Swing yo'qligi "trend yo'q" degani EMAS:
+        # silliq, to'xtovsiz ko'tarilishda burilish nuqtalari umuman
+        # bo'lmaydi — bu esa eng kuchli trendning o'zi. EMA bu holatni
+        # ushlab turardi; u olib tashlangach bo'shliq qoldi.
+        #
+        # Bu EMA emas: o'rtacha ham, uzoq tarix ham kerak emas — faqat
+        # "narx oynaning boshidan balandmi" degan to'g'ridan-to'g'ri
+        # savol.
+        return MarketStructure(
+            swings=swings, direction=_net_direction(candles, fallback_min_pct)
+        )
 
     yonalish = _direction_from(swings)
     bos, choch = _find_breaks(candles, swings, yonalish)
@@ -234,24 +239,29 @@ def structure_alignment(structure: MarketStructure) -> float:
     return 1.0 if structure.last_bos is not None else 0.7
 
 
-def uptrend_ratio(structures: dict[str, MarketStructure]) -> float | None:
-    """Ro'yxatdagi coinlarning qancha ulushi ko'tarilish strukturasida.
-
-    Bozor Salomatligi Indeksining ASOSIY omili shundan keladi
-    (`market_health/factors.py`). `None` — hisoblab bo'lmadi.
-
-    FLAT hisobga KIRADI (maxrajda qoladi), lekin ko'tarilish deb
-    sanalmaydi: "aniq emas" — bu "ko'tarilishda" degani emas.
-    """
-    if not structures:
-        return None
-    kotarilish = sum(1 for s in structures.values() if s.is_uptrend)
-    return kotarilish / len(structures)
-
-
 # --------------------------------------------------------------------------- #
 #  Ichki yordamchilar
 # --------------------------------------------------------------------------- #
+
+
+def _net_direction(candles: list[Candle], min_pct: float) -> TrendDirection:
+    """Oynadagi sof narx o'zgarishi bo'yicha yo'nalish — ZAXIRA o'lchov.
+
+    Faqat swing yetarli bo'lmaganda ishlatiladi. Chegara shovqinni
+    kesadi: bir foizlik tebranish trend emas.
+    """
+    if len(candles) < 2:
+        return TrendDirection.FLAT
+    boshi, oxiri = candles[0].close, candles[-1].close
+    if boshi <= 0:
+        return TrendDirection.FLAT
+
+    ozgarish = (oxiri - boshi) / boshi * 100
+    if ozgarish >= min_pct:
+        return TrendDirection.UP
+    if ozgarish <= -min_pct:
+        return TrendDirection.DOWN
+    return TrendDirection.FLAT
 
 
 def _direction_from(swings: list[Swing]) -> TrendDirection:

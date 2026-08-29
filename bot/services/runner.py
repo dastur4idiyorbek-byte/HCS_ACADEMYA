@@ -21,7 +21,7 @@ from aiogram import Bot
 from bot.i18n import DEFAULT_LANGUAGE, t
 from bot.services.broadcast import broadcast_signal, obunachilar
 from core.analysis import decide_entry_plan
-from core.analysis.indicators import adx, atr_pct, timeframe_trend
+from core.analysis.indicators import adx, atr_pct
 from core.analysis.market_health import HealthInputs, MarketHealthCalculator
 from core.analysis.market_structure import analyze_structure
 from core.analysis.scoring import breakdown_to_json
@@ -200,7 +200,6 @@ class PipelineRunner:
         indicators = self._config.analysis.indicators
         kunlik = self._config.analysis.market_health_timeframe
 
-        trendlar = {}
         strukturalar = {}
         adx_qiymatlari = {}
         for symbol, tf_shamlar in candles.items():
@@ -209,39 +208,24 @@ class PipelineRunner:
             )
             if not seriya:
                 continue
-            # Tarix YETARLIMI. `timeframe_trend()` sham soni EMA davridan
-            # kam bo'lsa `FLAT` qaytaradi — ya'ni "aniqlab bo'lmadi" va
-            # "ko'tarilishda emas" bir xil javob beradi.
+            # Tarix YETARLIMI. Aniqlab bo'lmagan coin hisobga umuman
+            # kirmaydi (0.3-band: noaniqlik dalil emas).
             #
-            # Bu haftalik timeframeda halokatli: EMA200 uchun 200 hafta
-            # (~3.8 yil) kerak, ko'p altcoinlarda esa bunday tarix yo'q.
-            # Ular jimgina "ko'tarilishda emas" deb sanalardi, bozor
-            # kengligi sun'iy ravishda tushardi va indeks 40 dan pastga
-            # o'tib SIGNALNI BUTUNLAY to'xtatardi.
-            #
-            # 0.3-band: noaniqlik dalil emas. Aniqlab bo'lmagan coin
-            # hisobga umuman kirmaydi.
-            if len(seriya) < indicators.ema_slow:
+            # Chegara 200 dan `min_candles` ga tushdi: u EMA200 uchun
+            # kerak edi, EMA esa olib tashlandi. Haftalik timeframeda
+            # 200 sham ~3.8 yil tarix degani va ko'p altcoinlar jimgina
+            # "ko'tarilishda emas" deb sanalardi — bozor kengligi
+            # sun'iy tushib, indeks signalni to'xtatardi (33-bo'lim).
+            if len(seriya) < indicators.min_candles:
                 continue
-            # 3.7-band, 2-omil: bozor KENGLIGI — "katta rasm ko'tarilishdami".
-            # Bu rejim savoli, kirish qarori emas, shuning uchun tuzilma
-            # qoidasi ishlatiladi (EMA50 > EMA200), qat'iy "narx EMA50 dan
-            # yuqori" emas. Qat'iy qoida bilan jonli botda 27 coindan
-            # atigi 1 tasi "ko'tarilishda" chiqardi — 32-bo'lim.
-            trendlar[symbol] = timeframe_trend(
-                seriya,
-                indicators.ema_fast,
-                indicators.ema_slow,
-                indicators.htf_trend_requires_price_above_fast,
-            )
-            # 3.7-band, ASOSIY omil: SMC strukturasi. EMA kengligidan
-            # farqi — u narxning O'Z qadamlarini (HH/HL) o'qiydi, ya'ni
-            # o'rtacha bilan silliqlanmaydi va burilishni birinchi
-            # bo'lib ko'rsatadi (57-bo'lim).
+
+            # 3.7-band, ASOSIY omil: SMC strukturasi. Bu "katta rasm
+            # ko'tarilishdami" degan REJIM savoli, kirish qarori emas.
             struktura = analyze_structure(
                 seriya,
                 self._config.analysis.market_structure.swing_lookback,
                 self._config.analysis.market_structure.min_swings,
+                self._config.analysis.market_structure.fallback_min_pct,
             )
             strukturalar[symbol] = struktura.direction
 
@@ -270,7 +254,6 @@ class PipelineRunner:
                 btc_dominance=dominance.value if dominance else None,
                 btc_dominance_change_24h=dominance.change_24h if dominance else None,
                 universe_structures=strukturalar,
-                universe_trends=trendlar,
                 universe_adx=adx_qiymatlari,
                 capacity=sigim,
                 open_signals=open_signals,

@@ -70,17 +70,15 @@ class SupportResistanceConfig:
 
 @dataclass(frozen=True, slots=True)
 class IndicatorConfig:
-    ema_fast: int = 50
-    ema_slow: int = 200
-    trend_requires_price_above_fast: bool = True
-    #: 3.2-band: yuqori timeframelarni tasniflashda ham "narx EMA50 dan
-    #: yuqori" talab qilinsinmi. Standart `False` — sabab
-    #: `docs/ARXITEKTURA.md` 27-bo'limda o'lchov bilan.
-    htf_trend_requires_price_above_fast: bool = False
-    #: Trend "kuchi" uchun EMA50—EMA200 ajralishi necha ATR bo'lsa to'liq ball.
-    #: ATR birligida — chunki foizda o'lchash timeframega bog'liq bo'lib qoladi
-    #: (o'lchov: `docs/ARXITEKTURA.md` 28-bo'lim).
-    ema_separation_full_atr: float = 1.5
+    #: Tahlil uchun kerakli minimal sham soni.
+    #:
+    #: Ilgari bu chegara `ema_slow` (200) edi — EMA200 hisoblash uchun
+    #: shuncha sham kerak. EMA olib tashlangach chegara o'z ma'nosini
+    #: yo'qotdi: qolgan eng "och" indikator MACD (26+9) va struktura
+    #: (bir necha swing). 200 sham talabi haftalik timeframeda ~3.8
+    #: yil tarix degani edi va ko'p altcoinlarni jimgina chetlab
+    #: o'tardi (`docs/ARXITEKTURA.md`, 58-bo'lim).
+    min_candles: int = 60
     rsi_period: int = 14
     rsi_oversold: float = 30.0
     rsi_overbought: float = 70.0
@@ -134,6 +132,18 @@ class MarketStructureConfig:
     swing_lookback: int = 5
     #: Yo'nalish e'lon qilish uchun minimal swing soni (2 cho'qqi + 2 chuqurlik)
     min_swings: int = 4
+    #: Swing yetarli bo'lmaganda ZAXIRA o'lchov: oynadagi sof narx
+    #: o'zgarishi shu foizdan katta bo'lsa yo'nalish e'lon qilinadi.
+    #:
+    #: NIMA UCHUN KERAK. Silliq, to'xtovsiz ko'tarilishda burilish
+    #: nuqtalari UMUMAN bo'lmaydi — ya'ni HH/HL ketma-ketligi ham yo'q
+    #: va struktura "aniq emas" deydi. Bu esa eng kuchli trendning
+    #: o'zi. EMA bu holatni ushlab turardi; u olib tashlangach
+    #: bo'shliq qoldi (58-bo'lim).
+    #:
+    #: Bu EMA emas: o'rtacha ham, 200 shamlik tarix ham talab
+    #: qilinmaydi — faqat "narx oynaning boshidan balandmi".
+    fallback_min_pct: float = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -322,10 +332,12 @@ class ScoreUplift:
     SONIGA ham ta'sir qiladi, nafaqat tartibiga.
     """
 
-    #: Sweep va daraja turi S/R omilini qancha ko'tara oladi
+    #: Sweep va daraja turi S/R omilini qancha ko'tara oladi.
+    #:
+    #: Trend uchun ko'tarish YO'Q: EMA olib tashlangandan keyin
+    #: struktura trend omilining TO'LIQ HUQUQLI qismiga aylandi
+    #: (`TREND_ULUSHLARI`), ya'ni u endi "qo'shimcha dalil" emas.
     support_resistance: float = 0.5
-    #: SMC strukturasi trend omilini qancha ko'tara oladi
-    trend: float = 0.5
 
 
 @dataclass(frozen=True, slots=True)
@@ -527,10 +539,13 @@ class MarketHealthWeights:
     Bu — real narx harakatiga asoslangan o'lchov.
     """
 
-    #: YANGI, ASOSIY: SMC strukturasi bo'yicha ko'tarilishdagi coinlar ulushi
-    halal_structure_breadth: float = 30
-    #: EMA asosidagi eski kenglik — saqlanadi, lekin ikkinchi darajali
-    halal_trend_breadth: float = 15
+    #: ASOSIY OMIL: SMC strukturasi bo'yicha ko'tarilishdagi coinlar ulushi.
+    #:
+    #: Vazni 30 dan 45 ga oshdi: EMA olib tashlangach eski
+    #: `halal_trend_breadth` (15) o'z ma'nosini yo'qotdi — u ham aynan
+    #: SHU savolni ("nechta coin ko'tarilishda") o'lchardi, faqat
+    #: kechikuvchi vosita bilan. Ikkita bir xil omil o'rniga bitta.
+    halal_structure_breadth: float = 45
     volatility_regime: float = 15
     aggregate_user_capacity: float = 20
     signal_saturation: float = 10
@@ -542,7 +557,6 @@ class MarketHealthWeights:
     def total(self) -> float:
         return (
             self.halal_structure_breadth
-            + self.halal_trend_breadth
             + self.volatility_regime
             + self.aggregate_user_capacity
             + self.signal_saturation

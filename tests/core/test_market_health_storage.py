@@ -30,7 +30,7 @@ def salomatlik(uptrend: int = 30):  # noqa: ANN201
             computed_at=HOZIR,
             btc_dominance=54.0,
             btc_dominance_change_24h=0.1,
-            universe_trends={
+            universe_structures={
                 f"C{i}": (TrendDirection.UP if i < uptrend else TrendDirection.DOWN)
                 for i in range(30)
             },
@@ -61,7 +61,7 @@ async def test_omil_ballari_alohida_saqlanadi(db: Database) -> None:
     async with db.session() as session:
         yozuv = await MarketHealthRepository(session).latest()
         assert yozuv.btc_dominance_score is not None
-        assert yozuv.trend_breadth_score is not None
+        assert yozuv.structure_breadth_score is not None
         assert yozuv.volatility_score is not None
         assert yozuv.saturation_score is not None
 
