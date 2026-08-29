@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
 export function TilTanlov({ joriy }: { joriy: Til }) {
   const yol = usePathname();
   return (
-    <form action="/api/til" method="post" className="flex gap-1">
+    <form action="/api/til" method="post" className="flex gap-2 lg:gap-1">
       <input type="hidden" name="qayerga" value={yol} />
       {(Object.keys(TIL_NOMLARI) as Til[]).map((til) => (
         <button
@@ -24,7 +24,10 @@ export function TilTanlov({ joriy }: { joriy: Til }) {
           value={til}
           aria-pressed={til === joriy}
           className={cn(
-            "rounded-kichik border px-2.5 py-1 text-xs transition",
+            // Mobilda barmoq uchun kattaroq, desktopda ixcham holicha —
+            // yon panel tor va u yerda sichqoncha ishlatiladi.
+            "rounded-kichik border px-4 py-2 text-sm transition",
+            "lg:px-2.5 lg:py-1 lg:text-xs",
             til === joriy
               ? "border-ramka text-sarlavha font-semibold"
               : "text-matn-past hover:text-sarlavha border-transparent",

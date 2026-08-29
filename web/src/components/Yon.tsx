@@ -26,8 +26,12 @@ export function Yon({
   const yol = usePathname();
   const [ochiq, setOchiq] = useState(false);
 
+  // O'LCHAMLAR MOBILDA KATTAROQ. Ro'yxat ikkala ko'rinishda ham bitta,
+  // shuning uchun o'lchov `lg:` bilan ajratiladi: telefonda barmoq uchun
+  // yetarli (band balandligi ~52px, tavsiya etilgan eng kam 44px),
+  // desktopda esa tor yon panelga sig'adigan ixcham holicha qoladi.
   const royxat = (
-    <nav className="flex flex-col gap-1">
+    <nav className="flex flex-col gap-1.5 lg:gap-1">
       {bandlar.map((b) => {
         const faol = yol === b.yol || yol.startsWith(`${b.yol}/`);
         return (
@@ -40,17 +44,20 @@ export function Yon({
             onClick={() => setOchiq(false)}
             aria-current={faol ? "page" : undefined}
             className={cn(
-              "rounded-kichik flex items-center gap-3 border px-3 py-2.5 text-sm transition",
+              "rounded-kichik flex items-center gap-3.5 border px-4 py-3.5 text-base transition",
+              "lg:gap-3 lg:px-3 lg:py-2.5 lg:text-sm",
               faol
                 ? "border-ramka bg-panel-yorqin text-sarlavha font-semibold"
                 : "hover:bg-panel-yorqin border-transparent",
             )}
           >
-            <span aria-hidden className="w-5 text-center">
+            <span aria-hidden className="w-6 text-center text-lg lg:w-5 lg:text-base">
               {b.belgi}
             </span>
             <span className="flex-1">{b.nom}</span>
-            {b.tezKunda && <span className="text-matn-past text-[10px] uppercase">soon</span>}
+            {b.tezKunda && (
+              <span className="text-matn-past text-[11px] uppercase lg:text-[10px]">soon</span>
+            )}
             {b.qulf && !b.tezKunda && <span aria-hidden>🔒</span>}
           </Link>
         );
@@ -59,9 +66,9 @@ export function Yon({
   );
 
   const past = (
-    <div className="mt-6 space-y-3 border-t border-white/10 pt-4">
+    <div className="mt-6 space-y-4 border-t border-white/10 pt-5 lg:mt-6 lg:space-y-3 lg:pt-4">
       {tarifYorliq && (
-        <p className="text-matn-past text-xs">
+        <p className="text-matn-past text-sm lg:text-xs">
           <span className="text-sarlavha font-semibold">{tarifYorliq}</span>
         </p>
       )}
@@ -69,7 +76,7 @@ export function Yon({
       <form action="/api/auth/chiqish" method="post">
         <button
           type="submit"
-          className="text-matn-past hover:text-sarlavha text-xs underline underline-offset-4"
+          className="text-matn-past hover:text-sarlavha inline-block py-1 text-sm underline underline-offset-4 lg:py-0 lg:text-xs"
         >
           {chiqishMatn}
         </button>
@@ -87,7 +94,7 @@ export function Yon({
           onClick={() => setOchiq((x) => !x)}
           aria-expanded={ochiq}
           aria-label="Menyu"
-          className="border-ramka rounded-kichik border px-3 py-2 text-lg leading-none"
+          className="border-ramka rounded-kichik border px-4 py-2.5 text-xl leading-none"
         >
           {ochiq ? "✕" : "☰"}
         </button>
