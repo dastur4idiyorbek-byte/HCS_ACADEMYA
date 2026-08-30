@@ -13,7 +13,7 @@ import pytest
 
 from core.config.schema import PortfolioConfig
 from core.domain.portfolio import PositionSnapshot
-from core.services import compute_outcome, summarize
+from core.services import blended_result_pct, compute_outcome, summarize
 
 KONFIG = PortfolioConfig(tp1_close_pct=50.0)
 BUGUN = date(2026, 8, 19)
@@ -167,3 +167,33 @@ def test_bosh_portfel_xato_bermaydi() -> None:
     xulosa = summarize([])
     assert xulosa.total_positions == 0
     assert xulosa.win_rate is None
+
+
+# --------------------------------------------------------------------------- #
+#  Signalning O'Z natijasi ham qismli yopishni hisobga oladi
+# --------------------------------------------------------------------------- #
+
+
+def test_blended_natija_tp1_ulushini_hisobga_oladi() -> None:
+    """entry 100, TP1 103 (50% sotildi), yakuniy chiqish 100 (breakeven).
+
+    To'g'ri javob +1.5%: yarmi +3% bilan sotilgan, yarmi nolda chiqqan.
+    Ilgari signalning natijasi "0%" deb yozilardi va TP1 dagi foyda
+    statistikadan butunlay yo'qolardi.
+    """
+    assert blended_result_pct(100.0, 100.0, 103.0, 50.0) == pytest.approx(1.5)
+
+
+def test_blended_natija_tp2_da_ham_toliq_emas() -> None:
+    """TP2 da ham butun pozitsiya TP2 narxida sotilmaydi — yarmi TP1 da
+    ketgan. Aks holda natija haqiqiydan yuqori ko'rinardi."""
+    # entry 100, TP1 103, TP2 105 -> 50%×3 + 50%×5 = 4.0
+    assert blended_result_pct(100.0, 105.0, 103.0, 50.0) == pytest.approx(4.0)
+
+
+def test_tp1_ga_yetilmagan_bolsa_oddiy_hisob() -> None:
+    assert blended_result_pct(100.0, 99.0, None, 50.0) == pytest.approx(-1.0)
+
+
+def test_ulush_100_bolsa_hammasi_tp1_da() -> None:
+    assert blended_result_pct(100.0, 90.0, 103.0, 100.0) == pytest.approx(3.0)

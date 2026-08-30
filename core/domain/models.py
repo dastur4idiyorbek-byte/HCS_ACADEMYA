@@ -334,6 +334,26 @@ class Signal:
     def correlation_symbol(self) -> str:
         return self.symbol.upper()
 
+    @property
+    def effective_stop(self) -> float:
+        """AMALDAGI Stop — TP1 olingach kirish narxiga ko'tariladi.
+
+        Nima uchun: TP1 da pozitsiyaning bir qismi sotiladi va qo'lda
+        foyda qoladi. Qolgan qismni eski Stopda ushlab turish shu
+        foydani qaytarib berish xavfini saqlaydi. Stop kirish narxiga
+        ko'tarilsa, eng yomon holat — nolga chiqish (breakeven), ya'ni
+        olingan TP1 foydasi himoyalanadi.
+
+        Bu SPOT uchun ayniqsa mos: leverage yo'q, ya'ni pozitsiyani
+        "nolda" yopish haqiqatan ham zararsiz chiqish.
+        """
+        return self.levels.entry if self.tp1_reached else self.levels.stop
+
+    @property
+    def stop_at_breakeven(self) -> bool:
+        """Stop kirish narxiga ko'tarilganmi — ekranda shu bilan aytiladi."""
+        return self.tp1_reached and self.effective_stop != self.levels.stop
+
 
 @dataclass(frozen=True, slots=True)
 class SignalCandidate:

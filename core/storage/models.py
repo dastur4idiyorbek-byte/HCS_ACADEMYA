@@ -257,6 +257,15 @@ class SignalRecord(Base, TimestampMixin):
     close_price: Mapped[float | None] = mapped_column(Float)
     result_pct: Mapped[float | None] = mapped_column(Float)
 
+    #: TP1 ga bir marta yetganmi.
+    #:
+    #: Nima uchun `status` yetarli emas: TP1 dan keyin narx qaytsa
+    #: `status` STOPPED bo'ladi, "zaiflashmoqda" belgisi esa uni
+    #: WEAKENING ga o'zgartiradi — ikkala holatda ham "TP1 olingan edi"
+    #: fakti YO'QOLADI. U esa natijani hisoblashda kerak: TP1 da
+    #: pozitsiyaning bir qismi allaqachon sotilgan.
+    tp1_reached: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
     # 3.8-band: "yolg'on signal" — faol bo'lgach 1 soat ichida Stop
     is_false_signal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     postmortem_notes: Mapped[str | None] = mapped_column(Text)

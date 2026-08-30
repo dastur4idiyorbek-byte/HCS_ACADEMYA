@@ -76,6 +76,8 @@ export type Signal = {
   createdAt: Date | null;
   closedAt: Date | null;
   resultPct: number | null;
+  /** TP1 ga bir marta yetganmi — Stop kirish narxiga ko'tarilgan bo'ladi */
+  tp1Reached: boolean;
 };
 
 /** Botdagi `SignalStatus.is_enterable` — TP1 olgan yoki zaiflashgan
@@ -83,6 +85,18 @@ export type Signal = {
  *  esa qisqargan. Yangi foydalanuvchi buni o'zi hisoblamasligi kerak. */
 export function kirishMumkin(holat: SignalHolati): boolean {
   return holat === "pending" || holat === "active";
+}
+
+/** Signal hali yuribdimi — YOPILMAGAN.
+ *
+ * `kirishMumkin` dan farqi bor va farq MUHIM: TP1 olingan signal
+ * yangi kirish uchun yopiq, lekin unga ALLAQACHON KIRGAN odam uchun
+ * u hali ham jonli — Stop kirish narxiga ko'tarilgani, grafik va
+ * kalkulyator unga kerak. Ilgari sahifa shunday odamni ham
+ * ro'yxatga qaytarib yuborardi.
+ */
+export function davomEtmoqda(holat: SignalHolati): boolean {
+  return !yopilgan(holat);
 }
 
 export function yopilgan(holat: SignalHolati): boolean {
@@ -271,12 +285,13 @@ function signalgaAylantir(q: Qator): Signal {
     createdAt: vaqt(q.created_at as string),
     closedAt: vaqt(q.closed_at as string),
     resultPct: son(q.result_pct),
+    tp1Reached: Boolean(q.tp1_reached),
   };
 }
 
 const SIGNAL_USTUNLARI = `id, symbol, source, status, entry, stop, tp1, tp2,
   entry_order_type, score, halal_reason, score_breakdown,
-  market_health_at_entry, created_at, closed_at, result_pct`;
+  market_health_at_entry, created_at, closed_at, result_pct, tp1_reached`;
 
 export function signallar(limit = 50): Signal[] {
   const qatorlar = db()

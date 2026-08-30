@@ -96,3 +96,32 @@ class PublicStats:
     @property
     def win_rate(self) -> float | None:
         return None if self.closed == 0 else self.tp2_count / self.closed
+
+
+def blended_result_pct(
+    entry_price: float,
+    exit_price: float,
+    tp1_price: float | None,
+    tp1_close_pct: float,
+) -> float:
+    """Qismli yopishni hisobga olgan yakuniy foiz.
+
+    TP1 da pozitsiyaning bir qismi sotiladi, qolgani keyin yopiladi.
+    Yakuniy natija — shu ikkisining VAZNLI o'rtachasi.
+
+    BITTA JOYDA yozilgan: bu hisob ikki joyda kerak — foydalanuvchining
+    pozitsiyasi uchun (`compute_outcome`) va signalning O'Z natijasi
+    uchun (`SignalRepository.apply_event`). Ikki nusxa bo'lsa, biri
+    o'zgarib ikkinchisi qolib ketardi va bir xil signal ikki xil
+    natija ko'rsatardi (loyihaning 1-naqshi).
+    """
+    if entry_price <= 0:
+        raise ValueError("Kirish narxi musbat bo'lishi kerak")
+
+    qolgan_foizi = (exit_price - entry_price) / entry_price * 100
+    if tp1_price is None:
+        return qolgan_foizi
+
+    ulush = max(0.0, min(100.0, tp1_close_pct)) / 100
+    tp1_foizi = (tp1_price - entry_price) / entry_price * 100
+    return tp1_foizi * ulush + qolgan_foizi * (1 - ulush)

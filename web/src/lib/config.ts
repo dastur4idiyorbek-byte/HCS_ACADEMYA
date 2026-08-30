@@ -226,3 +226,12 @@ export function sinovHolati(paytida: Date): {
     toxtatilgan: s.toxtatilgan,
   };
 }
+
+/** Kech kirish ogohlantirishi chegarasi (foiz).
+ *
+ * Bot bilan BITTA manba: `trade_rules.late_entry_warn_pct`. Saytga
+ * ko'chirib yozilsa, admin YAML'ni o'zgartirganda sayt eski chegarada
+ * qolib ketardi. */
+export function kechKirishChegarasi(): number {
+  return sozlama(["trade_rules", "late_entry_warn_pct"], 1.2);
+}

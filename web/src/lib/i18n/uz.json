@@ -87,7 +87,7 @@
     "ball": "Ball",
     "nisbat": "Risk/Foyda",
     "holat": "Holat",
-    "kech_izoh": "Bu signalga endi kirish kerak emas — narx allaqachon harakatlangan. Stopgacha masofa o'sha-o'sha, TPgacha esa qisqargan.",
+    "kech_izoh": "Bu signallarga yangi kirish tavsiya etilmaydi — harakatning katta qismi o'tib bo'lgan. Allaqachon kirgan bo'lsangiz, ochib ko'rsatmani o'qing.",
     "natija": "Natija",
     "berilgan": "Berilgan",
     "yopilgan": "Yopilgan",
@@ -128,7 +128,16 @@
     "kalk_ogohlantirish": "Bu — faqat hisob-kitob, moliyaviy maslahat emas.",
     "grafik": "Bozor grafigi",
     "grafik_xato": "Grafik yuklanmadi — brauzerdagi reklama bloklovchi TradingView'ga ruxsat bermayotgan bo'lishi mumkin. Signal narxlari pastda, ular grafikka bog'liq emas.",
-    "kart_hozir": "Hozirgi narx"
+    "kart_hozir": "Hozirgi narx",
+    "kech_ogoh": "Narx kirish nuqtasidan uzoqlashdi — xavf kattalashdi",
+    "kech_ogoh_izoh": "Signal berilgan paytdagi Stop va TP nisbati endi o'sha nisbat emas. Hozir kirish TAVSIYA ETILMAYDI: kirsangiz ham, xavfingiz signaldagidan katta bo'ladi. Keyingi signalni kuting.",
+    "kech_masofa": "Kirish nuqtasidan",
+    "breakeven_sarlavha": "TP1 olindi — Stopni kirish narxiga ko'taring",
+    "breakeven_izoh": "Pozitsiyaning bir qismi TP1 da sotildi va foyda qo'lda. Qolgan qism uchun Stopni kirish narxiga ko'taring: shundan keyin eng yomon holat — nolga chiqish, ya'ni olingan foyda saqlanadi. Signal to'liq TP gacha yoki narx kirish narxiga qaytguncha davom etadi.",
+    "faol_emas": "Faol emas — yangi kirish tavsiya etilmaydi",
+    "faol_emas_izoh": "Bu signal TP1 ni olib bo'ldi. Unga allaqachon kirgan bo'lsangiz — yuqoridagi ko'rsatmaga amal qiling. Kirmagan bo'lsangiz, endi kirmang: harakatning katta qismi o'tib bo'lgan.",
+    "yangi_stop": "Yangi Stop (kirish narxi)",
+    "breakeven_qisqa": "Stop kirish narxida"
   },
   "statistika": {
     "sarlavha": "Statistika",

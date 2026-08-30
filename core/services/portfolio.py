@@ -16,6 +16,7 @@ from core.domain.portfolio import (
     PortfolioSummary,
     PositionOutcome,
     PositionSnapshot,
+    blended_result_pct,
 )
 
 
@@ -44,19 +45,14 @@ def compute_outcome(
     if amount_usd <= 0:
         raise ValueError("Miqdor musbat bo'lishi kerak")
 
+    foiz = blended_result_pct(entry_price, exit_price, tp1_price, config.tp1_close_pct)
     if tp1_price is None:
-        foiz = (exit_price - entry_price) / entry_price * 100
         return PositionOutcome(
             pnl_usd=amount_usd * foiz / 100,
             pnl_pct=foiz,
             partial_exit_price=None,
             partial_close_pct=None,
         )
-
-    ulush = max(0.0, min(100.0, config.tp1_close_pct)) / 100
-    tp1_foizi = (tp1_price - entry_price) / entry_price * 100
-    qolgan_foizi = (exit_price - entry_price) / entry_price * 100
-    foiz = tp1_foizi * ulush + qolgan_foizi * (1 - ulush)
 
     return PositionOutcome(
         pnl_usd=amount_usd * foiz / 100,
@@ -82,3 +78,6 @@ def summarize(positions: list[PositionSnapshot]) -> PortfolioSummary:
         best_pnl_pct=max(foizlar) if foizlar else None,
         worst_pnl_pct=min(foizlar) if foizlar else None,
     )
+
+
+__all__ = ["blended_result_pct", "compute_outcome", "summarize"]

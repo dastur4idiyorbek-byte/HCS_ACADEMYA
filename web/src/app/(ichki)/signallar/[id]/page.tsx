@@ -3,18 +3,20 @@ import { notFound, redirect } from "next/navigation";
 import { Grafik } from "@/components/Grafik";
 import { Himoya } from "@/components/Himoya";
 import { Kalkulyator } from "@/components/Kalkulyator";
+import { KirishOgohlantirish } from "@/components/KirishOgohlantirish";
 import { SignalKartochka } from "@/components/SignalKartochka";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kotirovka, tp1Ulushi } from "@/lib/config";
+import { kechKirishChegarasi, kotirovka, tp1Ulushi } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx, pul } from "@/lib/format";
 import { hajmTaklifi } from "@/lib/hajm";
 import { kalkulyatorMatnlari, kartochkaMatnlari, tarjimon } from "@/lib/i18n";
 import { birjaJuftligi } from "@/lib/kalkulyator";
-import { kirishMumkin, pozitsiyaOl, signalOl, tarifQamraydi } from "@/lib/queries";
+import { amaldagiStop } from "@/lib/kirish-holati";
+import { davomEtmoqda, kirishMumkin, pozitsiyaOl, signalOl, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { kirdim } from "../amallar";
@@ -37,10 +39,12 @@ export default async function SignalSahifasi({
   const signal = signalOl(Number(id));
   if (!signal) notFound();
 
-  // Kech qolgan signalning narxlari ochilmaydi — ro'yxatdagi qoida
-  // shu yerda ham amal qiladi, aks holda manzilni qo'lda yozib
-  // ochib olish mumkin bo'lardi.
-  if (!kirishMumkin(signal.status)) redirect("/signallar");
+  // YOPILGAN signal ochilmaydi. Lekin TP1 olgan signal YOPILMAGAN:
+  // unga kirgan odam uchun u hali jonli va unga Stop kirish narxiga
+  // ko'tarilgani, yangilangan grafik va kalkulyator KERAK. Ilgari bu
+  // sahifa uni ham ro'yxatga qaytarib yuborardi — ya'ni pozitsiyasi
+  // bor odam o'z signalini umuman ko'ra olmasdi.
+  if (!davomEtmoqda(signal.status)) redirect("/signallar");
 
   // Suv belgisida ID turadi: skrinshot tarqalsa, u kimdan chiqqani ko'rinadi
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
@@ -49,7 +53,18 @@ export default async function SignalSahifasi({
   // Kalkulyator ham, "Men sotib oldim" ham SHU raqamdan boshlanadi,
   // ya'ni foydalanuvchi bir sahifada ikki xil son ko'rmaydi.
   const balans = foydalanuvchi?.declaredBalanceUsd ?? null;
-  const taklif = balans === null ? null : hajmTaklifi(balans, signal.entry, signal.stop);
+
+  // AMALDAGI Stop: TP1 olingach u kirish narxiga ko'tariladi. Bot ham
+  // aynan shu darajani kuzatadi (`Signal.effective_stop`), shuning
+  // uchun kartochka, kalkulyator va hajm taklifi ham SHU raqamdan
+  // hisoblanadi — foydalanuvchi bir sahifada ikki xil Stop ko'rmaydi.
+  const stop = amaldagiStop(signal.entry, signal.stop, signal.tp1Reached);
+  const yangiKirish = kirishMumkin(signal.status);
+  // Hajm tavsiyasi FAQAT yangi kirish ochiq bo'lganda. TP1 dan keyin
+  // Stop kirish narxiga teng, ya'ni "xavf puli / Stop masofasi"
+  // formulasi ma'nosini yo'qotadi — va bu signalga endi kirilmaydi ham.
+  const taklif =
+    balans === null || !yangiKirish ? null : hajmTaklifi(balans, signal.entry, stop);
   const buyurtma = signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
 
   return (
@@ -76,7 +91,7 @@ export default async function SignalSahifasi({
             symbol={signal.symbol}
             kotirovka={kotirovka()}
             entry={signal.entry}
-            stop={signal.stop}
+            stop={stop}
             tp1={signal.tp1}
             tp2={signal.tp2}
             tp1Ulush={tp1Ulushi()}
@@ -90,10 +105,48 @@ export default async function SignalSahifasi({
           🔒 {t("signal.himoya_izoh")}
         </p>
 
+        {/* TP1 olingan: ikki xil odam, ikki xil xabar.
+            Kirgan odamga — ko'rsatma (Stopni ko'taring).
+            Kirmagan odamga — to'xtatuvchi yozuv. */}
+        {signal.tp1Reached && (
+          <Card variant="urgu">
+            <CardTitle>🛡 {t("signal.breakeven_sarlavha")}</CardTitle>
+            <p className="mt-2 text-sm leading-relaxed">{t("signal.breakeven_izoh")}</p>
+            <p className="text-matn-past mt-3 text-xs uppercase">
+              {t("signal.yangi_stop")}
+            </p>
+            <p className="raqam text-sarlavha text-lg font-bold">{narx(signal.entry)}</p>
+          </Card>
+        )}
+
+        {!yangiKirish && !pozitsiya && (
+          <div className="border-past/60 bg-past/10 rounded-kartochka border p-4">
+            <p className="text-past text-sm font-semibold">⛔ {t("signal.faol_emas")}</p>
+            <p className="text-matn-past mt-1 text-sm leading-relaxed">
+              {t("signal.faol_emas_izoh")}
+            </p>
+          </div>
+        )}
+
+        {/* Kech kirish: narx kirish nuqtasidan uzoqlashgan bo'lsa,
+            HALI KIRMAGAN odamga xavf kattalashgani aytiladi. */}
+        {yangiKirish && !pozitsiya && (
+          <KirishOgohlantirish
+            juftlik={birjaJuftligi(signal.symbol, kotirovka())}
+            kirish={signal.entry}
+            chegara={kechKirishChegarasi()}
+            matnlar={{
+              sarlavha: t("signal.kech_ogoh"),
+              izoh: t("signal.kech_ogoh_izoh"),
+              masofa: t("signal.kech_masofa"),
+            }}
+          />
+        )}
+
         {/* BALANS BIRINCHI. Balanssiz tizim hech narsa taklif qila
             olmaydi va foydalanuvchi "qancha olay?" degan savolga javob
             topmaydi — chalkashlik aynan shu yerdan boshlanardi. */}
-        {foydalanuvchi && taklif === null && (
+        {foydalanuvchi && yangiKirish && balans === null && (
           <Card variant="urgu">
             <CardTitle>💰 {t("portfel.balans_kerak")}</CardTitle>
             <CardHint>{t("portfel.balans_kerak_izoh")}</CardHint>
@@ -161,7 +214,7 @@ export default async function SignalSahifasi({
             kotirovka={kotirovka()}
             boshlangichSumma={taklif?.hajm ?? null}
             entry={signal.entry}
-            stop={signal.stop}
+            stop={stop}
             tpNarxlari={[signal.tp1, signal.tp2]}
             matnlar={kalkulyatorMatnlari(t)}
           />
@@ -178,6 +231,10 @@ export default async function SignalSahifasi({
                   pul(pozitsiya.amountUsd),
                 )}
               </p>
+            ) : !yangiKirish ? (
+              /* Kirish yopilgan signalga "Men sotib oldim" yozib
+                 bo'lmaydi: bu kech kirishni RASMIYLASHTIRIB berardi. */
+              <CardHint>{t("signal.faol_emas_izoh")}</CardHint>
             ) : (
               <>
                 <CardHint>{t("signal.kirdim_izoh")}</CardHint>

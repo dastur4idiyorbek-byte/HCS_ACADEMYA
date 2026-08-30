@@ -281,6 +281,9 @@ class SignalWatcher:
                     at=hodisa.at,
                     kind=hodisa.kind.value,
                     detail=hodisa.detail,
+                    # Qismli yopish hisobga olinsin: TP1 da pozitsiyaning
+                    # bir qismi allaqachon sotilgan.
+                    tp1_close_pct=self._config.portfolio.tp1_close_pct,
                 )
 
     async def _close_positions(self, events: list[SignalEvent]) -> None:
@@ -411,7 +414,12 @@ class SignalWatcher:
         )
         # "Yolg'on signal" bayrog'i faqat admin uchun — foydalanuvchiga
         # texnik tafsilot ko'rsatilmaydi.
-        if event.detail and status is not SignalStatus.STOPPED:
+        #
+        # Ilgari BUTUN Stop xabarining tafsiloti yashirilardi. Endi u
+        # kerak: TP1 dan keyingi chiqish "zarar" emas, "kirish narxida
+        # yopildi, TP1 dagi foyda saqlandi" — foydalanuvchi buni bilishi
+        # shart, aks holda foydali savdoni zarar deb o'qiydi.
+        if event.detail and event.kind is not SignalEventKind.FALSE_SIGNAL:
             return f"{sarlavha}\n{event.detail}"
         return sarlavha
 

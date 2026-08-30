@@ -135,8 +135,29 @@ export default async function Signallar() {
 
         {kech.length > 0 && (
           <Guruh sarlavha={t("signal.kech")} izoh={t("signal.kech_izoh")}>
+            {/* OCHILADI — lekin ichida "faol emas" deb yozilgan.
+                Ilgari bu qatorlar umuman ochilmasdi va signalga
+                ALLAQACHON KIRGAN odam ham o'z signalini ko'ra olmasdi:
+                unga esa aynan shu yerda TP1 dan keyingi ko'rsatma
+                (Stopni kirish narxiga ko'tarish) kerak. */}
             {kech.map((s) => (
-              <KechQator key={s.id} belgi={HOLAT_BELGISI[s.status]} symbol={s.symbol} holat={holatNomi(s.status, til)} />
+              <Link
+                key={s.id}
+                href={`/signallar/${s.id}`}
+                className="border-ramka-yumshoq rounded-kartochka hover:bg-panel-yorqin flex items-center gap-3 border p-3 transition"
+              >
+                <span aria-hidden>{HOLAT_BELGISI[s.status]}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="text-sarlavha block text-sm font-semibold">{s.symbol}</span>
+                  <span className="text-matn-past block text-xs">
+                    {holatNomi(s.status, til)}
+                    {s.tp1Reached ? ` · ${t("signal.breakeven_qisqa")}` : ""}
+                  </span>
+                </span>
+                <span aria-hidden className="text-matn-past">
+                  ›
+                </span>
+              </Link>
             ))}
           </Guruh>
         )}

@@ -142,7 +142,13 @@ async def test_holat_ozgarishi_bazaga_yoziladi(db: Database) -> None:
         assert yozuv.activated_at is not None
         assert yozuv.closed_at is not None
         assert yozuv.close_price == 105.0
-        assert yozuv.result_pct == pytest.approx(5.0)
+        # 5.0 EMAS: TP1 da pozitsiyaning yarmi 103 da sotilgan
+        # (`portfolio.tp1_close_pct`), qolgani 105 da. Ya'ni
+        # 50%×3% + 50%×5% = 4%. Ilgari bu yerda 5% yozilardi — butun
+        # pozitsiya TP2 narxida sotilgandek, natija esa haqiqiydan
+        # yuqori chiqardi.
+        assert yozuv.result_pct == pytest.approx(4.0)
+        assert yozuv.tp1_reached is True
 
 
 async def test_obunachiga_xabar_yuboriladi(db: Database) -> None:

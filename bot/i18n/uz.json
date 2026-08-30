@@ -92,7 +92,8 @@
     "qisqa_tp2_hit": "TP2 olindi",
     "qisqa_stopped": "Stop ishladi",
     "qisqa_weakening": "zaiflashmoqda",
-    "qisqa_cancelled": "bekor qilindi"
+    "qisqa_cancelled": "bekor qilindi",
+    "kirdim_kech": "Bu signal TP1 ni olib bo'ldi — yangi kirish tavsiya etilmaydi. Stop endi kirish narxida turadi, harakatning katta qismi o'tgan."
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",

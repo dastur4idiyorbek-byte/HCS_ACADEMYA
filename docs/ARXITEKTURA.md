@@ -3862,7 +3862,80 @@ Bozor Salomatligi sahifasida o'sha qator "Sinov davri — indeksga
 qo'shilmadi" deb ko'rsatiladi, ostida sababi, necha kun qolgani va
 to'xtatilgan tormozlar ro'yxati yoziladi.
 
-## 61. Bosqichlar holati
+## 61. TP1 dan keyin: Stop kirish narxiga, kirish esa yopiladi
+
+Ikki qoida, ikki xil odam uchun: signalga ALLAQACHON KIRGAN va HALI
+KIRMAGAN foydalanuvchi.
+
+### 61.1 Stop kirish narxiga ko'tariladi (breakeven)
+
+TP1 da pozitsiyaning bir qismi sotiladi (`portfolio.tp1_close_pct`,
+standart 50%) va foyda qo'lda qoladi. Qolgan qismni eski Stopda ushlab
+turish o'sha foydani qaytarib berish xavfini saqlaydi.
+
+Shuning uchun `Signal.effective_stop` TP1 dan keyin `entry` ga teng
+bo'ladi va kuzatuvchi AYNAN SHU darajani kuzatadi. Eng yomon holat —
+nolga chiqish. Spot uchun bu ayniqsa to'g'ri: leverage yo'q, ya'ni
+"nolda yopish" haqiqatan zararsiz chiqish.
+
+Signal TP1 da YOPILMAYDI — to'liq TP gacha yoki narx kirish narxiga
+qaytguncha davom etadi. Botda TP1 xabari bilan birga ko'rsatma
+yuboriladi: "🛡 Stopni kirish narxiga ko'taring". Foydalanuvchi buni
+O'ZI qiladi — bot uning birja hisobiga ulanmaydi.
+
+### 61.2 Natija endi QISMLI YOPISHNI hisobga oladi
+
+`result_pct` ilgari bitta ayirmadan hisoblanardi:
+`(chiqish − kirish) / kirish`. Bu ikki tomonga ham yolg'on edi:
+
+| Holat | Eski (noto'g'ri) | Yangi (to'g'ri) |
+|---|---|---|
+| TP1 (103) keyin breakeven (100) | 0.0% | +1.5% |
+| TP1 (103) keyin TP2 (105) | +5.0% | +4.0% |
+
+Ya'ni breakeven chiqish foydani YO'QOTARDI, TP2 esa haqiqiydan
+YUQORI ko'rinardi. Endi ikkalasi ham `blended_result_pct()` orqali
+hisoblanadi — bu funksiya `core/domain/portfolio.py` da, chunki u
+IKKI joyda kerak: foydalanuvchining pozitsiyasi va signalning o'z
+natijasi uchun.
+
+`signals.tp1_reached` ustuni ham shu uchun qo'shildi (migratsiya
+`e91b4c7a2d55`): TP1 fakti `status` da SAQLANMAYDI — narx qaytsa
+status STOPPED, zaiflashuv belgisi esa WEAKENING qilib qo'yadi.
+
+### 61.3 "Faol emas" — yangi kirish yopiladi, sahifa esa ochiladi
+
+Bu ikkisi ADASHTIRILGAN edi. Sayt TP1 olgan signalni ochishga umuman
+yo'l qo'ymasdi (`/signallar` ga qaytarardi), ya'ni signalga KIRGAN
+odam ham o'z signalini ko'ra olmasdi — holbuki unga aynan o'sha
+paytda breakeven ko'rsatmasi, yangilangan grafik va kalkulyator
+kerak edi.
+
+Endi:
+
+* sahifa YOPILMAGAN signal uchun ochiladi (`davomEtmoqda`);
+* kartochka, grafik va kalkulyator AMALDAGI Stop bilan ishlaydi
+  (`amaldagiStop()` — botdagi `effective_stop` ning aynan aksi);
+* kirmagan odamga "⛔ Faol emas — yangi kirish tavsiya etilmaydi"
+  yoziladi va "Men sotib oldim" formasi ko'rsatilmaydi;
+* botda ham `sig:enter:` shu holatda yangi pozitsiyani qayd etmaydi —
+  aks holda botda ruxsat etilgan narsa saytda taqiqlangan bo'lardi.
+
+### 61.4 Kech kirish ogohlantirishi (1.2%)
+
+Narx kirish nuqtasidan `trade_rules.late_entry_warn_pct` (1.2%) dan
+ko'p uzoqlashgan bo'lsa, HALI KIRMAGAN foydalanuvchiga xavf
+kattalashgani aytiladi va kirish tavsiya etilmaydi.
+
+IKKALA TOMONGA ham: yuqoriga ketgan bo'lsa TPgacha masofa qisqargan
+va Stopgacha uzoqlashgan; pastga ketgan bo'lsa Stop yaqinlashgan.
+Ikkalasida ham nisbat signal berilgan paytdagi nisbat emas.
+
+Bu TO'SIQ EMAS — ogohlantirish; qaror foydalanuvchiniki. Narx
+noma'lum bo'lsa ogohlantirish CHIQMAYDI: yolg'on xotirjamlik ham,
+yolg'on vahima ham bermaymiz.
+
+## 62. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

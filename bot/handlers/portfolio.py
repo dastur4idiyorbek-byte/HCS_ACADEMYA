@@ -93,6 +93,17 @@ async def ask_position_amount(  # noqa: PLR0913
 
         balans = getattr(db_user, "declared_balance_usd", None)
         mavjud = await UserPositionRepository(session).get(db_user_id, signal_id)
+
+        # TP1 olingan signalga YANGI kirish qayd etilmaydi: harakatning
+        # katta qismi o'tib bo'lgan va Stop endi kirish narxida turadi.
+        # Saytdagi qoida bilan bir xil — aks holda botda ruxsat etilgan
+        # narsa saytda taqiqlangan bo'lardi.
+        if mavjud is None and not SignalStatus(yozuv.status).is_enterable:
+            await callback.answer(
+                t("signal.kirdim_kech", language), show_alert=True
+            )
+            return
+
         if mavjud is not None:
             await callback.answer(
                 t("signal.kirdim_allaqachon", language, amount=f"{mavjud.amount_usd:,.2f}"),

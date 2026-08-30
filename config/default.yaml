@@ -274,6 +274,12 @@ trade_rules:
   # TP1 da pozitsiyaning yarmi yopiladi — u ham foydali nisbatda bo'lsin.
   # Stop 4% bo'lsa TP1 kamida 6% da turadi (4 x 1.5).
   tp1_min_risk_reward: 1.5
+  # Kech kirish ogohlantirishi: narx kirish nuqtasidan shu foizdan ko'p
+  # uzoqlashsa, HALI KIRMAGAN foydalanuvchiga xavf kattalashgani
+  # aytiladi va kirish tavsiya etilmaydi. Ikkala tomonga ham: yuqoriga
+  # ketsa TP gacha masofa qisqargan, pastga ketsa Stop yaqinlashgan.
+  # To'siq emas — ogohlantirish.
+  late_entry_warn_pct: 1.2
 
   # 3.1-band "TP1 — eng yaqin resistance" deydi. Lekin TOZA KO'TARILISH
   # TRENDIDA ustda qarshilik BO'LMAYDI — trend degani aynan shu.

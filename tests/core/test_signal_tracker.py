@@ -355,3 +355,80 @@ def test_yopilgan_holatlarga_kirib_bolmaydi() -> None:
     for holat in SignalStatus:
         if holat.is_closed:
             assert not holat.is_enterable, holat
+
+
+# --------------------------------------------------------------------------- #
+#  TP1 dan keyin Stop kirish narxiga ko'tariladi (breakeven)
+# --------------------------------------------------------------------------- #
+
+
+def test_tp1_dan_keyin_stop_kirish_narxiga_kotariladi(tracker: SignalTracker) -> None:
+    """TP1 da pozitsiyaning bir qismi sotiladi va qo'lda foyda qoladi.
+
+    Qolgan qismni eski Stopda ushlab turish shu foydani qaytarib berish
+    xavfini saqlaydi. Stop kirish narxiga ko'tarilsa, eng yomon holat —
+    nolga chiqish.
+    """
+    s = signal()  # entry 100, stop 99, tp1 103
+    key = tracker.track(s)
+    tracker.on_price("BTC", 100.0, BOSH)          # faollashdi
+    tracker.on_price("BTC", 103.0, BOSH)          # TP1
+    assert tracker.get(key).status is SignalStatus.TP1_HIT
+    assert tracker.get(key).effective_stop == 100.0
+
+    # 99.5 — ESKI Stop (99) dan yuqori, lekin kirish narxidan past
+    hodisalar = tracker.on_price("BTC", 99.5, BOSH)
+    assert [h.kind for h in hodisalar] == [SignalEventKind.STOPPED]
+    assert tracker.get(key).status is SignalStatus.STOPPED
+
+
+def test_tp1_gacha_stop_ozgarmaydi(tracker: SignalTracker) -> None:
+    """Breakeven FAQAT TP1 dan keyin. Aks holda har bir signal kirish
+    narxida yopilib, tuzilmaga nafas olishga joy qolmasdi."""
+    s = signal()
+    key = tracker.track(s)
+    tracker.on_price("BTC", 100.0, BOSH)
+
+    assert tracker.get(key).effective_stop == 99.0
+    assert tracker.on_price("BTC", 99.5, BOSH) == []
+    assert tracker.get(key).status is SignalStatus.ACTIVE
+
+
+def test_tp1_xabarida_stopni_kotarish_aytiladi(tracker: SignalTracker) -> None:
+    """Foydalanuvchi buni O'ZI qilishi kerak — bot uning hisobiga
+    ulanmaydi, shuning uchun ko'rsatma aniq yozilishi shart."""
+    tracker.track(signal())
+    tracker.on_price("BTC", 100.0, BOSH)
+    hodisalar = tracker.on_price("BTC", 103.0, BOSH)
+
+    matn = hodisalar[0].detail
+    assert "Stopni kirish narxiga" in matn
+    assert "100" in matn
+
+
+def test_breakeven_chiqish_yolgon_signal_deb_belgilanmaydi(
+    tracker: SignalTracker,
+) -> None:
+    """"Yolg'on signal" — faol bo'lgach TEZ Stop yegan holat (3.8-band).
+
+    TP1 ni olib, keyin nolga qaytgan signal esa foyda keltirgan: uni
+    yolg'on deb belgilash statistikani buzardi.
+    """
+    tracker.track(signal())
+    tracker.on_price("BTC", 100.0, BOSH)
+    tracker.on_price("BTC", 103.0, BOSH + timedelta(minutes=5))
+    hodisalar = tracker.on_price("BTC", 99.9, BOSH + timedelta(minutes=10))
+
+    assert all(h.kind is not SignalEventKind.FALSE_SIGNAL for h in hodisalar)
+
+
+def test_tp2_gacha_kuzatuv_davom_etadi(tracker: SignalTracker) -> None:
+    """TP1 dan keyin signal YOPILMAYDI — to'liq TP gacha yuradi."""
+    key = tracker.track(signal())
+    tracker.on_price("BTC", 100.0, BOSH)
+    tracker.on_price("BTC", 103.0, BOSH)
+    assert tracker.get(key).status.is_open
+
+    hodisalar = tracker.on_price("BTC", 105.0, BOSH)
+    assert [h.kind for h in hodisalar] == [SignalEventKind.TP2_HIT]
+    assert tracker.get(key).status is SignalStatus.TP2_HIT

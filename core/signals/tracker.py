@@ -237,15 +237,26 @@ class SignalTracker:
             # deb qaraladi — bu eng ehtiyotkor talqin (0.3-band).
 
         # --- 🛑 Stop (TP'dan OLDIN tekshiriladi — ehtiyotkor talqin) ---
-        if price <= levels.stop:
+        #
+        # AMALDAGI Stop ishlatiladi: TP1 olingach u kirish narxiga
+        # ko'tariladi (breakeven). Eski `levels.stop` ni ishlatsak,
+        # TP1 dagi foyda qaytib ketishi mumkin bo'lardi.
+        amaldagi_stop = signal.effective_stop
+        if price <= amaldagi_stop:
             signal.closed_at = at
             yolgon = self._is_false_signal(signal, at)
+            breakeven = signal.stop_at_breakeven
             qayd(
                 SignalEventKind.STOPPED,
                 SignalStatus.STOPPED,
-                f"Narx Stop darajasiga tushdi ({price:g}).",
+                (
+                    f"Narx kirish narxiga qaytdi ({price:g}) — Stop kirish "
+                    "darajasida edi, TP1 dagi foyda saqlanib qoldi."
+                    if breakeven
+                    else f"Narx Stop darajasiga tushdi ({price:g})."
+                ),
             )
-            if yolgon:
+            if yolgon and not breakeven:
                 hodisalar.append(
                     SignalEvent(
                         signal_id=signal_id,
@@ -269,7 +280,11 @@ class SignalTracker:
             qayd(
                 SignalEventKind.TP1_HIT,
                 SignalStatus.TP1_HIT,
-                f"TP1 darajasiga yetdi ({price:g}).",
+                (
+                    f"TP1 darajasiga yetdi ({price:g}). "
+                    f"🛡 Stopni kirish narxiga ko'taring ({levels.entry:g}) — "
+                    "shundan keyin eng yomon holat nolga chiqish bo'ladi."
+                ),
             )
 
         # --- 🎯🎯 TP2 (signal yopiladi) ---

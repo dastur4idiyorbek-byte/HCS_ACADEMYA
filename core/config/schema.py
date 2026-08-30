@@ -422,6 +422,17 @@ class TradeRulesConfig:
     #: agar u 1:1 dan past bo'lsa, o'sha yarim savdo o'rtacha zarar keltiradi.
     tp1_min_risk_reward: float = 1.5
     allow_measured_tp: bool = True
+    #: KECH KIRISH ogohlantirishi: narx kirish nuqtasidan shu foizdan
+    #: ko'p uzoqlashgan bo'lsa, hali kirmagan foydalanuvchiga
+    #: "xavf kattalashdi, kirish tavsiya etilmaydi" deb aytiladi.
+    #:
+    #: IKKALA TOMONGA ham: yuqoriga ketgan bo'lsa TP gacha masofa
+    #: qisqargan va Stop uzoqlashgan (nisbat buzilgan); pastga ketgan
+    #: bo'lsa Stop yaqinlashgan. Ikkalasida ham kirish signal
+    #: berilgan paytdagidan yomonroq.
+    #:
+    #: Bu TO'SIQ EMAS — ogohlantirish. Qaror foydalanuvchiniki.
+    late_entry_warn_pct: float = 1.2
 
 
 # --------------------------------------------------------------------------- #

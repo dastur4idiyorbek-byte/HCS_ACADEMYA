@@ -35,7 +35,12 @@ from core.domain.models import (
     Signal,
     SignalLevels,
 )
-from core.domain.portfolio import PositionOutcome, PositionSnapshot, PublicStats
+from core.domain.portfolio import (
+    PositionOutcome,
+    PositionSnapshot,
+    PublicStats,
+    blended_result_pct,
+)
 from core.pipeline.events import PipelineEvent
 from core.storage.models import (
     AuditReport,
@@ -543,19 +548,37 @@ class SignalRepository:
         at: datetime,
         kind: str,
         detail: str | None = None,
+        tp1_close_pct: float | None = None,
     ) -> SignalRecord | None:
-        """Kuzatuvchidan kelgan hodisani bazaga yozadi."""
+        """Kuzatuvchidan kelgan hodisani bazaga yozadi.
+
+        Args:
+            tp1_close_pct: TP1 da pozitsiyaning necha foizi yopilishi
+                (`portfolio.tp1_close_pct`). Berilsa, yakuniy natija
+                QISMLI YOPISHNI hisobga oladi.
+
+                Ansiz raqam yolg'on chiqardi: TP1 dan keyin narx kirish
+                narxiga qaytsa natija "0%" deb yozilardi — holbuki
+                yarmi TP1 da foyda bilan sotilgan edi. TP2 da esa
+                teskarisi: butun pozitsiya TP2 da sotilgandek
+                ko'rinardi.
+        """
         yozuv = await self.get(signal_id)
         if yozuv is None:
             return None
 
         yozuv.status = status.value
+        if status is SignalStatus.TP1_HIT:
+            yozuv.tp1_reached = True
         if status is SignalStatus.ACTIVE and yozuv.activated_at is None:
             yozuv.activated_at = at
         if status in {SignalStatus.TP2_HIT, SignalStatus.STOPPED, SignalStatus.CANCELLED}:
             yozuv.closed_at = at
             yozuv.close_price = price
-            yozuv.result_pct = (price - yozuv.entry) / yozuv.entry * 100
+            tp1_narxi = yozuv.tp1 if (yozuv.tp1_reached and tp1_close_pct is not None) else None
+            yozuv.result_pct = blended_result_pct(
+                yozuv.entry, price, tp1_narxi, tp1_close_pct or 0.0
+            )
         if kind == "false_signal":
             yozuv.is_false_signal = True
 
@@ -702,8 +725,9 @@ class SignalRepository:
             activated_at=record.activated_at,
             closed_at=record.closed_at,
             signal_id=record.id,
-            tp1_reached=SignalStatus(record.status)
-            in {SignalStatus.TP1_HIT, SignalStatus.TP2_HIT},
+            # Ustundan o'qiladi: status TP1 dan keyin o'zgarishi mumkin
+            # (STOPPED, WEAKENING) va fakt yo'qolardi.
+            tp1_reached=bool(record.tp1_reached),
         )
 
 
