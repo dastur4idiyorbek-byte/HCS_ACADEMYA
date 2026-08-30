@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { ozgarishFoizi } from "@/lib/jonli";
+import { kechQoldimi } from "@/lib/kirish-holati";
 
 /** Signal kirish nuqtasidan narx qancha yurgani — jonli.
  *
@@ -21,6 +22,8 @@ export function JonliNarx({
   juftlik,
   kirish,
   qisqa = false,
+  ogohChegara = null,
+  ogohMatn = "",
 }: {
   /** Birja juftligi — `DOTUSDT` */
   juftlik: string;
@@ -28,6 +31,11 @@ export function JonliNarx({
   kirish: number;
   /** Qisqa ko'rinish — faqat foiz (ro'yxat uchun) */
   qisqa?: boolean;
+  /** Narx shu foizdan uzoqlashsa ⚠️ belgisi qo'yiladi.
+   *  `null` — ogohlantirish kerak emas (masalan kirgan foydalanuvchi). */
+  ogohChegara?: number | null;
+  /** Belgi ustiga olib borilganda chiqadigan izoh */
+  ogohMatn?: string;
 }) {
   const [narx, setNarx] = useState<number | null>(null);
 
@@ -62,9 +70,21 @@ export function JonliNarx({
   const musbat = foiz >= 0;
   const rang = musbat ? "text-yaxshi" : "text-past";
   const matn = `${musbat ? "+" : "−"}${Math.abs(foiz).toFixed(2)}%`;
+  // Ro'yxatning O'ZIDA ko'rinsin: yangi foydalanuvchi signal sahifasini
+  // ochmasdan turib ham "bu allaqachon uzoqlashgan" ekanini bilsin.
+  const kech = ogohChegara !== null && kechQoldimi(kirish, narx, ogohChegara);
 
   if (qisqa) {
-    return <span className={`raqam text-xs font-semibold ${rang}`}>{matn}</span>;
+    return (
+      <span className={`raqam text-xs font-semibold ${rang}`}>
+        {kech && (
+          <span aria-hidden title={ogohMatn}>
+            ⚠️{" "}
+          </span>
+        )}
+        {matn}
+      </span>
+    );
   }
   return (
     <span className={`raqam font-semibold ${rang}`}>

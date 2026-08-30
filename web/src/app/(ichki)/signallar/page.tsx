@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kotirovka, tp1Ulushi } from "@/lib/config";
+import { kechKirishChegarasi, kotirovka, tp1Ulushi } from "@/lib/config";
 import { hajmTaklifi } from "@/lib/hajm";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 import { env } from "@/lib/env";
@@ -96,6 +96,8 @@ export default async function Signallar() {
                       juftlik={birjaJuftligi(s.symbol, kotirovka())}
                       kirish={s.entry}
                       qisqa
+                      ogohChegara={kechKirishChegarasi()}
+                      ogohMatn={t("signal.kech_ogoh")}
                     />
                   </span>
                   {s.score !== null && (
