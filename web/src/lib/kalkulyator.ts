@@ -12,10 +12,18 @@ export type TpKirish = {
   narx: number;
   /** Shu TP da pozitsiyaning necha foizi sotiladi */
   ulush: number;
+  /** Bu TP ALLAQACHON olinganmi (narx u yerga yetgan va sotilgan).
+   *
+   *  Olingan TP — bashorat emas, FAKT: pul allaqachon qo'lda. Shuning
+   *  uchun u kutilayotgan foydadan alohida sanaladi va Stop endi unga
+   *  tegmaydi — o'sha qism pozitsiyada yo'q. */
+  olindi?: boolean;
 };
 
 export type TpNatija = {
   ulush: number;
+  /** Allaqachon olinganmi */
+  olindi: boolean;
   narx: number;
   /** Shu TP da sotiladigan miqdor (asosiy aktivda, masalan BTC) */
   miqdor: number;
@@ -31,9 +39,23 @@ export type Hisob = {
   /** Sarflangan summaga sotib olinadigan umumiy miqdor */
   umumiyMiqdor: number;
   tplar: TpNatija[];
-  /** Barcha miqdor Stop'da yopilsa */
+  /** Olingan TP larda sotilgan miqdor — pozitsiyada endi yo'q */
+  sotilganMiqdor: number;
+  /** Hali qo'lda turgan miqdor — Stop AYNAN shunga qo'llanadi */
+  qolganMiqdor: number;
+  /** Olingan TP lardan qo'lga kirgan foyda — FAKT, bashorat emas */
+  olinganFoyda: number;
+  /** Qolgan TP lardan kutilayotgan foyda */
+  kutilayotganFoyda: number;
+  /** QOLGAN miqdor Stop'da yopilsa */
   stopZarar: number;
   stopFoiz: number;
+  /** Eng yomon holat: olingan foyda MINUS qolgan qismning zarari.
+   *
+   *  Aynan shu raqam kerak edi: TP1 olingandan keyin "Stop bo'lsa
+   *  nima bo'ladi?" degan savolga javob endi manfiy son emas —
+   *  olingan foyda zararni qoplaydi yoki hatto ortadi. */
+  engYomon: number;
   /** Barcha TP ketma-ket urilsa */
   jamiFoyda: number;
   jamiFoiz: number;
@@ -71,6 +93,7 @@ export function hisobla(
     const tushum = miqdor * t.narx;
     return {
       ulush,
+      olindi: Boolean(t.olindi),
       narx: t.narx,
       miqdor,
       tushum,
@@ -80,14 +103,32 @@ export function hisobla(
     };
   });
 
-  const jamiFoyda = natijalar.reduce((s, t) => s + t.foyda, 0);
+  const olinganlar = natijalar.filter((t) => t.olindi);
+  const olinganFoyda = olinganlar.reduce((s, t) => s + t.foyda, 0);
+  const kutilayotganFoyda = natijalar
+    .filter((t) => !t.olindi)
+    .reduce((s, t) => s + t.foyda, 0);
+
+  // SOTILGAN qism pozitsiyada endi YO'Q — Stop unga tegmaydi.
+  // Ilgari Stop har doim butun pozitsiyaga qo'llanardi va TP1
+  // olingandan keyin kalkulyator mavjud bo'lmagan zararni ko'rsatardi:
+  // pozitsiyaning yarmi allaqachon sotilgan bo'lsa ham, "Stop bo'lsa"
+  // qatori to'liq summadan hisoblanardi.
+  const sotilganMiqdor = olinganlar.reduce((s, t) => s + t.miqdor, 0);
+  const qolganMiqdor = Math.max(0, umumiyMiqdor - sotilganMiqdor);
+  const stopZarar = stop > 0 ? qolganMiqdor * (entry - stop) : 0;
+  const jamiFoyda = olinganFoyda + kutilayotganFoyda;
 
   return {
     umumiyMiqdor,
     tplar: natijalar,
-    // Stop butun pozitsiyaga qo'llanadi — TP ulushlaridan qat'i nazar.
-    stopZarar: stop > 0 ? umumiyMiqdor * (entry - stop) : 0,
+    sotilganMiqdor,
+    qolganMiqdor,
+    olinganFoyda,
+    kutilayotganFoyda,
+    stopZarar,
     stopFoiz: stop > 0 ? ((stop - entry) / entry) * 100 : 0,
+    engYomon: olinganFoyda - stopZarar,
     jamiFoyda,
     jamiFoiz: (jamiFoyda / summa) * 100,
     ulushJami,

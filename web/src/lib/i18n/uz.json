@@ -137,7 +137,13 @@
     "faol_emas": "Faol emas — yangi kirish tavsiya etilmaydi",
     "faol_emas_izoh": "Bu signal TP1 ni olib bo'ldi. Unga allaqachon kirgan bo'lsangiz — yuqoridagi ko'rsatmaga amal qiling. Kirmagan bo'lsangiz, endi kirmang: harakatning katta qismi o'tib bo'lgan.",
     "yangi_stop": "Yangi Stop (kirish narxi)",
-    "breakeven_qisqa": "Stop kirish narxida"
+    "breakeven_qisqa": "Stop kirish narxida",
+    "kalk_olindi": "olindi",
+    "kalk_qolgan": "qolgan",
+    "kalk_qolganiga": "qolgan qismga",
+    "kalk_qolda": "Qo'lda (olingan foyda)",
+    "kalk_kutilmoqda": "Kutilmoqda (qolgan TP)",
+    "kalk_eng_yomon": "Eng yomon holat (Stop bo'lsa)"
   },
   "statistika": {
     "sarlavha": "Statistika",

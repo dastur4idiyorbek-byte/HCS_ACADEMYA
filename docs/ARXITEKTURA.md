@@ -3935,6 +3935,38 @@ Bu TO'SIQ EMAS — ogohlantirish; qaror foydalanuvchiniki. Narx
 noma'lum bo'lsa ogohlantirish CHIQMAYDI: yolg'on xotirjamlik ham,
 yolg'on vahima ham bermaymiz.
 
+### 61.5 Kalkulyator olingan TP ni FAKT deb sanaydi
+
+Savol: TP1 olingandan keyin uni kalkulyatordan o'chirish kerakmi?
+Javob — YO'Q. Olingan TP bashorat emas, allaqachon amalga oshgan
+savdo: o'chirilsa, kalkulyator o'sha pulni yo'qotib "hech narsa yo'q"
+degan yolg'on manzara ko'rsatardi.
+
+Uning o'rniga TP olingan deb BELGILANADI va hisob shunga moslanadi:
+
+* olingan TP qatori "✅ TP1 olindi" bo'ladi, narxi va ulushi
+  QULFLANADI — ular tarixiy fakt (kirish narxi ham shu sababdan);
+* **Stop endi faqat QOLGAN qismga** qo'llanadi. Bu jiddiy xato edi:
+  pozitsiyaning yarmi sotilgan bo'lsa ham "Stop bo'lsa" qatori to'liq
+  summadan hisoblanardi va mavjud bo'lmagan zararni ko'rsatardi;
+* uchta yangi qator chiqadi — **Qo'lda** (olingan foyda), **Kutilmoqda**
+  (qolgan TP lardan) va **Eng yomon holat** = qo'lda − qolgan qismning
+  zarari.
+
+Oxirgisi eng muhimi: "Stop bo'lsa nima bo'ladi?" degan savolga javob
+endi manfiy son emas. $1000, kirish 100, TP1 103 (50% olindi), Stop
+kirish narxida:
+
+```
+✅ TP1 olindi (50% — 5 DOT)     +$15.00 (+3.00%)
+🎯 TP2        (50% — 5 DOT)     +$25.00 (+5.00%)
+🛑 Agar Stop'ga borsa (50% — qolgan qismga)   $0.00
+
+✅ Qo'lda (olingan foyda)        +$15.00
+🎯 Kutilmoqda (qolgan TP)        +$25.00
+🛡 Eng yomon holat (Stop bo'lsa) +$15.00
+```
+
 ## 62. Bosqichlar holati
 
 | # | Bosqich | Holat |

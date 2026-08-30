@@ -216,6 +216,7 @@ export default async function SignalSahifasi({
             entry={signal.entry}
             stop={stop}
             tpNarxlari={[signal.tp1, signal.tp2]}
+            olinganTplar={[signal.tp1Reached, false]}
             matnlar={kalkulyatorMatnlari(t)}
           />
         </Himoya>

@@ -76,6 +76,13 @@ export function kalkulyatorMatnlari(t: (kalit: string) => string) {
     jami: t("signal.kalk_jami"),
     ulush_xato: t("signal.kalk_ulush_xato"),
     ogohlantirish: t("signal.kalk_ogohlantirish"),
+    // TP olingandan keyingi ko'rinish (61-bo'lim)
+    kalk_olindi: t("signal.kalk_olindi"),
+    kalk_qolgan: t("signal.kalk_qolgan"),
+    kalk_qolganiga: t("signal.kalk_qolganiga"),
+    kalk_qolda: t("signal.kalk_qolda"),
+    kalk_kutilmoqda: t("signal.kalk_kutilmoqda"),
+    kalk_eng_yomon: t("signal.kalk_eng_yomon"),
   };
 }
 

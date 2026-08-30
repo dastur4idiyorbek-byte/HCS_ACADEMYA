@@ -35,6 +35,7 @@ export function Kalkulyator({
   entry,
   stop,
   tpNarxlari,
+  olinganTplar,
   boshlangichSumma,
   matnlar,
 }: {
@@ -44,6 +45,13 @@ export function Kalkulyator({
   entry: number;
   stop: number;
   tpNarxlari: number[];
+  /** Qaysi TP lar ALLAQACHON olingan (signal holatidan).
+   *
+   *  Olingan TP o'chirilmaydi — u FAKT: pul qo'lda. O'chirilsa,
+   *  kalkulyator olingan foydani yo'qotib, "hech narsa yo'q" degan
+   *  yolg'on manzara ko'rsatardi. O'rniga u qulflanadi va alohida
+   *  sanaladi. */
+  olinganTplar?: boolean[];
   /** Boshlang'ich summa — TIZIM TAKLIFI (balans va Stop masofasidan).
    *  Berilmasa 1000 qo'yiladi: bu faqat balans kiritilmagan holat. */
   boshlangichSumma?: number | null;
@@ -67,6 +75,12 @@ export function Kalkulyator({
     return tpNarxlari.map((n, i) => ({ narx: narxMatni(n), ulush: String(ulushlar[i]) }));
   });
 
+  const olindi = (i: number) => Boolean(olinganTplar?.[i]);
+  // Bittasi ham olingan bo'lsa, ulushlar TARIXIY FAKT bo'lib qoladi:
+  // o'sha ulushda sotilgan. Ularni tahrirlash "boshqacha sotgan
+  // bo'lsam" degan xayoliy hisob bo'lardi.
+  const qulflangan = Boolean(olinganTplar?.some(Boolean));
+
   const hisob = useMemo(() => {
     const s = musbatSon(summa);
     const e = musbatSon(kirish);
@@ -75,12 +89,13 @@ export function Kalkulyator({
       s,
       e,
       musbatSon(stopMatn) ?? 0,
-      tplar.map((t) => ({
+      tplar.map((t, i) => ({
         narx: musbatSon(t.narx) ?? 0,
         ulush: Number(t.ulush.replace(",", ".")) || 0,
+        olindi: Boolean(olinganTplar?.[i]),
       })),
     );
-  }, [summa, kirish, stopMatn, tplar]);
+  }, [summa, kirish, stopMatn, tplar, olinganTplar]);
 
   const narxYangila = (i: number, qiymat: string) =>
     setTplar((oldingi) => oldingi.map((t, j) => (i === j ? { ...t, narx: qiymat } : t)));
@@ -101,11 +116,15 @@ export function Kalkulyator({
       }));
     });
 
-  const pul = (x: number) =>
-    `${x >= 0 ? "+" : "−"}$${Math.abs(x).toLocaleString("en-US", {
+  // Nol uchun belgi qo'yilmaydi: breakeven Stopda "+$0.00" degan yozuv
+  // "biroz foyda" degan taassurot berardi, aslida esa hech narsa yo'q.
+  const pul = (x: number) => {
+    const belgi = Math.abs(x) < 0.005 ? "" : x > 0 ? "+" : "−";
+    return `${belgi}$${Math.abs(x).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+  };
   const foiz = (x: number) => `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`;
   const miqdor = (x: number) => x.toLocaleString("en-US", { maximumFractionDigits: 8 });
 
@@ -130,11 +149,15 @@ export function Kalkulyator({
             <span className="text-matn-past mb-1 block text-xs uppercase">
               {matnlar.kalk_kirish}
             </span>
+            {/* Kirish narxi TP olingandan keyin TAHRIRLANMAYDI: u
+                allaqachon amalga oshgan savdoning narxi. Tahrirlansa,
+                olingan foyda ham "qayta hisoblanib" ketardi. */}
             <input
               inputMode="decimal"
               value={kirish}
               onChange={(e) => setKirish(e.target.value)}
-              className={uslub}
+              disabled={qulflangan}
+              className={`${uslub}${qulflangan ? " opacity-60" : ""}`}
             />
           </label>
           <label className="block">
@@ -154,13 +177,14 @@ export function Kalkulyator({
           <div key={i} className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-matn-past mb-1 block text-xs uppercase">
-                TP{i + 1}
+                {olindi(i) ? `✅ TP${i + 1}` : `TP${i + 1}`}
               </span>
               <input
                 inputMode="decimal"
                 value={t.narx}
                 onChange={(e) => narxYangila(i, e.target.value)}
-                className={uslub}
+                disabled={olindi(i)}
+                className={`${uslub}${olindi(i) ? " opacity-60" : ""}`}
               />
             </label>
             <label className="block">
@@ -171,7 +195,8 @@ export function Kalkulyator({
                 inputMode="decimal"
                 value={t.ulush}
                 onChange={(e) => ulushYangila(i, e.target.value)}
-                className={uslub}
+                disabled={qulflangan}
+                className={`${uslub}${qulflangan ? " opacity-60" : ""}`}
               />
             </label>
           </div>
@@ -183,13 +208,22 @@ export function Kalkulyator({
         <div className="border-ramka-yumshoq rounded-kichik mt-4 border p-3">
           <p className="text-matn-past raqam text-xs">
             {matnlar.umumiy}: {miqdor(hisob.umumiyMiqdor)} {aktiv}
+            {hisob.sotilganMiqdor > 0 && (
+              <>
+                {" · "}
+                {matnlar.kalk_qolgan}: {miqdor(hisob.qolganMiqdor)} {aktiv}
+              </>
+            )}
           </p>
 
           <ul className="mt-3 space-y-2">
             {hisob.tplar.map((t, i) => (
               <li key={i} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
                 <span>
-                  🎯 TP{i + 1}{" "}
+                  {t.olindi ? "✅" : "🎯"} TP{i + 1}
+                  {t.olindi && (
+                    <span className="text-yaxshi text-xs"> {matnlar.kalk_olindi}</span>
+                  )}{" "}
                   <span className="text-matn-past raqam text-xs">
                     ({t.ulush}% — {miqdor(t.miqdor)} {aktiv})
                   </span>
@@ -204,7 +238,10 @@ export function Kalkulyator({
             <li className="flex flex-wrap items-baseline justify-between gap-2 border-t border-white/10 pt-2 text-sm">
               <span>
                 🛑 {matnlar.stop_agar}{" "}
-                <span className="text-matn-past text-xs">(100%)</span>
+                <span className="text-matn-past text-xs">
+                  ({((hisob.qolganMiqdor / hisob.umumiyMiqdor) * 100).toFixed(0)}%
+                  {hisob.sotilganMiqdor > 0 ? ` — ${matnlar.kalk_qolganiga}` : ""})
+                </span>
               </span>
               <span className="raqam text-past font-semibold">
                 {pul(-hisob.stopZarar)}{" "}
@@ -212,6 +249,36 @@ export function Kalkulyator({
               </span>
             </li>
           </ul>
+
+          {/* ENG MUHIM QATOR — TP olingandan keyin. "Stop bo'lsa nima
+              bo'ladi?" degan savolga javob endi sof zarar emas: olingan
+              foyda uni qoplaydi yoki hatto ortadi. */}
+          {hisob.olinganFoyda > 0 && (
+            <div className="border-ramka/50 mt-3 space-y-1 border-t pt-3 text-sm">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-matn-past">✅ {matnlar.kalk_qolda}</span>
+                <span className="raqam text-yaxshi font-semibold">
+                  {pul(hisob.olinganFoyda)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-matn-past">🎯 {matnlar.kalk_kutilmoqda}</span>
+                <span className="raqam font-semibold">
+                  {pul(hisob.kutilayotganFoyda)}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-matn-past">🛡 {matnlar.kalk_eng_yomon}</span>
+                <span
+                  className={`raqam font-semibold ${
+                    hisob.engYomon >= 0 ? "text-yaxshi" : "text-past"
+                  }`}
+                >
+                  {pul(hisob.engYomon)}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="border-ramka/50 mt-3 flex flex-wrap items-baseline justify-between gap-2 border-t pt-3">
             <span className="text-sm font-semibold">💰 {matnlar.jami}</span>

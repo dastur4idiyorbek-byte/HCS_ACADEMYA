@@ -57,9 +57,11 @@ test("jami foyda va uning foizi", () => {
   assert.ok(Math.abs(h.jamiFoiz - 5.1) < 1e-9);
 });
 
-/** Stop butun pozitsiyaga qo'llanadi — TP ulushlaridan qat'i nazar.
- *  Aks holda kalkulyator zararni kam ko'rsatib, xavfni yashirardi. */
-test("Stop butun pozitsiyaga hisoblanadi", () => {
+/** Stop HALI SOTILMAGAN qismga qo'llanadi. Hech qanday TP olinmagan
+ *  bo'lsa, bu butun pozitsiya — TP ulushlaridan qat'i nazar (aks holda
+ *  kalkulyator zararni kam ko'rsatib, xavfni yashirardi). Olingan TP
+ *  bo'lsa, o'sha qism pozitsiyada yo'q va Stop unga tegmaydi. */
+test("Stop butun pozitsiyaga hisoblanadi (hech narsa olinmaganda)", () => {
   const h = MISOL();
   assert.ok(Math.abs(h.stopZarar - 30) < 1e-9, "10 dona x (100-97) = 30");
   assert.ok(Math.abs(h.stopFoiz - -3) < 1e-9);
@@ -215,4 +217,72 @@ test("yig'indi HAR DOIM aniq 100", () => {
 
 test("bitta TP har doim 100%", () => {
   assert.deepEqual(ulushlarniTengla([100], 0, 40), [100]);
+});
+
+// --------------------------------------------------------------------------- //
+//  TP allaqachon olingan bo'lsa (61-bo'lim)
+// --------------------------------------------------------------------------- //
+
+test("olingan TP alohida sanaladi — foyda FAKT bo'lib qoladi", () => {
+  // $1000, kirish 100, TP1 103 (50% olindi), TP2 105 (50% kutilmoqda)
+  const h = hisobla(1000, 100, 100, [
+    { narx: 103, ulush: 50, olindi: true },
+    { narx: 105, ulush: 50 },
+  ])!;
+
+  assert.equal(Math.round(h.olinganFoyda * 100) / 100, 15); // 5 birlik × $3
+  assert.equal(Math.round(h.kutilayotganFoyda * 100) / 100, 25); // 5 birlik × $5
+  assert.equal(Math.round(h.jamiFoyda * 100) / 100, 40);
+});
+
+test("Stop faqat QOLGAN qismga qo'llanadi", () => {
+  // Bu asosiy xato edi: pozitsiyaning yarmi allaqachon sotilgan
+  // bo'lsa ham, "Stop bo'lsa" qatori to'liq summadan hisoblanardi va
+  // mavjud bo'lmagan zarar ko'rsatilardi.
+  const h = hisobla(1000, 100, 99, [
+    { narx: 103, ulush: 50, olindi: true },
+    { narx: 105, ulush: 50 },
+  ])!;
+
+  assert.equal(h.qolganMiqdor, 5); // 10 birlikdan yarmi qoldi
+  assert.equal(Math.round(h.stopZarar * 100) / 100, 5); // 5 × $1
+});
+
+test("hech narsa olinmagan bo'lsa Stop butun pozitsiyaga — eski xatti-harakat", () => {
+  const h = hisobla(1000, 100, 99, [
+    { narx: 103, ulush: 50 },
+    { narx: 105, ulush: 50 },
+  ])!;
+
+  assert.equal(h.qolganMiqdor, 10);
+  assert.equal(Math.round(h.stopZarar * 100) / 100, 10);
+  assert.equal(h.olinganFoyda, 0);
+});
+
+test("eng yomon holat: olingan foyda zararni qoplaydi", () => {
+  // TP1 olingan va Stop kirish narxida (breakeven) -> zarar 0,
+  // qo'lda esa +$15 qoladi.
+  const breakeven = hisobla(1000, 100, 100, [
+    { narx: 103, ulush: 50, olindi: true },
+    { narx: 105, ulush: 50 },
+  ])!;
+  assert.equal(Math.round(breakeven.engYomon * 100) / 100, 15);
+
+  // Stop hali eski joyida bo'lsa (99): +15 − 5 = +10
+  const eskiStop = hisobla(1000, 100, 99, [
+    { narx: 103, ulush: 50, olindi: true },
+    { narx: 105, ulush: 50 },
+  ])!;
+  assert.equal(Math.round(eskiStop.engYomon * 100) / 100, 10);
+});
+
+test("olingan TP belgisi natijada saqlanadi", () => {
+  const h = hisobla(1000, 100, 100, [
+    { narx: 103, ulush: 50, olindi: true },
+    { narx: 105, ulush: 50 },
+  ])!;
+  assert.deepEqual(
+    h.tplar.map((t) => t.olindi),
+    [true, false],
+  );
 });
