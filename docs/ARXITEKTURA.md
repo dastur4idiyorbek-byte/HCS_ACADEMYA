@@ -4771,12 +4771,62 @@ bir narsani ko'radi, backtest boshqasini, va farq raqamda emas —
 natija ishonchli ko'rinishida yashiringan.
 
 **OGOHLANTIRISH.** Run #8 raqamlari (79-bo'lim) shu sababdan
-noto'liq: ularning yarmi o'lik indeks ostida olingan. Keyingi
-yugurish yana yangi nolinchi nuqta bo'ladi.
+noto'liq: ularning yarmi o'lik indeks ostida olingan.
+
+**TASDIQ (run #9).** Tuzatishdan keyin indeks tirildi — signal
+soni 389 dan **884** ga chiqdi, ya'ni 60 balli qism haqiqatan
+o'lik bo'lgan ekan. Raqamlar 81-bo'limda.
 
 ---
 
-## 81. Bosqichlar holati
+## 81. Nolinchi nuqta: to'g'ri o'lchov bilan birinchi natija
+
+Beshta backtest/jonli farqi tuzatilgandan keyingi birinchi
+o'lchov (run #9, `natija_6`). Bundan keyingi taqqoslashlar shu
+jadval bilan qilinadi.
+
+| variant | signal | win | TP2 gacha | o'rt.% | jami% |
+|---|---|---|---|---|---|
+| **hozirgi holat** | 884 | **37.3%** | **30.0%** | **−0.75** | −649.8 |
+| kunlik trend majburiy | 610 | 37.3% | 29.4% | −0.68 | −397.8 |
+| indikator tasdig'i majburiy | 841 | 36.9% | 30.4% | −0.71 | −584.1 |
+| faqat kuchli trend (ADX 25) | 821 | 39.1% | 30.7% | −0.66 | −532.4 |
+| faqat chuqur Discount (40%) | 838 | 37.0% | 28.6% | −0.81 | −661.3 |
+
+Tayanch: **+31.5%**. Beshtasi ham tayanchdan yomon.
+
+**INDEKS TIRILDI.** Har bir ko'rsatkich run #8 dan yaxshi:
+win-rate 32.1% -> 37.3%, TP2 gacha 26.1% -> 30.0%, bitta savdo
+−1.04% -> −0.75%. Jami natija esa yomonlashdi, chunki savdo soni
+ikki barobardan ko'p oshdi. Zarar keltiruvchi ishni yaxshiroq
+bajarish, ko'proq bajarilsa, ko'proq zarar keltiradi.
+
+**IKKITA XATO BIR-BIRINI QOPLAB TURGAN.** Run #7 (noto'g'ri ADX
++ o'lik indeks) raqamlari run #9 ga juda yaqin: 37.9% / 29.9% /
+−0.73% qarshi 37.3% / 30.0% / −0.75%. Noto'g'ri ADX 4 soatlik
+qatordan o'qilardi va u haftalikdan yuqori chiqadi, ya'ni o'lik
+kenglik omili tushirgan ballni qisman qaytarib berardi. Bu izoh
+O'LCHANMAGAN — taxmin. Lekin u bitta narsani aniq ko'rsatadi:
+ikkita mustaqil xato natijani "to'g'ri"ga o'xshatib qo'yishi
+mumkin, ya'ni "raqam ishonchli ko'rinyapti" tekshiruv o'rnini
+bosmaydi.
+
+**XULOSA O'ZGARMADI.** Tasodifiy kirish 1:1.5 nisbatda 40% beradi,
+tizim 30.0%. To'rtta filtr win-rate ni 36.9-39.1% oralig'ida
+qoldirdi — eng katta farq 2.2 punkt. Oltita gipoteza sozlama
+darajasida sinalgan va oltitasi ham rad etilgan.
+
+**YANGI MA'LUMOT: BALL SHIFTI.** Ikki yil, 22 mingdan ortiq
+nomzod — eng yuqori ball **aynan 55.0**, ya'ni chegaraning o'zi.
+O'rtacha 44.3. Ya'ni "moslashuvchi chegara" amalda moslashmaydi:
+yashil (55) va sariq (50) rejim orasidagi farq taqsimotning eng
+tepasidagi tor tasma. Ball SIFATNI emas, faqat TARTIBNI beradi —
+retseptdagi 3-qadam aynan shu haqida edi, endi uning o'lchovi ham
+bor.
+
+---
+
+## 82. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

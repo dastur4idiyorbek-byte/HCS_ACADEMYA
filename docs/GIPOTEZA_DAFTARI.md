@@ -67,11 +67,11 @@ Bular yopiq. Qayta ochish uchun YANGI dalil kerak.
 ishlamadi. Muammo sozlamada emas.
 
 > **Raqamlar haqida eslatma.** Yuqoridagi win-rate lar run #7 da,
-> ya'ni ADX noto'g'ri qatordan o'qilayotgan paytda o'lchangan.
-> `07c2147` dan keyingi run #8 da bazaviy win-rate 37.9% emas,
-> **32.1%** chiqdi (`BACKTEST_NATIJA_2026-09-02_5.md`). Filtrlar
-> yangi o'lchovda ham qimirlamadi (30.8–33.5%), ya'ni **xulosa
-> o'zgarmadi** — faqat mutlaq qiymatlar pastroq.
+> ya'ni o'lchov hali buzuq bo'lgan paytda olingan. To'g'ri o'lchov
+> — **run #9** (`BACKTEST_NATIJA_2026-09-02_6.md`): bazaviy
+> win-rate **37.3%**, TP2 gacha **30.0%**, bitta savdo **−0.75%**.
+> Filtrlar yangi o'lchovda ham qimirlamadi (36.9–39.1%), ya'ni
+> **oltita rad etish kuchida qoladi**.
 
 ---
 
@@ -340,16 +340,19 @@ Ikki mumkin bo'lgan ma'no bor:
 1. bozor haqiqatan ikki yil "kasal" bo'lgan — bu tayanch raqamiga zid;
 2. indeks ko'tarilgan bozorni "past" deb o'qiydi.
 
-> **YANGILANDI — sabab topildi, gipoteza EMAS.** Uchinchi ma'no
-> bor ekan: backtest isinish davri salomatlik timeframeini
-> hisobga olmasdi, ya'ni sinovning 54% ida haftalik struktura
-> umuman hisoblanmasdi va indeksning 60 balli qismi nolda qolardi
-> (`docs/ARXITEKTURA.md`, 80-bo'lim). Bu o'lchov xatosi edi, bozor
-> haqidagi xulosa emas.
+> **YOPILDI — bu gipoteza emas, o'lchov xatosi edi.** Backtest
+> isinish davri salomatlik timeframeini hisobga olmasdi, ya'ni
+> sinovning 54% ida haftalik struktura umuman hisoblanmasdi va
+> indeksning 60 balli qismi nolda qolardi
+> (`docs/ARXITEKTURA.md`, 80-bo'lim).
 >
-> Tuzatildi. Indeks kalibrlanganmi degan savol **hali ochiq** —
-> lekin unga javob berish uchun avval o'lchov to'g'ri bo'lishi
-> kerak edi.
+> Tuzatilgach indeks TIRILDI: signal soni 389 dan 884 ga chiqdi
+> (run #9). Ya'ni indeks ko'tarilgan bozorni "kasal" deb
+> o'qimasdi — u umuman hisoblanmasdi.
+>
+> Indeks KALIBRLANGANMI degan savol hali ochiq va u 🔴 bo'lib
+> qoladi. Lekin unga javob berish uchun avval o'lchov to'g'ri
+> bo'lishi kerak edi.
 
 Indeksga kiruvchi HAMMA raqam bu daftarda 🔴: omil vaznlari, ADX
 chegaralari, kenglik foizlari, band chegaralari
@@ -358,3 +361,29 @@ taxminlar ustida turibdi.
 
 Bu gipotezaning oldingilardan farqi: u "signal sifati" haqida emas,
 **"tizim umuman qachon savdo qiladi"** haqida.
+
+---
+
+## Ball shifti — yangi 🔴
+
+Run #9 voronkasi ikki yillik taqsimotni ko'rsatdi:
+
+```
+Chegaraga yetmagan nomzodlar: 7 584 ta
+  eng yuqori ball: 55.0  |  o'rtacha: 44.3
+```
+
+22 mingdan ortiq nomzod ichida **eng yuqori ball aynan 55.0** —
+chegaraning o'zi. Undan yuqorisi umuman chiqmagan.
+
+Ya'ni `scoring.thresholds` "moslashuvchi" deb atalgan, lekin
+yashil (55) va sariq (50) rejim orasidagi farq taqsimotning eng
+tepasidagi tor tasma. Ball SIFAT haqida gapirmaydi, faqat
+TARTIB beradi.
+
+Bu ikki savolni ochadi va ikkalasi ham o'lchanmagan:
+
+| 🔴 | savol |
+|---|---|
+| `scoring.weights.*` | omillar shunday vaznlanishi kerakmi — yoki shift shundan |
+| `scoring.thresholds.*` | 55/50 taqsimotdan olingan, lekin NATIJA bilan bog'lab tekshirilmagan |
