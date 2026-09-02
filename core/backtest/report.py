@@ -113,9 +113,14 @@ def _near_miss_qatorlari(result: BacktestResult) -> list[str]:
 def compare(results: list[BacktestResult]) -> str:
     """Bir nechta konfiguratsiyani yonma-yon taqqoslaydi.
 
-    Backtestning ASOSIY maqsadi shu: "qat'iy EMA talabimi yoki yumshoq",
-    "nechta indikator tasdig'i kerak" kabi savollarga taxmin bilan emas,
-    RAQAM bilan javob berish.
+    Backtestning ASOSIY maqsadi shu: ochiq qolgan savolga taxmin
+    bilan emas, RAQAM bilan javob berish. Hozirgi savol —
+    "Bozor Salomatligi past bo'lganda to'xtagan yaxshimi yoki
+    Correction Entry bilan davom etganmi" (`scripts/backtest.py`).
+
+    Xulosa `MIN_TRADES_FOR_CONCLUSION` dan kam savdoda CHIQARILMAYDI:
+    kichik namunadan "eng yaxshisi" tanlash tasodifni qonun deb
+    o'qishdir.
     """
     if not results:
         return "Taqqoslash uchun natija yo'q."
