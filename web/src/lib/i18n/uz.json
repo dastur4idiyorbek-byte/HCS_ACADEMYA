@@ -161,7 +161,8 @@
     "hafta": "7 kun",
     "oy": "30 kun",
     "hammasi": "Butun davr",
-    "yoq": "Statistika uchun hali yetarli ma'lumot yo'q."
+    "yoq": "Statistika uchun hali yetarli ma'lumot yo'q.",
+    "natija": "Natija"
   },
   "portfel": {
     "sarlavha": "Mening portfelim",
@@ -330,7 +331,13 @@
     "smc_bonus_izoh": "Struktura, daraja turi va sweep MAVJUD omillar ichiga qo'shiladi (trend va S/R), ya'ni ular chegaraga ta'sir qiladi — signal soni ham shundan o'zgaradi. Kill Zone esa faqat reytingga ta'sir qiladigan bonus.",
     "yoqilgan": "yoqilgan",
     "ochirilgan": "o'chirilgan",
-    "smc_kotarish": "Omillarni ko'tarish"
+    "smc_kotarish": "Omillarni ko'tarish",
+    "yopilgan": "Yopilgan signallar",
+    "yopilgan_izoh": "Har bir savdo: kirish sharti, va'da qilingan nisbat va yakuni. Haftalik hisobot 12 ta namunadan keyin naqsh izlaydi — bu jadval esa birinchi signaldan ishlaydi.",
+    "kerakli_winrate": "Kerakli win-rate",
+    "jami_foiz": "Jami natija",
+    "ball": "Ball",
+    "ushlash_qisqa": "Vaqt"
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",

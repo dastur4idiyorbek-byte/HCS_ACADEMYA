@@ -732,6 +732,66 @@ export type Hisobot = {
  *  hisoblanib, bot tomonidan bazaga yozilgan. Naqsh tahlilini bu yerda
  *  qayta yozish "bitta manba" qoidasini buzardi: ikki joyda ikki xil
  *  natija chiqishi mumkin edi. */
+export type YopilganSignal = {
+  id: number;
+  symbol: string;
+  source: string;
+  status: SignalHolati;
+  entry: number;
+  stop: number;
+  tp2: number;
+  score: number | null;
+  marketHealthAtEntry: number | null;
+  resultPct: number | null;
+  tp1Reached: boolean;
+  isFalseSignal: boolean;
+  createdAt: Date | null;
+  closedAt: Date | null;
+};
+
+/** Yopilgan signallar — HAR BIRI alohida qator.
+ *
+ * NIMA UCHUN KERAK: naqsh izlash 12 ta namunadan boshlanadi
+ * (`postmortem.min_sample_size`), sinovning birinchi haftalarida esa
+ * signal bundan kam. Ya'ni "Signal Xotirasi" hali jim turadi va
+ * admin qo'lida hech qanday raqam qolmaydi.
+ *
+ * Bu ro'yxat BIRINCHI signaldan boshlab ishlaydi: har bir savdoning
+ * kirish sharti (ball, salomatlik), va'dasi (R/R) va yakuni yonma-yon
+ * turadi. 100 kunlik sinovda "qaysi shart g'olibni yutqazgandan
+ * ajratadi" degan savolga xom material shu.
+ */
+export function yopilganSignallar(limit = 50): YopilganSignal[] {
+  const qatorlar = db()
+    .prepare(
+      `select id, symbol, source, status, entry, stop, tp2, score,
+              market_health_at_entry, result_pct, tp1_reached, is_false_signal,
+              created_at, closed_at
+         from signals
+        where status in ('tp2_hit', 'stopped', 'cancelled')
+        order by closed_at desc, id desc
+        limit ?`,
+    )
+    .all(limit) as Qator[];
+
+  return qatorlar.map((q) => ({
+    id: Number(q.id),
+    symbol: q.symbol as string,
+    source: q.source as string,
+    status: q.status as SignalHolati,
+    entry: Number(q.entry),
+    stop: Number(q.stop),
+    tp2: Number(q.tp2),
+    score: son(q.score),
+    marketHealthAtEntry: son(q.market_health_at_entry),
+    resultPct: son(q.result_pct),
+    tp1Reached: Boolean(q.tp1_reached),
+    isFalseSignal: Boolean(q.is_false_signal),
+    createdAt: vaqt(q.created_at as string),
+    closedAt: vaqt(q.closed_at as string),
+  }));
+}
+
 export function hisobotlar(limit = 8): Hisobot[] {
   const qatorlar = db()
     .prepare(

@@ -3,10 +3,20 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
-import { hisobotlar } from "@/lib/queries";
+import { hisobotlar, yopilganSignallar } from "@/lib/queries";
+import { kerakliWinRate, tahlil, xulosa } from "@/lib/signal-tahlil";
 import { kirim } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+
+/** Yakun belgisi. TP1 dan keyingi Stop ALOHIDA turadi: u zarar emas —
+ *  TP1 dagi foyda qo'lda qolgan. */
+const YAKUN_BELGISI: Record<string, string> = {
+  tp2: "🎯🎯",
+  tp1_stop: "🎯🛑",
+  stop: "🛑",
+  bekor: "⛔",
+};
 
 export default async function Hisobot() {
   const { til } = await kirim();
@@ -14,16 +24,116 @@ export default async function Hisobot() {
   const royxat = hisobotlar(8);
   const oxirgi = royxat[0];
 
+  // Yopilgan signallar HISOBOTDAN MUSTAQIL ko'rsatiladi: haftalik
+  // hisobot 12 ta namunadan keyin ma'noga ega bo'ladi, bu jadval esa
+  // birinchi signaldan boshlab ishlaydi.
+  const yopilganlar = yopilganSignallar(50).map((s) => ({
+    ...s,
+    olchov: tahlil(s),
+  }));
+  const umumiy = xulosa(
+    yopilganlar.map((s) => ({ yakun: s.olchov.yakun, natijaFoiz: s.resultPct })),
+  );
+  const nisbatlar = yopilganlar
+    .map((s) => s.olchov.nisbat)
+    .filter((x): x is number => x !== null);
+  const ortachaNisbat =
+    nisbatlar.length > 0 ? nisbatlar.reduce((a, b) => a + b, 0) / nisbatlar.length : null;
+  const kerakli = ortachaNisbat === null ? null : kerakliWinRate(ortachaNisbat);
+
   return (
     <>
       <Sarlavha matn={`🧾 ${t("admin.hisobot")}`} izoh={t("admin.hisobot_izoh")} />
 
-      {!oxirgi ? (
-        <Card>
-          <p className="text-matn-past text-sm">{t("admin.hisobot_yoq")}</p>
-        </Card>
-      ) : (
-        <div className="space-y-5">
+      <div className="space-y-5">
+        {yopilganlar.length > 0 && (
+          <Card variant="urgu">
+            <CardTitle>📋 {t("admin.yopilgan")}</CardTitle>
+            <CardHint>{t("admin.yopilgan_izoh")}</CardHint>
+
+            <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Katak nom={t("admin.savdo")} qiymat={String(umumiy.savdo)} />
+              <Katak
+                nom={t("admin.winrate")}
+                qiymat={umumiy.winRate === null ? "—" : `${umumiy.winRate.toFixed(0)}%`}
+                tone={
+                  umumiy.winRate !== null && kerakli !== null && umumiy.winRate >= kerakli
+                    ? "yaxshi"
+                    : "past"
+                }
+              />
+              {/* KERAKLI win-rate — nisbatdan chiqadi. "20% yomonmi?"
+                  degan savolga javob nisbatni bilmasdan berilmaydi:
+                  1:1.5 da 40% kerak, 1:3 da 25%. */}
+              <Katak
+                nom={t("admin.kerakli_winrate")}
+                qiymat={kerakli === null ? "—" : `${kerakli.toFixed(0)}%`}
+              />
+              <Katak
+                nom={t("admin.jami_foiz")}
+                qiymat={`${umumiy.jamiFoiz >= 0 ? "+" : ""}${umumiy.jamiFoiz.toFixed(2)}%`}
+                tone={umumiy.jamiFoiz >= 0 ? "yaxshi" : "past"}
+              />
+            </dl>
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[560px] text-left text-xs">
+                <thead className="text-matn-past uppercase">
+                  <tr>
+                    <th className="pb-2">{t("admin.symbol")}</th>
+                    <th className="pb-2">{t("admin.ball")}</th>
+                    <th className="pb-2">{t("salomatlik.sarlavha")}</th>
+                    <th className="pb-2">Stop</th>
+                    <th className="pb-2">R/R</th>
+                    <th className="pb-2">{t("admin.ushlash_qisqa")}</th>
+                    <th className="pb-2 text-right">{t("statistika.natija")}</th>
+                  </tr>
+                </thead>
+                <tbody className="raqam">
+                  {yopilganlar.map((s) => (
+                    <tr key={s.id} className="border-t border-white/10">
+                      <td className="py-2">
+                        <span className="text-sarlavha font-semibold">{s.symbol}</span>{" "}
+                        <span className="text-matn-past">{YAKUN_BELGISI[s.olchov.yakun]}</span>
+                      </td>
+                      <td>{s.score === null ? "—" : s.score.toFixed(0)}</td>
+                      <td>
+                        {s.marketHealthAtEntry === null
+                          ? "—"
+                          : s.marketHealthAtEntry.toFixed(0)}
+                      </td>
+                      <td>
+                        {s.olchov.stopFoiz === null
+                          ? "—"
+                          : `−${s.olchov.stopFoiz.toFixed(2)}%`}
+                      </td>
+                      <td>
+                        {s.olchov.nisbat === null ? "—" : `1:${s.olchov.nisbat.toFixed(1)}`}
+                      </td>
+                      <td>{s.olchov.soat === null ? "—" : `${s.olchov.soat.toFixed(0)}s`}</td>
+                      <td
+                        className={`text-right font-semibold ${
+                          (s.resultPct ?? 0) >= 0 ? "text-yaxshi" : "text-past"
+                        }`}
+                      >
+                        {s.resultPct === null
+                          ? "—"
+                          : `${s.resultPct >= 0 ? "+" : ""}${s.resultPct.toFixed(2)}%`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
+
+        {!oxirgi ? (
+          <Card>
+            <p className="text-matn-past text-sm">{t("admin.hisobot_yoq")}</p>
+          </Card>
+        ) : (
+          <>
           <Card variant="urgu">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <CardTitle>
@@ -108,8 +218,9 @@ export default async function Hisobot() {
               </ul>
             </Card>
           )}
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </>
   );
 }

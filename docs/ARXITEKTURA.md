@@ -3967,7 +3967,40 @@ kirish narxida:
 🛡 Eng yomon holat (Stop bo'lsa) +$15.00
 ```
 
-## 62. Bosqichlar holati
+## 62. Signal Xotirasi: har bir yopilgan signal jadvali
+
+Haftalik hisobot NAQSH izlaydi va u faqat namuna yetarli bo'lganda
+(`postmortem.min_sample_size`, hozir 12) gapiradi. To'g'ri qoida —
+lekin sinovning birinchi haftalarida signal bundan kam bo'ladi va
+admin qo'lida hech qanday raqam qolmaydi.
+
+Shuning uchun hisobot sahifasiga BIRINCHI signaldan boshlab
+ishlaydigan jadval qo'shildi. Har bir savdoda uchta narsa yonma-yon
+turadi:
+
+| Ustun | Nima |
+|---|---|
+| Ball, Bozor Salomatligi | signal berilgan paytdagi SHART |
+| Stop, R/R | signalning VA'DASI |
+| Vaqt, Natija | YAKUN |
+
+Yakun belgisi TP1 dan keyingi Stopni alohida ko'rsatadi (🎯🛑): u
+zarar emas — TP1 dagi foyda qo'lda qolgan.
+
+**Kerakli win-rate** — eng muhim katak. "20% yomonmi?" degan savolga
+javob NISBATNI bilmasdan berilmaydi: 1:1.5 nisbatda zarar qilmaslik
+uchun 40% kerak, 1:3 da esa 25% yetadi. Shuning uchun haqiqiy
+win-rate yonida o'sha davrning o'rtacha nisbatidan hisoblangan
+KERAKLI qiymat turadi va rang shu taqqoslashdan chiqadi.
+
+Bekor qilingan signallar (Entry'ga yetmagan) win-rate maxrajiga
+kirmaydi: ular savdoga aylanmagan, ya'ni na yutuq, na yutqazish.
+
+Hisob `web/src/lib/signal-tahlil.ts` da — sof funksiya, testi bilan.
+Sahifada hisoblansa, strategiya haqidagi xulosaga asos bo'lgan
+raqamlarni tekshirib bo'lmasdi.
+
+## 63. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
