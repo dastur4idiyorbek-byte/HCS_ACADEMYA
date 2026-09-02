@@ -66,6 +66,13 @@ Bular yopiq. Qayta ochish uchun YANGI dalil kerak.
 **Umumiy naqsh:** oltitasi ham **sozlama darajasida** edi. Hech biri
 ishlamadi. Muammo sozlamada emas.
 
+> **Raqamlar haqida eslatma.** Yuqoridagi win-rate lar run #7 da,
+> ya'ni ADX noto'g'ri qatordan o'qilayotgan paytda o'lchangan.
+> `07c2147` dan keyingi run #8 da bazaviy win-rate 37.9% emas,
+> **32.1%** chiqdi (`BACKTEST_NATIJA_2026-09-02_5.md`). Filtrlar
+> yangi o'lchovda ham qimirlamadi (30.8–33.5%), ya'ni **xulosa
+> o'zgarmadi** — faqat mutlaq qiymatlar pastroq.
+
 ---
 
 ## Tarixdan: yozilmagan taxmin nima qiladi
@@ -314,3 +321,29 @@ tekshirmagan degani.
 | 🔴 | `allow_measured_tp` | ha |  |
 | ⚫ | `tp2_from_structure` | yo'q | TP2 gacha yetish pasaydi (natija #2) |
 | 🔴 | `tp2_structural_min_rr` | 1 |  |
+
+---
+
+## Keyingi o'lchanadigan gipoteza
+
+Oltita rad etish sozlama darajasida edi. Run #8 boshqa turkumdagi
+savolni ochdi.
+
+**🔴 Bozor Salomatligi indeksi kalibrlanganmi?**
+
+To'g'ri (haftalik) ADX bilan indeks ikki yil davomida **26–32**
+bandida qotdi va sikllarni to'xtatib turdi. Ayni davrda tayanch
+**+33.0%** — ya'ni bozor ko'tarilgan.
+
+Ikki mumkin bo'lgan ma'no bor:
+
+1. bozor haqiqatan ikki yil "kasal" bo'lgan — bu tayanch raqamiga zid;
+2. indeks ko'tarilgan bozorni "past" deb o'qiydi.
+
+Ikkinchisi ehtimolliroq. Indeksga kiruvchi HAMMA raqam bu daftarda
+🔴: omil vaznlari, ADX chegaralari, kenglik foizlari, band
+chegaralari (`low`/`normal`/`high`). Ya'ni markaziy puls to'liq
+o'lchanmagan taxminlar ustida turibdi.
+
+Bu gipotezaning oldingilardan farqi: u "signal sifati" haqida emas,
+**"tizim umuman qachon savdo qiladi"** haqida.

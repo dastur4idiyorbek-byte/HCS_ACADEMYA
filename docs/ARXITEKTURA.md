@@ -1512,7 +1512,7 @@ bitta maxrajga qo'shilgan.
 
 ### Kod nomlari o'rniga odam o'qiydigan nomlar
 
-`classic_ta:zone_position` adminга hech narsa aytmaydi. Endi
+`classic_ta:zone_position` adminga hech narsa aytmaydi. Endi
 `STAGE_LABELS` dan "Narx support zonasidan uzoq" deb chiqadi.
 
 Nomlar `core/pipeline/context.py` da, bosqich kodlari esa boshqa
@@ -2416,7 +2416,7 @@ Sabab: haftalik o'lchovda namuna o'zgardi — 74 coindan atigi **21 tasi**
 chetdan zaxira bor.
 
 **Naqsh:** chegarani kuzatilgan oraliqning aynan chetiga qo'yish —
-xato. Bir o'lchov surилsa band yana yopiladi. Zaxira qoldirish kerak.
+xato. Bir o'lchov surilsa band yana yopiladi. Zaxira qoldirish kerak.
 
 ### 3. Diagnostika: qaysi tomonga sig'madi?
 
@@ -4643,7 +4643,77 @@ solishtirilmaydi: eskisi noto'g'ri ADX bilan hisoblangan edi.
 
 ---
 
-## 78. Bosqichlar holati
+## 78. Gipoteza daftari: o'lchanmagan raqam ochiq belgilanadi
+
+Config'da uch xil raqam yonma-yon yotibdi va bir xil ko'rinadi:
+
+| tur | misol | savol |
+|---|---|---|
+| FAKT | `fee_pct: 0.1` | birja shunday oladi — tekshirilmaydi |
+| QOIDA | `min_stop_distance_pct: 1` | loyiha egasining qarori |
+| GIPOTEZA | `adx_trend_threshold: 20` | **kim o'lchagan?** |
+
+Farq hech qayerda yozilmagani uchun gipoteza vaqt o'tishi bilan
+jimgina "haqiqat"ga aylanadi. 67, 73 va 74-bo'limlardagi uchta rad
+etilgan gipoteza, va undan oldingi BTC Dominance vazni, Kill Zone
+bonusi — hammasi shu sababdan tug'ilgan.
+
+`docs/GIPOTEZA_DAFTARI.md` har bir sozlamani to'rt holatdan biriga
+qo'yadi:
+
+```
+🔴 o'lchanmagan   130
+🟡 qisman           2
+🟢 o'lchangan       9
+⚫ rad etilgan      6
+                 ----
+                  147
+```
+
+**130/147.** Bu raqamning o'zi tashxis: tizim to'qqiz o'lchangan
+raqam va bir yuz o'ttiz taxmin ustida turibdi.
+
+`tests/test_gipoteza_daftari.py` daftarni majburiy qiladi — config'ga
+yangi raqam qo'shilib daftarda paydo bo'lmasa, test yiqiladi. Nom,
+manzil, timeframe tanlovi va ro'yxatlar `DAFTARSIZ` ro'yxatida:
+ular haqida "to'g'rimi" degan savol qo'yilmaydi.
+
+Test noqulay va shundayligicha qoladi. Yozilmagan taxminni bir oydan
+keyin tuzatish ancha qimmatga tushadi.
+
+---
+
+## 79. ADX to'g'rilanishi natijani YOMONLASHTIRDI
+
+`07c2147` dan keyingi birinchi yugurish (run #8, `natija_5`):
+
+| | run #7 (noto'g'ri ADX) | run #8 (to'g'ri ADX) |
+|---|---|---|
+| Signal | 667 | 389 |
+| Win-rate | 37.9% | **32.1%** |
+| TP2 gacha | 29.9% | **26.1%** |
+| O'rtacha savdo | -0.73% | **-1.04%** |
+
+Xato topilganda odatda "endi yaxshilanadi" deb kutiladi. Bu safar
+teskarisi: 73 va 74-bo'limlardagi "37-38% win-rate" raqami tizimning
+haqiqiy ko'rsatkichi emas ekan. Haqiqiy raqam pastroq.
+
+Tasodifiy kirish 1:1.5 nisbatda 40% beradi. Tizim 26.1% beradi —
+ya'ni tasodifdan **1.5 barobar yomonroq**.
+
+**Yangi ma'lumot.** To'g'ri (haftalik) ADX bilan Bozor Salomatligi
+indeksi butun ikki yil davomida 26-32 bandida qotdi va sikllarni
+to'xtatib turdi. Ayni davrda tayanch **+33.0%**, ya'ni bozor
+ko'tarilgan. Indeks ko'tarilgan bozorni "kasal" deb o'qiyapti.
+
+Ya'ni markaziy puls noto'g'ri kalibrlangan. Bu keyingi o'lchanadigan
+gipoteza va u oldingi uchtasidan boshqa turkumdan: oldingilar
+"signal sifati" haqida edi, bu esa "tizim umuman qachon ishlaydi"
+haqida.
+
+---
+
+## 80. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
