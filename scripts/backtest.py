@@ -2,19 +2,25 @@
 
 Ishlatish:
     python -m scripts.backtest                  # standart sozlama
-    python -m scripts.backtest --compare        # ochiq savollarni taqqoslash
+    python -m scripts.backtest --compare        # variantlarni taqqoslash
     python -m scripts.backtest --days 730       # 2 yillik ma'lumot
     python -m scripts.backtest --symbols BTC,ETH,SOL
+    python -m scripts.backtest --offline        # faqat keshdan (tarmoqsiz)
 
 Ma'lumot Binance public REST orqali yuklanadi (kalitsiz) va `data/candles/`
-ga keshlanadi — takroriy ishga tushirishda qayta yuklanmaydi.
+ga keshlanadi — takroriy ishga tushirishda qayta yuklanmaydi. Tarmoq
+yopiq muhitda `--offline` bilan FAQAT kesh o'qiladi va yetishmayotgan
+fayllar nomma-nom aytiladi.
 
-TAQQOSLASH REJIMI eng qimmatli qism. U qurish jarayonida ochiq qolgan
-uchta savolga RAQAM bilan javob beradi:
+TAQQOSLASH REJIMI eng qimmatli qism. Hozir u BITTA ochiq savolga —
+`docs/ARXITEKTURA.md` 63-bo'limidagi savolga — raqam bilan javob beradi:
 
-    1. Qat'iy EMA talabimi yoki yumshoq?  (docs/ARXITEKTURA.md 20-bo'lim)
-    2. Nechta indikator tasdig'i kerak?    (21.3-bo'lim)
-    3. O'lchangan TP foydalimi?            (21.1-bo'lim)
+    Bozor Salomatligi past bo'lganda TO'XTAGAN yaxshimi (eski tizim),
+    yoki tuzilmaviy kirish bilan DAVOM ETGAN (yangi tizim)?
+
+Bu savol taxmin bilan yopilmasligi kerak edi: `correction_entry`
+konfiguratsiyada ATAYIN o'chirilgan holda turibdi va aynan shu
+taqqoslash natijasi uni yoqadi yoki yopiq qoldiradi.
 """
 
 from __future__ import annotations
@@ -35,6 +41,10 @@ logger = get_logger(__name__)
 
 KESH = Path("data/candles")
 STANDART_COINLAR = ["BTC", "ETH", "SOL", "BNB", "XRP"]
+
+
+class KeshYetishmaydi(RuntimeError):
+    """`--offline` rejimida kerakli kesh fayllari topilmadi."""
 
 
 # --------------------------------------------------------------------------- #
@@ -86,13 +96,55 @@ def _keshga_yozish(symbol: str, timeframe: str, candles: list[Candle]) -> None:
     )
 
 
-async def _yukla(
-    config: AppConfig, symbols: list[str], days: int, refresh: bool
-) -> Dataset:
-    """Kerakli barcha timeframelarni yuklaydi (yoki keshdan oladi)."""
+def _kerakli_timeframelar(config: AppConfig) -> list[str]:
+    """Taqqoslashdagi HAR BIR variant uchun kerak bo'ladigan timeframelar.
+
+    `enabled_only=False` ataylab: `correction_entry` konfiguratsiyada
+    o'chirilgan bo'lsa ham uning 4h/15m/1d ma'lumoti yuklanishi kerak,
+    aks holda taqqoslashda yangi variant "ma'lumot yo'q" deb bo'sh
+    natija berardi va biz uni "yomon strategiya" deb o'qib qo'yardik.
+    """
     from core.analysis.strategies import build_strategies, required_timeframes
 
-    timeframelar = sorted(required_timeframes(build_strategies(config)))
+    return sorted(required_timeframes(build_strategies(config, enabled_only=False)))
+
+
+def _keshdan_yigish(symbols: list[str], timeframelar: list[str]) -> Dataset:
+    """Tarmoqqa umuman chiqmaydi. Yetishmagani aniq aytiladi."""
+    dataset = Dataset()
+    yoq: list[str] = []
+    for symbol in symbols:
+        for tf in timeframelar:
+            shamlar = _keshdan_oqish(symbol, tf)
+            if shamlar is None:
+                yoq.append(str(_kesh_yoli(symbol, tf)))
+                continue
+            dataset.add(symbol, tf, shamlar)
+
+    if yoq:
+        royxat = "\n  ".join(yoq)
+        raise KeshYetishmaydi(
+            "Offline rejim: quyidagi kesh fayllari yo'q —\n  "
+            f"{royxat}\n"
+            "Ularni tarmoqli mashinada bir marta `python -m scripts.backtest` "
+            "ishga tushirib yig'ing, so'ng `data/candles/` ni ko'chiring."
+        )
+    return dataset
+
+
+async def _yukla(
+    config: AppConfig,
+    symbols: list[str],
+    days: int,
+    refresh: bool,
+    offline: bool = False,
+) -> Dataset:
+    """Kerakli barcha timeframelarni yuklaydi (yoki keshdan oladi)."""
+    timeframelar = _kerakli_timeframelar(config)
+
+    if offline:
+        return _keshdan_yigish(symbols, timeframelar)
+
     provider = BinanceCandleProvider(config.market_data, config.halal_screening.quote_asset)
     dataset = Dataset()
 
@@ -120,28 +172,34 @@ async def _yukla(
 # --------------------------------------------------------------------------- #
 
 
+def _korreksiya_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`correction_entry` sozlamasi o'zgartirilgan nusxa."""
+    ce = dataclasses.replace(asos.strategies.correction_entry, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, strategies=dataclasses.replace(asos.strategies, correction_entry=ce)
+    )
+
+
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Qurish jarayonida ochiq qolgan savollarni variantlarga aylantiradi."""
+    """Ochiq qolgan savolni variantlarga aylantiradi.
 
-    def bilan(nom: str, **indikator_ozgarishlari) -> tuple[str, AppConfig]:
-        ind = dataclasses.replace(asos.analysis.indicators, **indikator_ozgarishlari)
-        return nom, dataclasses.replace(
-            asos, analysis=dataclasses.replace(asos.analysis, indicators=ind)
-        )
+    ESKI TIZIM aynan `enabled=False` bilan ifodalanadi va bu — taqlid
+    emas, haqiqiy eski xatti-harakat: past bandda `_for_regime()`
+    bo'sh ro'yxat qaytaradi, sikl o'sha yerda to'xtaydi.
 
-    tuzilmaviy_tp = dataclasses.replace(asos.trade_rules, allow_measured_tp=False)
-
+    Qolgan variantlar YANGI tizimning ikki sozlamasini o'lchaydi.
+    Ularning boshlang'ich qiymatlari (`min_confluence=2`,
+    `min_risk_reward=2.0`) metodikadan olingan taxmin edi — mana shu
+    yerda ular raqam bilan tekshiriladi.
+    """
     return [
-        ("standart", asos),
-        bilan("EMA qat'iy", trend_requires_price_above_fast=True),
-        bilan("EMA yumshoq", trend_requires_price_above_fast=False),
-        bilan("tasdiq 1/4", min_confirmations=1),
-        bilan("tasdiq 3/4", min_confirmations=3),
-        bilan("tasdiq 4/4 (qat'iy)", min_confirmations=4),
-        (
-            "faqat tuzilmaviy TP",
-            dataclasses.replace(asos, trade_rules=tuzilmaviy_tp),
-        ),
+        _korreksiya_bilan(asos, "eski: past bandda to'xtash", enabled=False),
+        _korreksiya_bilan(asos, "yangi: Correction Entry", enabled=True),
+        _korreksiya_bilan(asos, "CE: confluence 3", enabled=True, min_confluence=3),
+        _korreksiya_bilan(asos, "CE: R/R 1.5", enabled=True, min_risk_reward=1.5),
+        _korreksiya_bilan(asos, "CE: R/R 2.5", enabled=True, min_risk_reward=2.5),
     ]
 
 
@@ -156,6 +214,11 @@ async def main() -> None:
     parser.add_argument("--days", type=int, default=365)
     parser.add_argument("--compare", action="store_true", help="variantlarni taqqoslash")
     parser.add_argument("--refresh", action="store_true", help="keshni yangilash")
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="tarmoqqa chiqmaslik — faqat data/candles/ dagi kesh",
+    )
     parser.add_argument("--max-steps", type=int, default=None)
     argumentlar = parser.parse_args()
 
@@ -164,7 +227,17 @@ async def main() -> None:
     coinlar = [s.strip().upper() for s in argumentlar.symbols.split(",") if s.strip()]
 
     print(f"Ma'lumot tayyorlanmoqda: {', '.join(coinlar)} ({argumentlar.days} kun)\n")
-    dataset = await _yukla(config, coinlar, argumentlar.days, argumentlar.refresh)
+    try:
+        dataset = await _yukla(
+            config,
+            coinlar,
+            argumentlar.days,
+            argumentlar.refresh,
+            offline=argumentlar.offline,
+        )
+    except KeshYetishmaydi as xato:
+        print(str(xato))
+        raise SystemExit(1) from xato
 
     qadamlar = len(dataset.timeline(config.analysis.entry_timeframe))
     print(f"Yuklandi: {len(dataset.symbols)} coin, {qadamlar:,} qadam\n")

@@ -162,8 +162,9 @@ python -m scripts.backtest --compare --days 730
 |---|---|
 | `--days N` | necha kunlik tarix (1-2 yil tavsiya etiladi) |
 | `--symbols BTC,ETH` | qaysi coinlar |
-| `--compare` | ochiq savollarni yonma-yon o'lchaydi |
+| `--compare` | eski tizim (past bandda to'xtash) va Correction Entry'ni yonma-yon o'lchaydi |
 | `--refresh` | keshni yangilaydi (`data/candles/`) |
+| `--offline` | tarmoqqa chiqmaydi — faqat `data/candles/` dagi kesh |
 
 Hisobot win-rate, o'rtacha natija, **maksimal pasayish**, ketma-ket zarar
 va rad etish sabablarini ko'rsatadi. 30 tadan kam savdo bo'lsa

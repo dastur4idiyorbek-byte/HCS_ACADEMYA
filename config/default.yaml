@@ -472,8 +472,11 @@ strategies:
     # qoplangan, lekin haqiqiy bozorda o'lchanmagan.
     #
     # Yoqish tartibi:
-    #   1. python -m scripts.backtest --taqqosla --days 365
-    #   2. natija eski tizimdan yaxshi bo'lsa -> enabled: true
+    #   1. python -m scripts.backtest --compare --days 365
+    #      (tarmoqsiz mashinada: --offline, kesh oldindan yig'ilgan
+    #       bo'lishi kerak — `data/candles/`)
+    #   2. taqqoslashda "yangi: Correction Entry" qatori "eski: past
+    #      bandda to'xtash" qatoridan yaxshi bo'lsa -> enabled: true
     #   3. dastlab kuzatuv ostida, kichik hajm bilan
     enabled: false
     zone_timeframe: "4h"        # zona shu yerda topiladi

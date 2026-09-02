@@ -4000,7 +4000,177 @@ Hisob `web/src/lib/signal-tahlil.ts` da — sof funksiya, testi bilan.
 Sahifada hisoblansa, strategiya haqidagi xulosaga asos bo'lgan
 raqamlarni tekshirib bo'lmasdi.
 
-## 63. Bosqichlar holati
+## 63. Bozor Salomatligi ON/OFF kalit emas — REJIM tanlovchi
+
+**Tashxis.** Indeks past bo'lganda tizim butunlay to'xtardi:
+`SignalCycle` coinlarni umuman tahlil qilmasdi va `RiskEngine.score_threshold()`
+past bandda `None` qaytarardi — "chegara yo'q, chunki savdo yo'q".
+
+Bu strategiyaning O'Z falsafasiga zid edi. Past indeks — narxlar
+ARZONLASHGAN payt, ya'ni "arzon ol, qimmat sot" uchun eng qulay lahza.
+Tizim esa aynan shunda ko'zini yumardi va indeks qayta ko'tarilgach —
+narx allaqachon o'sib bo'lgach — signal berardi. Ya'ni **doim KECH
+kirardi**.
+
+**Yechim.** Indeks endi "ishlaymi yoki yo'q" degan kalit emas, "QANDAY
+ishlayman" degan tanlov:
+
+| Indeks | Rejim | Kim ishlaydi | Chegara |
+|---|---|---|---|
+| yuqori | `NORMAL` | `classic_ta`, `opening_range_scalp` | `threshold_high_health` |
+| o'rta | `NORMAL` | hammasi | `threshold_mid_health` |
+| past | `CORRECTION` | **faqat** `correction_entry` | `threshold_low_health` (60 — eng qattiqi) |
+
+Kod:
+
+- `RiskEngine.market_regime()` — indeksdan rejimni aytadi
+- `RiskEngine.score_threshold()` past bandda endi `None` emas, `60` qaytaradi
+- `SignalCycle._for_regime()` — rejimga mos strategiyalarni tanlaydi
+
+Sikl faqat BITTA holatda butunlay to'xtaydi: indeks umuman
+hisoblanmaganda (`market_health is None`). "Ma'lumot yo'q" va "bozor
+yomon" — ikki boshqa narsa, va ular endi bir xil ko'rinmaydi.
+
+**Nima uchun past bandda chegara QATTIQROQ.** Pasayishda kirish ko'proq
+dalil talab qiladi. Chegarani pasaytirish "bozor yomon, shuning uchun
+sifatsiz signalga rozimiz" degani bo'lardi — bu aynan teskari mantiq.
+
+---
+
+## 64. Correction Entry — tuzilmaviy kirish (OB / FVG / Fibonacci)
+
+63-bo'limdagi bo'shliqni to'ldiradigan strategiya. U pasayishda ham
+qaraydi, lekin **faqat tuzilma ruxsat bergan joyda**.
+
+**Darvozalar, tartibi bilan** (`core/analysis/strategies/correction_entry.py`):
+
+1. `halal` — coin halol ro'yxatidami
+2. `data` — yetarli sham bormi
+3. `trend` — **kunlik timeframe KO'TARILISHDA bo'lishi SHART**
+4. `impulse` — oldin haqiqiy ko'tarilish impulsi bo'lganmi
+5. `retracement` — narx Fibonacci "oltin zona"siga (0.382–0.618) tushganmi
+6. `confluence` — kamida **2 TURLI manba** bir joyga tushganmi
+7. `zone_position` — narx zona ichidami
+8. `confirm` — pastki timeframeda (15m) mini OB/FVG tasdiqlanganmi
+9. `levels` — Stop juda yaqin/juda uzoq emasmi, R/R yetarlimi
+
+**3-darvoza murosasiz.** Tushayotgan bozorda "arzon" degan narsa yo'q —
+narx yana ham arzonlashaveradi. Spot xaridida bu eng qimmat xato.
+
+**Confluence — KESISHMA, birlashma emas.** `find_confluences()` zonalar
+bir-birining ustiga tushgan joyni oladi va `strength` sifatida TURLI
+manbalar sonini sanaydi. Beshta usuldan "eng mosini" tanlash har doim
+qandaydir usul topiladi degani — bu tarixga moslashib qolish
+(overfitting). Ikki mustaqil manbaning bir joyda uchrashuvi esa tasodif
+bo'lish ehtimoli ancha past.
+
+**ENTRY va STOP bitta manbadan.** Ikkalasi ham topilgan zonadan
+chiqadi: Entry — zona ichida, Stop — zonaning pastki chekkasidan
+`stop_buffer_pct` past. Ilgari Entry tuzilmadan, Stop esa ATR dan
+kelardi — ikki xil mantiq bir signalda.
+
+**Qurish paytida topilgan xato.** Sinovda tuzilmaviy Stop 0.55% chiqdi
+va R/R 1:36 bo'lib ketdi — chiroyli raqam, lekin ma'nosiz: bunday tor
+Stop oddiy shovqindan ham ishlab ketadi. Stop KENGAYTIRILMADI (bu
+tuzilmani buzardi) — o'rniga `levels:stop_too_close` va
+`levels:stop_too_far` rad etish sabablari qo'shildi. Tuzilma mos
+kelmasa — signal bo'lmaydi.
+
+**Ball tarkibi:** confluence 40, retracement 25, risk_reward 20, RSI 15.
+
+**Coin bo'yicha farq.** Har bir coin uchun Entry/Stop usuli boshqa
+bo'lishi mumkin: birida OB, boshqasida FVG, uchinchisida Fibonacci —
+qaysi biri o'sha coinning tuzilmasida uchrashsa. Bu qasddan: bitta
+qolipni hamma coinga majburlash o'lchanmagan taxmin bo'lardi.
+
+---
+
+## 65. QT davri soatga emas, SHAM STRUKTURASIGA bog'landi
+
+**Eski holat.** Sutka UTC bo'yicha to'rt olti soatlik chorakka
+bo'linardi va davr bozor holatidan QAT'I NAZAR har kuni bir xil ritmda
+o'zgarardi. Soat 13:00 bo'lgani "hozir asosiy harakat davri" degani
+emas — bu o'lchanmagan taxmin edi.
+
+**Yangi holat** (`core/analysis/market_health/quarterly.py`):
+
+| Davr | Sharti |
+|---|---|
+| A (Accumulation) | tor diapazon, sokinlik — hech narsa buzilmagan |
+| M (Manipulation) | likvidlik yig'ib olindi (sweep) — yolg'on harakat |
+| D (Distribution) | struktura yaqinda buzildi (BOS) |
+| X (Continuation) | buzilishdan keyin narx ushlab turibdi |
+
+Aniqlab bo'lmasa `None` qaytadi va omil **NEYTRAL** bo'ladi. Davr
+soatdan "o'ylab topilmaydi" — bu loyihadagi asosiy qoida: bilmaslikni
+raqam bilan yashirmaslik.
+
+**Vazn baribir kichik (5).** Bashorat kuchi o'lchanmagan ko'rsatkichga
+katta vazn berish bu loyihada allaqachon zarar keltirgan (BTC
+Dominance, 33- va 57-bo'limlar). Struktura asosidagi davr ham backtest
+bilan tasdiqlanmaguncha shu vaznda qoladi.
+
+Davr `market_health_log.quarterly_phase` ustuniga yozib boriladi —
+keyinchalik "qaysi davrda chiqqan signal qanday tugagan" degan savolga
+javob berish uchun.
+
+---
+
+## 66. Backtest taqqoslashi: eski tizim vs Correction Entry
+
+**Yangi qoida sinovsiz yoqilmaydi.** `correction_entry` konfiguratsiyada
+`enabled: false` holatida turibdi. Kod tayyor, testlar bilan qoplangan,
+lekin haqiqiy bozorda o'lchanmagan — shuning uchun jonli ishlamaydi.
+
+**Taqqoslash nimani o'lchaydi** (`scripts/backtest.py --compare`):
+
+| Variant | Ma'nosi |
+|---|---|
+| `eski: past bandda to'xtash` | `correction_entry.enabled=False` |
+| `yangi: Correction Entry` | `enabled=True` |
+| `CE: confluence 3` | 2 ta manba yetarlimi yoki 3 kerakmi |
+| `CE: R/R 1.5` / `CE: R/R 2.5` | metodikadagi "taxminan 1:2" to'g'rimi |
+
+Eski tizim **taqlid qilinmaydi**: `enabled=False` da past bandda
+`_for_regime()` bo'sh ro'yxat qaytaradi va sikl o'sha yerda to'xtaydi —
+ya'ni bu aynan eski xatti-harakatning o'zi.
+
+**Topilgan va tuzatilgan xato.** Eski `_variantlar()` EMA davridan
+qolgan `trend_requires_price_above_fast` sozlamasini o'zgartirmoqchi
+bo'lardi. U sozlama 58-bo'limda olib tashlangan, ya'ni `--compare`
+birinchi qadamda `TypeError` bilan tushardi — va buni faqat tarmoqli
+mashinada, ma'lumot yuklab bo'lingandan keyin ko'rish mumkin edi.
+Endi `tests/core/test_backtest_taqqoslash.py` butun zanjirni sun'iy
+qatorda ishga tushirib tekshiradi (raqamlarni emas — MEXANIZMNI).
+
+**O'chirilgan strategiyaning ma'lumoti ham yuklanadi.** `_yukla()` endi
+`build_strategies(config, enabled_only=False)` ga tayanadi. Aks holda
+`correction_entry` o'chirilgan bo'lgani uchun uning 4h/15m/1d shamlari
+umuman yuklanmasdi, taqqoslashda yangi variant nol savdo qaytarardi va
+biz buni "strategiya yomon" deb o'qib qo'yardik.
+
+**`--offline` bayrog'i.** Ishlab chiqish muhitida barcha bozor
+manbalari yopiq (403). Offline rejim tarmoqqa umuman chiqmaydi va
+yetishmagan kesh fayllarini **nomma-nom** aytadi:
+
+```
+Offline rejim: quyidagi kesh fayllari yo'q —
+  data/candles/BTC_4h.json
+  data/candles/ETH_4h.json
+```
+
+**Yoqish tartibi** (loyiha egasi bajaradi, serverda):
+
+1. `python -m scripts.backtest --compare --days 365`
+2. "yangi" qatori "eski" qatoridan yaxshi bo'lsa → `enabled: true`
+3. dastlab kuzatuv ostida, kichik hajm bilan
+
+30 tadan kam savdo bo'lsa hisobot "namuna kichik" ogohlantirishini
+chiqaradi — bunday natijadan xulosa chiqarilmaydi.
+
+---
+
+## 67. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
