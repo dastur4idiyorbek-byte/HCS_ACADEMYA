@@ -24,11 +24,15 @@ from dataclasses import dataclass
 
 from core.analysis.support_resistance import ZoneMap
 from core.config.schema import TradeRulesConfig
-from core.domain.models import SignalLevels
+from core.domain.models import SignalLevels, signal_levels
 
 #: Stop support zonasining pastidan shu ulushdagi ATR masofasida qo'yiladi.
 #: Aynan chegaraga qo'yilsa, zonaga tegib qaytish ham Stop'ni ishga tushirardi.
 STOP_BUFFER_ATR = 0.25
+
+#: Uchinchi TP TP1 va yakuniy nishonga shu ulushdan yaqin bo'lsa
+#: qo'shilmaydi — bir-biriga tiqilgan TP lar alohida ma'no bermaydi.
+ORALIQ_TP_CHEKKA = 0.2
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,13 +63,24 @@ def build_levels(
     zone_map: ZoneMap,
     rules: TradeRulesConfig,
     entry_price: float | None = None,
+    shares: tuple[float, ...] | None = None,
 ) -> LevelResult:
-    """S/R zonalari va ATR asosida Entry/Stop/TP1/TP2 quradi.
+    """S/R zonalari va ATR asosida Entry/Stop va TP ro'yxatini quradi.
+
+    TP SONI QAT'IY EMAS. `rules.max_take_profits` — yuqori chegara:
+    bozorda nechta haqiqiy nishon bo'lsa, shuncha TP quriladi.
+
+        1 ta — toza ko'tarilish, ustda qarshilik yo'q
+        2 ta — odatiy holat
+        3 ta — keng diapazon, ketma-ket zonalar
 
     Args:
         zone_map: aniqlangan zonalar (6-bosqich).
         rules: 3.3-banddagi universal chegaralar.
         entry_price: kirish narxi. Berilmasa joriy narx ishlatiladi.
+        shares: har bir TP da yopiladigan ulush
+            (`portfolio.tp_close_shares`). Berilmasa domendagi
+            standart jadval ishlatiladi.
     """
     entry = entry_price if entry_price is not None else zone_map.price
     if entry <= 0:
@@ -104,20 +119,20 @@ def build_levels(
         # Toza ko'tarilish trendida ustda qarshilik bo'lmaydi — TP1
         # o'lchangan masofa bo'yicha qo'yiladi.
         #
-        # Masofa STOP bilan bog'lanadi: TP1 da pozitsiyaning yarmi
+        # Masofa STOP bilan bog'lanadi: TP1 da pozitsiyaning bir qismi
         # yopiladi, shuning uchun uning o'zi ham foydali nisbatda
         # bo'lishi kerak. Aks holda Stop 5% bo'lganda TP1 3% da qolib,
-        # yarim pozitsiya 1:0.6 nisbatda — zararli savdo bo'lardi.
+        # o'sha qism 1:0.6 nisbatda — zararli savdo bo'lardi.
         olchangan_pct = max(
-            rules.min_tp_distance_pct,
+            rules.min_tp_distance_pct if rules.enforce_distance_bands else 0.0,
             stop_masofa_pct * rules.tp1_min_risk_reward,
         )
         tp1_natija = entry * (1 + olchangan_pct / 100)
     tp1 = tp1_natija
 
     if rules.tp2_from_structure:
-        tp2_natija = _build_tp2_tuzilmadan(entry, tp1, stop_masofa_pct, zone_map, rules)
-        if tp2_natija is None:
+        yakuniy = _build_tp2_tuzilmadan(entry, tp1, stop_masofa_pct, zone_map, rules)
+        if yakuniy is None:
             return LevelResult(
                 None,
                 "TP1 dan yuqorida mos resistance zonasi yo'q "
@@ -126,29 +141,92 @@ def build_levels(
                 stage="levels:tp2_no_structure",
                 tp_from_structure=tuzilmaviy_tp,
             )
+        yakuniy_tuzilmaviy = True
     else:
-        tp2_natija = _build_tp2(entry, tp1, stop_masofa_pct, rules)
-        if tp2_natija is None:
+        yakuniy = _build_tp2(entry, tp1, stop_masofa_pct, rules)
+        if yakuniy is None:
             kerak = rules.min_risk_reward * stop_masofa_pct
             return LevelResult(
                 None,
-                f"1:{rules.min_risk_reward:.0f} R/R uchun TP2 {kerak:.2f}% da bo'lishi kerak, "
+                f"1:{rules.min_risk_reward:.0f} R/R uchun TP {kerak:.2f}% da bo'lishi kerak, "
                 f"lekin chegara {rules.max_tp_distance_pct}%",
                 tp_from_structure=tuzilmaviy_tp,
             )
-    tp2 = tp2_natija
+        yakuniy_tuzilmaviy = False
+
+    narxlar, manbalar = _tp_royxati(
+        entry, tp1, yakuniy, tuzilmaviy_tp, yakuniy_tuzilmaviy, zone_map, rules
+    )
 
     try:
-        levels = SignalLevels(entry=entry, stop=stop, tp1=tp1, tp2=tp2)
+        levels = signal_levels(
+            entry,
+            stop,
+            *narxlar,
+            shares=tuple(shares) if shares else None,
+            from_structure=manbalar,
+        )
     except ValueError as exc:
         return LevelResult(None, f"Darajalar tartibi buzildi: {exc}", tuzilmaviy_tp)
 
     izoh = (
-        "Darajalar S/R va ATR asosida qurildi"
+        f"Darajalar S/R va ATR asosida qurildi ({len(narxlar)} ta TP)"
         if tuzilmaviy_tp
         else "Stop S/R asosida; TP ustda qarshilik yo'qligi sababli o'lchangan masofa bo'yicha"
     )
     return LevelResult(levels, izoh, tp_from_structure=tuzilmaviy_tp)
+
+
+def _tp_royxati(
+    entry: float,
+    tp1: float,
+    yakuniy: float,
+    tp1_tuzilmaviy: bool,
+    yakuniy_tuzilmaviy: bool,
+    zone_map: ZoneMap,
+    rules: TradeRulesConfig,
+) -> tuple[list[float], tuple[bool, ...]]:
+    """Birinchi va yakuniy nishondan TP ro'yxatini quradi.
+
+    Uchta holat:
+
+        1 ta — `max_take_profits == 1`. Qismli sotish yo'q, butun
+               pozitsiya yakuniy nishonda yopiladi. Shuning uchun
+               TP1 emas, YAKUNIY nishon olinadi: aks holda savdo
+               1:3 o'rniga 1:1.5 da tugardi.
+        2 ta — odatiy holat, o'zgarishsiz.
+        3 ta — TP1 va yakuniy nishon ORASIDA haqiqiy zona bo'lsa, u
+               ham qo'shiladi. Bo'lmasa ikkitasi qoladi — raqam
+               o'ylab topilmaydi.
+    """
+    if rules.max_take_profits <= 1:
+        return [yakuniy], (yakuniy_tuzilmaviy,)
+
+    if rules.max_take_profits >= 3:
+        oraliq = _oraliq_zona(tp1, yakuniy, zone_map)
+        if oraliq is not None:
+            return [tp1, oraliq, yakuniy], (tp1_tuzilmaviy, True, yakuniy_tuzilmaviy)
+
+    return [tp1, yakuniy], (tp1_tuzilmaviy, yakuniy_tuzilmaviy)
+
+
+def _oraliq_zona(tp1: float, yakuniy: float, zone_map: ZoneMap) -> float | None:
+    """TP1 bilan yakuniy nishon orasidagi HAQIQIY qarshilik zonasi.
+
+    Ikkalasiga ham juda yaqin zona qo'shilmaydi: uchta TP bir-biriga
+    tiqilib qolsa, ular alohida ma'no bermaydi va faqat kartochkani
+    uzaytiradi.
+    """
+    oraliq = yakuniy - tp1
+    if oraliq <= 0:
+        return None
+    chekka = oraliq * ORALIQ_TP_CHEKKA
+
+    for zona in zone_map.resistances:
+        nishon = zona.low
+        if tp1 + chekka <= nishon <= yakuniy - chekka:
+            return nishon
+    return None
 
 
 def _build_stop(
@@ -172,6 +250,13 @@ def _build_stop(
     stop = _stop_narxi(entry, support_low, atr, rules)
     if stop <= 0 or stop >= entry:
         return None
+
+    if not rules.enforce_distance_bands:
+        # Loyiha egasining qarori: foizlar majburiy emas, bog'lovchi
+        # shart — nisbat (1:3). Stop shovqindan ATR bilan
+        # himoyalanadi (`stop_atr_mult`), ya'ni himoya yo'qolmaydi,
+        # faqat qat'iy foizdan ATR birligiga ko'chadi.
+        return stop
 
     masofa_pct = (entry - stop) / entry * 100
     if masofa_pct < rules.min_stop_distance_pct:
@@ -204,13 +289,23 @@ def _stop_narxi(
 
 
 def _build_tp1(entry: float, zone_map: ZoneMap, rules: TradeRulesConfig) -> float | None:
-    """TP1 — eng yaqin resistance, 3.3-band oralig'iga tushishi shart."""
-    eng_past = entry * (1 + rules.min_tp_distance_pct / 100)
-    eng_baland = entry * (1 + rules.max_tp_distance_pct / 100)
+    """TP1 — eng yaqin resistance.
 
+    Foiz oralig'i faqat `enforce_distance_bands` yoqilganda
+    qo'llanadi. O'chiq bo'lsa yagona shart — zona kirish narxidan
+    yuqorida bo'lsin: haqiqiy qarshilik 3% dan yaqinroqda bo'lishi
+    butunlay normal va uni rad etish tuzilmani e'tiborsiz
+    qoldirish demakdir.
+    """
     for zona in zone_map.resistances:
         # Zonaning PASTKI chegarasi — narx u yerga yetganda sotish boshlanadi
         nishon = zona.low
+        if nishon <= entry:
+            continue
+        if not rules.enforce_distance_bands:
+            return nishon
+        eng_past = entry * (1 + rules.min_tp_distance_pct / 100)
+        eng_baland = entry * (1 + rules.max_tp_distance_pct / 100)
         if eng_past <= nishon <= eng_baland:
             return nishon
 
@@ -240,7 +335,11 @@ def _build_tp2_tuzilmadan(
     Zona chekkasi PASTKI chegarasidan olinadi: narx o'sha yerga
     yetganda sotuv bosimi boshlanadi, zona o'rtasida emas.
     """
-    eng_baland = entry * (1 + rules.max_tp_distance_pct / 100)
+    eng_baland = (
+        entry * (1 + rules.max_tp_distance_pct / 100)
+        if rules.enforce_distance_bands
+        else float("inf")
+    )
     eng_past_nisbat = stop_distance_pct * rules.tp2_structural_min_rr
 
     for zona in zone_map.resistances:
@@ -262,14 +361,24 @@ def _build_tp2(
     stop_distance_pct: float,
     rules: TradeRulesConfig,
 ) -> float | None:
-    """TP2 — kamida 1:N R/R, lekin 3.3-band oralig'idan chiqmasdan."""
+    """YAKUNIY nishon — kamida 1:N R/R.
+
+    BOG'LOVCHI SHART SHU YERDA. Loyiha egasining qoidasi: "TP STOP
+    FOIZLARI MAJBURIY EMAS — RISK 1/3". Ya'ni nishonni foiz emas,
+    `min_risk_reward` belgilaydi; yuqori chegara faqat
+    `enforce_distance_bands` yoqilganda qo'llanadi.
+    """
     kerakli_pct = stop_distance_pct * rules.min_risk_reward
     nishon = entry * (1 + kerakli_pct / 100)
-    eng_baland = entry * (1 + rules.max_tp_distance_pct / 100)
+    eng_baland = (
+        entry * (1 + rules.max_tp_distance_pct / 100)
+        if rules.enforce_distance_bands
+        else float("inf")
+    )
 
     if nishon > eng_baland:
         return None
-    # TP2 TP1 dan yuqori bo'lishi shart
+    # Yakuniy nishon TP1 dan yuqori bo'lishi shart
     if nishon <= tp1:
         nishon = tp1 * 1.001
         if nishon > eng_baland:

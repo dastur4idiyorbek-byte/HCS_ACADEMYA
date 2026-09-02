@@ -18,9 +18,9 @@ from bot.formatting import render_signal_card
 from bot.handlers.signals import suggest_size
 from core.analysis import decide_entry_plan
 from core.config import load_config
-from core.domain.models import SignalLevels
+from core.domain.models import signal_levels
 
-DARAJALAR = SignalLevels(entry=100.0, stop=99.2, tp1=103.5, tp2=105.0)
+DARAJALAR = signal_levels(entry=100.0, stop=99.2, tp1=103.5, tp2=105.0)
 
 
 @pytest.fixture

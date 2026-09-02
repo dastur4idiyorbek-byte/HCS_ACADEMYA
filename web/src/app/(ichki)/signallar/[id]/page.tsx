@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kechKirishChegarasi, kotirovka, tp1Ulushi } from "@/lib/config";
+import { kechKirishChegarasi, kotirovka, tpUlushlari } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx, pul } from "@/lib/format";
 import { hajmTaklifi } from "@/lib/hajm";
@@ -92,9 +92,8 @@ export default async function SignalSahifasi({
             kotirovka={kotirovka()}
             entry={signal.entry}
             stop={stop}
-            tp1={signal.tp1}
-            tp2={signal.tp2}
-            tp1Ulush={tp1Ulushi()}
+            tplar={signal.tplar}
+            ulushlar={tpUlushlari(signal.tplar.length)}
             buyurtmaMatni={`${signal.entryOrderType === "market" ? "⚡" : "📌"} ${t(buyurtma)}`}
             berilgan={signal.createdAt}
             matnlar={kartochkaMatnlari(t)}
@@ -215,7 +214,7 @@ export default async function SignalSahifasi({
             boshlangichSumma={taklif?.hajm ?? null}
             entry={signal.entry}
             stop={stop}
-            tpNarxlari={[signal.tp1, signal.tp2]}
+            tpNarxlari={signal.tplar}
             olinganTplar={[signal.tp1Reached, false]}
             matnlar={kalkulyatorMatnlari(t)}
           />

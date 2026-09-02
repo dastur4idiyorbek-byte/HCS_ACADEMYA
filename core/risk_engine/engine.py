@@ -73,6 +73,10 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
         FreshDataRule(risk, max_age_seconds=_max_candle_age_seconds(config)),
         HalalRule(),
         TradeRulesRule(
+            # YAGONA MANBA: `build_levels` ham shu bayroqqa qaraydi.
+            # Ikkisi ajralib ketsa, darajalar qurilib keyin shu yerda
+            # darhol yo'q qilinardi (67-bo'lim).
+            enforce_bands=config.trade_rules.enforce_distance_bands,
             min_stop_pct=config.trade_rules.min_stop_distance_pct,
             max_stop_pct=config.trade_rules.max_stop_distance_pct,
             min_tp_pct=config.trade_rules.min_tp_distance_pct,

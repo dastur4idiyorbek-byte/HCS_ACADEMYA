@@ -240,9 +240,9 @@ def test_signal_chiqadi_va_stop_zona_ostida_turadi(strategiya) -> None:  # noqa:
     # Kirish zonasi 121-124, ya'ni Stop 121 dan sal pastda
     assert 120.0 < lv.stop < 121.0
     assert lv.entry > lv.stop
-    assert lv.tp1 < lv.tp2
+    assert lv.tp1 < lv.final_tp
     # TP2 — impuls cho'qqisi (tuzilmadan, o'ylab topilgan foiz emas)
-    assert lv.tp2 == 145.0
+    assert lv.final_tp == 145.0
 
 
 def test_ball_confluence_va_korreksiyadan_chiqadi(strategiya) -> None:  # noqa: ANN001

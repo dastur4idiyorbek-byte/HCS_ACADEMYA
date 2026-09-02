@@ -576,7 +576,16 @@ portfolio:
   # bu holat foydali ham, zararli ham bo'lishi mumkin. Qismli yopishni
   # hisobga olmasak, tizim uni sof zarar deb ko'rsatardi va foydalanuvchi
   # raqamlarga ishonmay qolardi.
-  tp1_close_pct: 50.0
+  # TP soniga qarab har bir nuqtada yopiladigan ulush.
+  # Birinchi qator — bitta TP uchun, ikkinchisi — ikkita, uchinchisi —
+  # uchta. Har bir qatorning yig'indisi 100 bo'lishi shart.
+  #
+  # Ilgari bu yerda bitta `tp1_close_pct: 50` turardi va u "TP har
+  # doim ikkita" degan taxminni ichiga yashirgan edi.
+  tp_close_shares:
+    - [100]              # 1 TP — hammasi shu yerda
+    - [50, 50]           # 2 TP — yarim-yarim
+    - [40, 30, 30]       # 3 TP — birinchisi kattaroq
   # Foydalanuvchi kiritishi mumkin bo'lgan minimal miqdor
   min_position_usd: 1.0
 

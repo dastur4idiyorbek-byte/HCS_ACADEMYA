@@ -255,7 +255,7 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "scoring.quality_gate"
+OLCHOV_OQI = "scoring.quality_gate + trade_rules"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
@@ -270,6 +270,11 @@ def _oqsiz(config: AppConfig) -> AppConfig:
         config,
         scoring=dataclasses.replace(
             config.scoring, quality_gate=QualityGateConfig()
+        ),
+        trade_rules=dataclasses.replace(
+            config.trade_rules,
+            enforce_distance_bands=False,
+            max_take_profits=2,
         ),
     )
 
@@ -336,6 +341,16 @@ def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
             enabled=True,
             require_setup_contract=False,
         ),
+        # TP SONI. `max_take_profits` — yuqori chegara, majburiy son
+        # emas: uchinchi TP faqat oraliqda haqiqiy zona bo'lganda
+        # qo'shiladi. Mexanizm: erta qismli sotish o'rtacha
+        # natijani ko'taradimi yoki foydani kesib qo'yadimi?
+        _qoidalar_bilan(asos, "bitta TP (yakuniy nishon)", max_take_profits=1),
+        _qoidalar_bilan(asos, "uchtagacha TP", max_take_profits=3),
+        # FOIZ ORALIQLARI. Standart holatda ular o'chiq (loyiha
+        # egasining qarori). Bu variant ularni QAYTA YOQADI — ya'ni
+        # eski xatti-harakat. Farq qarorning narxini ko'rsatadi.
+        _qoidalar_bilan(asos, "foiz oraliqlari yoqilgan", enforce_distance_bands=True),
     ]
 
 

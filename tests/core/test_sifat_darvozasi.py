@@ -36,6 +36,7 @@ from core.domain.models import (
     ScoreComponent,
     SignalCandidate,
     SignalLevels,
+    signal_levels,
 )
 
 
@@ -47,7 +48,7 @@ class SoxtaShartnoma:
 
 
 def darajalar() -> SignalLevels:
-    return SignalLevels(entry=100.0, stop=99.2, tp1=101.6, tp2=103.2)
+    return signal_levels(entry=100.0, stop=99.2, tp1=101.6, tp2=103.2)
 
 
 def nomzod(symbol: str, ball: float, *, shartnoma: bool) -> SignalCandidate:

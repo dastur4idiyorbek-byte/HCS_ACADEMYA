@@ -274,27 +274,59 @@ class SignalTracker:
                 )
             return hodisalar
 
-        # --- 🎯 TP1 ---
-        if signal.status in {SignalStatus.ACTIVE, SignalStatus.WEAKENING} and price >= levels.tp1:
-            signal.tp1_reached = True
-            qayd(
-                SignalEventKind.TP1_HIT,
-                SignalStatus.TP1_HIT,
-                (
-                    f"TP1 darajasiga yetdi ({price:g}). "
-                    f"🛡 Stopni kirish narxiga ko'taring ({levels.entry:g}) — "
-                    "shundan keyin eng yomon holat nolga chiqish bo'ladi."
-                ),
-            )
+        # --- 🎯 TP lar ---
+        #
+        # TP SONI QAT'IY EMAS: 1, 2 yoki 3 bo'lishi mumkin. Narx bir
+        # sakrashda bir nechtasidan o'tib ketishi ham mumkin, shuning
+        # uchun ro'yxat BOSHIDAN oxirigacha yuriladi.
+        #
+        # Uch bosqich ajratiladi:
+        #   birinchi TP  -> Stop kirish narxiga (breakeven)
+        #   oraliq TP    -> qismli sotish, signal ochiq qoladi
+        #   YAKUNIY TP   -> signal yopiladi
+        yuruvchi = {
+            SignalStatus.ACTIVE,
+            SignalStatus.WEAKENING,
+            SignalStatus.TP1_HIT,
+        }
+        while (
+            signal.status in yuruvchi
+            and signal.reached_tps < levels.tp_count
+            and price >= levels.takes[signal.reached_tps].price
+        ):
+            nomer = signal.reached_tps + 1
+            tp = levels.takes[signal.reached_tps]
+            signal.reached_tps = nomer
+            oxirgimi = nomer == levels.tp_count
 
-        # --- 🎯🎯 TP2 (signal yopiladi) ---
-        if signal.status is SignalStatus.TP1_HIT and price >= levels.tp2:
-            signal.closed_at = at
-            qayd(
-                SignalEventKind.TP2_HIT,
-                SignalStatus.TP2_HIT,
-                f"TP2 darajasiga yetdi ({price:g}) — signal yopildi.",
-            )
+            if oxirgimi:
+                signal.closed_at = at
+                qayd(
+                    SignalEventKind.TP2_HIT,
+                    SignalStatus.TP2_HIT,
+                    f"TP{nomer} — yakuniy nishonga yetdi ({price:g}), signal yopildi.",
+                )
+            elif nomer == 1:
+                qayd(
+                    SignalEventKind.TP1_HIT,
+                    SignalStatus.TP1_HIT,
+                    (
+                        f"TP1 darajasiga yetdi ({price:g}), "
+                        f"pozitsiyaning {tp.close_pct:g}% i yopildi. "
+                        f"🛡 Stopni kirish narxiga ko'taring ({levels.entry:g}) — "
+                        "shundan keyin eng yomon holat nolga chiqish bo'ladi."
+                    ),
+                )
+            else:
+                qayd(
+                    SignalEventKind.TP_PARTIAL,
+                    SignalStatus.TP1_HIT,
+                    (
+                        f"TP{nomer} darajasiga yetdi ({price:g}), "
+                        f"yana {tp.close_pct:g}% yopildi. "
+                        f"Yakuniy nishon: {levels.final_tp:g}."
+                    ),
+                )
 
         return hodisalar
 

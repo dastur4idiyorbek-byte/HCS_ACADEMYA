@@ -6,6 +6,7 @@ import { Grafik } from "@/components/Grafik";
 import { Himoya } from "@/components/Himoya";
 import { Kalkulyator } from "@/components/Kalkulyator";
 import { SignalKartochka } from "@/components/SignalKartochka";
+import { tpUlushlari } from "@/lib/config";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 
 /** Signallar RO'YXATIDA grafik va kalkulyatorni ochadigan tugma.
@@ -77,9 +78,8 @@ export function SignalOchish({
               kotirovka={kotirovka}
               entry={entry}
               stop={stop}
-              tp1={tpNarxlari[0]}
-              tp2={tpNarxlari[1]}
-              tp1Ulush={tp1Ulush}
+              tplar={tpNarxlari}
+              ulushlar={tpUlushlari(tpNarxlari.length)}
               buyurtmaMatni={buyurtmaMatni}
               berilgan={berilgan}
               matnlar={matnlar}

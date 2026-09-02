@@ -16,6 +16,7 @@ from core.analysis.strategies.classic_ta import classic_ta_rules
 from core.config import load_config
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource
+from core.domain.models import signal_levels
 from core.risk_engine import RiskEngine
 from core.utils.time_utils import timeframe_minutes
 
@@ -92,10 +93,18 @@ def test_stop_support_zonasidan_past_qoladi(config: AppConfig) -> None:
 def test_foiz_oraligi_ikkinchi_darajali_cheklov_sifatida_qoladi(
     config: AppConfig,
 ) -> None:
-    """ATR asosidagi Stop 1%-5% dan chiqsa signal baribir rad etiladi."""
+    """Oraliq YOQILGANDA ATR asosidagi Stop undan chiqsa rad etiladi.
+
+    Standart holatda oraliq MAJBURIY EMAS (loyiha egasining qarori:
+    "TP STOP FOIZLARI MAJBURIY EMAS — RISK 1/3"), shuning uchun test
+    uni ataylab yoqadi. Ya'ni imkoniyat yo'qolmagani tekshiriladi,
+    majburiyligi emas.
+    """
+    import dataclasses as _dc
+
     from core.analysis.scoring.levels import _build_stop
 
-    qoidalar = classic_ta_rules(config)
+    qoidalar = _dc.replace(classic_ta_rules(config), enforce_distance_bands=True)
     entry = 100.0
 
     # Juda katta ATR -> Stop 5% dan keng
@@ -249,19 +258,18 @@ def test_ball_ham_strategiya_nisbatiga_tayanadi(config: AppConfig) -> None:
     Ya'ni 3-tuzatish jimgina bekor bo'lardi.
     """
     from core.analysis.scoring.factors import score_risk_reward
-    from core.domain.models import SignalLevels
 
     qoidalar = classic_ta_rules(config)
     kerak = qoidalar.min_risk_reward
 
     entry, stop_pct = 100.0, 3.0
-    darajalar = SignalLevels(
+    darajalar = signal_levels(
         entry=entry,
         stop=entry * (1 - stop_pct / 100),
         tp1=entry * (1 + stop_pct * 1.05 / 100),
         tp2=entry * (1 + stop_pct * kerak / 100),
     )
-    assert darajalar.risk_reward_tp2 == pytest.approx(kerak, rel=0.01)
+    assert darajalar.risk_reward == pytest.approx(kerak, rel=0.01)
 
     strategiya_bali = score_risk_reward(darajalar, qoidalar, 15.0)
     global_ball = score_risk_reward(darajalar, config.trade_rules, 15.0)

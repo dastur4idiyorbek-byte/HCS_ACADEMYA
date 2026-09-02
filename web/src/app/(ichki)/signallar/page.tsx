@@ -115,7 +115,7 @@ export default async function Signallar() {
                 symbol={s.symbol}
                 entry={s.entry}
                 stop={s.stop}
-                tpNarxlari={[s.tp1, s.tp2]}
+                tpNarxlari={s.tplar}
                 belgi={suvBelgisi}
                 kotirovka={kotirovka()}
                 tp1Ulush={tp1Ulushi()}

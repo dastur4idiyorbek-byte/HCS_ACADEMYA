@@ -407,7 +407,9 @@ class TradeRulesRule:
         min_rr: float,
         overrides: dict[SignalSource, tuple[float, float, float, float]] | None = None,
         min_stop_pct: float = 0.0,
+        enforce_bands: bool = False,
     ) -> None:
+        self._enforce_bands = enforce_bands
         self._min_stop_pct = min_stop_pct
         self._max_stop_pct = max_stop_pct
         self._min_tp_pct = min_tp_pct
@@ -427,30 +429,46 @@ class TradeRulesRule:
         min_tp, max_tp, min_rr, min_stop = self._bounds_for(candidate.source)
         muammolar: list[str] = []
 
-        # Stop IKKI tomonlama tekshiriladi: juda yaqin bo'lsa bozor
-        # shovqini uni yeb qo'yadi, juda uzoq bo'lsa pozitsiya ma'nosiz
-        # kichrayadi.
-        if levels.stop_distance_pct < min_stop - _EPSILON:
-            muammolar.append(
-                f"Stop juda yaqin: {levels.stop_distance_pct:.2f}% < "
-                f"{min_stop}% — bozor shovqini yeb qo'yadi"
-            )
-        if levels.stop_distance_pct > self._max_stop_pct + _EPSILON:
-            muammolar.append(
-                f"Stop juda uzoq: {levels.stop_distance_pct:.2f}% > {self._max_stop_pct}%"
-            )
-        for nom, masofa in (("TP1", levels.tp1_distance_pct), ("TP2", levels.tp2_distance_pct)):
-            if not min_tp - _EPSILON <= masofa <= max_tp + _EPSILON:
+        # FOIZ ORALIQLARI — MAJBURIY EMAS.
+        #
+        # Loyiha egasining qarori (2026-09-02): "TP STOP FOIZLARI
+        # MAJBURIY EMAS — RISK 1/3". Ular `enforce_distance_bands`
+        # yoqilgandagina to'sadi.
+        #
+        # MUHIM: bu tekshiruv `build_levels` bilan BIR XIL qoidaga
+        # bo'ysunishi shart. Aks holda darajalar qurilib, keyin shu
+        # yerda darhol yo'q qilinardi — 67-bo'limdagi xatoning aynan
+        # o'zi.
+        if self._enforce_bands:
+            # Stop IKKI tomonlama tekshiriladi: juda yaqin bo'lsa bozor
+            # shovqini uni yeb qo'yadi, juda uzoq bo'lsa pozitsiya
+            # ma'nosiz kichrayadi.
+            if levels.stop_distance_pct < min_stop - _EPSILON:
                 muammolar.append(
-                    f"{nom} masofasi {masofa:.2f}% {min_tp}–{max_tp}% oralig'idan tashqarida"
+                    f"Stop juda yaqin: {levels.stop_distance_pct:.2f}% < "
+                    f"{min_stop}% — bozor shovqini yeb qo'yadi"
                 )
+            if levels.stop_distance_pct > self._max_stop_pct + _EPSILON:
+                muammolar.append(
+                    f"Stop juda uzoq: {levels.stop_distance_pct:.2f}% > {self._max_stop_pct}%"
+                )
+            for index, tp in enumerate(levels.takes, start=1):
+                masofa = (tp.price - levels.entry) / levels.entry * 100
+                if not min_tp - _EPSILON <= masofa <= max_tp + _EPSILON:
+                    muammolar.append(
+                        f"TP{index} masofasi {masofa:.2f}% "
+                        f"{min_tp}–{max_tp}% oralig'idan tashqarida"
+                    )
+
         # ASOSIY SHART. Stop foizi kichik yoki katta bo'lishidan qat'i
-        # nazar, nisbat ta'minlanmasa signal berilmaydi.
-        if levels.risk_reward_tp2 < min_rr - _EPSILON:
+        # nazar, nisbat ta'minlanmasa signal berilmaydi. Nisbat YAKUNIY
+        # nishon bo'yicha o'lchanadi — TP nechta bo'lishidan qat'i nazar.
+        if levels.risk_reward < min_rr - _EPSILON:
             muammolar.append(
-                f"Nisbat yetarli emas: 1:{levels.risk_reward_tp2:.1f} < "
+                f"Nisbat yetarli emas: 1:{levels.risk_reward:.1f} < "
                 f"1:{min_rr:.0f} (Stop {levels.stop_distance_pct:.2f}% bo'lsa "
-                f"TP2 kamida {levels.stop_distance_pct * min_rr:.2f}% bo'lishi kerak)"
+                f"yakuniy nishon kamida {levels.stop_distance_pct * min_rr:.2f}% "
+                "bo'lishi kerak)"
             )
 
         if muammolar:

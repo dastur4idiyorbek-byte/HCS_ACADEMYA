@@ -229,8 +229,12 @@ class SignalRecord(Base, TimestampMixin):
 
     entry: Mapped[float] = mapped_column(Float, nullable=False)
     stop: Mapped[float] = mapped_column(Float, nullable=False)
+    #: TP SONI QAT'IY EMAS — 1, 2 yoki 3. Faqat `tp1` majburiy:
+    #: bitta nishon ham to'liq signal (toza ko'tarilishda ustda
+    #: qarshilik bo'lmasligi mumkin).
     tp1: Mapped[float] = mapped_column(Float, nullable=False)
-    tp2: Mapped[float] = mapped_column(Float, nullable=False)
+    tp2: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tp3: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # 5.1.0-band: kirish buyurtmasi turi (limit|market) — signal shakllanganda
     # narx va Entry orasidagi masofaga qarab avtomatik tanlanadi.
@@ -265,6 +269,10 @@ class SignalRecord(Base, TimestampMixin):
     #: fakti YO'QOLADI. U esa natijani hisoblashda kerak: TP1 da
     #: pozitsiyaning bir qismi allaqachon sotilgan.
     tp1_reached: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    #: Nechta TP ga yetilgan. `tp1_reached` "kamida bittasi" degan
+    #: savolga javob beradi va u saqlanadi — eski yozuvlar va
+    #: hisobotlar unga tayanadi.
+    reached_tps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     # 3.8-band: "yolg'on signal" — faol bo'lgach 1 soat ichida Stop
     is_false_signal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

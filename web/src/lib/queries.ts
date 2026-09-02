@@ -67,7 +67,13 @@ export type Signal = {
   entry: number;
   stop: number;
   tp1: number;
-  tp2: number;
+  /** TP SONI QAT'IY EMAS — 1, 2 yoki 3. Yo'qlari `null`. */
+  tp2: number | null;
+  tp3: number | null;
+  /** Barcha TP narxlari, pastdan yuqoriga. Kartochka SHUNI o'qiydi:
+   *  alohida maydonlarni sanab chiqish "har doim ikkita" degan
+   *  taxminni har bir chaqiruv joyida takrorlardi. */
+  tplar: number[];
   entryOrderType: string;
   score: number | null;
   halalReason: string | null;
@@ -288,7 +294,11 @@ function signalgaAylantir(q: Qator): Signal {
     entry: Number(q.entry),
     stop: Number(q.stop),
     tp1: Number(q.tp1),
-    tp2: Number(q.tp2),
+    tp2: son(q.tp2),
+    tp3: son(q.tp3),
+    tplar: [q.tp1, q.tp2, q.tp3]
+      .map((v) => son(v))
+      .filter((v): v is number => v !== null),
     entryOrderType: (q.entry_order_type as string) ?? "limit",
     score: son(q.score),
     halalReason: (q.halal_reason as string) ?? null,
@@ -301,7 +311,7 @@ function signalgaAylantir(q: Qator): Signal {
   };
 }
 
-const SIGNAL_USTUNLARI = `id, symbol, source, status, entry, stop, tp1, tp2,
+const SIGNAL_USTUNLARI = `id, symbol, source, status, entry, stop, tp1, tp2, tp3,
   entry_order_type, score, halal_reason, score_breakdown,
   market_health_at_entry, created_at, closed_at, result_pct, tp1_reached`;
 
@@ -1044,9 +1054,11 @@ export function signalOgohlantirishlari(k: SignalKirish): string[] {
       );
     }
   }
+  // BOG'LOVCHI SHART — nisbat. Foiz oraliqlari majburiy emas
+  // (loyiha egasining qarori), lekin ogohlantirish sifatida qoladi.
   const rr = (k.tp2 - k.entry) / (k.entry - k.stop);
   if (rr < q.minRiskReward) {
-    ogohlar.push(`TP2 R/R ${rr.toFixed(2)} < ${q.minRiskReward}`);
+    ogohlar.push(`Yakuniy nishon R/R ${rr.toFixed(2)} < ${q.minRiskReward}`);
   }
   return ogohlar;
 }

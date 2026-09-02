@@ -418,3 +418,37 @@ ya'ni oldingi oltita gipoteza bilan bir taqdirni bo'lishadi.
 **Diqqat — bu oldingi rad etishlar bilan bir xil emas.** Ular
 sozlamani o'zgartirardi (chegara, filtr, TP joyi). Bu esa QAROR
 KIMDA ekanini o'zgartiradi.
+
+---
+
+## TP soni va foiz oraliqlari (2026-09-02)
+
+Loyiha egasining ikkita qarori. Bular GIPOTEZA emas — QOIDA, ya'ni
+o'lchov emas, tanlov. Lekin ularning oqibati o'lchanadi.
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🟢 | `enforce_distance_bands` | yo'q | QOIDA — "TP STOP FOIZLARI MAJBURIY EMAS, RISK 1/3" |
+| 🔴 | `max_take_profits` | 2 | nechtagacha TP — YUQORI chegara, majburiy son emas |
+| 🟢 | `tp_close_shares` | jadval | QOIDA — TP soniga qarab ulush |
+
+**Foiz oraliqlari.** `min/max_stop_distance_pct` va
+`min/max_tp_distance_pct` endi to'smaydi. Bog'lovchi shart bitta —
+`min_risk_reward` (1:3). Oraliqlar sozlamada qoladi va
+`enforce_distance_bands` bilan qayta yoqilishi mumkin.
+
+**Nima yo'qoladi.** `min_stop_distance_pct` himoya vazifasini ham
+bajarardi: juda tor Stop bozor shovqinida bekorga ishlaydi. Bu
+himoya endi `stop_atr_mult` ga qoladi — Stop ATR ning ko'paytmasi
+bilan qo'yiladi, ya'ni shovqin o'z birligida o'lchanadi. Bu qat'iy
+foizdan to'g'riroq, lekin **o'lchanmagan**.
+
+**TP soni.** `max_take_profits` — yuqori chegara. Bozorda nechta
+haqiqiy nishon bo'lsa, shuncha TP quriladi:
+
+- 1 ta — toza ko'tarilish, ustda qarshilik yo'q
+- 2 ta — odatiy holat (standart)
+- 3 ta — TP1 va yakuniy nishon orasida yana bir zona bo'lsa
+
+Uchinchi TP **o'ylab topilmaydi**: oraliqda haqiqiy zona bo'lmasa,
+ikkitasi qoladi.

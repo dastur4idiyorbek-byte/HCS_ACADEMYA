@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 import pytest
 
 from core.domain.enums import SignalSource, SignalStatus
-from core.domain.models import SignalLevels
+from core.domain.models import signal_levels
 from core.storage import Database
 from core.storage.repositories import SignalRepository
 
@@ -33,7 +33,7 @@ async def signal_yarat(db: Database, symbol: str = "BTC") -> int:
     async with db.session() as session:
         yozuv = await SignalRepository(session).create(
             symbol=symbol,
-            levels=SignalLevels(entry=100, stop=97, tp1=104, tp2=108),
+            levels=signal_levels(entry=100, stop=97, tp1=104, tp2=108),
             source=SignalSource.MANUAL,
         )
         return yozuv.id

@@ -8,6 +8,7 @@ Asosiy tamoyil sinovlari:
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -26,7 +27,7 @@ from core.domain.models import (
     ScoreComponent,
     Signal,
     SignalCandidate,
-    SignalLevels,
+    signal_levels,
 )
 from core.risk_engine import RiskContext, RiskEngine
 
@@ -53,7 +54,7 @@ def nomzod(
     entry = 100.0
     if tp1_pct is None:
         tp1_pct = max(3.0, tp2_pct * 0.7)
-    levels = SignalLevels(
+    levels = signal_levels(
         entry=entry,
         stop=entry * (1 - stop_pct / 100),
         tp1=entry * (1 + tp1_pct / 100),
@@ -84,6 +85,18 @@ def sog_kontekst(now: datetime = ODDIY_VAQT, **kwargs) -> RiskContext:
 @pytest.fixture
 def engine(config: AppConfig) -> RiskEngine:
     return RiskEngine(config)
+
+
+def _bandli(config: AppConfig) -> AppConfig:
+    """Foiz oraliqlari YOQILGAN nusxa.
+
+    Standart holatda ular majburiy emas: bog'lovchi shart — nisbat
+    (1:3). Oraliqlarni sinaydigan testlar ularni o'zi yoqadi.
+    """
+    return dataclasses.replace(
+        config,
+        trade_rules=dataclasses.replace(config.trade_rules, enforce_distance_bands=True),
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -191,7 +204,7 @@ def test_korrelyatsiyalangan_coin_bloklanadi(engine: RiskEngine) -> None:
     """BTC ochiq bo'lsa, ETH uchun yangi signal berilmaydi (bir guruh)."""
     ochiq = Signal(
         symbol="BTC",
-        levels=SignalLevels(100, 99, 103, 105),
+        levels=signal_levels(100, 99, 103, 105),
         source=SignalSource.CLASSIC_TA,
         status=SignalStatus.ACTIVE,
     )
@@ -203,7 +216,7 @@ def test_korrelyatsiyalangan_coin_bloklanadi(engine: RiskEngine) -> None:
 def test_boshqa_guruhdagi_coin_otadi(engine: RiskEngine) -> None:
     ochiq = Signal(
         symbol="BTC",
-        levels=SignalLevels(100, 99, 103, 105),
+        levels=signal_levels(100, 99, 103, 105),
         source=SignalSource.CLASSIC_TA,
         status=SignalStatus.ACTIVE,
     )
@@ -220,7 +233,7 @@ def test_ochiq_signallar_chegarasi(engine: RiskEngine, config: AppConfig) -> Non
     ochiq = [
         Signal(
             symbol=f"C{i}",
-            levels=SignalLevels(100, 99, 103, 105),
+            levels=signal_levels(100, 99, 103, 105),
             source=SignalSource.CLASSIC_TA,
             status=SignalStatus.ACTIVE,
         )
@@ -237,7 +250,7 @@ def test_ortacha_salomatlikda_chegara_qattiqroq(engine: RiskEngine, config: AppC
     ochiq = [
         Signal(
             symbol=f"C{i}",
-            levels=SignalLevels(100, 99, 103, 105),
+            levels=signal_levels(100, 99, 103, 105),
             source=SignalSource.CLASSIC_TA,
             status=SignalStatus.ACTIVE,
         )
@@ -343,16 +356,21 @@ def test_malumot_yetishmasa_signal_berilmaydi(engine: RiskEngine, yoq: str) -> N
 # --------------------------------------------------------------------------- #
 
 
-def test_stop_juda_uzoq_bolsa_rad_etiladi(engine: RiskEngine, config) -> None:  # noqa: ANN001
+def test_stop_juda_uzoq_bolsa_rad_etiladi(config) -> None:  # noqa: ANN001
     """Shiftdan uzoq Stop — pozitsiya ma'nosiz kichrayadi.
 
     Chegara KONFIGURATSIYADAN olinadi: u ATR ko'paytmasiga bog'liq
     ravishda o'zgaradi (5% -> 8%), testga raqam yozib qo'yilsa jimgina
     eskirardi.
+
+    Oraliq standart holatda MAJBURIY EMAS (loyiha egasining qarori),
+    shuning uchun test uni ataylab yoqadi: imkoniyat yo'qolmagani
+    tekshiriladi.
     """
+    band_engine = RiskEngine(_bandli(config))
     shift = config.trade_rules.max_stop_distance_pct
     stop_pct = shift + 1.0
-    qaror = engine.evaluate(
+    qaror = band_engine.evaluate(
         nomzod(stop_pct=stop_pct, tp2_pct=stop_pct * 3.0), sog_kontekst()
     )
 
@@ -360,9 +378,14 @@ def test_stop_juda_uzoq_bolsa_rad_etiladi(engine: RiskEngine, config) -> None:  
     assert any("juda uzoq" in izoh for izoh in qaror.details), qaror.details
 
 
-def test_stop_juda_yaqin_bolsa_rad_etiladi(engine: RiskEngine) -> None:
-    """1% dan yaqin Stop — bozor shovqini uni bekorga yeb qo'yadi."""
-    qaror = engine.evaluate(nomzod(stop_pct=0.4), sog_kontekst())
+def test_stop_juda_yaqin_bolsa_rad_etiladi(config: AppConfig) -> None:
+    """1% dan yaqin Stop — bozor shovqini uni bekorga yeb qo'yadi.
+
+    Oraliq yoqilgan holatda. Standart holatda shovqindan himoya
+    `stop_atr_mult` ga qoladi (ATR birligi foizdan to'g'riroq
+    o'lchov), lekin bu imkoniyat saqlanadi.
+    """
+    qaror = RiskEngine(_bandli(config)).evaluate(nomzod(stop_pct=0.4), sog_kontekst())
 
     assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
     assert any("juda yaqin" in izoh for izoh in qaror.details), qaror.details
@@ -420,7 +443,7 @@ def test_past_risk_reward_rad_etiladi(engine: RiskEngine, config) -> None:  # no
     entry = 100.0
     # Stop 1%, TP2 kerakli nisbatdan yuqori
     tp2 = entry * (1 + 1.0 * (kerak + 1.0) / 100)
-    levels = SignalLevels(entry=entry, stop=99.0, tp1=103.0, tp2=max(tp2, 103.5))
+    levels = signal_levels(entry=entry, stop=99.0, tp1=103.0, tp2=max(tp2, 103.5))
     kandidat = SignalCandidate(
         symbol="ETH",
         levels=levels,
@@ -432,10 +455,10 @@ def test_past_risk_reward_rad_etiladi(engine: RiskEngine, config) -> None:  # no
 
     # Nisbat chegaradan past: Stop keng, TP2 esa yaqin.
     tor_stop_pct = 4.0
-    tor = SignalLevels(
+    tor = signal_levels(
         entry=entry, stop=entry * (1 - tor_stop_pct / 100), tp1=103.0, tp2=103.5
     )
-    assert tor.risk_reward_tp2 < kerak, "test sozlamasi noto'g'ri"
+    assert tor.risk_reward < kerak, "test sozlamasi noto'g'ri"
     kandidat_tor = SignalCandidate(
         symbol="ETH",
         levels=tor,
@@ -457,7 +480,7 @@ def test_halol_bolmagan_coin_oxirgi_qatlamda_ham_toxtatiladi(
 ) -> None:
     kandidat = SignalCandidate(
         symbol="XXX",
-        levels=SignalLevels(100, 99.2, 103, 104),
+        levels=signal_levels(100, 99.2, 103, 104),
         source=SignalSource.CLASSIC_TA,
         breakdown=ScoreBreakdown("XXX", []),
         halal_verdict=HalalVerdict("XXX", status, "ro'yxatda"),
@@ -533,7 +556,7 @@ def test_sinov_davrida_ochiq_signallar_chegarasi_ushlab_turmaydi(
     ochiq = [
         Signal(
             symbol=f"C{i}",
-            levels=SignalLevels(100, 99, 103, 105),
+            levels=signal_levels(100, 99, 103, 105),
             source=SignalSource.CLASSIC_TA,
             status=SignalStatus.ACTIVE,
         )
@@ -625,7 +648,7 @@ def test_sinov_davrida_korrelyatsiya_ham_ushlab_turmaydi(engine: RiskEngine) -> 
     strategiyaning HAMMA nomzodini ko'rishimiz kerak."""
     ochiq = Signal(
         symbol="BTC",
-        levels=SignalLevels(100, 99, 103, 105),
+        levels=signal_levels(100, 99, 103, 105),
         source=SignalSource.CLASSIC_TA,
         status=SignalStatus.ACTIVE,
     )

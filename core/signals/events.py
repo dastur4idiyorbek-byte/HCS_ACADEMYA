@@ -17,8 +17,9 @@ from core.domain.enums import SignalStatus
 
 class SignalEventKind(str, Enum):
     ACTIVATED = "activated"        # ⏳ -> ✅ narx Entry'ga yetdi
-    TP1_HIT = "tp1_hit"            # 🎯 TP1 olindi
-    TP2_HIT = "tp2_hit"            # 🎯🎯 TP2 olindi, signal yopiladi
+    TP1_HIT = "tp1_hit"            # 🎯 BIRINCHI TP olindi -> breakeven
+    TP_PARTIAL = "tp_partial"      # 🎯 oraliq TP olindi, signal ochiq qoladi
+    TP2_HIT = "tp2_hit"            # 🎯🎯 YAKUNIY TP olindi, signal yopiladi
     STOPPED = "stopped"            # 🛑 Stop bo'ldi, signal yopiladi
     CANCELLED = "cancelled"        # Entry'ga yetmasdan eskirdi/bekor qilindi
     WEAKENING = "weakening"        # ⚠️ ball keskin pasaydi (4.1-band)

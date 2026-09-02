@@ -33,6 +33,7 @@ from core.domain.models import (
     ScoreComponent,
     SignalCandidate,
     SignalLevels,
+    signal_levels,
 )
 from core.utils.logging_setup import get_logger
 
@@ -239,7 +240,7 @@ class OpeningRangeScalpStrategy(Strategy):
         tp2 = entry * (1 + config.max_move_pct / 100)
 
         try:
-            return SignalLevels(entry=entry, stop=stop, tp1=tp1, tp2=tp2)
+            return signal_levels(entry=entry, stop=stop, tp1=tp1, tp2=tp2)
         except ValueError:
             return None
 
@@ -270,7 +271,7 @@ class OpeningRangeScalpStrategy(Strategy):
         yonalish_ulushi = min(1.0, chiqish / 0.5)
 
         # 4) Risk/Reward
-        rr = levels.risk_reward_tp2
+        rr = levels.risk_reward
         rr_ulushi = min(1.0, rr / 2.0)
 
         return ScoreBreakdown(

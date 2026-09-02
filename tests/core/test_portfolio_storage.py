@@ -8,7 +8,7 @@ import pytest
 
 from core.config.schema import PortfolioConfig
 from core.domain.enums import SignalSource, SignalStatus
-from core.domain.models import SignalLevels
+from core.domain.models import signal_levels
 from core.services import compute_outcome, summarize
 from core.storage import Database
 from core.storage.repositories import (
@@ -19,7 +19,7 @@ from core.storage.repositories import (
 )
 
 HOZIR = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
-KONFIG = PortfolioConfig(tp1_close_pct=50.0)
+KONFIG = PortfolioConfig(tp_close_shares=((100.0,), (50.0, 50.0), (40.0, 30.0, 30.0)))
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ async def tayyorla(db: Database, telegram_id: int = 111) -> tuple[int, int]:
         user = await UserRepository(session).get_or_create(telegram_id)
         signal = await SignalRepository(session).create(
             symbol="BTC",
-            levels=SignalLevels(entry=100, stop=99, tp1=103, tp2=105),
+            levels=signal_levels(entry=100, stop=99, tp1=103, tp2=105),
             source=SignalSource.CLASSIC_TA,
             score=82.0,
         )
@@ -139,7 +139,7 @@ async def test_portfel_xulosasi_bazadan_quriladi(db: Database) -> None:
     async with db.session() as session:
         ikkinchi = await SignalRepository(session).create(
             symbol="ETH",
-            levels=SignalLevels(entry=50, stop=49.5, tp1=51.5, tp2=52.5),
+            levels=signal_levels(entry=50, stop=49.5, tp1=51.5, tp2=52.5),
             source=SignalSource.CLASSIC_TA,
         )
         repo = UserPositionRepository(session)
@@ -173,7 +173,7 @@ async def test_umumiy_statistika_agregat(db: Database) -> None:
         for i in range(3):
             yozuv = await repo.create(
                 symbol=f"C{i}",
-                levels=SignalLevels(entry=100, stop=99, tp1=103, tp2=105),
+                levels=signal_levels(entry=100, stop=99, tp1=103, tp2=105),
                 source=SignalSource.CLASSIC_TA,
                 score=80.0,
             )

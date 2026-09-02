@@ -23,6 +23,7 @@ from core.domain.models import (
     SignalCandidate,
     SignalLevels,
     SRZone,
+    signal_levels,
 )
 from tests.core.test_indicators import sham
 
@@ -38,7 +39,7 @@ def darajalar(rr: float = 4.0) -> SignalLevels:
     """TP2 nisbati `rr` bo'lgan darajalar. TP1 doim TP2 dan past qoladi."""
     entry, stop = 100.0, 99.2
     masofa = entry - stop
-    return SignalLevels(
+    return signal_levels(
         entry=entry,
         stop=stop,
         tp1=entry + masofa * rr * 0.6,

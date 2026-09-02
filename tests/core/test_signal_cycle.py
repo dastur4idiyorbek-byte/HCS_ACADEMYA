@@ -22,6 +22,7 @@ from core.domain.models import (
     Signal,
     SignalCandidate,
     SignalLevels,
+    signal_levels,
 )
 from core.pipeline import CycleInput, SignalCycle, SymbolData
 
@@ -45,7 +46,7 @@ def salomatlik(qiymat: float) -> MarketHealth:
 
 def darajalar(entry: float = 100.0) -> SignalLevels:
     # Stop 1.5% (1..5% oralig'ida), TP1 3.5% (1:2.3), TP2 5% (1:3.3)
-    return SignalLevels(entry=entry, stop=entry * 0.985, tp1=entry * 1.035, tp2=entry * 1.05)
+    return signal_levels(entry=entry, stop=entry * 0.985, tp1=entry * 1.035, tp2=entry * 1.05)
 
 
 class SoxtaStrategiya(Strategy):

@@ -7,13 +7,13 @@ import pytest
 from core.analysis import decide_entry_plan
 from core.config.schema import EntryOrderConfig
 from core.domain.enums import ExitOrderType, OrderType
-from core.domain.models import SignalLevels
+from core.domain.models import SignalLevels, signal_levels
 
 KONFIG = EntryOrderConfig(market_threshold_pct=0.15, zone_broken_threshold_pct=0.30)
 
 
 def darajalar(entry: float = 100.0) -> SignalLevels:
-    return SignalLevels(entry=entry, stop=entry * 0.992, tp1=entry * 1.035, tp2=entry * 1.05)
+    return signal_levels(entry=entry, stop=entry * 0.992, tp1=entry * 1.035, tp2=entry * 1.05)
 
 
 def test_narx_zonaga_yetmagan_bolsa_limit() -> None:
@@ -79,6 +79,6 @@ def test_manfiy_narx_rad_etiladi() -> None:
 
 def test_arzon_coinlarda_ham_ishlaydi() -> None:
     """Foiz asosidagi hisob narx miqyosiga bog'liq bo'lmasligi kerak."""
-    arzon = SignalLevels(entry=0.00042, stop=0.0004167, tp1=0.0004347, tp2=0.000441)
+    arzon = signal_levels(entry=0.00042, stop=0.0004167, tp1=0.0004347, tp2=0.000441)
     reja = decide_entry_plan(0.0004203, arzon, KONFIG)
     assert reja.order_type is OrderType.MARKET

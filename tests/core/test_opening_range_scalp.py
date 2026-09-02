@@ -110,7 +110,7 @@ def test_tp_kutilayotgan_harakat_oraligida(strategy, config) -> None:  # noqa: A
 
     assert natija is not None
     assert natija.levels.tp1_distance_pct == pytest.approx(skalp.min_move_pct)
-    assert natija.levels.tp2_distance_pct == pytest.approx(skalp.max_move_pct)
+    assert natija.levels.final_tp_distance_pct == pytest.approx(skalp.max_move_pct)
 
 
 def test_ball_yuzdan_oshmaydi(strategy, config) -> None:  # noqa: ANN001

@@ -5,14 +5,14 @@ from __future__ import annotations
 from bot.formatting import format_pct, format_price, render_signal_card
 from core.analysis import decide_entry_plan
 from core.config.schema import EntryOrderConfig, PositionSizingConfig
-from core.domain.models import SignalLevels
+from core.domain.models import SignalLevels, signal_levels
 from core.position_sizing import PositionSizer
 
 KONFIG = EntryOrderConfig()
 
 
 def darajalar() -> SignalLevels:
-    return SignalLevels(entry=2450.0, stop=2431.4, tp1=2523.5, tp2=2560.0)
+    return signal_levels(entry=2450.0, stop=2431.4, tp1=2523.5, tp2=2560.0)
 
 
 def test_kartochka_shabloni_toliq() -> None:
@@ -115,7 +115,7 @@ def test_stop_manfiy_foiz_bilan_korsatiladi() -> None:
 
 
 def test_arzon_coin_narxi_kesilmaydi() -> None:
-    arzon = SignalLevels(entry=0.00042, stop=0.0004167, tp1=0.0004347, tp2=0.000441)
+    arzon = signal_levels(entry=0.00042, stop=0.0004167, tp1=0.0004347, tp2=0.000441)
     kartochka = render_signal_card("PEPE", arzon, decide_entry_plan(0.00043, arzon, KONFIG))
     assert "0.0004" in kartochka, "arzon coin narxi nolga aylanmasligi kerak"
 
@@ -299,13 +299,38 @@ def test_darajalar_ustunlari_tekislanadi() -> None:
     assert len(set(joylar)) == 1, f"kasr nuqtasi bir ustunda emas: {qatorlar}"
 
 
-def test_tp_ulushlari_konfiguratsiyadan() -> None:
-    """TP2 ulushi — 100 dan qolgani. Ikkalasi qattiq yozilmagan."""
+def test_tp_ulushlari_darajalardan_oqiladi() -> None:
+    """Ulush DARAJALARNING O'ZIDA turadi, kartochkada hisoblanmaydi.
+
+    Ilgari kartochka "TP2 = 100 dan qolgani" deb o'zi hisoblardi —
+    ya'ni TP har doim ikkita degan taxminni yana bir joyda
+    takrorlardi. Uchta TP bo'lganda o'sha ayirma noto'g'ri chiqardi.
+    """
     from bot.formatting import render_levels
+    from core.domain.models import signal_levels
 
-    blok = render_levels(darajalar(), tp1_close_pct=70)
-    tp1 = next(q for q in blok.splitlines() if "TP1" in q)
-    tp2 = next(q for q in blok.splitlines() if "TP2" in q)
+    lv = signal_levels(100.0, 99.0, 103.0, 106.0, shares=(70.0, 30.0))
+    blok = render_levels(lv)
 
-    assert "70%" in tp1
-    assert "30%" in tp2
+    assert "70%" in next(q for q in blok.splitlines() if "TP1" in q)
+    assert "30%" in next(q for q in blok.splitlines() if "TP2" in q)
+
+
+def test_uchta_tp_ham_korinadi() -> None:
+    """TP soni qat'iy emas — kartochka uchtasini ham ko'rsatsin."""
+    from bot.formatting import render_levels
+    from core.domain.models import signal_levels
+
+    blok = render_levels(signal_levels(100.0, 99.0, 102.0, 104.0, 107.0))
+
+    assert any("TP3" in q for q in blok.splitlines())
+
+
+def test_bitta_tp_bolsa_faqat_bittasi_korinadi() -> None:
+    from bot.formatting import render_levels
+    from core.domain.models import signal_levels
+
+    blok = render_levels(signal_levels(100.0, 99.0, 105.0))
+
+    assert any("TP1" in q for q in blok.splitlines())
+    assert not any("TP2" in q for q in blok.splitlines())

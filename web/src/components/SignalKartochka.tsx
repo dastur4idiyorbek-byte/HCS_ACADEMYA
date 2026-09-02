@@ -15,6 +15,10 @@ import { birjaJuftligi } from "@/lib/kalkulyator";
  *     🎯 TP1       +5.59%   50%
  *     🎯 TP2       +6.83%   50%
  *
+ * TP SONI QAT'IY EMAS — 1, 2 yoki 3 bo'lishi mumkin. Kartochka
+ * ro'yxatni o'zi bo'ylab yuradi: ilgari bu yerda aynan ikkita qator
+ * yozib qo'yilgan edi va uchinchi TP jimgina ko'rinmay qolardi.
+ *
  * Botdagi nusxasi: `bot/formatting.py` -> `render_levels()`.
  *
  * Saytda kalkulyator SHU KARTOCHKADAN KEYIN turadi — avval signalning
@@ -27,9 +31,8 @@ export function SignalKartochka({
   kotirovka,
   entry,
   stop,
-  tp1,
-  tp2,
-  tp1Ulush,
+  tplar,
+  ulushlar,
   buyurtmaMatni,
   berilgan,
   matnlar,
@@ -38,18 +41,19 @@ export function SignalKartochka({
   kotirovka: string;
   entry: number;
   stop: number;
-  tp1: number;
-  tp2: number;
-  /** TP1 da pozitsiyaning qancha qismi sotiladi — konfiguratsiyadan */
-  tp1Ulush: number;
+  /** TP narxlari — 1 tadan 3 tagacha, pastdan yuqoriga */
+  tplar: number[];
+  /** Har bir TP da sotiladigan ulush — konfiguratsiyadan */
+  ulushlar: number[];
   /** "Buyurtma qoldiring…" yoki "Hozir oling…" — belgisi bilan */
   buyurtmaMatni: string;
   berilgan: Date | null;
   matnlar: Record<string, string>;
 }) {
-  const tp2Ulush = Math.max(0, 100 - tp1Ulush);
   const oz = (narxi: number) => ((narxi - entry) / entry) * 100;
-  const nisbat = entry > stop ? (tp2 - entry) / (entry - stop) : null;
+  // Nisbat YAKUNIY nishon bo'yicha — TP nechta bo'lishidan qat'i nazar.
+  const yakuniy = tplar[tplar.length - 1];
+  const nisbat = entry > stop ? (yakuniy - entry) / (entry - stop) : null;
 
   return (
     <Card variant="urgu">
@@ -69,22 +73,17 @@ export function SignalKartochka({
           ozgarish={oz(stop)}
           tone="past"
         />
-        <Qator
-          belgi="🎯"
-          nom="TP1"
-          qiymat={narx(tp1)}
-          ozgarish={oz(tp1)}
-          ulush={tp1Ulush}
-          tone="yaxshi"
-        />
-        <Qator
-          belgi="🎯"
-          nom="TP2"
-          qiymat={narx(tp2)}
-          ozgarish={oz(tp2)}
-          ulush={tp2Ulush}
-          tone="yaxshi"
-        />
+        {tplar.map((tp, i) => (
+          <Qator
+            key={`tp${i + 1}`}
+            belgi="🎯"
+            nom={`TP${i + 1}`}
+            qiymat={narx(tp)}
+            ozgarish={oz(tp)}
+            ulush={ulushlar[i]}
+            tone="yaxshi"
+          />
+        ))}
       </div>
 
       {/* HOZIRGI narx — faqat saytda. Telegram xabari bir marta

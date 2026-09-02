@@ -27,7 +27,7 @@ from bot.services.runner import PipelineRunner, cycle_interval
 from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import OrderType
-from core.domain.models import EntryPlan, SignalLevels
+from core.domain.models import EntryPlan, signal_levels
 from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.repositories import (
@@ -215,7 +215,7 @@ class Scheduler:
                 (
                     y.id,
                     y.symbol,
-                    SignalLevels(entry=y.entry, stop=y.stop, tp1=y.tp1, tp2=y.tp2),
+                    signal_levels(entry=y.entry, stop=y.stop, tp1=y.tp1, tp2=y.tp2),
                     OrderType(y.entry_order_type),
                 )
                 for y in kutayotganlar

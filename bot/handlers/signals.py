@@ -33,7 +33,7 @@ from core.analysis import decide_entry_plan
 from core.analysis.scoring import breakdown_from_json, breakdown_to_text
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
-from core.domain.models import PositionSuggestion, SignalLevels
+from core.domain.models import PositionSuggestion, SignalLevels, signal_levels
 from core.market_data import CandleProvider
 from core.position_sizing import PositionSizer
 from core.storage import Database
@@ -157,7 +157,7 @@ async def signal_preview(
     izoh = None if (message.text or "").strip() == "/skip" else (message.text or "").strip()
 
     try:
-        levels = SignalLevels(
+        levels = signal_levels(
             entry=data["entry"], stop=data["stop"], tp1=data["tp1"], tp2=data["tp2"]
         )
     except ValueError as exc:
@@ -203,19 +203,30 @@ def _rule_warnings(levels: SignalLevels, config: AppConfig) -> list[str]:
     """3.3-band: universal risk qoidalariga mos kelmasa ogohlantirish."""
     rules = config.trade_rules
     ogohlar: list[str] = []
-    if levels.stop_distance_pct > rules.max_stop_distance_pct:
-        ogohlar.append(
-            f"Stop masofasi {levels.stop_distance_pct:.2f}% "
-            f"(chegara {rules.max_stop_distance_pct}%)"
-        )
-    for nom, masofa in (("TP1", levels.tp1_distance_pct), ("TP2", levels.tp2_distance_pct)):
-        if not rules.min_tp_distance_pct <= masofa <= rules.max_tp_distance_pct:
+
+    # Foiz oraliqlari MAJBURIY emas (loyiha egasining qarori) —
+    # shuning uchun ular ogohlantirish sifatida qoladi, to'siq
+    # sifatida emas, va faqat bayroq yoqilganda ko'rsatiladi.
+    if rules.enforce_distance_bands:
+        if levels.stop_distance_pct > rules.max_stop_distance_pct:
             ogohlar.append(
-                f"{nom} masofasi {masofa:.2f}% "
-                f"({rules.min_tp_distance_pct}–{rules.max_tp_distance_pct}% oralig'idan tashqarida)"
+                f"Stop masofasi {levels.stop_distance_pct:.2f}% "
+                f"(chegara {rules.max_stop_distance_pct}%)"
             )
-    if levels.risk_reward_tp2 < rules.min_risk_reward:
-        ogohlar.append(f"TP2 R/R {levels.risk_reward_tp2:.2f} < {rules.min_risk_reward}")
+        for nomer, tp in enumerate(levels.takes, start=1):
+            masofa = (tp.price - levels.entry) / levels.entry * 100
+            if not rules.min_tp_distance_pct <= masofa <= rules.max_tp_distance_pct:
+                ogohlar.append(
+                    f"TP{nomer} masofasi {masofa:.2f}% "
+                    f"({rules.min_tp_distance_pct}–{rules.max_tp_distance_pct}% "
+                    "oralig'idan tashqarida)"
+                )
+
+    # BOG'LOVCHI SHART — nisbat.
+    if levels.risk_reward < rules.min_risk_reward:
+        ogohlar.append(
+            f"Yakuniy nishon R/R {levels.risk_reward:.2f} < {rules.min_risk_reward}"
+        )
     return ogohlar
 
 
@@ -243,7 +254,7 @@ async def signal_send(
 ) -> None:
     """Signalni bazaga yozadi, kuzatuvga qo'shadi va obunachilarga tarqatadi."""
     data = await state.get_data()
-    levels = SignalLevels(
+    levels = signal_levels(
         entry=data["entry"], stop=data["stop"], tp1=data["tp1"], tp2=data["tp2"]
     )
     narx = await joriy_narx(
@@ -575,7 +586,7 @@ async def show_signal(
         if topildi:
             symbol = yozuv.symbol
             holat = SignalStatus(yozuv.status)
-            levels = SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2)
+            levels = signal_levels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2, yozuv.tp3)
             narx_signalda = yozuv.price_at_signal or yozuv.entry
             berilgan = yozuv.created_at
 

@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 from core.config.loader import load_config
-from core.domain.models import SignalLevels
+from core.domain.models import signal_levels
 from core.position_sizing import PositionSizer
 
 FAYL = Path(__file__).resolve().parent.parent / "tests" / "hajm_fixtures.json"
@@ -38,7 +38,7 @@ def hisobla() -> list[dict]:
     for balans, entry, stop in HOLATLAR:
         taklif = sizer.suggest(
             "SINOV",
-            SignalLevels(entry=entry, stop=stop, tp1=entry * 1.05, tp2=entry * 1.1),
+            signal_levels(entry=entry, stop=stop, tp1=entry * 1.05, tp2=entry * 1.1),
             sizer.budget_for(balans),
             commit=False,
         )

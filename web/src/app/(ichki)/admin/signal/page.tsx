@@ -40,7 +40,9 @@ export default async function YangiSignal({
         entry: yaratilgan.entry,
         stop: yaratilgan.stop,
         tp1: yaratilgan.tp1,
-        tp2: yaratilgan.tp2,
+        // Qo'lda kiritish shakli ikkita TP so'raydi, lekin saqlangan
+        // signalda TP soni qat'iy emas — bittasi ham bo'lishi mumkin.
+        tp2: yaratilgan.tp2 ?? yaratilgan.tp1,
         note: null,
       })
     : [];

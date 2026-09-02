@@ -14,7 +14,7 @@ import pytest
 from bot.services.runner import PipelineRunner, cycle_interval
 from core.config import load_config
 from core.domain.enums import HalalStatus, SubscriptionTier
-from core.domain.models import Candle, MarketRankEntry
+from core.domain.models import Candle, MarketRankEntry, signal_levels
 from core.market_data import CandleProvider, PriceCache, RankingProvider
 from core.storage import Database
 from core.storage.repositories import (
@@ -247,7 +247,6 @@ async def test_chiqarilgan_signal_bazaga_yoziladi_va_kuzatuvga_qoshiladi(
     db: Database, config
 ) -> None:  # noqa: ANN001
     """Signal chiqsa, u bazaga yozilishi VA kuzatuvga qo'shilishi kerak."""
-    from core.domain.models import SignalLevels
 
     kuzatuvchi = SoxtaWatcher()
     bot = SoxtaBot()
@@ -273,7 +272,7 @@ async def test_chiqarilgan_signal_bazaga_yoziladi_va_kuzatuvga_qoshiladi(
 
     nomzod = SignalCandidate(
         symbol="BTC",
-        levels=SignalLevels(entry=100, stop=99.2, tp1=103.5, tp2=104.5),
+        levels=signal_levels(entry=100, stop=99.2, tp1=103.5, tp2=104.5),
         source=SignalSource.CLASSIC_TA,
         breakdown=ScoreBreakdown("BTC", [ScoreComponent("jami", 88, 100, "sinov")]),
         halal_verdict=HalalVerdict("BTC", HalalStatus.HALAL, "halol"),
@@ -300,7 +299,6 @@ async def test_obunasiz_foydalanuvchiga_signal_bormaydi(db: Database, config) ->
         ScoreBreakdown,
         ScoreComponent,
         SignalCandidate,
-        SignalLevels,
     )
 
     bot = SoxtaBot()
@@ -310,7 +308,7 @@ async def test_obunasiz_foydalanuvchiga_signal_bormaydi(db: Database, config) ->
 
     nomzod = SignalCandidate(
         symbol="BTC",
-        levels=SignalLevels(entry=100, stop=99.2, tp1=103.5, tp2=104.5),
+        levels=signal_levels(entry=100, stop=99.2, tp1=103.5, tp2=104.5),
         source=SignalSource.CLASSIC_TA,
         breakdown=ScoreBreakdown("BTC", [ScoreComponent("jami", 88, 100, "sinov")]),
         halal_verdict=HalalVerdict("BTC", HalalStatus.HALAL, "halol"),
@@ -511,7 +509,6 @@ async def test_kunlik_zarar_siklga_uzatiladi(db: Database, config) -> None:  # n
     o'chirib qo'yadi.
     """
     from core.domain.enums import SignalSource, SignalStatus
-    from core.domain.models import SignalLevels
     from core.storage.repositories import SignalRepository
 
     async with db.session() as session:
@@ -519,7 +516,7 @@ async def test_kunlik_zarar_siklga_uzatiladi(db: Database, config) -> None:  # n
         for i in range(2):
             yozuv = await repo.create(
                 symbol=f"C{i}",
-                levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+                levels=signal_levels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
                 source=SignalSource.MANUAL,
             )
             # Har biri -2% zarar bilan yopiladi
@@ -541,14 +538,13 @@ async def test_foydali_kun_zarar_deb_hisoblanmaydi(db: Database, config) -> None
     Gross zarar bilan hisoblash foydali kunni ham to'xtatib qo'yardi.
     """
     from core.domain.enums import SignalSource, SignalStatus
-    from core.domain.models import SignalLevels
     from core.storage.repositories import SignalRepository
 
     async with db.session() as session:
         repo = SignalRepository(session)
         yutuq = await repo.create(
             symbol="WIN",
-            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            levels=signal_levels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
             source=SignalSource.MANUAL,
         )
         await repo.apply_event(
@@ -556,7 +552,7 @@ async def test_foydali_kun_zarar_deb_hisoblanmaydi(db: Database, config) -> None
         )
         zarar = await repo.create(
             symbol="LOSS",
-            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            levels=signal_levels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
             source=SignalSource.MANUAL,
         )
         await repo.apply_event(

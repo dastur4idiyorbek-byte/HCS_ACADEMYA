@@ -319,7 +319,7 @@ class Backtester:
                     "score": nomzod.score,
                     "health": kirish.market_health.value if kirish.market_health else 0.0,
                     "source": nomzod.source.value,
-                    "tp1": False,
+                    "reached": 0,
                 }
                 natija.signals_emitted += 1
 
@@ -380,8 +380,10 @@ class Backtester:
         if kalit is None or kalit not in context:
             return
 
-        if event.kind is SignalEventKind.TP1_HIT:
-            context[kalit]["tp1"] = True
+        if event.kind in {SignalEventKind.TP1_HIT, SignalEventKind.TP_PARTIAL}:
+            # TP SONI QAT'IY EMAS: oraliq TP ham qismli sotish, ya'ni
+            # natijaga xuddi TP1 kabi kiradi.
+            context[kalit]["reached"] = context[kalit].get("reached", 0) + 1
             return
 
         if not event.closes_signal:
@@ -391,7 +393,8 @@ class Backtester:
 
         ma_lumot = context.pop(kalit)
         signal = tracker.get(kalit)
-        tp1_olindi = ma_lumot["tp1"]
+        olingan = ma_lumot.get("reached", 0)
+        tp1_olindi = olingan >= 1
 
         if event.new_status is SignalStatus.TP2_HIT:
             natija_turi = "tp2_hit"
@@ -414,7 +417,7 @@ class Backtester:
                 exit_price=chiqish,
                 outcome=natija_turi,
                 reached_tp1=tp1_olindi,
-                result_pct=self._result_pct(signal, chiqish, tp1_olindi),
+                result_pct=self._result_pct(signal, chiqish, olingan),
             )
         )
 
@@ -440,14 +443,15 @@ class Backtester:
         """
         darajalar = signal.levels
         if event.new_status is SignalStatus.TP2_HIT:
-            # Narx TP2 orqali YUQORIGA o'tdi -> buyurtma TP2 darajada bajarildi
-            return darajalar.tp2
+            # Narx YAKUNIY nishon orqali yuqoriga o'tdi -> buyurtma
+            # o'sha darajada bajarildi
+            return darajalar.final_tp
         if event.new_status is SignalStatus.STOPPED:
             # Narx Stop orqali PASTGA o'tdi -> buyurtma Stop darajada bajarildi
             return darajalar.stop
         return event.price
 
-    def _result_pct(self, signal, exit_price: float, reached_tp1: bool) -> float:  # noqa: ANN001
+    def _result_pct(self, signal, exit_price: float, reached: int) -> float:  # noqa: ANN001
         """5.4-banddagi qismli yopish qoidasi bilan bir xil hisob.
 
         Natijadan KOMISSIYA VA SIRG'ANISH ayriladi. Ilgari ular
@@ -457,20 +461,31 @@ class Backtester:
         hajm. Backtestning butun ma'nosi haqiqatni oldindan ko'rish
         bo'lgani uchun bunday "sovg'a" eng zararli soddalashtirish.
         """
-        return self._xom_natija(signal, exit_price, reached_tp1) - (
+        return self._xom_natija(signal, exit_price, reached) - (
             self._config.backtest.round_trip_cost_pct
         )
 
-    def _xom_natija(self, signal, exit_price: float, reached_tp1: bool) -> float:  # noqa: ANN001
-        """Xarajatsiz, faqat narx harakatidan chiqqan natija."""
-        entry = signal.levels.entry
-        if not reached_tp1:
+    def _xom_natija(self, signal, exit_price: float, reached: int) -> float:  # noqa: ANN001
+        """Xarajatsiz, faqat narx harakatidan chiqqan natija.
+
+        TP SONI QAT'IY EMAS, shuning uchun hisob ro'yxat bo'ylab
+        yuradi: olingan har bir TP o'z ULUSHI bilan qo'shiladi,
+        qolgan ulush esa chiqish narxida yopiladi. Ilgari bu yerda
+        "yarim TP1 da, yarmi chiqishda" degan ikkilik hisob turardi
+        va uchinchi TP unga sig'masdi.
+        """
+        darajalar = signal.levels
+        entry = darajalar.entry
+        if reached <= 0:
             return (exit_price - entry) / entry * 100
 
-        ulush = self._config.portfolio.tp1_close_pct / 100
-        tp1_foizi = (signal.levels.tp1 - entry) / entry * 100
-        qolgan = (exit_price - entry) / entry * 100
-        return tp1_foizi * ulush + qolgan * (1 - ulush)
+        natija = 0.0
+        yopilgan = 0.0
+        for tp in darajalar.takes[:reached]:
+            natija += (tp.price - entry) / entry * 100 * tp.close_pct / 100
+            yopilgan += tp.close_pct / 100
+        qolgan = max(0.0, 1.0 - yopilgan)
+        return natija + (exit_price - entry) / entry * 100 * qolgan
 
     def _buy_and_hold(
         self, dataset: Dataset, qadamlar: list[datetime], timeframe: str

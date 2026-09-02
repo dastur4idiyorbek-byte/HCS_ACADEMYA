@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from core.domain.enums import SignalSource, SignalStatus
-from core.domain.models import Signal, SignalLevels
+from core.domain.models import Signal, signal_levels
 from core.signals import SignalEventKind, SignalTracker
 
 BOSH = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
@@ -21,7 +21,7 @@ BOSH = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
 def signal(symbol: str = "BTC", entry: float = 100.0, created_at: datetime = BOSH) -> Signal:
     return Signal(
         symbol=symbol,
-        levels=SignalLevels(entry=entry, stop=entry * 0.99, tp1=entry * 1.03, tp2=entry * 1.05),
+        levels=signal_levels(entry=entry, stop=entry * 0.99, tp1=entry * 1.03, tp2=entry * 1.05),
         source=SignalSource.MANUAL,
         created_at=created_at,
     )

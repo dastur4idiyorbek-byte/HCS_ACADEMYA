@@ -52,17 +52,27 @@ def render_levels(
     Har bir TP yonida QANCHA ULUSH sotilishi turadi. Avval bu joyda
     "1-OCO 50%" degan jargon bor edi: OCO — birja atamasi, uni signal
     o'quvchining bilishi shart emas.
+
+    TP SONI QAT'IY EMAS — 1, 2 yoki 3 bo'lishi mumkin. Kartochka
+    ro'yxatni o'zi bo'ylab yuradi: ilgari bu yerda aynan ikkita qator
+    yozib qo'yilgan edi va uchinchi TP jimgina ko'rinmay qolardi.
+
+    `tp1_close_pct` faqat ZAXIRA: ulush endi darajalarning o'zida
+    (`TakeProfit.close_pct`) yotadi, ya'ni ekranda ko'ringan raqam
+    savdoda ishlatilgani bilan bir xil.
     """
-    tp2_close = max(0.0, 100.0 - tp1_close_pct)
     ulush = lambda x: f"{x:.0f}%"  # noqa: E731
 
     qatorlar: list[tuple[str, str, float, str, str]] = [
         ("💠", t("signal.daraja_kirish", language), levels.entry, "", ""),
         ("🛑", t("signal.daraja_stop", language), levels.stop,
          format_pct(-levels.stop_distance_pct), ""),
-        ("🎯", "TP1", levels.tp1, format_pct(levels.tp1_distance_pct), ulush(tp1_close_pct)),
-        ("🎯", "TP2", levels.tp2, format_pct(levels.tp2_distance_pct), ulush(tp2_close)),
     ]
+    for nomer, tp in enumerate(levels.takes, start=1):
+        masofa = (tp.price - levels.entry) / levels.entry * 100
+        qatorlar.append(
+            ("🎯", f"TP{nomer}", tp.price, format_pct(masofa), ulush(tp.close_pct))
+        )
 
     nom_eni = max(len(nom) for _, nom, _, _, _ in qatorlar)
     narx_eni = max(len(format_price(narx)) for _, _, narx, _, _ in qatorlar)
@@ -104,7 +114,7 @@ def render_summary(  # noqa: PLR0913
     bilmasdi.
     """
     qatorlar: list[tuple[str, str, str]] = [
-        ("⚖️", t("signal.xulosa_nisbat", language), f"1 : {levels.risk_reward_tp2:.2f}"),
+        ("⚖️", t("signal.xulosa_nisbat", language), f"1 : {levels.risk_reward:.2f}"),
         ("💵", t("signal.xulosa_miqdor", language), amount),
     ]
     if risk is not None:

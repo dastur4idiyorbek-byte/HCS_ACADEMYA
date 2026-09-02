@@ -6,6 +6,7 @@ import {
   salomatlikBandlari,
   savdoQoidalari,
   tp1Ulushi,
+  tpUlushlari,
 } from "../src/lib/config.ts";
 
 /** Bu testlar 2-naqshga qarshi: "e'lon qilingan, lekin ulanmagan".
@@ -73,8 +74,20 @@ test("savdo qoidalari YAML dan o'qiladi", () => {
  *  (`bot/formatting.py` -> `render_levels`). Yo'l noto'g'ri bo'lsa
  *  `yol()` jimgina zaxira qiymatni qaytaradi — ya'ni xato ko'rinmaydi
  *  va sayt bilan bot boshqa-boshqa ulush ko'rsatib turaveradi. */
-test("TP1 ulushi YAML dagi haqiqiy yo'ldan o'qiladi", () => {
+test("TP ulushlari YAML dagi haqiqiy yo'ldan o'qiladi", () => {
   const ulush = tp1Ulushi();
   assert.ok(ulush > 0 && ulush <= 100, `mantiqsiz ulush: ${ulush}`);
-  assert.equal(ulush, yaml.portfolio.tp1_close_pct);
+  assert.equal(ulush, yaml.portfolio.tp_close_shares[1][0]);
+});
+
+/** TP soni qat'iy emas — 1, 2 yoki 3. Har bir qator yig'indisi 100
+ *  bo'lishi shart, aks holda sayt pozitsiyaning bir qismini
+ *  "yo'qotardi" yoki ikki marta sanardi. */
+test("har bir TP qatorining yig'indisi 100", () => {
+  for (const soni of [1, 2, 3]) {
+    const qator = tpUlushlari(soni);
+    assert.equal(qator.length, soni);
+    const jami = qator.reduce((a, b) => a + b, 0);
+    assert.ok(Math.abs(jami - 100) < 0.01, `${soni} ta TP: ${jami}%`);
+  }
 });

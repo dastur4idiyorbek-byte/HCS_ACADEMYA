@@ -15,7 +15,7 @@ from core.config.schema import PortfolioConfig
 from core.domain.portfolio import PositionSnapshot
 from core.services import blended_result_pct, compute_outcome, summarize
 
-KONFIG = PortfolioConfig(tp1_close_pct=50.0)
+KONFIG = PortfolioConfig(tp_close_shares=((100.0,), (50.0, 50.0), (40.0, 30.0, 30.0)))
 BUGUN = date(2026, 8, 19)
 
 
@@ -54,8 +54,8 @@ def test_tp2_gacha_toliq_foyda() -> None:
 
 def test_qismli_ulush_sozlanadi() -> None:
     """TP1 da ko'proq yopilsa, keyingi Stop kamroq ta'sir qiladi."""
-    kop = PortfolioConfig(tp1_close_pct=80.0)
-    kam = PortfolioConfig(tp1_close_pct=20.0)
+    kop = PortfolioConfig(tp_close_shares=((100.0,), (80.0, 20.0)))
+    kam = PortfolioConfig(tp_close_shares=((100.0,), (20.0, 80.0)))
 
     kop_natija = compute_outcome(100, 100, 99, kop, tp1_price=103)
     kam_natija = compute_outcome(100, 100, 99, kam, tp1_price=103)

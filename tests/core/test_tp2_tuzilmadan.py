@@ -69,7 +69,7 @@ def test_tuzilmaviy_tp2_haqiqiy_zonaga_qoyiladi(qoidalar) -> None:  # noqa: ANN0
 
     assert natija.ok, natija.reason
     assert natija.levels.tp1 == 104.0, "TP1 — eng yaqin resistance"
-    assert natija.levels.tp2 == 112.0, "TP2 — keyingi resistance"
+    assert natija.levels.final_tp == 112.0, "TP2 — keyingi resistance"
 
 
 def test_formulaviy_tp2_zonaga_qaramaydi(qoidalar) -> None:  # noqa: ANN001
@@ -82,7 +82,7 @@ def test_formulaviy_tp2_zonaga_qaramaydi(qoidalar) -> None:  # noqa: ANN001
 
     assert natija.ok, natija.reason
     assert natija.levels.tp1 == 104.0
-    assert natija.levels.tp2 != 112.0, "formula zonaga tushishi shart emas"
+    assert natija.levels.final_tp != 112.0, "formula zonaga tushishi shart emas"
 
 
 def test_zona_yoq_bolsa_signal_berilmaydi(qoidalar) -> None:  # noqa: ANN001
@@ -108,8 +108,16 @@ def test_zona_yoq_bolsa_signal_berilmaydi(qoidalar) -> None:  # noqa: ANN001
 
 
 def test_juda_uzoq_zona_olinmaydi(qoidalar) -> None:  # noqa: ANN001
-    """`max_tp_distance_pct` dan narida bo'lgan zona TP2 bo'la olmaydi."""
-    tuzilmaviy = dataclasses.replace(qoidalar, tp2_from_structure=True)
+    """`max_tp_distance_pct` dan narida bo'lgan zona TP2 bo'la olmaydi.
+
+    Diqqat: masofa chegarasi endi MAJBURIY EMAS (loyiha egasining
+    qarori — bog'lovchi shart nisbat). Shuning uchun bu test uni
+    ataylab yoqadi: chegara ishlatilganda u qanday ishlashi
+    tekshiriladi.
+    """
+    tuzilmaviy = dataclasses.replace(
+        qoidalar, tp2_from_structure=True, enforce_distance_bands=True
+    )
     uzoq = xarita(
         100.0,
         [
@@ -135,7 +143,7 @@ def test_nisbati_juda_past_zona_otkazib_yuboriladi(qoidalar) -> None:  # noqa: A
 
     assert natija.ok, natija.reason
     stop_pct = (natija.levels.entry - natija.levels.stop) / natija.levels.entry * 100
-    tp2_pct = (natija.levels.tp2 - natija.levels.entry) / natija.levels.entry * 100
+    tp2_pct = (natija.levels.final_tp - natija.levels.entry) / natija.levels.entry * 100
     assert tp2_pct / stop_pct >= 1.5
 
 

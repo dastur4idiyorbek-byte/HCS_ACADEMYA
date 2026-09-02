@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 
 from core.config.schema import AggregateConfig, PositionSizingConfig, RiskTier
-from core.domain.models import SignalLevels
+from core.domain.models import SignalLevels, signal_levels
 from core.position_sizing import (
     DailyRiskBudget,
     PositionSizer,
@@ -28,7 +28,7 @@ POGONALAR = [
 
 def darajalar(entry: float = 100.0, stop_pct: float = 1.0) -> SignalLevels:
     stop = entry * (1 - stop_pct / 100)
-    return SignalLevels(entry=entry, stop=stop, tp1=entry * 1.03, tp2=entry * 1.05)
+    return signal_levels(entry=entry, stop=stop, tp1=entry * 1.03, tp2=entry * 1.05)
 
 
 # --------------------------------------------------------------------------- #

@@ -256,26 +256,100 @@ class ScoreBreakdown:
 
 
 @dataclass(frozen=True, slots=True)
+class TakeProfit:
+    """Bitta foyda nuqtasi va unda sotiladigan ulush.
+
+    Ulush foizda va butun signal bo'yicha yig'indisi 100 bo'lishi
+    kerak — ya'ni "TP1 da yarmi, TP2 da qolgani" degan reja
+    raqamda ham to'liq ifodalanadi.
+    """
+
+    price: float
+    #: Pozitsiyaning necha foizi shu nuqtada sotiladi
+    close_pct: float
+    #: Haqiqiy qarshilik zonasidan olinganmi (yoki formuladan)
+    from_structure: bool = True
+
+
+@dataclass(frozen=True, slots=True)
 class SignalLevels:
-    """Signal narx darajalari. Faqat spot/long: Stop < Entry < TP1 < TP2."""
+    """Signal narx darajalari. Faqat spot/long: Stop < Entry < TP1 < ... < TPn.
+
+    TP SONI QAT'IY EMAS — 1, 2 yoki 3 bo'lishi mumkin, bozorda
+    nechta haqiqiy nishon borligiga qarab. Ilgari bu yerda `tp1` va
+    `tp2` maydonlari turardi, ya'ni "har doim aynan ikkita" degan
+    qoida MODELGA yozib qo'yilgan edi. Bozor esa unday emas: toza
+    ko'tarilishda ustda bitta ham qarshilik bo'lmasligi, keng
+    diapazonda esa uchtasi bo'lishi mumkin.
+
+    `tp1` va `final_tp` nomlari saqlanadi, chunki ularning ma'nosi
+    TP soniga bog'liq emas:
+
+        tp1      — BIRINCHI foyda nuqtasi. Stop shundan keyin kirish
+                   narxiga ko'tariladi (breakeven).
+        final_tp — YAKUNIY nishon. Signal shu yerda yopiladi va R/R
+                   shu bo'yicha o'lchanadi.
+
+    Bitta TP bo'lganda ikkalasi bir xil narx bo'ladi — bu to'g'ri:
+    birinchi nuqta ham, oxirgisi ham o'sha.
+    """
 
     entry: float
     stop: float
-    tp1: float
-    tp2: float
+    takes: tuple[TakeProfit, ...]
 
     def __post_init__(self) -> None:
-        if not (self.stop < self.entry < self.tp1 < self.tp2):
-            raise ValueError(
-                "Darajalar tartibi noto'g'ri. Spot/long uchun shart: "
-                f"Stop({self.stop}) < Entry({self.entry}) < TP1({self.tp1}) < TP2({self.tp2})"
-            )
+        if not self.takes:
+            raise ValueError("Kamida bitta TP bo'lishi kerak")
         if self.stop <= 0:
             raise ValueError("Narx musbat bo'lishi kerak")
+        if self.stop >= self.entry:
+            raise ValueError(
+                "Darajalar tartibi noto'g'ri. Spot/long uchun shart: "
+                f"Stop({self.stop}) < Entry({self.entry})"
+            )
+
+        oldingi = self.entry
+        for index, tp in enumerate(self.takes, start=1):
+            if tp.price <= oldingi:
+                raise ValueError(
+                    "Darajalar tartibi noto'g'ri. Spot/long uchun shart: "
+                    f"Entry({self.entry}) < TP1 < ... < TPn; "
+                    f"TP{index}({tp.price}) oldingi darajadan ({oldingi}) yuqori emas"
+                )
+            oldingi = tp.price
+
+        ulush = sum(tp.close_pct for tp in self.takes)
+        if abs(ulush - 100.0) > 0.01:
+            raise ValueError(
+                f"TP ulushlari yig'indisi 100% bo'lishi kerak, hozir {ulush:g}%"
+            )
+
+    # ------------------------------------------------------------------ #
+    #  O'qish
+    # ------------------------------------------------------------------ #
+
+    @property
+    def tp_count(self) -> int:
+        return len(self.takes)
+
+    @property
+    def tp1(self) -> float:
+        """BIRINCHI foyda nuqtasi — breakeven shundan keyin."""
+        return self.takes[0].price
+
+    @property
+    def final_tp(self) -> float:
+        """YAKUNIY nishon — signal shu yerda yopiladi."""
+        return self.takes[-1].price
+
+    @property
+    def tp_prices(self) -> tuple[float, ...]:
+        return tuple(tp.price for tp in self.takes)
 
     @property
     def stop_distance_pct(self) -> float:
-        """Entry'dan Stop'gacha masofa, foizda (3.3-band: 1% dan oshmasligi kerak)."""
+        """Entry'dan Stop'gacha masofa, foizda (3.3-band)."""
         return (self.entry - self.stop) / self.entry * 100
 
     @property
@@ -283,13 +357,70 @@ class SignalLevels:
         return (self.tp1 - self.entry) / self.entry * 100
 
     @property
-    def tp2_distance_pct(self) -> float:
-        return (self.tp2 - self.entry) / self.entry * 100
+    def final_tp_distance_pct(self) -> float:
+        return (self.final_tp - self.entry) / self.entry * 100
 
     @property
-    def risk_reward_tp2(self) -> float:
-        """TP2 kamida 1:3 bo'lishi kerak (3.3-band)."""
-        return (self.tp2 - self.entry) / (self.entry - self.stop)
+    def risk_reward(self) -> float:
+        """YAKUNIY nishon bo'yicha nisbat (3.3-band)."""
+        return (self.final_tp - self.entry) / (self.entry - self.stop)
+
+    def tp_price(self, index: int) -> float | None:
+        """1 dan boshlab nomerlangan TP narxi, yo'q bo'lsa `None`."""
+        if 1 <= index <= len(self.takes):
+            return self.takes[index - 1].price
+        return None
+
+
+#: TP soniga qarab standart ulushlar — SOZLAMA YO'Q joylar uchun.
+#:
+#: Ishlab chiqarish yo'li ulushni `portfolio.tp_close_shares` dan
+#: oladi. Bu jadval faqat testlar va qo'lda qurilgan darajalar
+#: uchun zaxira: raqam o'ylab topilmasin, lekin domen sozlamaga
+#: bog'lanib ham qolmasin (0.1-band).
+STANDART_TP_ULUSHLARI: dict[int, tuple[float, ...]] = {
+    1: (100.0,),
+    2: (50.0, 50.0),
+    3: (40.0, 30.0, 30.0),
+}
+
+
+def signal_levels(
+    entry: float,
+    stop: float,
+    tp1: float,
+    tp2: float | None = None,
+    tp3: float | None = None,
+    *,
+    shares: tuple[float, ...] | None = None,
+    from_structure: bool | tuple[bool, ...] = True,
+) -> SignalLevels:
+    """Narxlardan `SignalLevels` quradi — TP soni berilganiga qarab.
+
+    `tp2` va `tp3` ixtiyoriy: bitta TP ham to'liq signal. Ulush
+    berilmasa `STANDART_TP_ULUSHLARI` dan olinadi.
+    """
+    narxlar = [n for n in (tp1, tp2, tp3) if n is not None]
+    ulushlar = shares or STANDART_TP_ULUSHLARI.get(
+        len(narxlar), tuple(100.0 / len(narxlar) for _ in narxlar)
+    )
+    if len(ulushlar) != len(narxlar):
+        raise ValueError(
+            f"{len(narxlar)} ta TP uchun {len(ulushlar)} ta ulush berildi"
+        )
+    manbalar = (
+        from_structure
+        if isinstance(from_structure, tuple)
+        else (from_structure,) * len(narxlar)
+    )
+    return SignalLevels(
+        entry=entry,
+        stop=stop,
+        takes=tuple(
+            TakeProfit(price=narx, close_pct=ulush, from_structure=manba)
+            for narx, ulush, manba in zip(narxlar, ulushlar, manbalar, strict=True)
+        ),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -326,11 +457,24 @@ class Signal:
     activated_at: datetime | None = None
     closed_at: datetime | None = None
     signal_id: int | None = None
-    #: TP1 ga bir marta yetganmi. Nima uchun `status` yetarli emas: TP1 dan
-    #: keyin narx Stop'ga tushsa, `status` STOPPED bo'lib qoladi va "TP1
-    #: olingan edi" fakti yo'qoladi — qismli sotish esa hisobga olinishi
-    #: kerak (5.4-band).
-    tp1_reached: bool = False
+    #: Nechta TP ga yetilgan (0 dan `levels.tp_count` gacha).
+    #:
+    #: Ilgari bu yerda `tp1_reached: bool` turardi — u "TP ikkita"
+    #: degan taxminni ichiga yashirgan edi. Uchta TP bo'lganda
+    #: "birinchisiga yetdi" va "ikkinchisiga ham yetdi" bir xil
+    #: ko'rinardi.
+    reached_tps: int = 0
+
+    @property
+    def tp1_reached(self) -> bool:
+        """Birinchi TP ga yetildimi — breakeven va qismli sotish sharti.
+
+        Nima uchun `status` yetarli emas: TP dan keyin narx Stop'ga
+        tushsa, `status` STOPPED bo'lib qoladi va "TP olingan edi"
+        fakti yo'qoladi — qismli sotish esa hisobga olinishi kerak
+        (5.4-band).
+        """
+        return self.reached_tps >= 1
 
     @property
     def correlation_symbol(self) -> str:

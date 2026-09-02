@@ -19,6 +19,7 @@ from bot.main import build_dispatcher
 from bot.settings import BotSettings
 from core.config import load_config
 from core.domain.enums import SubscriptionTier
+from core.domain.models import signal_levels
 from core.storage import Database
 from core.storage.repositories import PriceRepository
 
@@ -234,7 +235,6 @@ async def test_admin_yuborilgan_signalni_bekor_qiladi(dispatcher, sinov_boti) ->
     mos kelmasa tugma jimgina "ishlamaydi" — bu test aynan shuni tutadi.
     """
     from core.domain.enums import SignalSource
-    from core.domain.models import SignalLevels
     from core.storage.repositories import SignalRepository
 
     bot, yozuv = sinov_boti
@@ -242,7 +242,7 @@ async def test_admin_yuborilgan_signalni_bekor_qiladi(dispatcher, sinov_boti) ->
     async with TEST_DB.session() as session:
         yozuv_signal = await SignalRepository(session).create(
             symbol="BTC",
-            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            levels=signal_levels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
             source=SignalSource.MANUAL,
         )
         signal_id = yozuv_signal.id
@@ -290,7 +290,6 @@ async def test_signallar_royxati_kech_qolganlarni_ochmaydi(dispatcher, sinov_bot
     o'sha joyda — kech kirish xavfni kamaytirmasdan foydani qisqartiradi.
     """
     from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
-    from core.domain.models import SignalLevels
     from core.storage.repositories import (
         SignalRepository,
         SubscriptionRepository,
@@ -307,12 +306,12 @@ async def test_signallar_royxati_kech_qolganlarni_ochmaydi(dispatcher, sinov_bot
         repo = SignalRepository(session)
         ochiq = await repo.create(
             symbol="AAA",
-            levels=SignalLevels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
+            levels=signal_levels(entry=100.0, stop=97.0, tp1=104.0, tp2=110.0),
             source=SignalSource.MANUAL,
         )
         kechikkan = await repo.create(
             symbol="BBB",
-            levels=SignalLevels(entry=50.0, stop=48.0, tp1=53.0, tp2=56.0),
+            levels=signal_levels(entry=50.0, stop=48.0, tp1=53.0, tp2=56.0),
             source=SignalSource.MANUAL,
         )
         await repo.apply_event(

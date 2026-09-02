@@ -249,7 +249,7 @@ def score_risk_reward(
     lekin 1:6 dan keyin to'yinadi: haddan tashqari uzoq TP amalda kamdan-kam
     ishlaydi.
     """
-    rr = levels.risk_reward_tp2
+    rr = levels.risk_reward
     minimal = rules.min_risk_reward
 
     if rr < minimal:

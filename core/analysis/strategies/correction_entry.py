@@ -47,7 +47,14 @@ from core.analysis.smc import (
 from core.analysis.strategies.base import Strategy, StrategyInput
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, TrendDirection
-from core.domain.models import Candle, ScoreBreakdown, ScoreComponent, SignalCandidate, SignalLevels
+from core.domain.models import (
+    Candle,
+    ScoreBreakdown,
+    ScoreComponent,
+    SignalCandidate,
+    SignalLevels,
+    signal_levels,
+)
 from core.utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -285,7 +292,7 @@ class CorrectionEntryStrategy(Strategy):
         eng_kichik_tp, eng_katta_tp, _, _ = correction_entry_trade_rules(self._config)
         for nom, masofa in (
             ("TP1", darajalar.tp1_distance_pct),
-            ("TP2", darajalar.tp2_distance_pct),
+            ("TP2", darajalar.final_tp_distance_pct),
         ):
             if masofa > eng_katta_tp:
                 return self._reject(
@@ -364,7 +371,7 @@ class CorrectionEntryStrategy(Strategy):
 
         tp1 = plan.entry + foyda / 2
         try:
-            return SignalLevels(entry=plan.entry, stop=plan.stop, tp1=tp1, tp2=tp2)
+            return signal_levels(entry=plan.entry, stop=plan.stop, tp1=tp1, tp2=tp2)
         except ValueError:
             return None
 

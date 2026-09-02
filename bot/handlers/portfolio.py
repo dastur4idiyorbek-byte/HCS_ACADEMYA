@@ -21,7 +21,7 @@ from bot.services.broadcast import hajm_taklifi
 from bot.states import PositionFlow
 from core.config.schema import AppConfig
 from core.domain.enums import SignalStatus, SubscriptionTier
-from core.domain.models import SignalLevels
+from core.domain.models import signal_levels
 from core.services import summarize
 from core.storage import Database
 from core.storage.repositories import (
@@ -57,7 +57,7 @@ def _hajm_taklifi(yozuv, balans: float | None, config: AppConfig) -> float | Non
     try:
         taklif = hajm_taklifi(
             yozuv.symbol,
-            SignalLevels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2),
+            signal_levels(yozuv.entry, yozuv.stop, yozuv.tp1, yozuv.tp2, yozuv.tp3),
             balans,
             config,
         )

@@ -462,15 +462,40 @@ class TradeRulesConfig:
     #: altcoin uchun ~0.3 ATR (shovqin yeb qo'yadi), barqaror coin
     #: uchun ~3 ATR (keraksiz keng, yaxshi setuplarni rad etadi).
     stop_atr_mult: float = 1.75
-    #: Ikkinchi darajali xavfsizlik chegarasi. ATR asosidagi Stop shu
-    #: oraliqdan chiqsa signal rad etiladi — juda tor yoki juda keng
-    #: bo'lib qolmasin.
+    #: FOIZ ORALIQLARI MAJBURIYMI.
+    #:
+    #: Loyiha egasining qarori (2026-09-02): "TP STOP FOIZLARI
+    #: MAJBURIY EMAS — RISK 1/3". Ya'ni bog'lovchi shart bitta —
+    #: `min_risk_reward`. Quyidagi foizlar esa MASOFA haqida, nisbat
+    #: haqida emas, va ular signalni to'sib qo'yishi mumkin:
+    #: haqiqiy support 5% dan uzoqroqda, haqiqiy resistance esa 3%
+    #: dan yaqinroqda bo'lishi butunlay normal.
+    #:
+    #: `False` bo'lganda oraliqlar SAQLANADI, lekin faqat izoh
+    #: sifatida — signal ular tufayli rad etilmaydi.
+    #:
+    #: DIQQAT: `min_stop_distance_pct` himoya vazifasini ham
+    #: bajarardi — juda tor Stop bozor shovqinida bekorga ishlaydi.
+    #: Bu himoya endi `stop_atr_mult` ga qoladi: Stop ATR ning
+    #: ko'paytmasi bilan qo'yiladi, ya'ni shovqin o'z birligida
+    #: o'lchanadi. Bu qat'iy foizdan to'g'riroq, lekin o'lchanmagan.
+    enforce_distance_bands: bool = False
+    #: Ikkinchi darajali xavfsizlik chegarasi (faqat
+    #: `enforce_distance_bands` yoqilganda ishlaydi).
     min_stop_distance_pct: float = 1.0
     #: Stop shu masofadan uzoq bo'lsa — pozitsiya juda kichrayib ketadi
     max_stop_distance_pct: float = 5.0
     #: TP Stop bilan bog'liq: `min_risk_reward` orqali hisoblanadi
     min_tp_distance_pct: float = 3.0
     max_tp_distance_pct: float = 20.0
+    #: Nechtagacha TP qurilsin — 1, 2 yoki 3.
+    #:
+    #: TP SONI QAT'IY EMAS. Bu yerdagi son — YUQORI CHEGARA, majburiy
+    #: miqdor emas: bozorda nechta haqiqiy nishon bo'lsa, shuncha TP
+    #: quriladi. Toza ko'tarilishda ustda bitta ham qarshilik
+    #: bo'lmasligi mumkin (u holda bitta o'lchangan TP), keng
+    #: diapazonda esa uchtasi bo'lishi mumkin.
+    max_take_profits: int = 2
     #: QAT'IY SHART: TP2/Stop nisbati shundan past bo'lsa signal yo'q
     min_risk_reward: float = 3.0
     #: TP1 uchun eng past nisbat. TP1 da pozitsiyaning yarmi yopiladi —
@@ -859,9 +884,45 @@ class StrategiesConfig:
 class PortfolioConfig:
     """5.4-band: "Men kirdim" va foyda/zarar hisobi."""
 
-    #: TP1 ga yetganda pozitsiyaning necha foizi yopiladi
-    tp1_close_pct: float = 50.0
+    #: Har bir TP da yopiladigan ulush — TP SONIGA qarab.
+    #:
+    #: Indeks = TP soni - 1, ya'ni birinchi qator bitta TP uchun,
+    #: ikkinchisi ikkita uchun va hokazo. Har bir qatorning
+    #: yig'indisi 100 bo'lishi shart.
+    #:
+    #: NIMA UCHUN JADVAL. Ilgari bu yerda bitta `tp1_close_pct: 50`
+    #: turardi va u "TP har doim ikkita" degan taxminni ichiga
+    #: yashirgan edi. TP soni 1 yoki 3 bo'lganda o'sha 50 raqami
+    #: ma'nosini yo'qotardi.
+    tp_close_shares: tuple[tuple[float, ...], ...] = (
+        (100.0,),                # bitta TP — hammasi shu yerda
+        (50.0, 50.0),            # ikkita — yarim-yarim
+        (40.0, 30.0, 30.0),      # uchta — birinchisi kattaroq
+    )
     min_position_usd: float = 1.0
+
+    def shares_for(self, count: int) -> tuple[float, ...]:
+        """`count` ta TP uchun ulushlar.
+
+        Jadvalda yo'q son so'ralsa teng bo'linadi — bu himoya
+        qatlami: noto'g'ri sozlama signalni yo'qotmasin, lekin
+        raqam ham o'ylab topilmasin.
+        """
+        if 1 <= count <= len(self.tp_close_shares):
+            return tuple(self.tp_close_shares[count - 1])
+        if count < 1:
+            raise ValueError("TP soni kamida 1 bo'lishi kerak")
+        return tuple(100.0 / count for _ in range(count))
+
+    @property
+    def tp1_close_pct(self) -> float:
+        """Ikkita TP bo'lganda BIRINCHISIDA yopiladigan ulush.
+
+        Eski nom saqlanadi, chunki u ko'p joyda parametr sifatida
+        uzatiladi. Lekin endi u mustaqil raqam emas — jadvaldan
+        o'qiladi, ya'ni manba bitta.
+        """
+        return self.shares_for(2)[0]
 
 
 # --------------------------------------------------------------------------- #

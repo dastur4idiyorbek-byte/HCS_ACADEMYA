@@ -14,7 +14,7 @@ import pytest
 from bot.services import SignalWatcher
 from core.config import load_config
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
-from core.domain.models import PriceTick, SignalLevels
+from core.domain.models import PriceTick, signal_levels
 from core.market_data import PriceStream
 from core.storage import Database
 from core.storage.repositories import (
@@ -75,7 +75,7 @@ async def _signal_yarat(db: Database, symbol: str = "BTC", entry: float = 100.0)
     async with db.session() as session:
         yozuv = await SignalRepository(session).create(
             symbol=symbol,
-            levels=SignalLevels(
+            levels=signal_levels(
                 entry=entry, stop=entry * 0.99, tp1=entry * 1.03, tp2=entry * 1.05
             ),
             source=SignalSource.MANUAL,

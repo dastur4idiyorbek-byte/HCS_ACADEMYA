@@ -15,6 +15,7 @@ from core.domain.models import (
     Signal,
     SignalCandidate,
     SignalLevels,
+    signal_levels,
 )
 from core.pipeline import SignalMonitor
 
@@ -22,7 +23,7 @@ HOZIR = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
 
 
 def darajalar() -> SignalLevels:
-    return SignalLevels(entry=100, stop=99.2, tp1=103.5, tp2=104.5)
+    return signal_levels(entry=100, stop=99.2, tp1=103.5, tp2=104.5)
 
 
 def signal(symbol: str = "BTC", score: float | None = 85.0) -> Signal:

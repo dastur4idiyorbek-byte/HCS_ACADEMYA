@@ -121,7 +121,25 @@ export function kotirovka(): string {
  * ko'rsatardi va foydalanuvchi qaysi biriga ishonishni bilmasdi.
  */
 export function tp1Ulushi(): number {
-  return yol(["portfolio", "tp1_close_pct"], 50);
+  return tpUlushlari(2)[0];
+}
+
+/** `count` ta TP uchun ulushlar jadvali.
+ *
+ * TP soni qat'iy emas — 1, 2 yoki 3 bo'lishi mumkin. Ulushlar
+ * botdagi `portfolio.tp_close_shares` bilan BIR XIL manbadan
+ * o'qiladi: ilgari sayt "TP2 = 100 dan qolgani" deb o'zi
+ * hisoblardi va uchinchi TP unga sig'masdi.
+ */
+export function tpUlushlari(count: number): number[] {
+  const jadval = yol(["portfolio", "tp_close_shares"], null) as
+    | number[][]
+    | null;
+  const qator = jadval?.[count - 1];
+  if (Array.isArray(qator) && qator.length === count) {
+    return qator.map(Number);
+  }
+  return Array.from({ length: count }, () => 100 / count);
 }
 
 /** Eng kichik pozitsiya hajmi (USD).

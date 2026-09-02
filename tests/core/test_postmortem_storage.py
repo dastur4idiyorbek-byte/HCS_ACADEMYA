@@ -8,7 +8,7 @@ import pytest
 
 from core.analysis.postmortem import Outcome
 from core.domain.enums import SignalSource, SignalStatus
-from core.domain.models import SignalLevels
+from core.domain.models import signal_levels
 from core.storage import Database
 from core.storage.repositories import SignalRepository
 
@@ -33,7 +33,7 @@ async def signal_yarat(
     async with db.session() as session:
         yozuv = await SignalRepository(session).create(
             symbol=symbol,
-            levels=SignalLevels(entry=100, stop=99.2, tp1=103, tp2=104),
+            levels=signal_levels(entry=100, stop=99.2, tp1=103, tp2=104),
             source=source,
             score=score,
             market_health=health,

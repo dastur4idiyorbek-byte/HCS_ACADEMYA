@@ -191,7 +191,7 @@ def test_qulay_sharoitda_nomzod_chiqadi(config) -> None:  # noqa: ANN001
     )
     assert natija.symbol == "BTC"
     assert natija.score > 0
-    assert natija.levels.stop < natija.levels.entry < natija.levels.tp1 < natija.levels.tp2
+    assert natija.levels.stop < natija.levels.entry < natija.levels.tp1 < natija.levels.final_tp
     # Shkala: bazaviy 100 + CryptoSpot3% bonuslari
     assert natija.breakdown.base_total <= 100
     assert natija.breakdown.maximum == pytest.approx(
@@ -216,12 +216,17 @@ def test_nomzod_uchta_qatlamdan_otadi(config) -> None:  # noqa: ANN001
 
 
 def test_darajalar_uchinchi_band_chegaralariga_mos(config) -> None:  # noqa: ANN001
-    """3.3-band chegaralari, STRATEGIYA qiymatlari bilan.
+    """3.3-band: BOG'LOVCHI SHART — nisbat, masofa emas.
 
-    Nisbat endi strategiya darajasida: mean reversion 1:1.5, global 1:3.
+    Nisbat strategiya darajasida: mean reversion 1:1.5, global 1:3.
     Darajalarni qurish va tekshirish AYNAN bir xil qiymatga tayanishi
-    kerak, aks holda TP2 bir nisbat bo'yicha quriladi, boshqasi bo'yicha
-    rad etiladi.
+    kerak, aks holda yakuniy nishon bir nisbat bo'yicha quriladi,
+    boshqasi bo'yicha rad etiladi.
+
+    FOIZ ORALIQLARI BU YERDA TEKSHIRILMAYDI. Loyiha egasining qarori
+    (2026-09-02): "TP STOP FOIZLARI MAJBURIY EMAS — RISK 1/3". Ular
+    `enforce_distance_bands` ostida qoldi va o'z testiga ega
+    (`test_foiz_oraliqlari_majburiy_emas.py`).
     """
     from core.analysis.strategies.classic_ta import classic_ta_rules
 
@@ -230,9 +235,9 @@ def test_darajalar_uchinchi_band_chegaralariga_mos(config) -> None:  # noqa: ANN
 
     qoidalar = classic_ta_rules(config)
     darajalar = natija.levels
-    assert darajalar.stop_distance_pct <= qoidalar.max_stop_distance_pct
-    assert qoidalar.min_tp_distance_pct <= darajalar.tp1_distance_pct <= qoidalar.max_tp_distance_pct
-    assert darajalar.risk_reward_tp2 >= qoidalar.min_risk_reward
+
+    assert darajalar.stop < darajalar.entry < darajalar.tp1
+    assert darajalar.risk_reward >= qoidalar.min_risk_reward
 
 
 def _bayroq_bilan(config, **indikator_maydonlari):  # noqa: ANN001, ANN201
@@ -428,7 +433,7 @@ def test_indikator_tasdigi_bolmasa_ham_daraja_quriladi(config) -> None:  # noqa:
     darajalar = natija.levels
     assert qoidalar.min_stop_distance_pct <= darajalar.stop_distance_pct
     assert darajalar.stop_distance_pct <= qoidalar.max_stop_distance_pct
-    assert darajalar.risk_reward_tp2 >= qoidalar.min_risk_reward
+    assert darajalar.risk_reward >= qoidalar.min_risk_reward
 
 
 # --------------------------------------------------------------------------- #

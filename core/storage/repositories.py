@@ -36,6 +36,7 @@ from core.domain.models import (
     Signal,
     SignalLevels,
     outcome_from_status,
+    signal_levels,
 )
 from core.domain.portfolio import (
     PositionOutcome,
@@ -503,7 +504,8 @@ class SignalRepository:
             entry=levels.entry,
             stop=levels.stop,
             tp1=levels.tp1,
-            tp2=levels.tp2,
+            tp2=levels.tp_price(2),
+            tp3=levels.tp_price(3),
             entry_order_type=(entry_plan.order_type if entry_plan else OrderType.LIMIT).value,
             price_at_signal=entry_plan.current_price if entry_plan else None,
             score=score,
@@ -567,6 +569,7 @@ class SignalRepository:
         yozuv.status = status.value
         if status is SignalStatus.TP1_HIT:
             yozuv.tp1_reached = True
+            yozuv.reached_tps = max(yozuv.reached_tps or 0, 1)
         if status is SignalStatus.ACTIVE and yozuv.activated_at is None:
             yozuv.activated_at = at
         if status.is_closed:
@@ -704,8 +707,12 @@ class SignalRepository:
         """DB yozuvidan domain obyektiga — kuzatuvchi shu tipni kutadi."""
         return Signal(
             symbol=record.symbol,
-            levels=SignalLevels(
-                entry=record.entry, stop=record.stop, tp1=record.tp1, tp2=record.tp2
+            levels=signal_levels(
+                entry=record.entry,
+                stop=record.stop,
+                tp1=record.tp1,
+                tp2=record.tp2,
+                tp3=record.tp3,
             ),
             source=SignalSource(record.source),
             status=SignalStatus(record.status),
@@ -716,9 +723,9 @@ class SignalRepository:
             activated_at=record.activated_at,
             closed_at=record.closed_at,
             signal_id=record.id,
-            # Ustundan o'qiladi: status TP1 dan keyin o'zgarishi mumkin
+            # Ustundan o'qiladi: status TP dan keyin o'zgarishi mumkin
             # (STOPPED, WEAKENING) va fakt yo'qolardi.
-            tp1_reached=bool(record.tp1_reached),
+            reached_tps=int(record.reached_tps or (1 if record.tp1_reached else 0)),
         )
 
 

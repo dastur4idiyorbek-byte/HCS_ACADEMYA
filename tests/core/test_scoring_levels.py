@@ -19,7 +19,12 @@ from core.config.schema import TradeRulesConfig
 from core.domain.enums import ZoneKind
 from core.domain.models import SRZone
 
+#: Bu fayl AYNAN foiz oraliqlari haqida, shuning uchun ular ataylab
+#: YOQILGAN. Standart holatda ular majburiy emas (loyiha egasining
+#: qarori: "TP STOP FOIZLARI MAJBURIY EMAS — RISK 1/3") va o'sha
+#: holat `test_foiz_oraliqlari_majburiy_emas.py` da sinaladi.
 QOIDALAR = TradeRulesConfig(
+    enforce_distance_bands=True,
     min_stop_distance_pct=1.0,
     max_stop_distance_pct=5.0,
     min_tp_distance_pct=3.0,
@@ -65,7 +70,7 @@ def test_darajalar_sr_asosida_quriladi() -> None:
         <= darajalar.stop_distance_pct
         <= QOIDALAR.max_stop_distance_pct
     )
-    assert darajalar.risk_reward_tp2 == pytest.approx(QOIDALAR.min_risk_reward, rel=1e-6)
+    assert darajalar.risk_reward == pytest.approx(QOIDALAR.min_risk_reward, rel=1e-6)
 
 
 def test_stop_zonaning_ichiga_qoyilmaydi() -> None:
@@ -80,7 +85,7 @@ def test_tp_oraligi_hurmat_qilinadi() -> None:
     natija = build_levels(xarita(), QOIDALAR)
     darajalar = natija.levels
 
-    for masofa in (darajalar.tp1_distance_pct, darajalar.tp2_distance_pct):
+    for masofa in (darajalar.tp1_distance_pct, darajalar.final_tp_distance_pct):
         assert QOIDALAR.min_tp_distance_pct <= masofa <= QOIDALAR.max_tp_distance_pct
 
 
@@ -118,7 +123,7 @@ def test_stop_oraliq_ichida_erkin_joylashadi() -> None:
 
         assert natija.ok, f"support {support_low}: {natija.reason}"
         assert natija.levels.stop_distance_pct == pytest.approx(kutilgan_stop, abs=0.01)
-        assert natija.levels.risk_reward_tp2 >= QOIDALAR.min_risk_reward - 1e-9
+        assert natija.levels.risk_reward >= QOIDALAR.min_risk_reward - 1e-9
 
 
 def test_mos_resistance_yoq_bolsa_olchangan_tp() -> None:

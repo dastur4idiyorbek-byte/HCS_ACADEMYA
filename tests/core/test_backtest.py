@@ -23,7 +23,7 @@ from core.backtest import (
     render,
 )
 from core.config import load_config
-from core.domain.models import Candle
+from core.domain.models import Candle, signal_levels
 
 BOSH = datetime(2025, 1, 1, tzinfo=UTC)
 
@@ -597,15 +597,15 @@ def test_natijadan_xarajat_ayriladi() -> None:
     natijani tizimli ravishda chiroyliroq ko'rsatardi.
     """
 
-    from core.domain.models import Signal, SignalLevels
+    from core.domain.models import Signal
 
     config = load_config()
-    darajalar = SignalLevels(entry=100.0, stop=98.0, tp1=103.0, tp2=106.0)
+    darajalar = signal_levels(entry=100.0, stop=98.0, tp1=103.0, tp2=106.0)
     signal = Signal(symbol="BTC", levels=darajalar, source="classic_ta", score=70.0)
 
     motor = Backtester(config)
-    xom = motor._xom_natija(signal, 106.0, reached_tp1=True)
-    sof = motor._result_pct(signal, 106.0, reached_tp1=True)
+    xom = motor._xom_natija(signal, 106.0, reached=1)
+    sof = motor._result_pct(signal, 106.0, reached=1)
 
     assert xom > 0
     assert sof == pytest.approx(xom - config.backtest.round_trip_cost_pct)
@@ -629,17 +629,17 @@ def test_xarajat_nolga_tushirilishi_mumkin() -> None:
     import dataclasses
 
     from core.config.schema import BacktestConfig
-    from core.domain.models import Signal, SignalLevels
+    from core.domain.models import Signal
 
     config = dataclasses.replace(
         load_config(), backtest=BacktestConfig(fee_pct=0.0, slippage_pct=0.0)
     )
-    darajalar = SignalLevels(entry=100.0, stop=98.0, tp1=103.0, tp2=106.0)
+    darajalar = signal_levels(entry=100.0, stop=98.0, tp1=103.0, tp2=106.0)
     signal = Signal(symbol="BTC", levels=darajalar, source="classic_ta", score=70.0)
 
     motor = Backtester(config)
 
-    assert motor._result_pct(signal, 106.0, reached_tp1=False) == pytest.approx(6.0)
+    assert motor._result_pct(signal, 106.0, reached=0) == pytest.approx(6.0)
 
 
 # --------------------------------------------------------------------------- #

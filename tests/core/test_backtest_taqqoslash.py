@@ -151,7 +151,7 @@ def test_boshqa_sozlamalar_tegilmaydi(config) -> None:  # noqa: ANN001
     for _nom, variant in _variantlar(config):
         assert variant.market_health == config.market_health
         assert variant.backtest == config.backtest
-        assert variant.trade_rules == config.trade_rules
+        assert variant.portfolio == config.portfolio
         assert variant.risk_engine == config.risk_engine
 
 
