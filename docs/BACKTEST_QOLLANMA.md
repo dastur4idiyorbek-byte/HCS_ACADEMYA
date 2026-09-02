@@ -20,6 +20,53 @@ Qaysi biri yaxshi? Buni faqat tarixiy ma'lumot aytadi.
 
 ---
 
+## TERMINALSIZ — eng sodda ikki yo'l
+
+Buyruq yozishni umuman xohlamasangiz, ikkita tayyor yo'l bor.
+
+### A. Fayl ustiga bosish (Windows)
+
+Loyiha papkasida **`BACKTEST.bat`** fayli bor.
+
+1. Uning ustiga **ikki marta bosing**
+2. Qora oyna ochiladi va o'zi hamma narsani qiladi
+3. Tugagach o'sha papkada **`natija.txt`** paydo bo'ladi
+4. Shu faylni Claude'ga tashlang
+
+Birinchi marta 10–20 daqiqa oladi (muhit quriladi, ma'lumot yuklanadi).
+**Oynani yopmang.** Keyingi safar ancha tez ishlaydi.
+
+Faqat bitta shart: kompyuterda **Python 3.11** o'rnatilgan bo'lsin
+(python.org/downloads, o'rnatishda "Add python.exe to PATH" katagini
+belgilang). Fayl buni o'zi tekshiradi va topmasa aytadi.
+
+Loyihani yuklab olish: GitHub sahifasida yashil **Code** tugmasi →
+**Download ZIP** → papkani chiqaring.
+
+### B. Butunlay brauzerda (GitHub Actions)
+
+Kompyuterga hech narsa o'rnatilmaydi. Hammasi GitHub serverida
+ishlaydi.
+
+1. GitHub'da loyihaga kiring
+2. Yuqoridagi **Actions** bo'limini bosing
+3. Chap tomondan **Backtest** ni tanlang
+4. O'ng tomondagi **Run workflow** tugmasini bosing
+5. Kerak bo'lsa kunlar sonini o'zgartiring, yana **Run workflow**
+6. 10–30 daqiqa kuting (sahifa o'zi yangilanadi)
+7. Tugagach o'sha sahifaning pastida **backtest-natija** faylini
+   yuklab oling
+
+Telefondan ham bo'ladi.
+
+> **Eslatma.** GitHub serverlari AQShda va Binance u yerga `451`
+> qaytarishi mumkin. Shuning uchun standart manba
+> `data-api.binance.vision` qilib qo'yilgan. Agar baribir xato chiqsa
+> — menga ayting, boshqa manbani sinaymiz. Bu yo'lni men sinay
+> olmadim: bu muhitda tarmoq yopiq.
+
+---
+
 ## 1-qadam. Kodni yangilash (Linux / macOS)
 
 > Windows'da bo'lsangiz — pastdagi **Windows (PowerShell)** bo'limiga
@@ -182,6 +229,9 @@ CE: R/R 2.5                     52     50     58%   +1.11    +55.5      9.1%
 
 > Yuqoridagi raqamlar — MISOL, haqiqiy natija emas. Sizniki boshqacha
 > chiqadi.
+
+Xuddi shu matn **`natija.txt`** fayliga ham yoziladi — oyna
+yopilsa ham yo'qolmaydi. Shu faylni menga tashlasangiz kifoya.
 
 Ustunlar ma'nosi:
 

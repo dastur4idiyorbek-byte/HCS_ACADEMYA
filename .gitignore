@@ -31,3 +31,6 @@ logs/
 .idea/
 .vscode/
 .DS_Store
+
+# Backtest natijasi (BACKTEST.bat yozadi)
+natija.txt

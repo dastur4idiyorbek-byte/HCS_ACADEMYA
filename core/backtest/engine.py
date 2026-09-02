@@ -25,7 +25,7 @@ from core.analysis.strategies import build_strategies
 from core.backtest.dataset import Dataset
 from core.config.schema import AppConfig
 from core.domain.enums import SignalStatus
-from core.domain.models import HalalVerdict, Signal
+from core.domain.models import Candle, HalalVerdict, Signal
 from core.pipeline import CycleInput, SignalCycle, SymbolData
 from core.signals import SignalEventKind, SignalTracker
 from core.utils.logging_setup import get_logger
@@ -444,6 +444,20 @@ class Backtester:
         qolgan = (exit_price - entry) / entry * 100
         return tp1_foizi * ulush + qolgan * (1 - ulush)
 
+    def _etalon_shamlar(
+        self, dataset: Dataset, moment: datetime, timeframe: str
+    ) -> list[Candle]:
+        """QT davri uchun etalon coin (BTC) shamlari.
+
+        Jonli tizim ham aynan shu coinni va shu timeframeni ishlatadi
+        (`bot/services/runner.py`). Etalon dataset'da bo'lmasa —
+        bo'sh ro'yxat: davr aniqlanmaydi va omil neytral qoladi.
+        """
+        etalon = self._config.risk_engine.btc_filter.reference_symbol.upper()
+        if etalon not in dataset.series:
+            return []
+        return dataset.window(etalon, moment).get(timeframe, [])
+
     def _build_input(
         self,
         dataset: Dataset,
@@ -453,6 +467,14 @@ class Backtester:
         entry_tf: str,
     ) -> CycleInput:
         indicators = self._config.analysis.indicators
+        # Bozor Salomatligi O'Z timeframeida o'lchanadi — jonli tizimda
+        # ham shunday (`bot/services/runner.py`). Ilgari backtest uni
+        # kirish timeframeidan (4h) hisoblardi: ya'ni jonli tizim
+        # HAFTALIK strukturani, backtest esa 4 SOATLIK strukturani
+        # ko'rardi. Indeks butun rejim tanlovini boshqarganidan keyin
+        # bu farq backtest javobini ishonchsiz qilardi — o'lchanayotgan
+        # narsa jonlidagi narsa emas edi.
+        salomatlik_tf = self._config.analysis.market_health_timeframe
         coinlar = []
         adx_qiymatlari = {}
         atr_qiymatlari = {}
@@ -485,8 +507,14 @@ class Backtester:
                 atr_qiymatlari[symbol] = atr
             # 3.7-band, ASOSIY omil: SMC strukturasi. Bu "katta rasm
             # ko'tarilishdami" degan REJIM savoli, kirish qarori emas.
+            # Shuning uchun u salomatlik timeframeida o'lchanadi;
+            # ma'lumot bo'lmasa — jonli tizimdagidek kirish
+            # timeframeiga qaytadi.
+            kenglik_seriyasi = oyna.get(salomatlik_tf) or seriya
+            if len(kenglik_seriyasi) < indicators.min_candles:
+                continue
             strukturalar[symbol] = analyze_structure(
-                seriya,
+                kenglik_seriyasi,
                 self._config.analysis.market_structure.swing_lookback,
                 self._config.analysis.market_structure.min_swings,
                 self._config.analysis.market_structure.fallback_min_pct,
@@ -504,6 +532,11 @@ class Backtester:
                 btc_dominance_change_24h=0.0,
                 universe_structures=strukturalar,
                 universe_adx=adx_qiymatlari,
+                # QT davri sham strukturasidan o'qiladi. Bu qator
+                # yo'q edi va omil backtestda HAR DOIM neytral
+                # qolardi — ya'ni jonli tizimda ta'sir qiladigan
+                # narsa sinovda umuman o'lchanmasdi.
+                reference_candles=self._etalon_shamlar(dataset, moment, salomatlik_tf),
                 capacity=None,
                 open_signals=len(ochiqlar),
                 max_open_signals=limitlar.high,

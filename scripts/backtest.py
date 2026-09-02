@@ -97,16 +97,26 @@ def _keshga_yozish(symbol: str, timeframe: str, candles: list[Candle]) -> None:
 
 
 def _kerakli_timeframelar(config: AppConfig) -> list[str]:
-    """Taqqoslashdagi HAR BIR variant uchun kerak bo'ladigan timeframelar.
+    """Backtest uchun kerak bo'ladigan BARCHA timeframelar.
 
     `enabled_only=False` ataylab: `correction_entry` konfiguratsiyada
     o'chirilgan bo'lsa ham uning 4h/15m/1d ma'lumoti yuklanishi kerak,
     aks holda taqqoslashda yangi variant "ma'lumot yo'q" deb bo'sh
     natija berardi va biz uni "yomon strategiya" deb o'qib qo'yardik.
+
+    Strategiyalar so'raganiga BOZOR SALOMATLIGI timeframei ham
+    qo'shiladi. U hech bir strategiyaning ro'yxatida yo'q — indeks
+    strategiyadan tashqarida hisoblanadi — lekin aynan u rejimni
+    tanlaydi. Yuklanmasa, backtest indeksni boshqa timeframedan
+    o'lchardi va javob jonli tizimnikiga to'g'ri kelmasdi.
     """
     from core.analysis.strategies import build_strategies, required_timeframes
 
-    return sorted(required_timeframes(build_strategies(config, enabled_only=False)))
+    kerakli = required_timeframes(build_strategies(config, enabled_only=False))
+    kerakli.add(config.analysis.entry_timeframe)
+    kerakli.add(config.analysis.market_health_timeframe)
+    kerakli.update(config.analysis.htf_confirmation)
+    return sorted(kerakli)
 
 
 def _keshdan_yigish(symbols: list[str], timeframelar: list[str]) -> Dataset:
@@ -206,6 +216,32 @@ def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
     ]
 
 
+class Chiqish:
+    """Hisobotni bir vaqtda ekranga ham, faylga ham yozadi.
+
+    Nima uchun kerak: backtest terminalsiz — masalan `BACKTEST.bat`
+    ustiga bosib yoki GitHub Actions orqali — ishga tushirilganda
+    ekrandagi matn oyna yopilishi bilan yo'qoladi. Natijani birov
+    bilan bo'lishish uchun esa u FAYLDA turishi kerak.
+    """
+
+    def __init__(self, yol: Path | None) -> None:
+        self._satrlar: list[str] = []
+        self._yol = yol
+
+    def __call__(self, matn: str = "") -> None:
+        print(matn)
+        if self._yol is not None:
+            self._satrlar.append(matn)
+
+    def saqla(self) -> None:
+        if self._yol is None:
+            return
+        self._yol.parent.mkdir(parents=True, exist_ok=True)
+        self._yol.write_text("\n".join(self._satrlar) + "\n", encoding="utf-8")
+        print(f"\nNatija saqlandi: {self._yol}")
+
+
 # --------------------------------------------------------------------------- #
 #  Asosiy
 # --------------------------------------------------------------------------- #
@@ -222,11 +258,33 @@ async def main() -> None:
         action="store_true",
         help="tarmoqqa chiqmaslik — faqat data/candles/ dagi kesh",
     )
+    parser.add_argument(
+        "--output",
+        default=None,
+        help="hisobotni shu faylga ham yozadi (masalan natija.txt)",
+    )
+    parser.add_argument(
+        "--base-url",
+        default=None,
+        help=(
+            "Binance REST manzili. Ba'zi mamlakatlar va bulut serverlaridan "
+            "api.binance.com yopiq bo'ladi (451) — o'shanda "
+            "https://data-api.binance.vision ni bering"
+        ),
+    )
     parser.add_argument("--max-steps", type=int, default=None)
     argumentlar = parser.parse_args()
 
     setup_logging(level="INFO")
     config = load_config()
+    if argumentlar.base_url:
+        config = dataclasses.replace(
+            config,
+            market_data=dataclasses.replace(
+                config.market_data, rest_base_url=argumentlar.base_url.rstrip("/")
+            ),
+        )
+    yoz = Chiqish(Path(argumentlar.output) if argumentlar.output else None)
     coinlar = [s.strip().upper() for s in argumentlar.symbols.split(",") if s.strip()]
 
     print(f"Ma'lumot tayyorlanmoqda: {', '.join(coinlar)} ({argumentlar.days} kun)\n")
@@ -247,7 +305,8 @@ async def main() -> None:
 
     if not argumentlar.compare:
         natija = Backtester(config).run(dataset, max_steps=argumentlar.max_steps)
-        print(render(natija))
+        yoz(render(natija))
+        yoz.saqla()
         return
 
     natijalar = []
@@ -257,13 +316,15 @@ async def main() -> None:
             Backtester(variant, label=nom).run(dataset, max_steps=argumentlar.max_steps)
         )
 
-    print()
-    print(compare(natijalar))
-    print()
+    yoz(f"Coinlar: {', '.join(coinlar)} | {argumentlar.days} kun | {qadamlar:,} qadam")
+    yoz()
+    yoz(compare(natijalar))
+    yoz()
     for natija in natijalar:
         if natija.closed:
-            print(render(natija))
-            print()
+            yoz(render(natija))
+            yoz()
+    yoz.saqla()
 
 
 if __name__ == "__main__":

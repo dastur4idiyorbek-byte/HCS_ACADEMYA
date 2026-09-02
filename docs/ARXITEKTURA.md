@@ -4231,7 +4231,53 @@ bormasdi. Cho'qqi 145 ga tushirildi.
 
 ---
 
-## 68. Bosqichlar holati
+## 68. Backtest jonli tizim bilan bir xil narsani o'lchamas edi
+
+Terminalsiz ishga tushirish yo'lini qurayotib topildi.
+
+**Bozor Salomatligi noto'g'ri timeframedan o'lchanardi.** Jonli tizim
+(`bot/services/runner.py`) struktura kengligini `market_health_timeframe`
+(haftalik) qatordan hisoblaydi. Backtest esa uni KIRISH timeframeidan
+(4 soatlik) hisoblardi. Ya'ni:
+
+| | Jonli | Backtest (eski) |
+|---|---|---|
+| Kenglik qatori | haftalik | 4 soatlik |
+| QT davri | haftalikdan o'qiladi | **umuman berilmasdi** |
+
+63-bo'limdan keyin indeks butun REJIMNI tanlaydi. Demak backtest
+boshqa indeks bo'yicha boshqa rejimda ishlardi va uning javobi jonli
+xatti-harakat haqida hech narsa aytmasdi. Bu — 66-bo'limdagi
+taqqoslashning ma'nosini yo'q qiladigan xato edi.
+
+Endi `_build_input()` kenglikni salomatlik timeframeidan o'qiydi
+(ma'lumot bo'lmasa — jonli tizimdagidek kirish timeframeiga qaytadi)
+va `reference_candles` ni ham beradi, ya'ni QT omili sinovda ham
+ishlaydi.
+
+Ma'lumot yuklovchi ham tuzatildi: `_kerakli_timeframelar()` endi
+strategiyalar so'ragan qatorlarga salomatlik timeframeini QO'SHADI.
+U hech bir strategiyaning ro'yxatida yo'q — indeks strategiyadan
+tashqarida hisoblanadi — shuning uchun jimgina yuklanmay qolardi.
+
+**Terminalsiz ishga tushirish.** Loyiha egasi buyruq qatori bilan
+ishlamasligi mumkin, backtest esa MAJBURIY qadam. Ikki yo'l qo'shildi:
+
+- `BACKTEST.bat` — Windows'da ikki marta bosiladi. Muhitni o'zi
+  quradi va `natija.txt` yozadi. PowerShell'ning ijro siyosati
+  muammosi chetlab o'tilgan: `activate` umuman ishlatilmaydi.
+- `.github/workflows/backtest.yml` — GitHub Actions, brauzerda
+  ishlaydi va natijani fayl sifatida beradi. Manba
+  `data-api.binance.vision`, chunki GitHub serverlari AQShda va
+  `api.binance.com` u yerga 451 qaytaradi.
+
+Skriptga ikkita bayroq qo'shildi: `--output` (hisobotni faylga ham
+yozadi — oyna yopilsa yo'qolmasin) va `--base-url` (manbani
+almashtirish).
+
+---
+
+## 69. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

@@ -210,3 +210,132 @@ def test_har_bir_variant_backtestda_ishga_tushadi() -> None:
         natija = Backtester(variant, label=nom).run(dataset, max_steps=300)
         assert natija.label == nom
         assert natija.steps > 0, f"{nom}: birorta qadam bajarilmadi"
+
+
+# --------------------------------------------------------------------------- #
+#  Backtest jonli tizim bilan BIR XIL narsani o'lchashi kerak
+# --------------------------------------------------------------------------- #
+
+
+def test_salomatlik_timeframei_ham_yuklanadi(config) -> None:  # noqa: ANN001
+    """Indeks timeframei hech bir strategiyaning ro'yxatida yo'q.
+
+    U strategiyadan tashqarida hisoblanadi — lekin aynan u rejimni
+    tanlaydi. Yuklanmasa, backtest indeksni boshqa timeframedan
+    o'lchardi va butun taqqoslash boshqa savolga javob berardi.
+    """
+    timeframelar = _kerakli_timeframelar(config)
+
+    assert config.analysis.market_health_timeframe in timeframelar
+    assert config.analysis.entry_timeframe in timeframelar
+    for tf in config.analysis.htf_confirmation:
+        assert tf in timeframelar
+
+
+def test_indeks_oz_timeframeida_olchanadi() -> None:
+    """Jonli tizim HAFTALIK strukturani ko'radi — backtest ham shunday.
+
+    Ilgari backtest kirish timeframeidan (4h) o'lchardi. Indeks butun
+    rejim tanlovini boshqarganidan keyin bu farq javobni ishonchsiz
+    qilardi: o'lchanayotgan narsa jonlidagi narsa emas edi.
+
+    Sinov shunday qurilgan: 4 soatlik qator KO'TARILISHDA, haftalik
+    qator PASAYISHDA. Agar struktura noto'g'ri timeframedan olinsa,
+    kenglik 100% chiqadi va indeks baland bo'ladi.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from core.analysis.market_structure import analyze_structure
+    from core.backtest import Backtester, Dataset
+    from core.domain.enums import TrendDirection
+    from core.domain.models import Candle
+    from core.signals import SignalTracker
+
+    bosh = datetime(2025, 1, 1, tzinfo=UTC)
+
+    def qator(n: int, qadam: float, soat: int) -> list[Candle]:
+        shamlar = []
+        narx = 100.0
+        for i in range(n):
+            keyingi = narx + qadam if i % 3 else narx + qadam * 0.4
+            shamlar.append(
+                Candle(
+                    open_time=bosh + timedelta(hours=soat * i),
+                    open=narx,
+                    high=max(narx, keyingi) + 0.5,
+                    low=min(narx, keyingi) - 0.5,
+                    close=keyingi,
+                    volume=1000.0,
+                )
+            )
+            narx = keyingi
+        return shamlar
+
+    config = load_config()
+    kirish_tf = config.analysis.entry_timeframe
+    salomatlik_tf = config.analysis.market_health_timeframe
+
+    ds = Dataset()
+    ds.add("BTC", kirish_tf, qator(200, +2.0, 4))
+    ds.add("BTC", salomatlik_tf, qator(200, -2.0, 168))
+
+    lahza = bosh + timedelta(days=400)
+
+    # Sinov sharti: ikki qator HAQIQATAN qarama-qarshi
+    oyna = ds.window("BTC", lahza)
+    assert analyze_structure(oyna[kirish_tf]).direction is TrendDirection.UP
+    assert analyze_structure(oyna[salomatlik_tf]).direction is not TrendDirection.UP
+
+    kirish = Backtester(config)._build_input(
+        ds, lahza, SignalTracker(config), {}, kirish_tf
+    )
+
+    assert kirish.market_health is not None
+    assert kirish.market_health.value < 60, (
+        "haftalik qator pasayishda — indeks baland bo'lsa, struktura "
+        "kirish timeframeidan olinyapti"
+    )
+
+
+def test_qt_davri_uchun_etalon_shamlar_beriladi() -> None:
+    """QT omili backtestda HAR DOIM neytral qolardi.
+
+    `reference_candles` umuman berilmasdi, ya'ni jonli tizimda ballga
+    ta'sir qiladigan omil sinovda o'lchanmasdi. Sinov natijasi esa
+    aynan jonli xatti-harakatni bashorat qilishi kerak.
+    """
+    from datetime import UTC, datetime, timedelta
+
+    from core.backtest import Backtester, Dataset
+    from core.domain.models import Candle
+
+    bosh = datetime(2025, 1, 1, tzinfo=UTC)
+    config = load_config()
+    etalon = config.risk_engine.btc_filter.reference_symbol.upper()
+
+    shamlar = [
+        Candle(
+            open_time=bosh + timedelta(hours=168 * i),
+            open=100.0 + i,
+            high=101.0 + i,
+            low=99.0 + i,
+            close=100.5 + i,
+            volume=1000.0,
+        )
+        for i in range(80)
+    ]
+    ds = Dataset()
+    ds.add(etalon, config.analysis.market_health_timeframe, shamlar)
+
+    lahza = bosh + timedelta(days=400)
+    olingan = Backtester(config)._etalon_shamlar(
+        ds, lahza, config.analysis.market_health_timeframe
+    )
+
+    assert olingan, "etalon shamlar berilishi kerak"
+    assert all(s.open_time <= lahza for s in olingan), "kelajakka qaralmasin"
+
+    # Etalon coin dataset'da bo'lmasa — bo'sh, ya'ni davr aniqlanmaydi
+    assert Backtester(config)._etalon_shamlar(
+        Dataset(), bosh, config.analysis.market_health_timeframe
+    ) == []
