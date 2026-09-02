@@ -4615,6 +4615,32 @@ va sozlamasi boshqacha. U alohida qoladi.
 Manba matnini qidirish o'rniga XATTI-HARAKAT tekshiriladi: qisqa
 tarixli coin haqiqatan kenglikdan chiqarilyaptimi.
 
+### Refaktorning o'zi TO'RTINCHI farqni topdi
+
+Ikki hisobni bitta funksiyaga birlashtirganda ular bir-biriga mos
+kelmadi:
+
+| | ADX qaysi qatordan | |
+|---|---|---|
+| Jonli tizim | `market_health_timeframe` (haftalik) | |
+| Backtest | `entry_timeframe` (4 soatlik) | **farq** |
+
+ADX bozorning volatillik rejimini belgilaydi — ya'ni indeksning
+uchdan bir omili. Jonli tizim haftalik ADX ni, backtest esa 4
+soatlik ADX ni o'qiyotgan ekan.
+
+Bu 68 va 69-bo'limlardagi uchtasidan keyingi TO'RTINCHISI. Uchtasi
+qo'lda qidirib topilgan edi; bu esa **o'zi chiqdi** — ikkita
+takrorlangan hisobni bitta joyga qo'yish uchun ular teng bo'lishi
+kerak edi, teng emasligi shunda ko'rindi.
+
+Bu — "bitta fakt, bitta manba" qoidasining eng aniq dalili: takror
+bo'lgan joyda farq ham bo'ladi, va u faqat qo'shilganda ko'rinadi.
+
+**OQIBATI: backtest raqamlari o'zgaradi.** Bu sof refaktor emas —
+u yana bitta bo'shliqni yopdi. Yangi natija eskisi bilan
+solishtirilmaydi: eskisi noto'g'ri ADX bilan hisoblangan edi.
+
 ---
 
 ## 78. Bosqichlar holati
