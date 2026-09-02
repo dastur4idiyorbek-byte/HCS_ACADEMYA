@@ -260,8 +260,23 @@ class PipelineRunner:
                 capacity=sigim,
                 open_signals=open_signals,
                 max_open_signals=limitlar.high,
+                # QT davri SOATDAN emas, sham strukturasidan o'qiladi.
+                # Etalon — BTC: davr bozorning umumiy holati, bitta
+                # altcoinning o'ziga xos harakati emas.
+                reference_candles=self._etalon_shamlar(candles),
             )
         )
+
+    def _etalon_shamlar(self, candles: dict) -> list:  # noqa: ANN001, ANN202
+        """QT davri uchun etalon coin shamlari (BTC).
+
+        Kenglik timeframei ishlatiladi — davr ham, kenglik ham
+        bozorning UMUMIY holati haqida, ya'ni bir xil shkalada
+        o'lchanishi mantiqiy.
+        """
+        etalon = self._config.risk_engine.btc_filter.reference_symbol.upper()
+        tf = self._config.analysis.market_health_timeframe
+        return candles.get(etalon, {}).get(tf, [])
 
     async def _user_budgets(self, session, users):  # noqa: ANN001, ANN202
         """5.2-band: foydalanuvchilarning kunlik xavf byudjetlari."""

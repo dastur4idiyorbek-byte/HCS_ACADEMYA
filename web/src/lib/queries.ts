@@ -111,6 +111,8 @@ export type Salomatlik = {
   btcDominanceScore: number | null;
   /** QT (AMDX) davri (5) */
   quarterlyPhaseScore: number | null;
+  /** QT davri HARFI — bazadan o'qiladi, soatdan hisoblanmaydi */
+  quarterlyPhase: string | null;
   volatilityScore: number | null;
   userCapacityScore: number | null;
   saturationScore: number | null;
@@ -318,6 +320,7 @@ function salomatlikkaAylantir(q: Qator): Salomatlik {
     structureBreadthScore: son(q.structure_breadth_score),
     btcDominanceScore: son(q.btc_dominance_score),
     quarterlyPhaseScore: son(q.quarterly_phase_score),
+    quarterlyPhase: (q.quarterly_phase as string) ?? null,
     volatilityScore: son(q.volatility_score),
     userCapacityScore: son(q.user_capacity_score),
     saturationScore: son(q.saturation_score),
@@ -328,7 +331,8 @@ function salomatlikkaAylantir(q: Qator): Salomatlik {
 // `trend_breadth_score` ustuni bazada QOLADI (eski yozuvlarda ma'lumot
 // bor), lekin o'qilmaydi: EMA asosidagi kenglik omili olib tashlandi.
 const SALOMATLIK_USTUNLARI = `value, band, structure_breadth_score,
-  btc_dominance_score, quarterly_phase_score, volatility_score, user_capacity_score,
+  btc_dominance_score, quarterly_phase_score, quarterly_phase,
+  volatility_score, user_capacity_score,
   saturation_score, created_at`;
 
 /** Kunlik "oldindan ko'rish" yozuvlari chiqarib tashlanadi — ular

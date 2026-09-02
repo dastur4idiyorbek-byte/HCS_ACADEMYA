@@ -101,15 +101,24 @@ def structure_breadth_factor(inputs: HealthInputs, weight: float) -> HealthFacto
 
 
 def quarterly_phase_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
-    """QT (AMDX) davri — CryptoSpot3% metodikasining 5-qismi.
+    """7-omil: QT (AMDX) davri — SHAM STRUKTURASIDAN.
 
-    DIQQAT, vazni ataylab KICHIK. Davr soat bo'yicha aniqlanadi, ya'ni
-    u bozor holatidan qat'i nazar har kuni bir xil ritmda o'zgaradi —
-    bu o'lchanmagan taxmin. Haddan tashqari vazn berilgan, lekin
-    bashorat kuchi tekshirilmagan ko'rsatkich bu loyihada allaqachon
-    zarar keltirgan (33-bo'lim).
+    Ilgari davr SOAT bo'yicha aniqlanardi va bozor holatidan qat'i
+    nazar har kuni bir xil ritmda o'zgarardi. Endi u narx harakatidan
+    o'qiladi: sokinlik -> sweep -> buzilish -> tasdiqlanish.
+
+    Ma'lumot bo'lmasa yoki davr aniq bo'lmasa — NEYTRAL (0.5).
+    "Bilmayman" ni na yaxshi, na yomon deb hisoblaymiz; soatdan davr
+    o'ylab topilmaydi.
     """
-    davr = quarterly_phase(inputs.computed_at)
+    davr = quarterly_phase(inputs.reference_candles)
+    if davr is None:
+        return HealthFactor(
+            "quarterly_phase",
+            0.5,
+            weight,
+            "Davr aniqlanmadi — narx harakati hali bir ma'no bermayapti",
+        )
     return HealthFactor("quarterly_phase", davr.score, weight, f"Joriy davr: {davr.label}")
 
 

@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from core.domain.enums import TrendDirection
+from core.domain.models import Candle
 from core.position_sizing import AggregateCapacity
 
 
@@ -50,6 +51,13 @@ class HealthInputs:
     # --- 5-omil: Faol signallar to'yinganligi ---
     open_signals: int = 0
     max_open_signals: int = 5
+
+    # --- 7-omil: QT davri (AMDX) ---
+    #: Etalon coin (BTC) shamlari — davr SOATDAN emas, SHAM
+    #: STRUKTURASIDAN o'qiladi (`quarterly.py`). Bo'sh bo'lsa davr
+    #: aniqlanmaydi va omil neytral qoladi: soatdan davr o'ylab
+    #: topilmaydi.
+    reference_candles: list[Candle] = field(default_factory=list)
 
     @property
     def universe_size(self) -> int:

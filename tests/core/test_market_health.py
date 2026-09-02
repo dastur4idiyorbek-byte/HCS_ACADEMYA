@@ -14,10 +14,42 @@ import pytest
 from core.analysis.market_health import HealthInputs, MarketHealthCalculator, describe
 from core.config import load_config
 from core.domain.enums import HealthBand, TrendDirection
+from core.domain.models import Candle
 from core.position_sizing import AggregateCapacity
 from core.risk_engine import RiskEngine
 
 HOZIR = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
+
+
+def _zigzag(nuqtalar: list[float], qadam: int = 6) -> list[Candle]:
+    """Burilish narxlari orqali silliq zigzag — struktura sinovlari uchun."""
+    from datetime import timedelta
+
+    shamlar: list[Candle] = []
+    indeks = 0
+    for i in range(len(nuqtalar) - 1):
+        boshi, oxiri = nuqtalar[i], nuqtalar[i + 1]
+        for j in range(qadam):
+            narx = boshi + (oxiri - boshi) * (j + 1) / qadam
+            shamlar.append(
+                Candle(
+                    open_time=HOZIR + timedelta(hours=indeks),
+                    open=narx, high=narx + 0.05, low=narx - 0.05,
+                    close=narx, volume=1000.0,
+                )
+            )
+            indeks += 1
+    oxirgi = nuqtalar[-1]
+    for _ in range(qadam):
+        shamlar.append(
+            Candle(
+                open_time=HOZIR + timedelta(hours=indeks),
+                open=oxirgi, high=oxirgi + 0.05, low=oxirgi - 0.05,
+                close=oxirgi, volume=1000.0,
+            )
+        )
+        indeks += 1
+    return shamlar
 
 
 @pytest.fixture
@@ -60,21 +92,52 @@ def test_ideal_bozorda_indeks_yuqori(calculator) -> None:  # noqa: ANN001
     assert salomatlik.band is HealthBand.HIGH
 
 
-def test_qt_omili_shiftni_soatga_bogliq_qiladi(calculator) -> None:  # noqa: ANN001
-    """QT davri soat bo'yicha o'zgaradi — buni OCHIQ qayd etamiz.
+def test_qt_omili_shiftni_bogmaydi(calculator) -> None:  # noqa: ANN001
+    """Bu loyihada "erishib bo'lmas shift" uch marta muammo bo'lgan
+    (32, 46, 47-bo'limlar). QT omili indeksni jimgina bo'g'masligi
+    kerak.
 
-    Bu loyihada "erishib bo'lmas shift" allaqachon uch marta muammo
-    bo'lgan (32, 46, 47-bo'limlar). QT omili shiftni 95 dan pastga
-    tushirmasligi kerak, aks holda u indeksni jimgina bo'g'ardi.
+    Davr endi SOATDAN emas, sham strukturasidan o'qiladi — shuning
+    uchun sinov ham vaqtni emas, MA'LUMOTNI o'zgartiradi.
     """
     from datetime import timedelta
 
-    qiymatlar = [
-        calculator.compute(kirish(computed_at=HOZIR.replace(hour=0) + timedelta(hours=s))).value
-        for s in range(24)
-    ]
-    assert min(qiymatlar) >= 95.0
-    assert max(qiymatlar) == pytest.approx(100.0), "X davrida to'liq ball berilishi kerak"
+    def sham(i: int, h: float, low: float, c: float):  # noqa: ANN202
+        from core.domain.models import Candle
+
+        return Candle(
+            open_time=HOZIR + timedelta(hours=i),
+            open=c,
+            high=h,
+            low=low,
+            close=c,
+            volume=1000.0,
+        )
+
+    # Ma'lumot yo'q (davr aniqlanmaydi) va sokinlik (A davri)
+    bosh = calculator.compute(kirish(reference_candles=[]))
+    sokin = calculator.compute(
+        kirish(
+            reference_candles=[
+                *[sham(i, 105, 95, 100) for i in range(14)],
+                *[sham(14 + i, 100.5, 99.5, 100) for i in range(6)],
+            ]
+        )
+    )
+
+    assert bosh.value >= 95.0, "davr noma'lum bo'lsa ham shift baland qolsin"
+    assert sokin.value >= 95.0
+
+
+def test_qt_davri_soatga_bogliq_emas(calculator) -> None:  # noqa: ANN001
+    """Bir xil ma'lumot — bir xil indeks, soat qanday bo'lishidan qat'i nazar."""
+    from datetime import timedelta
+
+    ertalab = calculator.compute(kirish(computed_at=HOZIR.replace(hour=3)))
+    kechqurun = calculator.compute(kirish(computed_at=HOZIR.replace(hour=19)))
+
+    assert ertalab.value == pytest.approx(kechqurun.value)
+    assert timedelta(hours=16)  # vaqt farqi bor, natija esa bir xil
 
 
 def test_yomon_bozorda_indeks_past(calculator) -> None:  # noqa: ANN001
@@ -323,8 +386,11 @@ def test_ideal_bozor_toliq_ball_oladi() -> None:
     config = load_config()
     natija = MarketHealthCalculator(config).compute(
         HealthInputs(
-            # X davri (18:00-24:00) — QT omili to'liq ball beradi
             computed_at=datetime(2026, 8, 21, 20, tzinfo=UTC),
+            # X davri — QT omili to'liq ball beradi. Davr endi SOATDAN
+            # emas, sham strukturasidan o'qiladi: buzilish bo'lgan va
+            # narx undan keyin ham ushlab turibdi.
+            reference_candles=_zigzag([100, 112, 106, 124, 116, 138]),
             btc_dominance=54.0,
             btc_dominance_change_24h=0.2,
             universe_structures={f"C{i}": TrendDirection.UP for i in range(30)},

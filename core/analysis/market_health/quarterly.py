@@ -7,33 +7,41 @@ Katta vaqt oralig'i to'rtga bo'linadi:
     D  Distribution   — asosiy harakat
     X  Continuation   — tasdiqlanish va davom etish
 
-Sutkalik oyna UTC bo'yicha to'rt olti soatlik chorakka bo'linadi.
-Kripto 24/7 ishlaydi, ya'ni forexdagi kabi qat'iy "sessiya ochilishi"
-yo'q — lekin savdo hajmi haqiqatan Osiyo / London / Nyu-York
-soatlarida farqlanadi.
+DAVR SOATGA EMAS, SHAM STRUKTURASIGA BOG'LANGAN
+------------------------------------------------
+Ilgari sutka UTC bo'yicha to'rt olti soatlik chorakka bo'linardi va
+davr bozor holatidan QAT'I NAZAR har kuni bir xil ritmda o'zgarardi.
+Bu — o'lchanmagan taxmin edi: soat 13:00 bo'lgani "hozir asosiy
+harakat davri" degani emas.
 
-OCHIQ AYTILADIGAN CHEKLOV
--------------------------
-Chorak -> ball moslashuvi (`QuarterPhase.score`) SOAT bo'yicha, ya'ni
-u bozor holatidan QAT'I NAZAR har kuni bir xil ritmda o'zgaradi.
-Bu — o'lchanmagan taxmin, shuning uchun:
+Endi davr NARX HARAKATIDAN o'qiladi:
 
-  * uning Bozor Salomatligi Indeksidagi vazni ATAYLAB kichik (5);
-  * qiymatlar BOSHLANG'ICH va backtest bilan tasdiqlanishi kerak.
+    A  tor diapazon, sokinlik           — hech narsa buzilmagan
+    M  likvidlik yig'ib olindi (sweep)  — yolg'on harakat bo'ldi
+    D  struktura buzildi (BOS)          — asosiy harakat ketyapti
+    X  buzilishdan keyin narx ushlab    — tasdiqlangan davom etish
+       turibdi
 
-Loyihada haddan tashqari vazn berilgan, lekin bashorat kuchi
-o'lchanmagan ko'rsatkich allaqachon zarar keltirgan (BTC Dominance —
-`docs/ARXITEKTURA.md`, 33- va 57-bo'limlar). Shu xato takrorlanmasin.
+Aniqlab bo'lmasa `None` qaytadi va omil NEYTRAL bo'ladi — soatdan
+davr "o'ylab topilmaydi".
+
+VAZN BARIBIR KICHIK (5). Loyihada bashorat kuchi o'lchanmagan
+ko'rsatkichga katta vazn berish allaqachon zarar keltirgan (BTC
+Dominance — `docs/ARXITEKTURA.md`, 33- va 57-bo'limlar). Struktura
+asosidagi davr ham backtest bilan tasdiqlanmaguncha shu vaznda
+qoladi.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
 from enum import Enum
 
-#: Sutka nechta chorakka bo'linadi (AMDX -> to'rtta)
+from core.analysis.market_structure import analyze_structure
+from core.domain.enums import TrendDirection
+from core.domain.models import Candle
+
+#: AMDX nechta davrdan iborat
 QUARTERS = 4
-HOURS_PER_QUARTER = 24 // QUARTERS
 
 
 class QuarterPhase(str, Enum):
@@ -69,17 +77,66 @@ class QuarterPhase(str, Enum):
         return tartib[(tartib.index(self) + 1) % QUARTERS]
 
 
-def quarterly_phase(moment: datetime) -> QuarterPhase:
-    """Berilgan UTC vaqti sutkaning qaysi choragida.
+def quarterly_phase(
+    candles: list[Candle],
+    lookback: int = 40,
+    recent_bars: int = 6,
+    quiet_ratio: float = 0.6,
+) -> QuarterPhase | None:
+    """Sham strukturasidan AMDX davrini o'qiydi.
 
-    Vaqt mintaqasi belgilanmagan `datetime` UTC deb qabul qilinadi:
-    tizimda barcha vaqtlar UTC da saqlanadi (`core/utils/time.py`).
+    Hodisalar ENG YANGISI bo'yicha tanlanadi: sweep dan keyin BOS
+    bo'lgan bo'lsa, davr D (yoki X), aksincha bo'lsa M.
+
+    Args:
+        candles: eng eskisidan eng yangisiga.
+        lookback: qancha sham ko'riladi.
+        recent_bars: "yaqinda" deb hisoblanadigan oxirgi shamlar soni.
+        quiet_ratio: so'nggi diapazon oldingisidan shuncha marta kichik
+            bo'lsa — sokinlik (A davri).
+
+    Returns:
+        Davr, yoki `None` — aniqlab bo'lmadi (omil neytral qoladi).
     """
-    chorak = min(QUARTERS - 1, moment.hour // HOURS_PER_QUARTER)
-    return list(QuarterPhase)[chorak]
+    oyna = candles[-lookback:] if lookback > 0 else candles
+    if len(oyna) < recent_bars * 2:
+        return None
+
+    struktura = analyze_structure(oyna)
+    songgi = oyna[-recent_bars:]
+    oldingi = oyna[:-recent_bars]
+
+    # --- BOS: struktura buzildimi va qachon ---
+    bos = struktura.last_bos
+    bos_yaqin = bos is not None and bos.index >= len(oyna) - recent_bars
+
+    # --- Sweep: oldingi tubdan pastga tushib, ichkariga QAYTGAN ---
+    oldingi_tub = min(s.low for s in oldingi)
+    sweep = any(
+        s.low < oldingi_tub and s.close > oldingi_tub for s in songgi
+    )
+
+    if bos is not None and not bos_yaqin and struktura.direction is TrendDirection.UP:
+        # Buzilish bo'lgan, narx undan keyin ham ushlab turibdi
+        return QuarterPhase.CONTINUATION
+    if bos_yaqin:
+        return QuarterPhase.DISTRIBUTION
+    if sweep:
+        return QuarterPhase.MANIPULATION
+
+    # --- Sokinlik: so'nggi diapazon oldingisidan sezilarli kichik ---
+    songgi_diapazon = max(s.high for s in songgi) - min(s.low for s in songgi)
+    oldingi_diapazon = max(s.high for s in oldingi) - min(s.low for s in oldingi)
+    if oldingi_diapazon > 0 and songgi_diapazon <= oldingi_diapazon * quiet_ratio:
+        return QuarterPhase.ACCUMULATION
+
+    # Hech biri emas — DAVR O'YLAB TOPILMAYDI.
+    return None
 
 
-def describe_phase(moment: datetime) -> str:
+def describe_phase(candles: list[Candle]) -> str:
     """Saytdagi shkala ostida ko'rsatiladigan bir qatorli matn."""
-    davr = quarterly_phase(moment)
+    davr = quarterly_phase(candles)
+    if davr is None:
+        return "Davr aniqlanmadi — narx harakati hali bir ma'no bermayapti"
     return f"{davr.label}; keyingisi — {davr.next_phase.value}"

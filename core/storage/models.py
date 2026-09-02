@@ -531,6 +531,13 @@ class MarketHealthLog(Base, TimestampMixin):
     btc_dominance_score: Mapped[float | None] = mapped_column(Float)
     #: QT (AMDX) davri (5)
     quarterly_phase_score: Mapped[float | None] = mapped_column(Float)
+    #: QT davri HARFI (A/M/D/X). `None` — aniqlanmadi.
+    #:
+    #: Nima uchun ball yetarli emas: "aniqlanmadi" neytral 0.5 ball
+    #: oladi va bu D davrining balli bilan bir xil. Ya'ni balldan
+    #: davrni tiklab bo'lmaydi — sayt uni SOATDAN hisoblardi, endi esa
+    #: davr soatga umuman bog'liq emas.
+    quarterly_phase: Mapped[str | None] = mapped_column(String(1))
     volatility_score: Mapped[float | None] = mapped_column(Float)
     user_capacity_score: Mapped[float | None] = mapped_column(Float)
     saturation_score: Mapped[float | None] = mapped_column(Float)

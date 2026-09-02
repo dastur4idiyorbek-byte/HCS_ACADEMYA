@@ -4,7 +4,7 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { bosqichNomi, vaqtDarvozasimi, voronkaTartibi } from "@/lib/bosqichlar";
 import { salomatlikBandlari, sinovHolati } from "@/lib/config";
-import { davr, keyingiDavr } from "@/lib/davr";
+import { davrmi, keyingiDavr } from "@/lib/davr";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import { ballStatistikasi, salomatlikOxirgi, salomatlikTarixi, voronka } from "@/lib/queries";
@@ -118,10 +118,12 @@ export default async function Salomatlik() {
     consecutive_loss: t("salomatlik.qoida_consecutive_loss"),
   };
 
-  // QT davri indeks HISOBLANGAN paytga qarab aniqlanadi, "hozir" ga
-  // emas: shkala o'sha lahzaning surati, ikkalasi bir vaqtga tegishli
-  // bo'lishi kerak.
-  const joriyDavr = salomatlik?.createdAt ? davr(salomatlik.createdAt) : null;
+  // QT davri BAZADAN o'qiladi. Ilgari u shu yerda SOATDAN
+  // hisoblanardi — ya'ni qoidaning ikkinchi nusxasi edi va davr
+  // bozor holatidan qat'i nazar har kuni bir xil ritmda o'zgarardi.
+  // Endi bot uni sham strukturasidan aniqlaydi va harf sifatida
+  // yozadi; `null` — aniqlanmadi, o'ylab topilmaydi.
+  const joriyDavr = davrmi(salomatlik?.quarterlyPhase) ? salomatlik.quarterlyPhase : null;
 
   return (
     <>

@@ -876,6 +876,23 @@ class DailyStatsRepository:
         return mavjud
 
 
+def _davr_harfi(health: MarketHealth) -> str | None:
+    """QT omilining izohidan davr harfini ajratib oladi.
+
+    Izoh shakli: "Joriy davr: D (Distribution) — ...". Aniqlanmagan
+    bo'lsa izohda davr yo'q va `None` qaytadi — sayt uni "aniqlanmadi"
+    deb ko'rsatadi, o'ylab topmaydi.
+    """
+    for omil in health.factors:
+        if omil.name != "quarterly_phase":
+            continue
+        belgi = "Joriy davr: "
+        if omil.explanation.startswith(belgi):
+            harf = omil.explanation[len(belgi) :].strip()[:1]
+            return harf if harf in {"A", "M", "D", "X"} else None
+    return None
+
+
 class MarketHealthRepository:
     """3.7-band: indeks tarixi.
 
@@ -900,6 +917,7 @@ class MarketHealthRepository:
             # ma'lumot bor va tarixni buzish ma'nosiz.
             btc_dominance_score=ballar.get("btc_dominance_stability"),
             quarterly_phase_score=ballar.get("quarterly_phase"),
+            quarterly_phase=_davr_harfi(health),
             volatility_score=ballar.get("volatility_regime"),
             user_capacity_score=ballar.get("aggregate_user_capacity"),
             saturation_score=ballar.get("signal_saturation"),
