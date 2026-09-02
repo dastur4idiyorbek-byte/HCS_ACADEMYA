@@ -15,10 +15,16 @@ class SignalStatus(str, Enum):
     STOPPED = "stopped"          # 🛑 Stop bo'ldi — yopiladi
     WEAKENING = "weakening"      # ⚠️ Zaiflashmoqda (4.1-band)
     CANCELLED = "cancelled"      # bekor qilingan (Entry'ga yetmasdan eskirgan)
+    TIMED_OUT = "timed_out"      # ⏱ MUDDATI tugadi — bozorda yopildi
 
     @property
     def is_closed(self) -> bool:
-        return self in {SignalStatus.TP2_HIT, SignalStatus.STOPPED, SignalStatus.CANCELLED}
+        return self in {
+            SignalStatus.TP2_HIT,
+            SignalStatus.STOPPED,
+            SignalStatus.CANCELLED,
+            SignalStatus.TIMED_OUT,
+        }
 
     @property
     def is_open(self) -> bool:
@@ -70,6 +76,7 @@ _STATUS_EMOJI: dict[SignalStatus, str] = {
     SignalStatus.STOPPED: "🛑",     # zarar bilan yopildi
     SignalStatus.WEAKENING: "⚠️",   # ogohlantirish
     SignalStatus.CANCELLED: "⛔",   # umuman ochilmadi
+    SignalStatus.TIMED_OUT: "⏱",    # muddati tugadi — bozorda yopildi
 }
 
 

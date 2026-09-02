@@ -16,7 +16,7 @@ to'ldiradi.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from core.analysis.indicators import atr_pct
 from core.analysis.market_health import (
@@ -55,6 +55,14 @@ class BacktestTrade:
 
     @property
     def is_win(self) -> bool:
+        """Savdo foyda bilan tugadimi.
+
+        Muddat bo'yicha yopilish natijaga QARAB hal qilinadi: u
+        foyda ham, zarar ham bo'lishi mumkin, ya'ni turkumning o'zi
+        javob bermaydi.
+        """
+        if self.outcome in {"timeout", "tp1_then_timeout"}:
+            return self.result_pct > 0
         return self.outcome in {"tp2_hit", "tp1_then_stop"}
 
     @property
@@ -276,7 +284,10 @@ class Backtester:
             baholanadigan = baholanadigan[:max_steps]
 
         qarorlar = verdicts or {}
-        tracker = SignalTracker()
+        soat = self._config.trade_rules.max_holding_hours
+        tracker = SignalTracker(
+            max_holding=timedelta(hours=soat) if soat > 0 else None
+        )
         natija = BacktestResult(
             label=self._label,
             buy_and_hold_pct=self._buy_and_hold(dataset, baholanadigan, entry_tf),
@@ -360,19 +371,26 @@ class Backtester:
         natijasini haqiqatdan yomonroq ko'rsatishi mumkin, lekin yaxshiroq
         ko'rsatishidan afzal (0.3 va 3.6-band).
         """
+        yopilishlar: dict[str, float] = {}
         for symbol in {s.symbol for s in tracker.open_signals}:
             shamlar = dataset.window(symbol, moment, self._oyna).get(entry_tf, [])
             if not shamlar:
                 continue
             sham = shamlar[-1]
+            yopilishlar[symbol.upper()] = sham.close
 
             for narx in (sham.low, sham.high, sham.close):
                 for hodisa in tracker.on_price(symbol, narx, moment):
                     self._record_event(hodisa, tracker, result, context)
 
-        for hodisa in tracker.check_expiry(moment):
+        # MUDDAT. Narx manbai — shu qadamdagi yopilish narxi: muddati
+        # tugagan pozitsiya bozorda yopiladi, ya'ni jonli tizimdagi
+        # bilan bir xil (u keshdagi joriy narxni beradi).
+        for hodisa in tracker.check_expiry(moment, yopilishlar.get):
             if hodisa.kind is SignalEventKind.CANCELLED:
                 result.signals_expired += 1
+            else:
+                self._record_event(hodisa, tracker, result, context)
 
     def _record_event(self, event, tracker, result, context) -> None:  # noqa: ANN001
         """Hodisani qayd etadi; yopilgan signalni savdoga aylantiradi."""
@@ -398,6 +416,11 @@ class Backtester:
 
         if event.new_status is SignalStatus.TP2_HIT:
             natija_turi = "tp2_hit"
+        elif event.new_status is SignalStatus.TIMED_OUT:
+            # Muddat bo'yicha yopilish ALOHIDA turkum: uni "stop" deb
+            # belgilash statistikani buzardi — pozitsiya foyda bilan
+            # ham yopilishi mumkin.
+            natija_turi = "tp1_then_timeout" if tp1_olindi else "timeout"
         elif tp1_olindi:
             natija_turi = "tp1_then_stop"
         else:

@@ -488,6 +488,24 @@ class TradeRulesConfig:
     #: TP Stop bilan bog'liq: `min_risk_reward` orqali hisoblanadi
     min_tp_distance_pct: float = 3.0
     max_tp_distance_pct: float = 20.0
+    #: NOMZODGA MUDDAT. Signal faol bo'lgach shu soat ichida na
+    #: yakuniy nishonga, na Stopga bormasa — bozor narxida yopiladi.
+    #:
+    #: NIMA UCHUN. Sanoat naqshida (QuantConnect LEAN) Alpha
+    #: `Insight` chiqaradi: yo'nalish, ISHONCH va MUDDAT. Bizda
+    #: muddat umuman yo'q edi: chiqish faqat TP yoki Stop, ya'ni
+    #: "bozor qachon bo'lmasin, bir kun bularning biriga boradi"
+    #: degan jimgina taxmin.
+    #:
+    #: Oqibati o'lchangan: o'rtacha ushlash 45.2 soat, bozor esa
+    #: ikki yilda +31.5% o'sgan (natija #6). Ya'ni kapital foydasiz
+    #: pozitsiyalarda BAND turadi va o'sha vaqtda boshqa hech narsa
+    #: qila olmaydi.
+    #:
+    #: 0 — muddat yo'q (hozirgi xatti-harakat). Bu GIPOTEZA:
+    #: muddat foydasiz savdolarni erta yopadimi yoki kuchayishga
+    #: ulgurmagan yaxshi savdolarni kesib qo'yadimi — o'lchanmagan.
+    max_holding_hours: float = 0.0
     #: Nechtagacha TP qurilsin — 1, 2 yoki 3.
     #:
     #: TP SONI QAT'IY EMAS. Bu yerdagi son — YUQORI CHEGARA, majburiy

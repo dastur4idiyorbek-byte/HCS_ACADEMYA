@@ -17,6 +17,7 @@ backtestda ham xuddi shu kod ishlaydi.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
 
 from core.domain.enums import SignalStatus
@@ -40,11 +41,13 @@ class SignalTracker:
         self,
         false_signal_window: timedelta = DEFAULT_FALSE_SIGNAL_WINDOW,
         pending_expiry: timedelta = DEFAULT_PENDING_EXPIRY,
+        max_holding: timedelta | None = None,
     ) -> None:
         self._signals: dict[int, Signal] = {}
         self._next_local_id = -1
         self._false_signal_window = false_signal_window
         self._pending_expiry = pending_expiry
+        self._max_holding = max_holding
 
     # ------------------------------------------------------------------ #
     #  Boshqaruv
@@ -107,7 +110,72 @@ class SignalTracker:
 
         return hodisalar
 
-    def check_expiry(self, now: datetime) -> list[SignalEvent]:
+    def check_expiry(
+        self, now: datetime, price_of: Callable[[str], float | None] | None = None
+    ) -> list[SignalEvent]:
+        """Muddati o'tgan signallarni yopadi.
+
+        IKKI XIL MUDDAT, IKKI XIL MA'NO:
+
+            kutish muddati  — narx Entry'ga umuman yetmadi. Pozitsiya
+                              OCHILMAGAN, ya'ni natija yo'q -> CANCELLED
+            ushlash muddati — pozitsiya ochilgan, lekin na nishonga,
+                              na Stopga bordi -> TIMED_OUT, bozor
+                              narxida yopiladi va natija HISOBGA
+                              KIRADI
+
+        Ikkinchisini "bekor qilish" deb belgilash raqamlarni
+        buzardi: yopilgan pozitsiyaning foyda/zarari bor, u
+        statistikadan chiqib ketmasligi kerak.
+
+        Args:
+            now: joriy vaqt.
+            price_of: coin -> joriy narx. Ushlash muddati faqat shu
+                berilganda ishlaydi: narxsiz pozitsiyani yopib
+                bo'lmaydi va raqam o'ylab topilmaydi.
+        """
+        hodisalar = self._kutish_muddati(now)
+        if self._max_holding is not None and price_of is not None:
+            hodisalar.extend(self._ushlash_muddati(now, price_of))
+        return hodisalar
+
+    def _ushlash_muddati(
+        self, now: datetime, price_of: Callable[[str], float | None]
+    ) -> list[SignalEvent]:
+        """Faol pozitsiya muddati tugasa — bozor narxida yopiladi."""
+        hodisalar: list[SignalEvent] = []
+        for key, signal in self._signals.items():
+            if signal.status.is_closed or signal.status is SignalStatus.PENDING:
+                continue
+            boshlangan = signal.activated_at or signal.created_at
+            if boshlangan is None or now - boshlangan < self._max_holding:
+                continue
+
+            narx = price_of(signal.symbol)
+            if narx is None or narx <= 0:
+                continue
+
+            signal.status = SignalStatus.TIMED_OUT
+            signal.closed_at = now
+            soat = self._max_holding.total_seconds() / 3600
+            hodisalar.append(
+                SignalEvent(
+                    signal_id=key if key > 0 else None,
+                    symbol=signal.symbol,
+                    kind=SignalEventKind.TIMED_OUT,
+                    price=narx,
+                    at=now,
+                    new_status=SignalStatus.TIMED_OUT,
+                    detail=(
+                        f"Muddat tugadi: {soat:.0f} soat ichida na nishonga, "
+                        f"na Stopga bordi. Bozor narxida yopildi ({narx:g}) — "
+                        "kapital band turmasin."
+                    ),
+                )
+            )
+        return hodisalar
+
+    def _kutish_muddati(self, now: datetime) -> list[SignalEvent]:
         """Entry'ga yetmasdan eskirgan signallarni bekor qiladi."""
         hodisalar: list[SignalEvent] = []
         for key, signal in self._signals.items():

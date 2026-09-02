@@ -4826,7 +4826,116 @@ bor.
 
 ---
 
-## 82. Bosqichlar holati
+## 82. Mexanizm o'zgarishi: qaror, TP soni va MUDDAT
+
+81-bo'lim o'lchov ishini yakunladi: sozlama darajasidagi oltita
+gipoteza rad etildi, tizim tasodifiy kirishdan yomon ishlaydi.
+Bu bo'lim SOZLAMANI emas, MEXANIZMNI o'zgartiradi. Uchalasi ham
+bayroq ostida va alohida o'lchanadi.
+
+### 1. Ball faqat TARTIBLAYDI (`scoring.quality_gate`)
+
+Yagona darvoza — ball chegarasi edi. Ball esa nomzodlarni
+bir-biriga NISBATAN o'lchaydi: u "eng yaxshisi qaysi" deydi, "shu
+yetarlimi" demaydi. Shuning uchun tizim uyumning eng yuqorisini
+oladi — uyumning o'zi yomon bo'lsa ham. 74 va 81-bo'limlardagi
+natija aynan shunga o'xshaydi: to'rtta filtr uyumga kim kirishini
+o'zgartirdi, uyum baribir tartiblanib eng yuqorisi olinaverdi.
+
+O'LIK SIM ULANDI. CryptoSpot3% shartnomasi (yo'nalish + yalash +
+daraja turi) allaqachon hisoblanardi va `setup_qualified` da
+yotardi — lekin u faqat YORLIQ edi. Ya'ni yangi mantiq yozilmadi,
+mavjud dalilga OVOZ berildi.
+
+    eski:  bazaviy ball >= chegara
+    yangi: shartnoma bajarildi VA ball xavfsizlik polidan yuqori
+
+`passed_threshold: bool` o'rniga `rejection: str | None`. Ilgari
+uchala sabab ham "threshold" deb yozilardi va dashboard "ball
+past" deb NOTO'G'RI sabab ko'rsatardi.
+
+NAZORAT VARIANTI zarur: darvoza ikki narsani bir vaqtda qiladi —
+shartnomani talab qiladi VA chegarani polga almashtiradi. "Faqat
+pol (shartnomasiz)" ikkinchisini alohida o'lchaydi.
+
+### 2. TP soni QAT'IY EMAS (`trade_rules.max_take_profits`)
+
+`SignalLevels` da `tp1` va `tp2` maydonlari turardi, ya'ni "har
+doim aynan ikkita" degan qoida MODELGA yozib qo'yilgan edi.
+Bozorda esa toza ko'tarilishda ustda bitta ham qarshilik
+bo'lmasligi, keng diapazonda esa uchtasi bo'lishi mumkin.
+
+    SignalLevels.takes: tuple[TakeProfit, ...]   # 1..3
+
+`max_take_profits` — YUQORI CHEGARA, majburiy son emas. Uchinchi
+TP faqat TP1 bilan yakuniy nishon orasida HAQIQIY zona bo'lganda
+qo'shiladi; bo'lmasa ikkitasi qoladi. Raqam o'ylab topilmaydi.
+
+NOM ANIQLASHTIRILDI. `tp2` "ikkinchi" ham, "oxirgi" ham degani
+edi — uchta TP bilan bu ikki ma'no ajraladi:
+
+    tp1       BIRINCHI nuqta -> breakeven shundan keyin
+    final_tp  YAKUNIY nishon -> signal yopiladi, R/R shundan
+
+Ulush endi darajalarning O'ZIDA (`TakeProfit.close_pct`). Ilgari
+bot ham, sayt ham "TP2 = 100 dan qolgani" deb alohida hisoblardi —
+"har doim ikkita" taxminining yana ikkita nusxasi.
+
+### 3. FOIZ ORALIQLARI MAJBURIY EMAS (`enforce_distance_bands`)
+
+Loyiha egasining qarori: "TP STOP FOIZLARI MAJBURIY EMAS — RISK
+1/3". Bog'lovchi shart bitta — `min_risk_reward`.
+
+Foizlar MASOFA haqida, nisbat haqida emas. Haqiqiy support 5% dan
+uzoqroqda, haqiqiy resistance 3% dan yaqinroqda bo'lishi butunlay
+normal; ularni majburiy qilish tuzilmani e'tiborsiz qoldirish
+demakdir.
+
+`build_levels` ham, Risk Engine ham AYNAN shu bayroqqa qaraydi.
+Aks holda darajalar bir qoida bo'yicha qurilib, ikkinchisi
+bo'yicha rad etilardi — 67-bo'limdagi xatoning o'zi.
+
+NIMA YO'QOLDI: `min_stop_distance_pct` himoya vazifasini ham
+bajarardi (juda tor Stop shovqinda bekorga ishlaydi). Bu himoya
+endi `stop_atr_mult` ga qoladi — shovqin ATR birligida
+o'lchanadi. To'g'riroq, lekin O'LCHANMAGAN.
+
+### 4. Nomzodga MUDDAT (`trade_rules.max_holding_hours`)
+
+Chiqish qoidasi faqat ikkita edi: TP yoki Stop. Ya'ni tizim
+jimgina shunday deb turardi: "bozor qachon bo'lmasin, bir kun
+bularning biriga boradi". Uchinchi yo'l — narx o'rtada osilib
+qolishi — hisobga olinmagan.
+
+Sanoat naqshida (QuantConnect LEAN) Alpha `Insight` chiqaradi:
+yo'nalish, ishonch va MUDDAT. Bizda uchinchisi yo'q edi.
+
+O'lchov: o'rtacha ushlash **45.2 soat**, bozor esa ikki yilda
+**+31.5%** o'sgan. Kapital foydasiz pozitsiyalarda band turadi va
+o'sha vaqtda ochiq signal limiti to'lgan bo'ladi.
+
+YANGI HOLAT: `SignalStatus.TIMED_OUT` (⏱). U `CANCELLED` dan
+farq qiladi va farq muhim:
+
+    CANCELLED   narx Entry'ga yetmadi -> pozitsiya OCHILMAGAN,
+                natija yo'q, statistikaga kirmaydi
+    TIMED_OUT   pozitsiya ochilgan, bozor narxida yopildi ->
+                natija BOR, foyda ham, zarar ham bo'lishi mumkin
+
+Ikkalasini bir turkumga qo'yish raqamlarni buzardi.
+
+To'rtinchi yopuvchi holat qo'shilganda hech bir ro'yxatni qo'lda
+yangilash kerak bo'lmadi — u `is_closed` dan o'zi chiqdi
+(76-bo'limdagi qoida ishladi).
+
+### Hammasi O'CHIQ holatda keladi
+
+To'rttasi ham gipoteza, fakt emas. Backtest yettita variant
+oladi va har biri BITTA o'qni o'zgartiradi (`OLCHOV_OQI`).
+
+---
+
+## 83. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

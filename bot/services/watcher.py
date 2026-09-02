@@ -40,6 +40,17 @@ logger = get_logger(__name__)
 EXPIRY_CHECK_INTERVAL = timedelta(minutes=15)
 
 
+def _ushlash_muddati(config: AppConfig) -> timedelta | None:
+    """`trade_rules.max_holding_hours` dan muddat.
+
+    0 — muddat yo'q (standart). Bu GIPOTEZA: muddat foydasiz
+    savdolarni erta yopadimi yoki kuchayishga ulgurmagan yaxshi
+    savdolarni kesib qo'yadimi — o'lchanmagan.
+    """
+    soat = config.trade_rules.max_holding_hours
+    return timedelta(hours=soat) if soat > 0 else None
+
+
 class SignalWatcher:
     """Narx oqimini kuzatib, signal holatini yangilab boradi."""
 
@@ -57,7 +68,7 @@ class SignalWatcher:
         self._stream = stream
         self._admin_ids = admin_ids
 
-        self._tracker = SignalTracker()
+        self._tracker = SignalTracker(max_holding=_ushlash_muddati(config))
         self._cache = PriceCache()
         self._spikes = SpikeDetector(
             threshold_pct=config.risk_engine.kill_switch.price_spike_pct,
@@ -258,7 +269,11 @@ class SignalWatcher:
         # Eskirgan signallarni vaqti-vaqti bilan tekshiramiz
         if tick.timestamp - self._last_expiry_check >= EXPIRY_CHECK_INTERVAL:
             self._last_expiry_check = tick.timestamp
-            hodisalar.extend(self._tracker.check_expiry(tick.timestamp))
+            # Narx manbai KESHDAN: ushlash muddati tugagan pozitsiya
+            # bozor narxida yopiladi, ya'ni raqam o'ylab topilmaydi.
+            hodisalar.extend(
+                self._tracker.check_expiry(tick.timestamp, self._cache.price_of)
+            )
 
         if not hodisalar:
             return

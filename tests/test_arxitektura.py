@@ -263,5 +263,13 @@ def test_yopiq_holatlar_qolda_takrorlanmasin() -> None:
 
     # Manbaning o'zi to'g'ri ishlayotganini ham tekshiramiz — aks holda
     # yuqoridagi skaner bo'sh ro'yxatni "yaxshi" deb o'qib qo'yardi.
-    assert set(SignalStatus.closed_values()) == uchlik
-    assert set(SignalStatus.open_values()) & uchlik == set()
+    yopiq = set(SignalStatus.closed_values())
+    assert uchlik <= yopiq
+    assert set(SignalStatus.open_values()) & yopiq == set()
+
+    # QOIDA ISHLADI. To'rtinchi yopuvchi holat (`timed_out`)
+    # qo'shilganda hech bir ro'yxatni qo'lda yangilash kerak
+    # bo'lmadi — u `is_closed` dan o'zi chiqdi. Ilgari bu beshta
+    # joyni qo'lda topishni talab qilardi va bittasi unutilsa
+    # signal ba'zi ko'rinishlarda abadiy "ochiq" qolardi.
+    assert SignalStatus.TIMED_OUT.value in yopiq

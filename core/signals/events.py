@@ -24,6 +24,7 @@ class SignalEventKind(str, Enum):
     CANCELLED = "cancelled"        # Entry'ga yetmasdan eskirdi/bekor qilindi
     WEAKENING = "weakening"        # ⚠️ ball keskin pasaydi (4.1-band)
     FALSE_SIGNAL = "false_signal"  # faol bo'lgach tez Stop yedi (3.8-band)
+    TIMED_OUT = "timed_out"        # ⏱ muddati tugadi — bozor narxida yopildi
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,4 +45,5 @@ class SignalEvent:
             SignalEventKind.TP2_HIT,
             SignalEventKind.STOPPED,
             SignalEventKind.CANCELLED,
+            SignalEventKind.TIMED_OUT,
         }

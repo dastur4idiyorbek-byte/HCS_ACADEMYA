@@ -283,6 +283,37 @@ trade_rules:
   # 1%-5% oralig'i YO'QOLMADI: u ikkinchi darajali xavfsizlik cheklovi
   # sifatida qoladi (juda tor yoki juda keng bo'lib qolmasin).
   stop_atr_mult: 1.75
+  # FOIZ ORALIQLARI MAJBURIY EMAS — bog'lovchi shart NISBAT (1:3).
+  #
+  # Loyiha egasining qarori (2026-09-02). Foizlar MASOFA haqida:
+  # haqiqiy support 5% dan uzoqroqda, haqiqiy resistance 3% dan
+  # yaqinroqda bo'lishi butunlay normal. Ularni majburiy qilish
+  # tuzilmani e'tiborsiz qoldirish demakdir.
+  #
+  # DIQQAT: `min_stop_distance_pct` himoya vazifasini ham bajarardi
+  # (juda tor Stop shovqinda bekorga ishlaydi). Bu himoya endi
+  # `stop_atr_mult` ga qoladi — shovqin ATR birligida o'lchanadi.
+  # To'g'riroq, lekin O'LCHANMAGAN (docs/GIPOTEZA_DAFTARI.md).
+  enforce_distance_bands: false
+  # NECHTAGACHA TP — yuqori chegara, majburiy son emas.
+  # Bozorda nechta haqiqiy nishon bo'lsa, shuncha TP quriladi:
+  #   1 — toza ko'tarilish, ustda qarshilik yo'q
+  #   2 — odatiy holat
+  #   3 — TP1 va yakuniy nishon orasida yana bir zona bo'lsa
+  max_take_profits: 2
+  # NOMZODGA MUDDAT (soatda). 0 — muddat yo'q.
+  #
+  # Signal faol bo'lgach shu vaqt ichida na yakuniy nishonga, na
+  # Stopga bormasa — bozor narxida yopiladi. Sanoat naqshida
+  # (LEAN) Alpha `Insight` chiqaradi: yo'nalish, ishonch va MUDDAT.
+  # Bizda muddat umuman yo'q edi.
+  #
+  # O'lchov: o'rtacha ushlash 45.2 soat, bozor esa ikki yilda
+  # +31.5% o'sgan. Kapital foydasiz pozitsiyalarda band turadi.
+  #
+  # GIPOTEZA — hali o'lchanmagan: muddat foydasiz savdolarni erta
+  # yopadimi yoki kuchayishga ulgurmagan yaxshilarini kesadimi?
+  max_holding_hours: 0
   # ASOSIY SHART — NISBAT, masofa emas.
   #
   # Stop S/R zonasi qayerda ekaniga qarab 1%..5% oralig'ida erkin

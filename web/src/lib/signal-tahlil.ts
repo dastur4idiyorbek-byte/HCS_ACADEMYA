@@ -24,6 +24,10 @@ export function yakuni(holat: string, tp1Olindi: boolean): Yakun {
   if (holat === "tp2_hit") return "tp2";
   if (holat === "cancelled") return "bekor";
   if (holat === "stopped") return tp1Olindi ? "tp1_stop" : "stop";
+  // Muddat bo'yicha yopilish — pozitsiya OCHILGAN edi, ya'ni
+  // "bekor" emas. Natijasi foyda ham, zarar ham bo'lishi mumkin,
+  // shuning uchun u TP1 olinganiga qarab ajratiladi.
+  if (holat === "timed_out") return tp1Olindi ? "tp1_stop" : "stop";
   return "bekor";
 }
 

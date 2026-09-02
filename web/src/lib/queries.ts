@@ -57,7 +57,8 @@ export type SignalHolati =
   | "tp2_hit"
   | "stopped"
   | "weakening"
-  | "cancelled";
+  | "cancelled"
+  | "timed_out";
 
 export type Signal = {
   id: number;
@@ -113,7 +114,12 @@ export function davomEtmoqda(holat: SignalHolati): boolean {
  * qolardi yoki abadiy "ochiq" bo'lib turardi — va xato hech qayerda
  * xabar bermasdi. Botdagi `SignalStatus.closed_values()` bilan bir xil
  * qoida. */
-export const YOPIQ_HOLATLAR = ["tp2_hit", "stopped", "cancelled"] as const;
+export const YOPIQ_HOLATLAR = [
+  "tp2_hit",
+  "stopped",
+  "cancelled",
+  "timed_out",
+] as const;
 
 export function yopilgan(holat: SignalHolati): boolean {
   return (YOPIQ_HOLATLAR as readonly string[]).includes(holat);

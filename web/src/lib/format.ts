@@ -40,6 +40,7 @@ export const HOLAT_BELGISI: Record<SignalHolati, string> = {
   stopped: "🛑",
   weakening: "⚠️",
   cancelled: "⛔",
+  timed_out: "⏱",
 };
 
 export const HOLAT_NOMI: Record<SignalHolati, string> = {
@@ -50,6 +51,7 @@ export const HOLAT_NOMI: Record<SignalHolati, string> = {
   stopped: "Stop",
   weakening: "Zaiflashmoqda",
   cancelled: "Bekor qilingan",
+  timed_out: "Muddati tugadi",
 };
 
 export const HOLAT_NOMI_RU: Record<SignalHolati, string> = {
@@ -60,6 +62,7 @@ export const HOLAT_NOMI_RU: Record<SignalHolati, string> = {
   stopped: "Стоп",
   weakening: "Ослабевает",
   cancelled: "Отменён",
+  timed_out: "Срок истёк",
 };
 
 export function holatNomi(holat: SignalHolati, til: "uz" | "ru"): string {

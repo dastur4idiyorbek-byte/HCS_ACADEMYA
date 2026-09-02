@@ -452,3 +452,37 @@ haqiqiy nishon bo'lsa, shuncha TP quriladi:
 
 Uchinchi TP **o'ylab topilmaydi**: oraliqda haqiqiy zona bo'lmasa,
 ikkitasi qoladi.
+
+---
+
+## Nomzodga MUDDAT — yangi 🔴 (2026-09-02)
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🔴 | `max_holding_hours` | 0 | GIPOTEZA — 0 degani muddat yo'q |
+
+**Muammo.** Chiqish qoidasi faqat ikkita: TP yoki Stop. Ya'ni
+tizim jimgina shunday deb turibdi: *"bozor qachon bo'lmasin, bir
+kun bularning biriga boradi"*. Uchinchi yo'l — narx o'rtada
+osilib qolishi — hisobga olinmagan.
+
+Sanoat naqshida (QuantConnect LEAN) Alpha `Insight` chiqaradi:
+yo'nalish, ishonch va **muddat**. Bizda uchinchisi yo'q.
+
+**O'lchov.** O'rtacha ushlash **45.2 soat**, bozor esa ikki yilda
+**+31.5%** o'sgan (natija #6). Kapital foydasiz pozitsiyalarda
+band turadi va o'sha vaqtda tizim boshqa hech narsa qila olmaydi —
+ochiq signal limiti to'lgan bo'ladi.
+
+**Nima rad etardi:** muddat yoqilganda o'rtacha natija
+yomonlashsa. U holda muddat foydasiz savdolarni emas, kuchayishga
+ULGURMAGAN yaxshi savdolarni kesayotgan bo'ladi.
+
+Ikkita qiymat sinaladi — 24 va 72 soat. Bitta raqam "qisqa
+yaxshimi yoki uzun" degan savolga javob bermaydi.
+
+**Yangi holat:** `SignalStatus.TIMED_OUT` (⏱). U `CANCELLED` dan
+farq qiladi va bu farq muhim: bekor qilingan signal umuman
+ochilmagan, muddati tugagani esa OCHILGAN va natijasi bor —
+foyda ham, zarar ham bo'lishi mumkin. Ikkalasini bir turkumga
+qo'yish statistikani buzardi.

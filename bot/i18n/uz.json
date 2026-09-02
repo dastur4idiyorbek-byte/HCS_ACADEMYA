@@ -75,6 +75,7 @@
     "holat_tp1_hit": "🎯 TP1 olindi — yarmini sotish tavsiya etiladi",
     "holat_tp2_hit": "🏁 TP2 olindi — signal yopildi",
     "holat_cancelled": "⛔ Bekor qilindi — bu signal endi kuchda emas",
+    "holat_timed_out": "⏱ Muddati tugadi — bozor narxida yopildi",
     "kirdim_soralmoqda": "Qancha miqdorga sotib oldingiz? (USD)\n\nMasalan: 250",
     "kirdim_taklif": "💡 Tizim taklifi: ${amount}\n\nAgar shu miqdorga olgan bo'lsangiz, shu raqamni yozing. Boshqacha olgan bo'lsangiz — HAQIQIY miqdorni yozing, hisob-kitob o'shandan chiqadi.",
     "kirdim_qayd_etildi": "✅ Qayd etildi: {symbol} — ${amount}\n\nSignal yopilganda foyda/zararingizni avtomatik hisoblab beramiz.",
@@ -93,6 +94,7 @@
     "qisqa_stopped": "Stop ishladi",
     "qisqa_weakening": "zaiflashmoqda",
     "qisqa_cancelled": "bekor qilindi",
+    "qisqa_timed_out": "muddati tugadi",
     "kirdim_kech": "Bu signal TP1 ni olib bo'ldi — yangi kirish tavsiya etilmaydi. Stop endi kirish narxida turadi, harakatning katta qismi o'tgan."
   },
   "portfel": {

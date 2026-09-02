@@ -275,6 +275,7 @@ def _oqsiz(config: AppConfig) -> AppConfig:
             config.trade_rules,
             enforce_distance_bands=False,
             max_take_profits=2,
+            max_holding_hours=0.0,
         ),
     )
 
@@ -351,6 +352,17 @@ def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
         # egasining qarori). Bu variant ularni QAYTA YOQADI — ya'ni
         # eski xatti-harakat. Farq qarorning narxini ko'rsatadi.
         _qoidalar_bilan(asos, "foiz oraliqlari yoqilgan", enforce_distance_bands=True),
+        # MUDDAT. Hozir chiqish faqat TP yoki Stop — vaqt bo'yicha
+        # chiqish umuman yo'q. Mexanizm: foydasiz pozitsiya kapitalni
+        # band qilib turadi, va o'sha vaqtda tizim boshqa hech narsa
+        # qila olmaydi (ochiq signal limiti to'ladi).
+        #
+        # Ikkita muddat sinaladi, chunki "qisqa yaxshimi yoki uzun"
+        # degan savolga bitta raqam javob bermaydi. O'rtacha ushlash
+        # 45.2 soat, ya'ni 24 soat ko'pchilikni kesadi, 72 esa faqat
+        # eng uzoq cho'zilganlarini.
+        _qoidalar_bilan(asos, "muddat 24 soat", max_holding_hours=24.0),
+        _qoidalar_bilan(asos, "muddat 72 soat", max_holding_hours=72.0),
     ]
 
 
