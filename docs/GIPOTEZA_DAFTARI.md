@@ -340,10 +340,21 @@ Ikki mumkin bo'lgan ma'no bor:
 1. bozor haqiqatan ikki yil "kasal" bo'lgan — bu tayanch raqamiga zid;
 2. indeks ko'tarilgan bozorni "past" deb o'qiydi.
 
-Ikkinchisi ehtimolliroq. Indeksga kiruvchi HAMMA raqam bu daftarda
-🔴: omil vaznlari, ADX chegaralari, kenglik foizlari, band
-chegaralari (`low`/`normal`/`high`). Ya'ni markaziy puls to'liq
-o'lchanmagan taxminlar ustida turibdi.
+> **YANGILANDI — sabab topildi, gipoteza EMAS.** Uchinchi ma'no
+> bor ekan: backtest isinish davri salomatlik timeframeini
+> hisobga olmasdi, ya'ni sinovning 54% ida haftalik struktura
+> umuman hisoblanmasdi va indeksning 60 balli qismi nolda qolardi
+> (`docs/ARXITEKTURA.md`, 80-bo'lim). Bu o'lchov xatosi edi, bozor
+> haqidagi xulosa emas.
+>
+> Tuzatildi. Indeks kalibrlanganmi degan savol **hali ochiq** —
+> lekin unga javob berish uchun avval o'lchov to'g'ri bo'lishi
+> kerak edi.
+
+Indeksga kiruvchi HAMMA raqam bu daftarda 🔴: omil vaznlari, ADX
+chegaralari, kenglik foizlari, band chegaralari
+(`low`/`normal`/`high`). Ya'ni markaziy puls to'liq o'lchanmagan
+taxminlar ustida turibdi.
 
 Bu gipotezaning oldingilardan farqi: u "signal sifati" haqida emas,
 **"tizim umuman qachon savdo qiladi"** haqida.

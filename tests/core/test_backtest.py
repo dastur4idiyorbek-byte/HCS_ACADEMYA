@@ -153,29 +153,40 @@ def test_asosdan_past_timeframe_otkazib_yuboriladi() -> None:
 
 
 def test_isinish_davri_eng_yuqori_timeframega_qarab_hisoblanadi() -> None:
-    """Eng yuqori timeframedagi EMA200 uchun yetarli tarix kerak.
+    """Isinish BARCHA yuqori timeframelarni qamrab olsin.
 
     Buni faqat kirish timeframe bo'yicha hisoblash — jimgina buziladigan
     xato: yuqori timeframelarda EMA hisoblanmaydi, trend `FLAT` qaytadi
     va muvofiqlik hech qachon bajarilmaydi. Backtest "signal yo'q"
     deydi, sabab esa strategiyada emas, ma'lumot yetishmasligida.
 
-    Kutilgan qiymat KONFIGURATSIYADAN hisoblanadi. Ilgari bu yerda
-    "19 200" deb yozib qo'yilgan edi (1d / 15m = 96 barobar) — timeframe
-    to'plami o'zgargach test jimgina ma'nosini yo'qotardi.
+    BU TEST O'ZI HAM TESHIK EDI. U `htf_confirmation` ni tekshirardi,
+    ya'ni hisobning aynan o'sha qismini — va SALOMATLIK timeframei
+    hisobda yo'qligini ko'rmadi. Indeks 60 balli qismisiz qoldi va
+    sinovning yarmida 26-32 da qotdi (`docs/ARXITEKTURA.md`,
+    80-bo'lim).
+
+    Endi tekshiruv nomlangan ro'yxatga emas, TALABGA qaraydi: isinish
+    tugagach har bir timeframeda `min_candles` sham bo'lishi kerak.
+    Batafsil: `tests/core/test_isinish_davri.py`.
     """
     from core.backtest.dataset import TIMEFRAME_MINUTES
+    from core.backtest.warmup import warmup_timeframes
 
     config = load_config()
     analysis = config.analysis
     kerak = Backtester(config)._warmup_steps()
-
     kirish = TIMEFRAME_MINUTES[analysis.entry_timeframe]
-    eng_yuqori = max(TIMEFRAME_MINUTES[tf] for tf in analysis.htf_confirmation)
-    nisbat = max(1, eng_yuqori // kirish)
 
-    assert nisbat > 1, "tasdiq timeframei kirishdan yuqori bo'lishi kerak"
-    assert kerak == analysis.indicators.min_candles * nisbat + 10
+    eng_yuqori = max(TIMEFRAME_MINUTES[tf] for tf in analysis.htf_confirmation)
+    assert eng_yuqori > kirish, "tasdiq timeframei kirishdan yuqori bo'lishi kerak"
+
+    for tf in warmup_timeframes(config):
+        shamlar = kerak * kirish // TIMEFRAME_MINUTES[tf]
+        assert shamlar >= analysis.indicators.min_candles, (
+            f"{tf}: isinishdan keyin {shamlar} sham, "
+            f"{analysis.indicators.min_candles} kerak"
+        )
 
 
 def test_malumot_yetmasa_bosh_natija() -> None:

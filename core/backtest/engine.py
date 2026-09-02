@@ -26,6 +26,7 @@ from core.analysis.market_health import (
 )
 from core.analysis.strategies import build_strategies
 from core.backtest.dataset import Dataset
+from core.backtest.warmup import warmup_steps, warmup_timeframes
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SignalStatus
 from core.domain.models import Candle, HalalVerdict, Signal
@@ -258,9 +259,12 @@ class Backtester:
         if len(qadamlar) <= eng_kam:
             logger.warning(
                 "Backtest uchun ma'lumot yetarli emas: %d qadam, kamida %d kerak "
-                "(eng yuqori timeframedagi EMA%d uchun)",
+                "(isinish uchun — %s timeframelarida %d sham). `--days` ni "
+                "oshiring: skript sinov oynasidan tashqari isinish tarixini "
+                "ham yuklaydi.",
                 len(qadamlar),
                 eng_kam,
+                ", ".join(warmup_timeframes(self._config)),
                 self._config.analysis.indicators.min_candles,
             )
             return BacktestResult(label=self._label, steps=0)
@@ -331,26 +335,12 @@ class Backtester:
     def _warmup_steps(self) -> int:
         """Necha qadam o'tgach tahlil boshlanadi.
 
-        MUHIM: eng yuqori timeframedagi EMA'ga yetarli tarix kerak. Kunlik
-        shamda EMA200 uchun 200 KUNLIK ma'lumot kerak — kirish timeframeda
-        bu 200 × 96 = 19 200 qadam (15 daqiqalik shamda).
-
-        Buni faqat kirish timeframe bo'yicha hisoblash — jimgina buziladigan
-        xato: yuqori timeframelarda EMA hisoblanmaydi, trend `FLAT` qaytadi
-        va ko'p timeframe muvofiqligi HECH QACHON bajarilmaydi. Backtest
-        "signal yo'q" deb ko'rsatadi, sabab esa strategiyada emas,
-        ma'lumot yetishmasligida bo'ladi.
+        Hisob `core/backtest/warmup.py` da — u yerda skript ham nechta
+        kun ortiqcha yuklashini o'qiydi. Ikki joyda alohida
+        hisoblanganda ular ajralib ketardi, va aynan shunday bo'lgan
+        edi (`docs/ARXITEKTURA.md`, 80-bo'lim).
         """
-        from core.backtest.dataset import TIMEFRAME_MINUTES
-
-        analysis = self._config.analysis
-        kirish_daqiqa = TIMEFRAME_MINUTES.get(analysis.entry_timeframe, 15)
-        eng_yuqori = max(
-            (TIMEFRAME_MINUTES.get(tf, kirish_daqiqa) for tf in analysis.htf_confirmation),
-            default=kirish_daqiqa,
-        )
-        nisbat = max(1, eng_yuqori // kirish_daqiqa)
-        return analysis.indicators.min_candles * nisbat + 10
+        return warmup_steps(self._config)
 
     # ------------------------------------------------------------------ #
 

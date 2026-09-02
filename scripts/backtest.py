@@ -35,6 +35,7 @@ import json
 from pathlib import Path
 
 from core.backtest import Backtester, Dataset, compare, render
+from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
@@ -167,12 +168,31 @@ async def _yukla(
     # aylanardi.
     daqiqalar = {"15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440, "1w": 10080}
 
+    # SINOV OYNASIDAN TASHQARI isinish tarixi. `--days 730` "730 kun
+    # TAHLIL QILINADI" degani bo'lib qolsin: isinish qismi tahlil
+    # qilinmaydi, u faqat indikatorlarni to'ldiradi. Ansiz haftalik
+    # qatorda 60 sham sinovning yarmidan keyin yig'ilar, undan oldin
+    # esa Bozor Salomatligi indeksining 60 balli qismi erishib
+    # bo'lmaydigan bo'lardi (`core/backtest/warmup.py`).
+    jami_kun = days + warmup_days(config)
+
     try:
         for symbol in symbols:
             for tf in timeframelar:
+                kerak = max(1, int(jami_kun * 1440 / daqiqalar.get(tf, 15)))
                 shamlar = None if refresh else _keshdan_oqish(symbol, tf)
+                if shamlar is not None and len(shamlar) < kerak:
+                    # Kesh eski, KALTA so'rov bilan yig'ilgan. Uni jimgina
+                    # ishlatish backtestni isinishsiz qoldirardi.
+                    logger.info(
+                        "Kesh kalta: %s %s — %d sham bor, %d kerak, qayta yuklanadi",
+                        symbol,
+                        tf,
+                        len(shamlar),
+                        kerak,
+                    )
+                    shamlar = None
                 if shamlar is None:
-                    kerak = max(1, int(days * 1440 / daqiqalar.get(tf, 15)))
                     logger.info("Yuklanmoqda: %s %s (%d sham)", symbol, tf, kerak)
                     shamlar = await provider.fetch_candles(symbol, tf, kerak)
                     _keshga_yozish(symbol, tf, shamlar)
@@ -347,7 +367,11 @@ async def main() -> None:
     yoz = Chiqish(Path(argumentlar.output) if argumentlar.output else None)
     coinlar = [s.strip().upper() for s in argumentlar.symbols.split(",") if s.strip()]
 
-    print(f"Ma'lumot tayyorlanmoqda: {', '.join(coinlar)} ({argumentlar.days} kun)\n")
+    isinish = warmup_days(config)
+    print(
+        f"Ma'lumot tayyorlanmoqda: {', '.join(coinlar)} "
+        f"({argumentlar.days} kun tahlil + {isinish} kun isinish)\n"
+    )
     try:
         dataset = await _yukla(
             config,
@@ -361,7 +385,11 @@ async def main() -> None:
         raise SystemExit(1) from xato
 
     qadamlar = len(dataset.timeline(config.analysis.entry_timeframe))
-    print(f"Yuklandi: {len(dataset.symbols)} coin, {qadamlar:,} qadam\n")
+    tahlil_qadam = max(0, qadamlar - warmup_steps(config))
+    print(
+        f"Yuklandi: {len(dataset.symbols)} coin, {qadamlar:,} qadam "
+        f"({tahlil_qadam:,} tahlil qilinadi, qolgani isinish)\n"
+    )
 
     if not argumentlar.compare:
         natija = Backtester(config).run(dataset, max_steps=argumentlar.max_steps)
@@ -376,7 +404,10 @@ async def main() -> None:
             Backtester(variant, label=nom).run(dataset, max_steps=argumentlar.max_steps)
         )
 
-    yoz(f"Coinlar: {', '.join(coinlar)} | {argumentlar.days} kun | {qadamlar:,} qadam")
+    yoz(
+        f"Coinlar: {', '.join(coinlar)} | {argumentlar.days} kun | "
+        f"{tahlil_qadam:,} tahlil qadami (+{isinish} kun isinish)"
+    )
     yoz()
     yoz(compare(natijalar))
     yoz()

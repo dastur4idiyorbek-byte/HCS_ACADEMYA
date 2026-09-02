@@ -188,12 +188,19 @@ python -m scripts.backtest --compare --days 90 --symbols BTC
 **Ko'rishingiz kerak:**
 
 ```
-Ma'lumot tayyorlanmoqda: BTC (90 kun)
-Yuklanmoqda: BTC 4h (540 sham)
+Ma'lumot tayyorlanmoqda: BTC (90 kun tahlil + 427 kun isinish)
+Yuklanmoqda: BTC 4h (3102 sham)
 ...
-Yuklandi: 1 coin, 540 qadam
-  ishlamoqda: eski: past bandda to'xtash ...
+Yuklandi: 1 coin, 3,102 qadam (572 tahlil qilinadi, qolgani isinish)
+  ishlamoqda: hozirgi holat ...
 ```
+
+`--days 90` degani "90 kun TAHLIL QILINADI". Uning ustiga isinish
+tarixi yuklanadi: indikatorlar birinchi qadamdayoq to'la bo'lishi
+kerak. Ansiz Bozor Salomatligi indeksining asosiy omili
+(haftalik struktura) sinovning boshida nolda qolardi va tizim
+"bozor kasal" degan qarorni ma'lumot yo'qligidan o'qirdi
+(`docs/ARXITEKTURA.md`, 80-bo'lim).
 
 Xatosiz tugasa — hammasi joyida, keyingi qadamga o'ting.
 
@@ -353,7 +360,7 @@ Biror fayl yetishmasa, dastur uning nomini aniq aytadi.
 | Buyruq | Nima qiladi |
 |---|---|
 | `--compare` | eski va yangi tizimni taqqoslaydi |
-| `--days 730` | necha kunlik tarix (2 yil tavsiya etiladi) |
+| `--days 730` | necha kun TAHLIL qilinadi (2 yil tavsiya etiladi). Isinish tarixi bunga qo'shimcha yuklanadi |
 | `--symbols BTC,ETH` | qaysi coinlar (standart: BTC, ETH, SOL, BNB, XRP) |
 | `--refresh` | ma'lumotni qaytadan yuklaydi |
 | `--offline` | internetsiz — faqat saqlangan ma'lumot |

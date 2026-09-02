@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       days:
-        description: "Necha kunlik tarix"
+        description: "Necha kun TAHLIL qilinsin (isinish tarixi ustiga qo'shiladi)"
         required: true
         default: "730"
       symbols:
@@ -49,6 +49,12 @@ jobs:
       # Qiymat `env` orqali beriladi, `run` matniga to'g'ridan-to'g'ri
       # qo'yilmaydi: aks holda kiritilgan matn buyruqning bir qismiga
       # aylanib qolishi mumkin.
+      #
+      # Kalitda TAHLIL + ISINISH kunlari turadi. Faqat tahlil kunlari
+      # bo'lganda isinish talabi o'zgargach eski, KALTA kesh qayta
+      # ishlatilardi — skript uni sezib qayta yuklaydi, lekin kesh
+      # kaliti allaqachon band bo'lgani uchun yangisi saqlanmasdi va
+      # har ishga tushirish Binance'dan boshdan yuklardi.
       - name: Kesh kaliti
         id: kalit
         env:
@@ -57,7 +63,8 @@ jobs:
         run: |
           COINLAR=$(printf '%s' "$SYMBOLS" | tr ',' '-' | tr -cd 'A-Za-z0-9-')
           KUNLAR=$(printf '%s' "$DAYS" | tr -cd '0-9')
-          echo "qiymat=candles-$COINLAR-$KUNLAR" >> "$GITHUB_OUTPUT"
+          ISINISH=$(python -c "from core.backtest.warmup import warmup_days; from core.config import load_config; print(warmup_days(load_config()))")
+          echo "qiymat=candles-$COINLAR-$((KUNLAR + ISINISH))" >> "$GITHUB_OUTPUT"
           echo "asos=candles-$COINLAR-" >> "$GITHUB_OUTPUT"
 
       # Yuklangan shamlar saqlanadi — keyingi ishga tushirishda

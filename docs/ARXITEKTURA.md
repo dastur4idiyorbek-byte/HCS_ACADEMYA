@@ -4713,7 +4713,70 @@ haqida.
 
 ---
 
-## 80. Bosqichlar holati
+## 80. Beshinchi farq: indeks sinovning yarmida O'LIK edi
+
+79-bo'limda savol shunday qo'yilgan edi: nega Bozor Salomatligi
+indeksi ikki yil davomida 26-32 bandida qotib qoldi, ayni davrda
+bozor esa +33.0% ko'tarilgan?
+
+Javob kalibrlashda emas, ma'lumotda chiqdi.
+
+**MEXANIZM.** Isinish davri (`_warmup_steps()`) faqat
+`htf_confirmation` ro'yxatiga qarardi. Bozor Salomatligi
+timeframei (`1w`) unda yo'q — indeks strategiyadan tashqarida
+hisoblanadi. Natijada:
+
+```
+isinish (eski)  =  min_candles(60) × (1d / 4h = 6) + 10  =   370 qadam
+haftalik uchun  =  min_candles(60) × (1w / 4h = 42) + 10 = 2 530 qadam
+```
+
+Tahlil 370-qadamda boshlanardi. 2 530-qadamgacha haftalik qatorda
+60 sham yo'q edi, ya'ni `universe_facts()` BO'SH qaytardi:
+
+| omil | vazn | ball |
+|---|---|---|
+| `halal_structure_breadth` | 45 | **0.0** |
+| `volatility_regime` | 15 | **0.0** |
+
+Indeksning **60 balli qismi** 4 010 tahlil qadamining 2 160 tasida
+(54%) erishib bo'lmaydigan edi. Qolgan 40 balldan ham indeks 26-32
+chiqardi — aynan jurnalda ko'ringan raqam.
+
+Ya'ni sinovning yarmida tizim "bozor kasal" degan qarorni
+ma'lumotdan emas, ma'lumot YO'QLIGIDAN o'qirdi.
+
+**TUZATISH.**
+
+1. `core/backtest/warmup.py` — bitta manba. Isinish uzunligi eng
+   yuqori timeframedan hisoblanadi va salomatlik timeframei ham
+   unga kiradi.
+2. Skript sinov oynasidan tashqari **427 kun** isinish tarixini
+   yuklaydi. `--days 730` endi "730 kun TAHLIL QILINADI" degani —
+   ilgari u jimgina qisqarardi.
+3. Kesh uzunligi tekshiriladi: kalta kesh qayta yuklanadi. Ansiz
+   eski fayllar jimgina ishlatilib, isinish yana yo'qolardi.
+
+**NIMA UCHUN TEST TUTMADI.** Test bor edi va o'zi ham teshik edi:
+u `htf_confirmation` ni tekshirardi, ya'ni hisobning aynan o'sha
+qismini. Endi u nomlangan ro'yxatga emas TALABGA qaraydi —
+"isinish tugagach har bir timeframeda `min_candles` sham bo'lsin".
+
+Test o'lchayotgan narsani kod bilan bir joydan olsa, u kodni emas,
+o'z aksini tekshiradi.
+
+**HISOB.** Bu 68, 69 va 79-bo'limlardan keyingi BESHINCHI
+backtest/jonli farqi. Beshtasining ham shakli bir xil: jonli tizim
+bir narsani ko'radi, backtest boshqasini, va farq raqamda emas —
+natija ishonchli ko'rinishida yashiringan.
+
+**OGOHLANTIRISH.** Run #8 raqamlari (79-bo'lim) shu sababdan
+noto'liq: ularning yarmi o'lik indeks ostida olingan. Keyingi
+yugurish yana yangi nolinchi nuqta bo'ladi.
+
+---
+
+## 81. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

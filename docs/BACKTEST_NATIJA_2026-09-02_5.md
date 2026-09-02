@@ -92,12 +92,37 @@ Bu ikkita mumkin bo'lgan ma'noning biri:
    birortasi o'lchanmagan (`GIPOTEZA_DAFTARI.md`: 🔴 barchasi).
    Indeks ko'tarilgan bozorni "past" deb o'qiydi.
 
-Ikkinchisi ancha ehtimolliroq. Ya'ni tizimning **markaziy puls**i
-noto'g'ri joyda turibdi: u savdoni ko'tarilish davrida to'xtatadi.
+### SABAB TOPILDI — uchinchi ma'no
 
-Bu — keyingi o'lchanadigan gipoteza. Uni oldingi uchtasidan farqi
-bor: oldingilar "signal sifatini oshiramiz" haqida edi, bu esa
-"tizim umuman qachon ishlaydi" haqida.
+Yuqoridagi ikkala ma'no ham noto'g'ri chiqdi. Haqiqiy sabab
+o'lchovda edi:
+
+Backtest isinish davri salomatlik timeframeini (`1w`) hisobga
+olmasdi. Tahlil 370-qadamda boshlanardi, haftalik qatorda 60 sham
+esa 2 530-qadamda yig'ilardi. Oradagi **2 160 qadamda** (4 010
+tahlil qadamining 54% i) `universe_facts()` bo'sh qaytardi:
+
+| omil | vazn | ball |
+|---|---|---|
+| `halal_structure_breadth` | 45 | 0.0 |
+| `volatility_regime` | 15 | 0.0 |
+
+Ya'ni indeksning 60 balli qismi sinovning yarmida ERISHIB
+BO'LMAYDIGAN edi. Tizim "bozor kasal" degan qarorni ma'lumotdan
+emas, ma'lumot YO'QLIGIDAN o'qirdi.
+
+Bu 68, 69 va 79-bo'limlardan keyingi **beshinchi**
+backtest/jonli farqi. Tuzatildi (`docs/ARXITEKTURA.md`,
+80-bo'lim): isinish endi `core/backtest/warmup.py` da bitta joydan
+hisoblanadi va skript sinov oynasidan tashqari 427 kun isinish
+tarixini yuklaydi.
+
+**Shu sababli yuqoridagi jadval ham to'liq emas** — uning yarmi
+o'lik indeks ostida olingan. Keyingi yugurish yana yangi nolinchi
+nuqta bo'ladi.
+
+Indeks kalibrlanganmi degan savol ochiq qoladi. Lekin unga javob
+berish uchun avval o'lchov to'g'ri bo'lishi kerak edi.
 
 ---
 
