@@ -4397,7 +4397,61 @@ Nomsiz qolsa ham test jim o'tardi. Ifodalar tuzatildi.
 
 ---
 
-## 73. Bosqichlar holati
+## 73. Tuzilmaviy TP2 — GIPOTEZA RAD ETILDI
+
+To'liq hisobot — `docs/BACKTEST_NATIJA_2026-09-02_2.md`.
+
+```
+konfiguratsiya              signal  savdo   win   o'rt.%    jami%  TP2 gacha
+eski: formulaviy TP2           667    649   38%    -0.73   -471.6      29.9%
+yangi: tuzilmaviy TP2          660    649   38%    -0.98   -634.8      24.7%
+tuzilmaviy, nisbat >= 1.5      613    601   38%    -0.91   -544.2      23.0%
+tuzilmaviy, nisbat >= 2.0      571    555   38%    -1.01   -560.2      19.5%
+```
+
+**Kutilgan:** TP2 haqiqiy zonaga qo'yilsa, unga yetish ehtimoli
+oshadi (nisbat pasayishi evaziga).
+
+**Bo'lgan:** ehtimol OSHMADI, pasaydi — 29.9% dan 24.7% ga.
+
+Sabab oldindan ko'rilmagan edi: TP1 dan keyingi haqiqiy resistance
+zonasi formuladagi nishondan ko'pincha **UZOQROQ** turar ekan,
+yaqinroq emas. "TP2 juda uzoq" degan tashxis to'g'ri edi, taklif
+qilingan yechim esa TP2 ni yana ham uzoqlashtirdi.
+
+`tp2_from_structure` **`false` bo'lib qoldi.**
+
+### Xarajat modeli tekshirildi
+
+| | xarajatsiz (#1) | xarajatli (#2) | farq |
+|---|---|---|---|
+| eski yo'l, jami% | -276.9 | -471.6 | **-194.7** |
+
+Kutilgan: 649 x 0.3% = 194.7%. Aynan mos keldi — ya'ni xarajat
+to'g'ri ulangan.
+
+### Ma'lumot yangi joyni ko'rsatdi
+
+Beshta variantda TP2 turli joyga qo'yildi, signal soni 571 dan 671
+gacha o'zgardi. **Win-rate esa hamma joyda 37.5–38.4%.**
+
+Bu barqarorlik bitta narsani aytadi: kirishlarning ~62% i TP ga
+umuman yaqinlashmay stopga boradi, va TP ni qayerga qo'yish bunga
+ta'sir qilmaydi.
+
+Ikki gipoteza (Correction Entry, tuzilmaviy TP2) rad etildi va
+ikkalasi ham TP/kirish YO'LI haqida edi. Uchinchi to'plam KIRISHNING
+O'ZI haqida: kunlik trend majburiyligi, indikator tasdig'i, ADX
+chegarasi, Discount chuqurligi.
+
+**INTIZOM oldindan yozib qo'yildi.** To'rtta gipotezadan eng
+yaxshisini tanlab "tasdiqlandi" deyish mumkin emas — bittasi
+tasodifan ham yaxshi chiqadi. Yaxshi natija boshqa davrda qayta
+tekshirilishi shart.
+
+---
+
+## 74. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

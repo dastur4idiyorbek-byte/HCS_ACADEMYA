@@ -53,15 +53,34 @@ def test_variantlar_quriladi(config) -> None:  # noqa: ANN001
         assert dataclasses.is_dataclass(variant)
 
 
-def test_eski_va_yangi_tp2_taqqoslanadi(config) -> None:  # noqa: ANN001
-    """Hozirgi savol: TP2 formuladanmi yoki tuzilmadanmi?"""
-    holatlar = {
-        nom: variant.trade_rules.tp2_from_structure
-        for nom, variant in _variantlar(config)
-    }
+def test_hozirgi_holat_ham_olchanadi(config) -> None:  # noqa: ANN001
+    """Taqqoslashda O'ZGARTIRILMAGAN sozlama ham bo'lishi SHART.
 
-    assert any(not v for v in holatlar.values()), "eski yo'l yo'q"
-    assert any(holatlar.values()), "yangi yo'l yo'q"
+    Ansiz "yaxshiroq" degan so'zning ma'nosi qolmaydi: nimadan
+    yaxshiroq?
+    """
+    variantlar = _variantlar(config)
+    asoslar = [v for _nom, v in variantlar if v == config]
+
+    assert asoslar, "o'zgartirilmagan sozlama variantlar ichida yo'q"
+
+
+def test_har_bir_variant_bitta_narsani_ozgartiradi(config) -> None:  # noqa: ANN001
+    """Bir vaqtda ikkita sozlama o'zgarsa, qaysi biri ta'sir qilgani
+    noma'lum bo'lib qoladi.
+
+    Bu taqqoslashning eng asosiy sharti: bitta o'zgaruvchi.
+    """
+    olchanadigan = [
+        lambda c: c.analysis.require_htf_alignment,
+        lambda c: c.analysis.indicators.require_confirmation,
+        lambda c: c.analysis.indicators.adx_trend_threshold,
+        lambda c: c.analysis.support_resistance.entry_max_range_pct,
+    ]
+
+    for nom, variant in _variantlar(config):
+        farqlar = [o for o in olchanadigan if o(variant) != o(config)]
+        assert len(farqlar) <= 1, f"{nom}: bir vaqtda {len(farqlar)} sozlama o'zgargan"
 
 
 def test_variantlar_bir_biriga_tasir_qilmaydi(config) -> None:  # noqa: ANN001
@@ -70,26 +89,36 @@ def test_variantlar_bir_biriga_tasir_qilmaydi(config) -> None:  # noqa: ANN001
     Aks holda ro'yxatdagi keyingi variant oldingisining sozlamasi
     bilan ishlab ketardi va taqqoslash yolg'on natija berardi.
     """
-    variantlar = dict(_variantlar(config))
-    nisbatlar = {
-        nom: variant.trade_rules.tp2_structural_min_rr
-        for nom, variant in variantlar.items()
-    }
+    _variantlar(config)
 
-    assert len(set(nisbatlar.values())) > 1, "nisbat variantlari o'lchanmayapti"
-    assert not config.trade_rules.tp2_from_structure, (
-        "asos sozlama o'zgarmasligi kerak"
-    )
-    assert config.trade_rules.tp2_structural_min_rr == 1.0
+    assert not config.analysis.require_htf_alignment, "asos sozlama o'zgardi"
+    assert not config.analysis.indicators.require_confirmation
+    assert config.analysis.indicators.adx_trend_threshold == 20.0
+    assert config.analysis.support_resistance.entry_max_range_pct == 55.0
+
+
+def test_rad_etilgan_gipotezalar_yoqilmagan(config) -> None:  # noqa: ANN001
+    """Ikki gipoteza backtest bilan RAD ETILDI — ular yopiq qolsin.
+
+    `correction_entry` (natija #1) va `tp2_from_structure` (natija
+    #2). Ularni jimgina qayta yoqib qo'yish — o'lchovni bekor
+    qilish demakdir.
+    """
+    assert not config.strategies.correction_entry.enabled
+    assert not config.trade_rules.tp2_from_structure
+
+    for nom, variant in _variantlar(config):
+        assert not variant.strategies.correction_entry.enabled, nom
+        assert not variant.trade_rules.tp2_from_structure, nom
 
 
 def test_boshqa_sozlamalar_tegilmaydi(config) -> None:  # noqa: ANN001
     """Faqat o'lchanayotgan narsa o'zgaradi — taqqoslash halol bo'lsin."""
     for _nom, variant in _variantlar(config):
-        assert variant.strategies.classic_ta == config.strategies.classic_ta
-        assert variant.market_health == config.market_health
         assert variant.scoring == config.scoring
+        assert variant.market_health == config.market_health
         assert variant.backtest == config.backtest
+        assert variant.risk_engine == config.risk_engine
 
 
 def test_xarajat_barcha_variantda_bir_xil(config) -> None:  # noqa: ANN001

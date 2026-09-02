@@ -12,16 +12,18 @@ ga keshlanadi — takroriy ishga tushirishda qayta yuklanmaydi. Tarmoq
 yopiq muhitda `--offline` bilan FAQAT kesh o'qiladi va yetishmayotgan
 fayllar nomma-nom aytiladi.
 
-TAQQOSLASH REJIMI eng qimmatli qism. Hozir u BITTA ochiq savolga
-raqam bilan javob beradi:
+TAQQOSLASH REJIMI eng qimmatli qism. U har safar BITTA ochiq
+savolga raqam bilan javob beradi.
 
-    TP2 ni FORMULADAN (stop x nisbat) emas, TUZILMADAN (keyingi
-    resistance zonasi) olsak — natija yaxshilanadimi?
+Javob berilgan savollar (`docs/BACKTEST_NATIJA_*.md`):
 
-2026-09-02 backtesti asosiy tizim zarar ko'rsatayotganini aniqladi
-va sababni ham ko'rsatdi: TP2 gacha savdolarning atigi 29.9% i
-yetadi. Tuzilmaviy TP2 nisbatni pasaytiradi, lekin ehtimolni
-oshiradi. Qaysi tomon og'irroq — taxmin qilinmaydi, o'lchanadi.
+    1. Past bandda Correction Entry yordam beradimi?  -> YO'Q
+    2. TP2 tuzilmadan olinsa yaxshiroqmi?             -> YO'Q
+
+Hozirgi savol: muammo TP da emas, KIRISHDA emasmi? Ikkala rad
+etilgan gipoteza ham TP haqida edi, win-rate esa barcha variantda
+37.5-38.4% bo'lib qoldi — ya'ni kirishlarning ~62% i TP ga
+yaqinlashmay stopga boradi.
 """
 
 from __future__ import annotations
@@ -204,43 +206,73 @@ def _qoidalar_bilan(
     return nom, dataclasses.replace(asos, trade_rules=qoidalar)
 
 
+def _tahlil_bilan(
+    asos: AppConfig, nom: str, indikator: dict | None = None, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`analysis` (va kerak bo'lsa `indicators`) o'zgartirilgan nusxa."""
+    tahlil = asos.analysis
+    if indikator:
+        tahlil = dataclasses.replace(
+            tahlil, indicators=dataclasses.replace(tahlil.indicators, **indikator)
+        )
+    if ozgarishlar:
+        tahlil = dataclasses.replace(tahlil, **ozgarishlar)
+    return nom, dataclasses.replace(asos, analysis=tahlil)
+
+
+def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, AppConfig]:
+    """`analysis.support_resistance` o'zgartirilgan nusxa."""
+    sr = dataclasses.replace(asos.analysis.support_resistance, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, analysis=dataclasses.replace(asos.analysis, support_resistance=sr)
+    )
+
+
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Hozirgi ochiq savolni variantlarga aylantiradi.
+    """Uchinchi to'plam: KIRISH SIFATI.
 
-    OLDINGI SAVOLGA JAVOB BERILDI (2026-09-02,
-    `docs/BACKTEST_NATIJA_2026-09-02.md`): Correction Entry atigi 4 ta
-    signal qo'shdi va natijani yomonlashtirdi. U `enabled: false`
-    holatida qoldi, ya'ni endi o'lchaydigan narsa yo'q.
+    IKKI GIPOTEZA ALLAQACHON RAD ETILDI:
 
-    O'SHA BACKTEST KATTAROQ MUAMMONI OCHDI: asosiy tizim ham zarar
-    ko'rsatyapti (win-rate 37.9%, o'rtacha -0.43% har savdoda). Sabab
-    kodda ochiq turibdi — TP1 haqiqiy resistance zonasidan olinadi,
-    TP2 esa FORMULADAN. Natijada TP2 gacha savdolarning atigi 29.9%
-    i yetadi.
+    1. Correction Entry (natija #1) — 4 ta signal qo'shdi, natijani
+       yomonlashtirdi
+    2. Tuzilmaviy TP2 (natija #2) — TP2 gacha yetish 29.9% dan
+       24.7% ga TUSHDI. Kutilganning teskarisi: haqiqiy qarshilik
+       zonasi formuladagi nishondan ko'pincha UZOQROQ turar ekan
 
-    Yangi savol shu: TP2 ni TUZILMAGA qo'ysak, past nisbat evaziga
-    yuqori ehtimol olamizmi?
+    Ikkalasi ham TP va kirish YO'LI haqida edi. Ma'lumot esa boshqa
+    joyni ko'rsatyapti: TP2 turli joyga qo'yilganda ham WIN-RATE
+    hamma variantda 37.5-38.4% bo'lib qoldi. Ya'ni kirishlarning
+    ~62% i TP ga umuman yaqinlashmay stopga boradi va TP ni qayerga
+    qo'yish bunga ta'sir qilmaydi.
 
-    Nisbat variantlari ham shu yerda: tuzilmaviy TP2 nisbatni
-    pasaytiradi, lekin qay darajaga qadar pasayishiga ruxsat berish
-    kerakligi o'lchanmagan.
+    Shuning uchun savol KIRISHNING O'ZIGA ko'chadi. Quyidagilar —
+    oldindan yozilgan gipotezalar, har birining mexanizm izohi bor.
+
+    INTIZOM: bulardan eng yaxshisini tanlab "tasdiqlandi" deyish
+    mumkin emas. To'rtta gipotezadan bittasi tasodifan ham yaxshi
+    chiqadi. Yaxshi natija BOSHQA DAVRDA qayta tekshirilishi shart.
     """
     return [
-        _qoidalar_bilan(asos, "eski: formulaviy TP2", tp2_from_structure=False),
-        _qoidalar_bilan(asos, "yangi: tuzilmaviy TP2", tp2_from_structure=True),
-        _qoidalar_bilan(
-            asos,
-            "tuzilmaviy, nisbat >= 1.5",
-            tp2_from_structure=True,
-            tp2_structural_min_rr=1.5,
+        ("hozirgi holat", asos),
+        # Kunlik trend hozir MAJBURIY EMAS (`require_htf_alignment: false`).
+        # Sabab hujjatlashtirilgan: u signallarning 32% ini to'sardi.
+        # Lekin to'silganlar YOMON bo'lgan bo'lishi ham mumkin —
+        # buni hech kim o'lchamagan edi.
+        _tahlil_bilan(asos, "kunlik trend majburiy", require_htf_alignment=True),
+        # Indikatorlar hozir faqat ballga ta'sir qiladi. Ular
+        # kechikadi — lekin kechikish soxta kirishlarni ham
+        # kamaytiradi. Qaysi tomon og'irroq, o'lchanmagan.
+        _tahlil_bilan(
+            asos, "indikator tasdig'i majburiy", indikator={"require_confirmation": True}
         ),
-        _qoidalar_bilan(
-            asos,
-            "tuzilmaviy, nisbat >= 2.0",
-            tp2_from_structure=True,
-            tp2_structural_min_rr=2.0,
+        # Tekis bozorda support/resistance ma'nosini yo'qotadi:
+        # narx zonalar orasida tebranadi va ikkalasini ham buzadi.
+        _tahlil_bilan(
+            asos, "faqat kuchli trend (ADX 25)", indikator={"adx_trend_threshold": 25.0}
         ),
-        _korreksiya_bilan(asos, "nazorat: Correction Entry yoqilgan", enabled=True),
+        # Diapazonning pastki qismida stopgacha masofa qisqaroq va
+        # qaytish ehtimoli yuqoriroq.
+        _sr_bilan(asos, "faqat chuqur Discount (40%)", entry_max_range_pct=40.0),
     ]
 
 
