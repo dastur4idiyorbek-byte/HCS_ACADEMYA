@@ -63,14 +63,23 @@ def calculator(config):  # noqa: ANN001, ANN201
 
 
 def kirish(**kwargs) -> HealthInputs:
-    """Sog'lom bozor — barcha omillar yaxshi."""
+    """Sog'lom bozor — barcha omillar yaxshi.
+
+    `capacity=AggregateCapacity(...)` deb berish mumkin: bu yordamchi
+    uni jonli tizimdagidek IKKITA SONGA aylantiradi. Salomatlik
+    indeksi endi sizing obyektini bilmaydi — unga faqat "qancha joy
+    qoldi" degan ulush va bir qatorli izoh beriladi
+    (qurilish xaritasi, 2-teskari g'isht).
+    """
+    sigim = kwargs.pop("capacity", AggregateCapacity(10, 10, 1000.0, 1000.0))
     asosiy = {
         "computed_at": HOZIR,
         "btc_dominance": 54.0,
         "btc_dominance_change_24h": 0.1,
         "universe_structures": {f"C{i}": TrendDirection.UP for i in range(30)},
         "universe_adx": {f"C{i}": 45.0 for i in range(30)},
-        "capacity": AggregateCapacity(10, 10, 1000.0, 1000.0),
+        "capacity_headroom": sigim.headroom_ratio if sigim else None,
+        "capacity_note": sigim.describe() if sigim else None,
         "open_signals": 0,
         "max_open_signals": 5,
     }
@@ -395,7 +404,7 @@ def test_ideal_bozor_toliq_ball_oladi() -> None:
             btc_dominance_change_24h=0.2,
             universe_structures={f"C{i}": TrendDirection.UP for i in range(30)},
             universe_adx={f"C{i}": config.market_health.strong_trend_adx for i in range(30)},
-            capacity=None,
+            capacity_headroom=None,
             open_signals=0,
             max_open_signals=5,
         )

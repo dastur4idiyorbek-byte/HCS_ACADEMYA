@@ -318,7 +318,14 @@ class Scheduler:
         # to'xtatmaydi).
         try:
             async with self._db.session() as session:
-                await AuditReportRepository(session).save(hisobot, matn)
+                await AuditReportRepository(session).save(
+                    hisobot.generated_at,
+                    hisobot.period_days,
+                    hisobot.stats,
+                    matn,
+                    pattern_count=len(hisobot.patterns),
+                    sample_warning=hisobot.sample_warning,
+                )
         except Exception:  # noqa: BLE001
             logger.exception("Haftalik hisobot qaydini yozib bo'lmadi")
 

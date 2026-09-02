@@ -15,33 +15,7 @@ from datetime import datetime
 from core.analysis.postmortem.outcome import ClosedSignal, Outcome
 from core.analysis.postmortem.patterns import Pattern, find_patterns
 from core.config.schema import PostmortemConfig
-
-
-@dataclass(frozen=True, slots=True)
-class PeriodStats:
-    """Davr bo'yicha umumiy raqamlar (3.6-band shaffofligi)."""
-
-    total: int
-    tp2: int
-    tp1_then_stop: int
-    stop: int
-    cancelled: int
-    false_signals: int
-    average_score: float | None
-    average_holding_hours: float | None
-
-    @property
-    def traded(self) -> int:
-        """Haqiqiy savdoga aylangan signallar (bekor qilinganlarsiz)."""
-        return self.total - self.cancelled
-
-    @property
-    def win_rate(self) -> float | None:
-        return None if self.traded == 0 else (self.tp2 + self.tp1_then_stop) / self.traded
-
-    @property
-    def stop_rate(self) -> float | None:
-        return None if self.traded == 0 else self.stop / self.traded
+from core.domain.models import PeriodStats
 
 
 @dataclass(frozen=True, slots=True)

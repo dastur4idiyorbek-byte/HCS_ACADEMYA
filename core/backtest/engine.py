@@ -604,7 +604,7 @@ class Backtester:
                 # qolardi — ya'ni jonli tizimda ta'sir qiladigan
                 # narsa sinovda umuman o'lchanmasdi.
                 reference_candles=self._etalon_shamlar(dataset, moment, salomatlik_tf),
-                capacity=None,
+                capacity_headroom=None,
                 open_signals=len(ochiqlar),
                 max_open_signals=limitlar.high,
             )

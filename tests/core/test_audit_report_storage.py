@@ -26,6 +26,23 @@ async def db():
     await database.dispose()
 
 
+async def saqla(repo, hisobot_obyekti, matn: str):  # noqa: ANN001, ANN201
+    """Hisobotni saqlaydi — botdagi chaqiruv bilan bir xil shaklda.
+
+    `save()` endi butun `SelfAuditReport` ni olmaydi: uning ichida
+    `Pattern` ro'yxati ham bor va u tahlil qatlamining tushunchasi.
+    Butun obyektni olish `storage` ni tahlilga bog'lab qo'yardi.
+    """
+    return await repo.save(
+        hisobot_obyekti.generated_at,
+        hisobot_obyekti.period_days,
+        hisobot_obyekti.stats,
+        matn,
+        pattern_count=len(hisobot_obyekti.patterns),
+        sample_warning=hisobot_obyekti.sample_warning,
+    )
+
+
 def hisobot(
     hozir: datetime = HOZIR,
     *,
@@ -55,7 +72,7 @@ def hisobot(
 
 async def test_hisobot_saqlanadi(db: Database) -> None:
     async with db.session() as session:
-        await AuditReportRepository(session).save(hisobot(), "matn")
+        await saqla(AuditReportRepository(session), hisobot(), "matn")
 
     async with db.session() as session:
         qaydlar = await AuditReportRepository(session).latest()
@@ -76,8 +93,8 @@ async def test_bir_kunda_bitta_qayd(db: Database) -> None:
     """Admin tugmani necha marta bossa ham jadval to'lib ketmasligi kerak."""
     async with db.session() as session:
         repo = AuditReportRepository(session)
-        await repo.save(hisobot(), "birinchi")
-        await repo.save(hisobot(HOZIR + timedelta(hours=5), total=20), "ikkinchi")
+        await saqla(repo, hisobot(), "birinchi")
+        await saqla(repo, hisobot(HOZIR + timedelta(hours=5), total=20), "ikkinchi")
 
     async with db.session() as session:
         qaydlar = await AuditReportRepository(session).latest()
@@ -91,8 +108,8 @@ async def test_bir_kunda_bitta_qayd(db: Database) -> None:
 async def test_boshqa_kun_alohida_qayd(db: Database) -> None:
     async with db.session() as session:
         repo = AuditReportRepository(session)
-        await repo.save(hisobot(HOZIR - timedelta(days=7)), "o'tgan hafta")
-        await repo.save(hisobot(HOZIR), "bu hafta")
+        await saqla(repo, hisobot(HOZIR - timedelta(days=7)), "o'tgan hafta")
+        await saqla(repo, hisobot(HOZIR), "bu hafta")
 
     async with db.session() as session:
         qaydlar = await AuditReportRepository(session).latest()
@@ -109,8 +126,8 @@ async def test_turli_davr_uzunligi_aralashmaydi(db: Database) -> None:
 
     async with db.session() as session:
         repo = AuditReportRepository(session)
-        await repo.save(hisobot(), "30 kun")
-        await repo.save(yetti, "7 kun")
+        await saqla(repo, hisobot(), "30 kun")
+        await saqla(repo, yetti, "7 kun")
 
     async with db.session() as session:
         qaydlar = await AuditReportRepository(session).latest()
@@ -126,7 +143,7 @@ async def test_namuna_kichik_ogohlantirishi_saqlanadi(db: Database) -> None:
     """
     matn = "Namuna kichik (3 ta savdo, kamida 10 kerak)"
     async with db.session() as session:
-        await AuditReportRepository(session).save(hisobot(ogohlantirish=matn), "m")
+        await saqla(AuditReportRepository(session), hisobot(ogohlantirish=matn), "m")
 
     async with db.session() as session:
         qayd = (await AuditReportRepository(session).latest())[0]

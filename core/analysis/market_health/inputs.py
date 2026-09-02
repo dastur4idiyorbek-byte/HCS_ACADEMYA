@@ -17,7 +17,6 @@ from datetime import datetime
 
 from core.domain.enums import TrendDirection
 from core.domain.models import Candle
-from core.position_sizing import AggregateCapacity
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +45,16 @@ class HealthInputs:
     universe_adx: dict[str, float] = field(default_factory=dict)
 
     # --- 4-omil: Agregat foydalanuvchi sig'imi (5.2-band) ---
-    capacity: AggregateCapacity | None = None
+    #: Hali limitiga yetmagan foydalanuvchilar ulushi (0..1).
+    #:
+    #: OBYEKT EMAS, SON. Ilgari bu yerda `AggregateCapacity` turardi va
+    #: bozor tahlili `position_sizing` ga bog'lanib qolardi — ya'ni
+    #: kuzatuv qatlami qaror qatlamiga suyanardi. Salomatlik indeksiga
+    #: butun obyekt kerak emas: unga faqat "qancha joy qoldi" degan
+    #: son va bir qatorli izoh yetadi.
+    capacity_headroom: float | None = None
+    #: Admin panelida ko'rsatiladigan izoh (`AggregateCapacity.describe()`)
+    capacity_note: str | None = None
 
     # --- 5-omil: Faol signallar to'yinganligi ---
     open_signals: int = 0

@@ -165,8 +165,8 @@ def user_capacity_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
     keragi yo'q." Foydalanuvchi umuman bo'lmasa — to'liq ball: tizim o'zini
     sun'iy cheklamasligi kerak, boshqa filtrlar baribir ishlaydi.
     """
-    sigim = inputs.capacity
-    if sigim is None:
+    joy = inputs.capacity_headroom
+    if joy is None:
         return HealthFactor(
             "aggregate_user_capacity",
             1.0,
@@ -175,7 +175,10 @@ def user_capacity_factor(inputs: HealthInputs, weight: float) -> HealthFactor:
         )
 
     return HealthFactor(
-        "aggregate_user_capacity", sigim.headroom_ratio, weight, sigim.describe()
+        "aggregate_user_capacity",
+        joy,
+        weight,
+        inputs.capacity_note or f"Bo'sh sig'im: {joy:.0%}",
     )
 
 

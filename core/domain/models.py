@@ -8,14 +8,16 @@ o'zaro aylantiradi. Sabab: 0.1-band — "miya" va "tana" qat'iy ajratilgan.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from core.domain.enums import (
     BlockReason,
+    EventStatus,
     ExitOrderType,
     HalalStatus,
     HealthBand,
     OrderType,
+    Outcome,
     SignalSource,
     SignalStatus,
     TrendDirection,
@@ -477,3 +479,119 @@ class PositionSuggestion:
     entry: float
     within_daily_limit: bool
     note: str | None = None
+
+
+# --------------------------------------------------------------------------- #
+#  3.8 / 3.7 — Qatlamlar ORASIDA yuradigan yozuvlar
+#
+#  Quyidagi ikki tip tahlil qatlamida tug'iladi, lekin XOTIRA qatlami
+#  ham ularni o'qiydi. Ilgari ular `analysis/postmortem` va
+#  `pipeline/events` da edi va `storage` o'sha yerlardan import
+#  qilardi — ya'ni poydevor tepadagi qavatlarga suyanardi
+#  (`docs/ARXITEKTURA.md`, qurilish xaritasi).
+#
+#  Ikkalasi ham sof ma'lumot: ularda mantiq yo'q, faqat shakl bor.
+#  Shuning uchun joyi shu yerda.
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class ClosedSignal:
+    """Tahlil uchun yopilgan signal va uning konteksti.
+
+    Kontekst (ball, bozor salomatligi) signal BERILGAN paytdagi holat —
+    keyinroq qayta hisoblab bo'lmaydi, shuning uchun u signal bilan
+    birga saqlanadi.
+    """
+
+    signal_id: int
+    symbol: str
+    source: SignalSource
+    outcome: Outcome
+    score: float | None
+    market_health_at_entry: float | None
+    result_pct: float | None
+    created_at: datetime
+    activated_at: datetime | None
+    closed_at: datetime
+    is_false_signal: bool
+    correlation_group: str | None = None
+
+    @property
+    def holding_time(self) -> timedelta | None:
+        """Faol bo'lgandan yopilgungacha o'tgan vaqt."""
+        if self.activated_at is None:
+            return None
+        return self.closed_at - self.activated_at
+
+    @property
+    def holding_hours(self) -> float | None:
+        muddat = self.holding_time
+        return None if muddat is None else muddat.total_seconds() / 3600
+
+
+@dataclass(frozen=True, slots=True)
+class PipelineEvent:
+    """Bitta coin, bitta bosqich — Jonli Oshxona uchun."""
+
+    symbol: str
+    stage: str
+    status: EventStatus
+    reason: str | None = None
+    #: Shu coinning yakuniy balli (ma'lum bo'lsa)
+    score: float | None = None
+    at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PeriodStats:
+    """Davr bo'yicha umumiy raqamlar (3.6-band shaffofligi).
+
+    `ClosedSignal` bilan bir sababdan shu yerda: hisobotni tahlil
+    qatlami QURADI, xotira qatlami esa uni SAQLAYDI. Sof sonlar —
+    ichida mantiq yo'q.
+    """
+
+    total: int
+    tp2: int
+    tp1_then_stop: int
+    stop: int
+    cancelled: int
+    false_signals: int
+    average_score: float | None
+    average_holding_hours: float | None
+
+    @property
+    def traded(self) -> int:
+        """Haqiqiy savdoga aylangan signallar (bekor qilinganlarsiz)."""
+        return self.total - self.cancelled
+
+    @property
+    def win_rate(self) -> float | None:
+        return None if self.traded == 0 else (self.tp2 + self.tp1_then_stop) / self.traded
+
+    @property
+    def stop_rate(self) -> float | None:
+        return None if self.traded == 0 else self.stop / self.traded
+
+
+def outcome_from_status(status: SignalStatus, reached_tp1: bool) -> Outcome:
+    """DB holatidan natija turini aniqlaydi.
+
+    Sof o'tkazish: holat -> natija. Mantiq yo'q, qaror yo'q. Shu
+    sababdan joyi poydevorda — uni tahlil qatlami ham (postmortem),
+    xotira qatlami ham (`repositories.py`) chaqiradi. Ilgari u
+    `analysis/postmortem` da edi va `storage` uni o'sha yerdan
+    olardi (qurilish xaritasi, 1-teskari g'isht).
+
+    Args:
+        reached_tp1: signal Stop yeyishdan oldin TP1 ga yetganmi
+            (`signal_events` jadvalidan bilinadi).
+    """
+    if status is SignalStatus.TP2_HIT:
+        return Outcome.TP2
+    if status is SignalStatus.STOPPED:
+        return Outcome.TP1_THEN_STOP if reached_tp1 else Outcome.STOP
+    if status is SignalStatus.CANCELLED:
+        return Outcome.CANCELLED
+    raise ValueError(f"Yopilmagan signal tahlil qilinmaydi: {status.value}")

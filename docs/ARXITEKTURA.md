@@ -4523,7 +4523,57 @@ ko'rsatish, aslida, raqamni yashirish bilan barobar.
 
 ---
 
-## 76. Bosqichlar holati
+## 76. Teskari g'ishtlar to'g'rilandi — va qoida testga aylandi
+
+Qurilish xaritasi ikkita teskari bog'liqlikni ko'rsatdi. Ikkalasi ham
+yopildi.
+
+### 1. `storage` -> `analysis`, `pipeline`
+
+Baza qatlami tahlil qatlamidan TUR o'qirdi: `ClosedSignal`,
+`SelfAuditReport`, `PipelineEvent`. Poydevor tomga suyanardi.
+
+`core/domain` ga ko'chirildi:
+
+| Tip | Sabab |
+|---|---|
+| `Outcome`, `EventStatus` | ikkala qatlam ham o'qiydi |
+| `ClosedSignal`, `PipelineEvent` | sof ma'lumot, mantiq yo'q |
+| `PeriodStats` | sof sonlar |
+| `outcome_from_status()` | sof o'tkazish: holat -> natija |
+
+`SelfAuditReport` tahlilda QOLDI — uning ichida `Pattern` ro'yxati
+bor va u tahlilning tushunchasi. `AuditReportRepository.save()` endi
+butun hisobotni emas, kerakli sonlarni oladi.
+
+### 2. `analysis` -> `position_sizing`
+
+`HealthInputs.capacity` maydonida `AggregateCapacity` obyekti turardi
+— ya'ni bozor tahlili foydalanuvchining puliga qarardi.
+
+Endi ikkita son: `capacity_headroom` (0..1) va `capacity_note`.
+Salomatlik indeksiga butun obyekt kerak emas — unga faqat "qancha joy
+qoldi" degan ulush va bir qatorli izoh yetadi. Omilning o'zi
+o'chirilmadi: sinov davri tugagach u qaytadi (60-bo'lim).
+
+### Qoida endi testda
+
+`tests/test_arxitektura.py` har bir `core/` moduliga qavat raqamini
+beradi va **bog'liqlik faqat pastga qarashini** tekshiradi. Yangi
+modul qo'shilsa, uning qavati aytilmaguncha test yiqiladi — ya'ni
+qoida hujjatda emas, kodda yashaydi.
+
+    utils, domain            0
+    config, storage          1
+    market_data, halal       2
+    analysis                 3
+    position_sizing, risk    4
+    pipeline, services       5
+    backtest                 6
+
+---
+
+## 77. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

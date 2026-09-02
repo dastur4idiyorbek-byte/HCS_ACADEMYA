@@ -257,7 +257,11 @@ class PipelineRunner:
                 btc_dominance_change_24h=dominance.change_24h if dominance else None,
                 universe_structures=strukturalar,
                 universe_adx=adx_qiymatlari,
-                capacity=sigim,
+                # Obyekt emas, son: salomatlik indeksiga faqat
+                # "qancha joy qoldi" kerak (qurilish xaritasi,
+                # 2-teskari g'isht).
+                capacity_headroom=sigim.headroom_ratio if sigim else None,
+                capacity_note=sigim.describe() if sigim else None,
                 open_signals=open_signals,
                 max_open_signals=limitlar.high,
                 # QT davri SOATDAN emas, sham strukturasidan o'qiladi.

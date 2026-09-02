@@ -244,3 +244,53 @@ class AllocationMethod(str, Enum):
 
     SEQUENTIAL_DECAY = "sequential_decay"  # tavsiya etiladi
     EQUAL_SPLIT = "equal_split"
+
+
+# --------------------------------------------------------------------------- #
+#  3.8 — Yopilgan signalning natijasi
+# --------------------------------------------------------------------------- #
+
+
+class Outcome(str, Enum):
+    """Signal qanday yakunlandi.
+
+    Bu yerda turadi, chunki uni HAM tahlil qatlami (postmortem), HAM
+    xotira qatlami (`storage`) o'qiydi. Ilgari u `analysis/postmortem`
+    da edi va `storage` uni o'sha yerdan import qilardi — ya'ni
+    poydevor tahlilga suyanardi.
+    """
+
+    TP2 = "tp2"                      # to'liq maqsadga yetdi
+    TP1_THEN_STOP = "tp1_then_stop"  # TP1 olindi, keyin Stop
+    STOP = "stop"                    # Stop yedi
+    CANCELLED = "cancelled"          # Entry'ga yetmasdan bekor bo'ldi
+
+    @property
+    def is_win(self) -> bool:
+        """TP1 ham foyda hisoblanadi — pozitsiyaning bir qismi yopilgan."""
+        return self in {Outcome.TP2, Outcome.TP1_THEN_STOP}
+
+    @property
+    def is_loss(self) -> bool:
+        return self is Outcome.STOP
+
+    @property
+    def counts_in_stats(self) -> bool:
+        """Bekor qilingan signal statistikaga kirmaydi — u savdo bo'lmagan."""
+        return self is not Outcome.CANCELLED
+
+
+class EventStatus(str, Enum):
+    """Voronka bosqichining natijasi — kartochkadagi belgi.
+
+    `Outcome` bilan bir sababdan shu yerda: uni sikl ham, xotira ham
+    ishlatadi.
+    """
+
+    PASSED = "pass"      # o'tdi
+    FAILED = "fail"      # shu yerda to'xtadi
+    PENDING = "pending"  # hali tekshirilmoqda
+
+    @property
+    def icon(self) -> str:
+        return {"pass": "\u2705", "fail": "\u274c", "pending": "\u23f3"}[self.value]

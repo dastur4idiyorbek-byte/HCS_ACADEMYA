@@ -16,8 +16,6 @@ from datetime import date, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.analysis.postmortem import ClosedSignal, outcome_from_status
-from core.analysis.postmortem.report import SelfAuditReport
 from core.domain.enums import (
     HalalStatus,
     OrderType,
@@ -29,11 +27,15 @@ from core.domain.enums import (
     UserRole,
 )
 from core.domain.models import (
+    ClosedSignal,
     EntryPlan,
     HalalVerdict,
     MarketHealth,
+    PeriodStats,
+    PipelineEvent,
     Signal,
     SignalLevels,
+    outcome_from_status,
 )
 from core.domain.portfolio import (
     PositionOutcome,
@@ -41,7 +43,6 @@ from core.domain.portfolio import (
     PublicStats,
     blended_result_pct,
 )
-from core.pipeline.events import PipelineEvent
 from core.storage.models import (
     AuditReport,
     CoinRuling,
@@ -1145,26 +1146,39 @@ class AuditReportRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def save(self, report: SelfAuditReport, rendered: str) -> AuditReport:
+    async def save(
+        self,
+        generated_at: datetime,
+        period_days: int,
+        stats: PeriodStats,
+        rendered: str,
+        pattern_count: int = 0,
+        sample_warning: str | None = None,
+    ) -> AuditReport:
         """Hisobotni yozadi. BIR KUNDA BITTA qayd (davr uzunligi bo'yicha).
 
         Nima uchun upsert: admin panelda tugmani necha marta bossa,
         shuncha bir xil qator paydo bo'lardi. Har safar YANGILAB borish
         esa ikki foyda beradi — jadval toza qoladi va veb-panel doim eng
         so'nggi holatni ko'rsatadi.
+
+        Nima uchun `SelfAuditReport` emas, sonlar: hisobotning ichida
+        `Pattern` ro'yxati ham bor — u tahlil qatlamining tushunchasi va
+        bu yerda kerak emas. Butun obyektni olish `storage` ni tahlilga
+        bog'lab qo'yardi (qurilish xaritasi, 1-teskari g'isht).
         """
-        sana = report.generated_at.date()
+        sana = generated_at.date()
         stmt = select(AuditReport).where(
             AuditReport.report_date == sana,
-            AuditReport.period_days == report.period_days,
+            AuditReport.period_days == period_days,
         )
         yozuv = (await self._session.execute(stmt)).scalar_one_or_none()
         if yozuv is None:
-            yozuv = AuditReport(report_date=sana, period_days=report.period_days)
+            yozuv = AuditReport(report_date=sana, period_days=period_days)
             self._session.add(yozuv)
 
-        s = report.stats
-        yozuv.generated_at = report.generated_at
+        s = stats
+        yozuv.generated_at = generated_at
         yozuv.rendered = rendered
         yozuv.total = s.total
         yozuv.traded = s.traded
@@ -1175,8 +1189,8 @@ class AuditReportRepository:
         yozuv.false_signals = s.false_signals
         yozuv.average_score = s.average_score
         yozuv.average_holding_hours = s.average_holding_hours
-        yozuv.pattern_count = len(report.patterns)
-        yozuv.sample_warning = report.sample_warning
+        yozuv.pattern_count = pattern_count
+        yozuv.sample_warning = sample_warning
 
         await self._session.flush()
         return yozuv

@@ -25,40 +25,25 @@ Yozish `bot/services/runner.py` da, ko'rsatish esa saytda.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 
+from core.domain.enums import EventStatus
+from core.domain.models import PipelineEvent
 from core.pipeline.context import ROUTINE_STAGES, CycleResult
+
+__all__ = [
+    "CLASSIC_TA_STAGES",
+    "CYCLE_STAGES",
+    "EventStatus",
+    "PipelineEvent",
+    "SCALP_STAGES",
+    "STRATEGY_STAGES",
+    "derive_events",
+]
 
 #: Sikl darajasidagi bosqichlar — BITTA yozuv barcha coinlarni to'xtatadi.
 #: Ular coin kartochkasiga tegishli emas.
 CYCLE_STAGES = frozenset({"market_health"})
-
-
-class EventStatus(str, Enum):
-    """Bosqich natijasi — kartochkadagi belgi."""
-
-    PASSED = "pass"      # ✅ o'tdi
-    FAILED = "fail"      # ❌ shu yerda to'xtadi
-    PENDING = "pending"  # ⏳ hali tekshirilmoqda
-
-    @property
-    def icon(self) -> str:
-        return {"pass": "✅", "fail": "❌", "pending": "⏳"}[self.value]
-
-
-@dataclass(frozen=True, slots=True)
-class PipelineEvent:
-    """Bitta coin, bitta bosqich."""
-
-    symbol: str
-    stage: str
-    status: EventStatus
-    reason: str | None = None
-    #: Shu coinning yakuniy balli (ma'lum bo'lsa)
-    score: float | None = None
-    at: datetime | None = None
 
 
 #: Strategiya bosqichlari — QAT'IY TARTIBDA.

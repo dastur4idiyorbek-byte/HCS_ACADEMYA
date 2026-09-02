@@ -89,3 +89,91 @@ def test_har_bir_paket_hujjatlangan() -> None:
         if ast.get_docstring(daraxt) is None and not daraxt.body:
             hujjatsiz.append(str(fayl.relative_to(LOYIHA)))
     assert not hujjatsiz, f"Izohsiz bo'sh paketlar: {hujjatsiz}"
+
+
+# --------------------------------------------------------------------------- #
+#  Qavatlar: bog'liqlik faqat PASTGA qaraydi
+# --------------------------------------------------------------------------- #
+
+#: Har bir modul QAYSI qavatda. Kichik raqam — pastroq qavat.
+#:
+#: Qoida bitta: modul faqat O'ZIDAN PAST yoki teng qavatga suyanadi.
+#: Buzilsa "nima nimani bajaryapti" ko'rinmay qoladi — poydevor tomga
+#: suyanib turadi (`docs/ARXITEKTURA.md`, qurilish xaritasi).
+QAVATLAR = {
+    "utils": 0,
+    "domain": 0,
+    "config": 1,
+    "storage": 1,
+    "market_data": 2,
+    "halal_screening": 2,
+    "analysis": 3,
+    "position_sizing": 4,
+    "risk_engine": 4,
+    "signals": 4,
+    "pipeline": 5,
+    "services": 5,
+    "backtest": 6,
+}
+
+
+def core_modullari() -> list[str]:
+    return sorted(
+        p.name for p in CORE.iterdir() if p.is_dir() and p.name != "__pycache__"
+    )
+
+
+def core_bogliqliklari(modul: str) -> set[str]:
+    """`core.<modul>` ichidan qaysi boshqa `core.*` paketlar chaqiriladi."""
+    topilgan: set[str] = set()
+    for fayl in python_fayllar(CORE / modul):
+        daraxt = ast.parse(fayl.read_text(encoding="utf-8"), filename=str(fayl))
+        for tugun in ast.walk(daraxt):
+            if isinstance(tugun, ast.ImportFrom) and (tugun.module or "").startswith(
+                "core."
+            ):
+                bolaklar = tugun.module.split(".")
+                if len(bolaklar) > 1 and bolaklar[1] != modul:
+                    topilgan.add(bolaklar[1])
+    return topilgan
+
+
+def test_har_bir_modulning_qavati_belgilangan() -> None:
+    """Yangi modul qo'shilsa, uning qavati ham aytilishi kerak.
+
+    Aks holda u qoidadan jimgina chetda qolardi.
+    """
+    nomlanmagan = set(core_modullari()) - set(QAVATLAR)
+    assert not nomlanmagan, (
+        f"Bu modullarning qavati belgilanmagan: {sorted(nomlanmagan)}. "
+        "`QAVATLAR` ga qo'shing — qaysi qatorda turishini ayting."
+    )
+
+
+@pytest.mark.parametrize("modul", sorted(QAVATLAR))
+def test_bogliqlik_faqat_pastga_qaraydi(modul: str) -> None:
+    """Poydevor tomga suyanmasin.
+
+    Ilgari ikkita g'isht teskari yotardi:
+
+      1. `storage` -> `analysis.postmortem`, `pipeline` — baza qatlami
+         tahlil qatlamidan tur o'qirdi
+      2. `analysis.market_health` -> `position_sizing` — bozor tahlili
+         foydalanuvchining puliga qarardi
+
+    Ikkalasi ham turlarni `domain` ga ko'chirish bilan yechildi.
+    """
+    if not (CORE / modul).is_dir():
+        pytest.skip(f"{modul} papkasi yo'q")
+
+    oz_qavati = QAVATLAR[modul]
+    buzilganlar = [
+        f"{modul}({oz_qavati}) -> {bogliq}({QAVATLAR[bogliq]})"
+        for bogliq in core_bogliqliklari(modul)
+        if bogliq in QAVATLAR and QAVATLAR[bogliq] > oz_qavati
+    ]
+
+    assert not buzilganlar, (
+        "Bog'liqlik TEPAGA qaragan: " + ", ".join(buzilganlar) + ". "
+        "Ikki tomon ham ishlatadigan tipni `core/domain` ga ko'chiring."
+    )
