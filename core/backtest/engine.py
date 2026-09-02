@@ -55,15 +55,27 @@ class BacktestTrade:
 
     @property
     def is_win(self) -> bool:
-        """Savdo foyda bilan tugadimi.
+        """Savdo FOYDA bilan tugadimi — turkumidan qat'i nazar.
 
-        Muddat bo'yicha yopilish natijaga QARAB hal qilinadi: u
-        foyda ham, zarar ham bo'lishi mumkin, ya'ni turkumning o'zi
-        javob bermaydi.
+        ILGARI BU YERDA TURKUM TURARDI: `tp2_hit` va `tp1_then_stop`
+        avtomatik "g'alaba" sanalardi. Bu raqamni yolg'onchi qilib
+        qo'ygan edi.
+
+        Run #10 buni ochib berdi: hisobotda "win-rate 64%" va
+        "o'rtacha -1.31%" yonma-yon turdi. Ikkalasi ham to'g'ri
+        hisoblangan, lekin birinchisi "g'alaba" so'zini boshqa
+        ma'noda ishlatardi.
+
+        Sabab: `tp1_then_stop` — TP1 olindi, keyin Stop kirish
+        narxida ishladi. TP1 juda yaqin bo'lsa (foiz oralig'i
+        o'chirilganda u eng yaqin qarshilik bo'ladi) qismli foyda
+        arzimas, qolgani nolda yopiladi, va komissiya ayrilgach
+        natija MANFIY chiqadi. Turkum "g'alaba", pul esa kamaygan.
+
+        Endi savol bitta: hisobda pul ko'paydimi. "Nishonga yetdi"
+        degan boshqa savolga `tp2_rate` javob beradi.
         """
-        if self.outcome in {"timeout", "tp1_then_timeout"}:
-            return self.result_pct > 0
-        return self.outcome in {"tp2_hit", "tp1_then_stop"}
+        return self.result_pct > 0
 
     @property
     def holding_hours(self) -> float:
@@ -107,6 +119,7 @@ class BacktestResult:
 
     @property
     def win_rate(self) -> float | None:
+        """Foyda bilan yopilgan savdolar ulushi (xarajatdan KEYIN)."""
         if not self.trades:
             return None
         return sum(1 for t in self.trades if t.is_win) / len(self.trades)

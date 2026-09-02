@@ -486,3 +486,52 @@ farq qiladi va bu farq muhim: bekor qilingan signal umuman
 ochilmagan, muddati tugagani esa OCHILGAN va natijasi bor —
 foyda ham, zarar ham bo'lishi mumkin. Ikkalasini bir turkumga
 qo'yish statistikani buzardi.
+
+---
+
+## Run #10 dan keyin: holatlar yangilandi
+
+| Holat | Sozlama | Natija (natija #7) |
+|---|---|---|
+| ⚫ | `quality_gate.enabled` | Signal 3 barobar kamaydi, TP2 gacha qimirlamadi |
+| ⚫ | `quality_gate.min_base_score` | Pol 35 va 45 — ikkalasi ham bazadan yomon |
+| ⚫ | `enforce_distance_bands: false` | Natijani yomonlashtirdi, sabab aniqlandi |
+| 🟡 | `max_take_profits: 3` | Ta'sirsiz — oraliq zona deyarli topilmaydi |
+| 🟢 | `max_take_profits: 1` | Eng yaxshi variant (PF 0.74 vs 0.30) |
+| ⚫ | `max_holding_hours: 24/72` | TP2 gacha 17.1% → 9.8% |
+
+### Bu rad etishlar oldingilaridan FARQ QILADI
+
+Oldingi oltitasi "ishlamadi" bilan tugagan edi. Bu safar uchta
+mustaqil dalil bitta sababga ishora qildi:
+
+1. Foiz oraliqlari o'chirilganda natija yomonlashdi
+2. Bitta TP (qismli sotishsiz) eng yaxshi natija berdi
+3. Ikkalasining mexanizmi bir xil
+
+> **TP1 polsiz qoldi.** Qismli sotish arzimas foydada bo'lyapti,
+> breakeven stop esa qolganini nolga qaytaryapti.
+
+### Yangi 🔴 — keyingi o'lchanadigan gipoteza
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🔴 | `tp1_min_risk_reward` | 1.5 | TUZILMAVIY TP1 ga ham qo'llanilsinmi |
+
+Hozir bu qiymat faqat "qarshilik topilmadi" tarmog'ida ishlaydi.
+Tuzilmaviy TP1 (eng yaqin qarshilik zonasi) unga umuman
+bo'ysunmaydi. Loyiha egasining qoidasiga zid emas: bu FOIZ emas,
+NISBAT poli.
+
+### Yo'l-yo'lakay: `win_rate` ta'rifi tuzatildi
+
+Run #10 hisobotida "win-rate 64%" va "o'rtacha −1.31%" yonma-yon
+turdi. Ikkalasi ham to'g'ri hisoblangan edi, lekin "g'alaba"
+so'zi turkumni bildirardi:
+
+```
+eski:  is_win = outcome in {"tp2_hit", "tp1_then_stop"}
+yangi: is_win = result_pct > 0
+```
+
+O'lchov o'zini o'zi tekshirmasa, u o'lchov emas, bezak.

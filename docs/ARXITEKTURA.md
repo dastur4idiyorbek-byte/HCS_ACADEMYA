@@ -4933,6 +4933,74 @@ yangilash kerak bo'lmadi — u `is_closed` dan o'zi chiqdi
 To'rttasi ham gipoteza, fakt emas. Backtest yettita variant
 oladi va har biri BITTA o'qni o'zgartiradi (`OLCHOV_OQI`).
 
+### NATIJA (run #10, `natija_7`)
+
+| variant | signal | TP2 gacha | PF | o'rt.% |
+|---|---|---|---|---|
+| hozirgi holat (oraliqlar o'chiq) | 1297 | 17.1% | 0.30 | −1.31 |
+| sifat darvozasi (pol 35) | 446 | 17.0% | 0.29 | −1.43 |
+| faqat pol 35 (nazorat) | 2054 | 16.8% | 0.28 | −1.35 |
+| **bitta TP** | 855 | **32.4%** | **0.74** | **−0.60** |
+| uchtagacha TP | 1297 | 17.1% | 0.28 | −1.37 |
+| **foiz oraliqlari yoqilgan** | 884 | 30.0% | 0.64 | **−0.75** |
+| muddat 24 soat | 1536 | 9.8% | 0.32 | −1.08 |
+
+**O'LCHOV O'ZINI TEKSHIRDI.** `foiz oraliqlari yoqilgan` varianti
+run #9 bazasiga AYNAN teng chiqdi (884 / 37.3% / 30.0% / −0.75 /
+−649.8). Ya'ni butun refaktor — `takes` ro'yxati, yangi darvoza,
+yangi holat — bayroq yoqilganda xatti-harakatni o'zgartirmagan.
+
+**UCHTASI RAD ETILDI, BITTASI TA'SIRSIZ.** Lekin bu yugurish
+oldingilaridan farq qiladi: u faqat "ishlamadi" demadi, SABABNI
+ko'rsatdi.
+
+Uchta mustaqil dalil bitta joyga ishora qiladi:
+
+1. Foiz oraliqlari o'chirilganda profit factor 0.64 dan 0.30 ga
+   tushdi
+2. Bitta TP (qismli sotishsiz) eng yaxshi natija berdi
+3. Ikkalasining mexanizmi BIR XIL
+
+Mexanizm:
+
+```
+TP1 +0.5% da   -> yarmi sotiladi   -> +0.25%
+Stop breakeven -> qolgani nolda    ->  0.00%
+komissiya                          -> −0.30%
+                                      --------
+                                       −0.05%
+```
+
+`min_tp_distance_pct` TP1 uchun YAGONA pol edi. U o'chirilganda
+TP1 eng yaqin qarshilikka tushdi, Stop esa keng qoldi — kichkina
+yutuqlar, katta zararlar.
+
+> **TASHXIS:** muammo "kirish sifati" ham, "TP2 qayerda" ham emas.
+> TP1 POLSIZ QOLDI.
+
+Loyiha egasining qoidasi ("foizlar majburiy emas, risk 1/3")
+noto'g'ri emas — uni bajarishda xato bo'lgan: nisbat faqat
+YAKUNIY nishonga qo'llanilgan. Keyingi o'lchanadigan qadam —
+`tp1_min_risk_reward` ni tuzilmaviy TP1 ga ham qo'llash. Bu foiz
+emas, NISBAT poli.
+
+### Yo'l-yo'lakay: `win_rate` yolg'on gapirardi
+
+Hisobotda "win-rate 64%" va "o'rtacha −1.31%" yonma-yon turdi.
+Ikkalasi ham to'g'ri hisoblangan edi, lekin "g'alaba" so'zi
+TURKUMNI bildirardi:
+
+```
+eski:  is_win = outcome in {"tp2_hit", "tp1_then_stop"}
+yangi: is_win = result_pct > 0
+```
+
+`tp1_then_stop` yuqoridagi hisob bo'yicha manfiy chiqadi —
+turkum "g'alaba", pul esa kamaygan. "Nishonga yetdimi" degan
+boshqa savol `tp2_rate` da qoldi.
+
+O'lchov o'zini o'zi tekshirmasa, u o'lchov emas, bezak.
+
 ---
 
 ## 83. Bosqichlar holati

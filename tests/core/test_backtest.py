@@ -698,3 +698,50 @@ def test_tayanch_yoq_bolsa_qator_chiqmaydi() -> None:
     )
 
     assert "olib ushlab turish" not in render(natija)
+
+
+# --------------------------------------------------------------------------- #
+#  Win-rate YOLG'ON GAPIRMASIN
+# --------------------------------------------------------------------------- #
+
+
+def test_win_rate_turkumga_emas_NATIJAGA_qaraydi() -> None:
+    """"G'alaba" — hisobda pul ko'paygani, turkum nomi emas.
+
+    ILGARI `tp2_hit` va `tp1_then_stop` avtomatik g'alaba sanalardi.
+    Run #10 buni ochib berdi: hisobotda "win-rate 64%" va "o'rtacha
+    -1.31%" yonma-yon turdi.
+
+    Sabab: `tp1_then_stop` — TP1 olindi, keyin Stop kirish narxida
+    ishladi. TP1 juda yaqin bo'lsa qismli foyda arzimas, qolgani
+    nolda yopiladi, komissiya ayrilgach natija MANFIY chiqadi.
+    Turkum "g'alaba", pul esa kamaygan.
+    """
+    yutqazgan_galaba = savdo("tp1_then_stop", -0.4)
+    yutgan_stop = savdo("stop", 0.2)
+
+    assert not yutqazgan_galaba.is_win, (
+        "TP1 olingan, lekin natija manfiy — bu g'alaba emas"
+    )
+    assert yutgan_stop.is_win
+
+
+def test_nishonga_yetish_alohida_olchov() -> None:
+    """"Nishonga yetdi" savoli yo'qolmadi — u `tp2_rate` da.
+
+    Ikkita savol bor va ular boshqa-boshqa: pul ko'paydimi
+    (`win_rate`) va yakuniy nishonga yetdimi (`tp2_rate`).
+    Ularni bitta raqamga qo'shish ikkalasini ham buzardi.
+    """
+    natija = BacktestResult(
+        label="sinov",
+        trades=[
+            savdo("tp2_hit", 3.0),
+            savdo("tp1_then_stop", -0.4),
+            savdo("stop", -1.0),
+            savdo("stop", -1.0),
+        ],
+    )
+
+    assert natija.tp2_rate == pytest.approx(0.25)
+    assert natija.win_rate == pytest.approx(0.25)
