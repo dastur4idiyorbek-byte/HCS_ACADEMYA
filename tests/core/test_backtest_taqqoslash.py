@@ -53,15 +53,15 @@ def test_variantlar_quriladi(config) -> None:  # noqa: ANN001
         assert dataclasses.is_dataclass(variant)
 
 
-def test_eski_va_yangi_tizim_taqqoslanadi(config) -> None:  # noqa: ANN001
-    """Asosiy savol: past bandda to'xtashmi yoki Correction Entry?"""
+def test_eski_va_yangi_tp2_taqqoslanadi(config) -> None:  # noqa: ANN001
+    """Hozirgi savol: TP2 formuladanmi yoki tuzilmadanmi?"""
     holatlar = {
-        nom: variant.strategies.correction_entry.enabled
+        nom: variant.trade_rules.tp2_from_structure
         for nom, variant in _variantlar(config)
     }
 
-    assert any(not yoqilgan for yoqilgan in holatlar.values()), "eski tizim yo'q"
-    assert any(holatlar.values()), "yangi tizim yo'q"
+    assert any(not v for v in holatlar.values()), "eski yo'l yo'q"
+    assert any(holatlar.values()), "yangi yo'l yo'q"
 
 
 def test_variantlar_bir_biriga_tasir_qilmaydi(config) -> None:  # noqa: ANN001
@@ -71,23 +71,38 @@ def test_variantlar_bir_biriga_tasir_qilmaydi(config) -> None:  # noqa: ANN001
     bilan ishlab ketardi va taqqoslash yolg'on natija berardi.
     """
     variantlar = dict(_variantlar(config))
-    rr = {
-        nom: variant.strategies.correction_entry.min_risk_reward
+    nisbatlar = {
+        nom: variant.trade_rules.tp2_structural_min_rr
         for nom, variant in variantlar.items()
     }
 
-    assert len(set(rr.values())) > 1, "R/R variantlari o'lchanmayapti"
-    assert config.strategies.correction_entry.min_risk_reward == 2.0, (
+    assert len(set(nisbatlar.values())) > 1, "nisbat variantlari o'lchanmayapti"
+    assert not config.trade_rules.tp2_from_structure, (
         "asos sozlama o'zgarmasligi kerak"
     )
+    assert config.trade_rules.tp2_structural_min_rr == 1.0
 
 
 def test_boshqa_sozlamalar_tegilmaydi(config) -> None:  # noqa: ANN001
-    """Faqat `correction_entry` o'zgaradi — taqqoslash halol bo'lsin."""
+    """Faqat o'lchanayotgan narsa o'zgaradi — taqqoslash halol bo'lsin."""
     for _nom, variant in _variantlar(config):
         assert variant.strategies.classic_ta == config.strategies.classic_ta
-        assert variant.trade_rules == config.trade_rules
         assert variant.market_health == config.market_health
+        assert variant.scoring == config.scoring
+        assert variant.backtest == config.backtest
+
+
+def test_xarajat_barcha_variantda_bir_xil(config) -> None:  # noqa: ANN001
+    """Komissiya va sirg'anish variantga qarab o'zgarmasligi kerak.
+
+    Aks holda "yaxshiroq" variant shunchaki arzonroq hisoblangan
+    bo'lardi.
+    """
+    for _nom, variant in _variantlar(config):
+        assert variant.backtest.round_trip_cost_pct == (
+            config.backtest.round_trip_cost_pct
+        )
+        assert variant.backtest.round_trip_cost_pct > 0, "savdo bepul emas"
 
 
 # --------------------------------------------------------------------------- #

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from core.analysis.strategies.classic_ta import classic_ta_rules
 from core.analysis.strategies.correction_entry import correction_entry_trade_rules
 from core.analysis.strategies.opening_range_scalp import scalp_trade_rules
 from core.config.schema import AppConfig
@@ -86,10 +87,15 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
                 # Mean reversion o'z nisbatiga ega (3-tuzatish). Darajalar
                 # `classic_ta_rules()` bilan quriladi — tekshiruv ham
                 # AYNAN shu qiymatga tayanishi shart.
+                # YAGONA MANBA: darajalarni quradigan `classic_ta_rules()`
+                # nimaga tayansa, tekshiruv ham shunga tayanadi.
+                # Ilgari bu yerda nisbat QO'LDA takrorlangan edi va
+                # `tp2_from_structure` yoqilganda ikkisi ajralib
+                # ketardi.
                 SignalSource.CLASSIC_TA: (
                     config.trade_rules.min_tp_distance_pct,
                     config.trade_rules.max_tp_distance_pct,
-                    config.strategies.classic_ta.min_risk_reward,
+                    classic_ta_rules(config).min_risk_reward,
                     config.trade_rules.min_stop_distance_pct,
                 ),
                 # Correction Entry TPni TUZILMADAN oladi (impuls

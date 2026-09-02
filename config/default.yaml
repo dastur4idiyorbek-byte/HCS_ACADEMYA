@@ -302,6 +302,23 @@ trade_rules:
   #
   # `false` — qat'iy tuzilmaviy variant: qarshilik yo'q bo'lsa signal yo'q.
   allow_measured_tp: true
+  # TP2 TUZILMADANMI yoki formuladanmi.
+  #
+  # HOZIRCHA O'CHIRILGAN — backtest hal qiladi.
+  #
+  # MUAMMO (docs/BACKTEST_NATIJA_2026-09-02.md): TP1 haqiqiy
+  # resistance zonasidan olinadi, TP2 esa formuladan — stop masofasi
+  # x nisbat. Ya'ni TP2 bozorda nima borligiga qaramaydi. O'lchangan
+  # oqibat: TP2 gacha savdolarning atigi 29.9% i yetadi, stop esa
+  # to'liq ishlaydi. Bu butun tizimni zararga olib boradi.
+  #
+  # Tuzilmaviy TP2 nisbatni pasaytiradi, lekin ehtimolni oshiradi.
+  # Qaysi tomon og'irroq — taxmin qilinmaydi:
+  #   python -m scripts.backtest --compare --days 730
+  tp2_from_structure: false
+  # Tuzilmaviy TP2 uchun eng past nisbat. Formuladagidan PAST
+  # bo'lishi shart, aks holda bayroq hech narsani o'zgartirmaydi.
+  tp2_structural_min_rr: 1.0
 
 # --- 4-bo'lim: Risk Engine ---
 risk_engine:
@@ -608,3 +625,12 @@ logging:
   dir: "logs"
   rotate_mb: 20
   backups: 5
+
+# --- 6.3-band: backtest xarajatlari ---
+# Ilgari komissiya va sirg'anish umuman modellashtirilmagan edi va
+# bu natijani tizimli ravishda CHIROYLIROQ ko'rsatardi. 649 ta
+# savdoda 0.3% lik xarajat ~195% ni yeb qo'yadi — xulosani
+# o'zgartira oladigan hajm.
+backtest:
+  fee_pct: 0.1        # Binance spot taker, bir tomonlama
+  slippage_pct: 0.05  # o'lchanmagan — ehtiyotkor qiymat olindi

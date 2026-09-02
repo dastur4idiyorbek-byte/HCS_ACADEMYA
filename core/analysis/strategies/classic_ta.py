@@ -74,8 +74,18 @@ def classic_ta_rules(config: AppConfig) -> TradeRulesConfig:
     Ikkisi ajralib qolsa, TP2 bir qiymat bo'yicha quriladi, boshqasi
     bo'yicha rad etiladi.
     """
+    qoidalar = config.trade_rules
+    if qoidalar.tp2_from_structure:
+        # Tuzilmaviy TP2 nisbatni PASAYTIRADI — u bozordagi zonaga
+        # qo'yiladi, formulaga emas. Tekshiruv eski nisbatda qolsa,
+        # darajalar quriladi-yu, Risk Engine ularni darhol yo'q
+        # qilardi: bayroq e'lon qilingan, lekin ULANMAGAN bo'lib
+        # qolardi (loyihada takrorlanuvchi xato turi).
+        return dataclasses.replace(
+            qoidalar, min_risk_reward=qoidalar.tp2_structural_min_rr
+        )
     return dataclasses.replace(
-        config.trade_rules,
+        qoidalar,
         min_risk_reward=config.strategies.classic_ta.min_risk_reward,
     )
 

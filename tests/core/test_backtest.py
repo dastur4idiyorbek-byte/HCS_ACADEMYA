@@ -570,3 +570,62 @@ def test_backtest_jonli_oyna_bilan_ishlaydi() -> None:
             assert len(shamlar) <= config.analysis.candles_lookback, (
                 f"{tf}: oyna {config.analysis.candles_lookback} shamdan oshmasligi kerak"
             )
+
+
+# --------------------------------------------------------------------------- #
+#  Komissiya va sirg'anish
+# --------------------------------------------------------------------------- #
+
+
+def test_natijadan_xarajat_ayriladi() -> None:
+    """Ilgari savdo BEPUL bo'lardi — bu eng zararli soddalashtirish.
+
+    649 ta savdoda 0.3% lik xarajat ~195% ni yeb qo'yadi, ya'ni
+    xulosani o'zgartira oladigan hajm. Backtestning butun ma'nosi
+    haqiqatni oldindan ko'rish bo'lgani uchun bunday "sovg'a"
+    natijani tizimli ravishda chiroyliroq ko'rsatardi.
+    """
+
+    from core.domain.models import Signal, SignalLevels
+
+    config = load_config()
+    darajalar = SignalLevels(entry=100.0, stop=98.0, tp1=103.0, tp2=106.0)
+    signal = Signal(symbol="BTC", levels=darajalar, source="classic_ta", score=70.0)
+
+    motor = Backtester(config)
+    xom = motor._xom_natija(signal, 106.0, reached_tp1=True)
+    sof = motor._result_pct(signal, 106.0, reached_tp1=True)
+
+    assert xom > 0
+    assert sof == pytest.approx(xom - config.backtest.round_trip_cost_pct)
+
+
+def test_xarajat_ikki_tomonlama() -> None:
+    """Pozitsiya sotib olishda ham, sotishda ham to'laydi.
+
+    TP1 da yarmi yopilsa ham jami hajm o'zgarmaydi — shuning uchun
+    xarajat ikki tomonlama bo'lib qoladi, uch emas.
+    """
+    from core.config.schema import BacktestConfig
+
+    sozlama = BacktestConfig(fee_pct=0.1, slippage_pct=0.05)
+
+    assert sozlama.round_trip_cost_pct == pytest.approx(0.3)
+
+
+def test_xarajat_nolga_tushirilishi_mumkin() -> None:
+    """Xarajatsiz o'lchov ham kerak — ikkisining farqi ko'rinsin."""
+    import dataclasses
+
+    from core.config.schema import BacktestConfig
+    from core.domain.models import Signal, SignalLevels
+
+    config = dataclasses.replace(
+        load_config(), backtest=BacktestConfig(fee_pct=0.0, slippage_pct=0.0)
+    )
+    darajalar = SignalLevels(entry=100.0, stop=98.0, tp1=103.0, tp2=106.0)
+    signal = Signal(symbol="BTC", levels=darajalar, source="classic_ta", score=70.0)
+
+    motor = Backtester(config)
+
+    assert motor._result_pct(signal, 106.0, reached_tp1=False) == pytest.approx(6.0)

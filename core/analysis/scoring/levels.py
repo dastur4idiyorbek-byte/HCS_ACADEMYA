@@ -115,15 +115,27 @@ def build_levels(
         tp1_natija = entry * (1 + olchangan_pct / 100)
     tp1 = tp1_natija
 
-    tp2_natija = _build_tp2(entry, tp1, stop_masofa_pct, rules)
-    if tp2_natija is None:
-        kerak = rules.min_risk_reward * stop_masofa_pct
-        return LevelResult(
-            None,
-            f"1:{rules.min_risk_reward:.0f} R/R uchun TP2 {kerak:.2f}% da bo'lishi kerak, "
-            f"lekin chegara {rules.max_tp_distance_pct}%",
-            tp_from_structure=tuzilmaviy_tp,
-        )
+    if rules.tp2_from_structure:
+        tp2_natija = _build_tp2_tuzilmadan(entry, tp1, stop_masofa_pct, zone_map, rules)
+        if tp2_natija is None:
+            return LevelResult(
+                None,
+                "TP1 dan yuqorida mos resistance zonasi yo'q "
+                f"(1:{rules.tp2_structural_min_rr:g} nisbat va "
+                f"{rules.max_tp_distance_pct}% chegarasi ichida)",
+                stage="levels:tp2_no_structure",
+                tp_from_structure=tuzilmaviy_tp,
+            )
+    else:
+        tp2_natija = _build_tp2(entry, tp1, stop_masofa_pct, rules)
+        if tp2_natija is None:
+            kerak = rules.min_risk_reward * stop_masofa_pct
+            return LevelResult(
+                None,
+                f"1:{rules.min_risk_reward:.0f} R/R uchun TP2 {kerak:.2f}% da bo'lishi kerak, "
+                f"lekin chegara {rules.max_tp_distance_pct}%",
+                tp_from_structure=tuzilmaviy_tp,
+            )
     tp2 = tp2_natija
 
     try:
@@ -201,6 +213,45 @@ def _build_tp1(entry: float, zone_map: ZoneMap, rules: TradeRulesConfig) -> floa
         nishon = zona.low
         if eng_past <= nishon <= eng_baland:
             return nishon
+
+    return None
+
+
+def _build_tp2_tuzilmadan(
+    entry: float,
+    tp1: float,
+    stop_distance_pct: float,
+    zone_map: ZoneMap,
+    rules: TradeRulesConfig,
+) -> float | None:
+    """TP2 — TP1 dan keyingi HAQIQIY resistance zonasi.
+
+    NIMA UCHUN. Formuladagi TP2 (`_build_tp2`) bozorda nima borligiga
+    umuman qaramaydi: u faqat stop masofasidan hisoblanadi. Stop keng
+    bo'lsa TP2 uzoqqa uchib ketadi, o'sha yerda qarshilik bormi yoki
+    yo'qmi — ahamiyatsiz. 2026-09-02 backtesti buni raqam bilan
+    ko'rsatdi: TP2 gacha savdolarning atigi 29.9% i yetadi.
+
+    Bu yerda TP2 narx haqiqatan to'xtashi mumkin bo'lgan joyga
+    qo'yiladi. Nisbat PASAYADI, lekin yetib borish ehtimoli oshadi.
+    Qaysi tomon og'irroq — buni backtest aytadi, shuning uchun bu
+    yo'l bayroq ostida (`tp2_from_structure`).
+
+    Zona chekkasi PASTKI chegarasidan olinadi: narx o'sha yerga
+    yetganda sotuv bosimi boshlanadi, zona o'rtasida emas.
+    """
+    eng_baland = entry * (1 + rules.max_tp_distance_pct / 100)
+    eng_past_nisbat = stop_distance_pct * rules.tp2_structural_min_rr
+
+    for zona in zone_map.resistances:
+        nishon = zona.low
+        if nishon <= tp1:
+            continue  # TP1 ning o'zi yoki undan past — TP2 bo'la olmaydi
+        if nishon > eng_baland:
+            break  # ro'yxat yaqindan uzoqqa tartiblangan, keyingilari ham uzoq
+        if (nishon - entry) / entry * 100 < eng_past_nisbat:
+            continue  # nisbat juda past — savdoning ma'nosi qolmaydi
+        return nishon
 
     return None
 

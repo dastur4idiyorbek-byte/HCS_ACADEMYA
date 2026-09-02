@@ -12,15 +12,16 @@ ga keshlanadi — takroriy ishga tushirishda qayta yuklanmaydi. Tarmoq
 yopiq muhitda `--offline` bilan FAQAT kesh o'qiladi va yetishmayotgan
 fayllar nomma-nom aytiladi.
 
-TAQQOSLASH REJIMI eng qimmatli qism. Hozir u BITTA ochiq savolga —
-`docs/ARXITEKTURA.md` 63-bo'limidagi savolga — raqam bilan javob beradi:
+TAQQOSLASH REJIMI eng qimmatli qism. Hozir u BITTA ochiq savolga
+raqam bilan javob beradi:
 
-    Bozor Salomatligi past bo'lganda TO'XTAGAN yaxshimi (eski tizim),
-    yoki tuzilmaviy kirish bilan DAVOM ETGAN (yangi tizim)?
+    TP2 ni FORMULADAN (stop x nisbat) emas, TUZILMADAN (keyingi
+    resistance zonasi) olsak — natija yaxshilanadimi?
 
-Bu savol taxmin bilan yopilmasligi kerak edi: `correction_entry`
-konfiguratsiyada ATAYIN o'chirilgan holda turibdi va aynan shu
-taqqoslash natijasi uni yoqadi yoki yopiq qoldiradi.
+2026-09-02 backtesti asosiy tizim zarar ko'rsatayotganini aniqladi
+va sababni ham ko'rsatdi: TP2 gacha savdolarning atigi 29.9% i
+yetadi. Tuzilmaviy TP2 nisbatni pasaytiradi, lekin ehtimolni
+oshiradi. Qaysi tomon og'irroq — taxmin qilinmaydi, o'lchanadi.
 """
 
 from __future__ import annotations
@@ -195,24 +196,51 @@ def _korreksiya_bilan(
     )
 
 
+def _qoidalar_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`trade_rules` sozlamasi o'zgartirilgan nusxa."""
+    qoidalar = dataclasses.replace(asos.trade_rules, **ozgarishlar)
+    return nom, dataclasses.replace(asos, trade_rules=qoidalar)
+
+
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Ochiq qolgan savolni variantlarga aylantiradi.
+    """Hozirgi ochiq savolni variantlarga aylantiradi.
 
-    ESKI TIZIM aynan `enabled=False` bilan ifodalanadi va bu — taqlid
-    emas, haqiqiy eski xatti-harakat: past bandda `_for_regime()`
-    bo'sh ro'yxat qaytaradi, sikl o'sha yerda to'xtaydi.
+    OLDINGI SAVOLGA JAVOB BERILDI (2026-09-02,
+    `docs/BACKTEST_NATIJA_2026-09-02.md`): Correction Entry atigi 4 ta
+    signal qo'shdi va natijani yomonlashtirdi. U `enabled: false`
+    holatida qoldi, ya'ni endi o'lchaydigan narsa yo'q.
 
-    Qolgan variantlar YANGI tizimning ikki sozlamasini o'lchaydi.
-    Ularning boshlang'ich qiymatlari (`min_confluence=2`,
-    `min_risk_reward=2.0`) metodikadan olingan taxmin edi — mana shu
-    yerda ular raqam bilan tekshiriladi.
+    O'SHA BACKTEST KATTAROQ MUAMMONI OCHDI: asosiy tizim ham zarar
+    ko'rsatyapti (win-rate 37.9%, o'rtacha -0.43% har savdoda). Sabab
+    kodda ochiq turibdi — TP1 haqiqiy resistance zonasidan olinadi,
+    TP2 esa FORMULADAN. Natijada TP2 gacha savdolarning atigi 29.9%
+    i yetadi.
+
+    Yangi savol shu: TP2 ni TUZILMAGA qo'ysak, past nisbat evaziga
+    yuqori ehtimol olamizmi?
+
+    Nisbat variantlari ham shu yerda: tuzilmaviy TP2 nisbatni
+    pasaytiradi, lekin qay darajaga qadar pasayishiga ruxsat berish
+    kerakligi o'lchanmagan.
     """
     return [
-        _korreksiya_bilan(asos, "eski: past bandda to'xtash", enabled=False),
-        _korreksiya_bilan(asos, "yangi: Correction Entry", enabled=True),
-        _korreksiya_bilan(asos, "CE: confluence 3", enabled=True, min_confluence=3),
-        _korreksiya_bilan(asos, "CE: R/R 1.5", enabled=True, min_risk_reward=1.5),
-        _korreksiya_bilan(asos, "CE: R/R 2.5", enabled=True, min_risk_reward=2.5),
+        _qoidalar_bilan(asos, "eski: formulaviy TP2", tp2_from_structure=False),
+        _qoidalar_bilan(asos, "yangi: tuzilmaviy TP2", tp2_from_structure=True),
+        _qoidalar_bilan(
+            asos,
+            "tuzilmaviy, nisbat >= 1.5",
+            tp2_from_structure=True,
+            tp2_structural_min_rr=1.5,
+        ),
+        _qoidalar_bilan(
+            asos,
+            "tuzilmaviy, nisbat >= 2.0",
+            tp2_from_structure=True,
+            tp2_structural_min_rr=2.0,
+        ),
+        _korreksiya_bilan(asos, "nazorat: Correction Entry yoqilgan", enabled=True),
     ]
 
 

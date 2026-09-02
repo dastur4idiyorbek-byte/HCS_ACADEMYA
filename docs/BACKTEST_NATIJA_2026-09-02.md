@@ -87,17 +87,30 @@ faqat 30% holatda yetadi. Stop esa to'liq ishlaydi. Demak:
 
 > TP2 stopga nisbatan JUDA UZOQ qo'yilyapti.
 
-Qolgan dalillar ham shu tomonga ishora qiladi:
+**Sabab kodda ochiq turibdi.** `core/analysis/scoring/levels.py`:
 
-- `classic_ta:zone_position` — 7 520 marta rad (eng ko'p ikkinchi
-  sabab): narx zonaga yetmaydi
-- Chegaraga yetmagan nomzodlarning eng yuqori bali — **55.0**,
-  o'rtachasi **44.7**. Chegara esa 60. Ya'ni ball tizimi
-  amaldagi nomzodlarni deyarli hech qachon 60 dan o'tkaza olmayapti;
-  o'tganlar — chekkadagilar.
+- **TP1 — TUZILMADAN**: eng yaqin resistance zonasi (`_build_tp1`)
+- **TP2 — FORMULADAN**: `entry x (1 + stop_masofa x min_risk_reward)`
+  (`_build_tp2`)
 
-Bularning hech biri hozir TUZATILMADI. Bu — keyingi ishning
-ro'yxati, taxmin emas.
+Ya'ni TP2 bozorda nima borligiga umuman qaramaydi. U faqat stopdan
+hisoblanadi. Stop keng bo'lsa — TP2 uzoqqa uchib ketadi, u yerda
+qarshilik bormi yoki yo'qmi, ahamiyati yo'q.
+
+TP1 esa haqiqiy zonada. Shuning uchun narx TP1 gacha yetadi,
+TP2 gacha esa 70% holatda yetmaydi.
+
+### Tuzatish (2026-09-02, keyingi tahrir)
+
+Dastlabki hisobotda "ball chegarasi deyarli hamma narsani to'sadi"
+deb yozilgan edi. **Bu noto'g'ri.** Voronkada chegara bosqichi 29%
+o'tkazadi (7 335 dan 2 130 ta). "Eng yuqori ball 55" faqat RAD
+ETILGANLAR orasidagi eng yuqorisi — rad etilgan har bir nomzod
+ta'rifiga ko'ra 60 dan past, ya'ni bu raqam hech narsani isbotlamaydi.
+
+Xato o'z vaqtida tuzatildi, chunki u noto'g'ri qarorga olib borardi:
+zarar ko'rsatayotgan tizimda chegarani PASAYTIRISH zararni
+ko'paytirardi.
 
 ---
 
@@ -122,6 +135,8 @@ ro'yxati, taxmin emas.
    orqali STOPDAN hisoblanadi, ya'ni bozor emas, formula belgilaydi
 2. Komissiya va slippage backtestga qo'shilsin — hozir natija
    haqiqiydan yaxshiroq ko'rinadi
-3. Ball chegarasi (60) qayta ko'rilsin: nomzodlarning eng yuqori
-   bali 55 bo'lsa, chegara amalda deyarli hamma narsani to'sadi
-4. Shundan keyin backtest qaytadan
+3. Shundan keyin backtest qaytadan — eski va yangi TP2 yonma-yon
+
+Ball chegarasiga (60) TEGILMAYDI: voronka uni muammo deb
+ko'rsatmayapti va zarar ko'rsatayotgan tizimda chegarani
+pasaytirish zararni ko'paytiradi.

@@ -441,7 +441,21 @@ class Backtester:
         return event.price
 
     def _result_pct(self, signal, exit_price: float, reached_tp1: bool) -> float:  # noqa: ANN001
-        """5.4-banddagi qismli yopish qoidasi bilan bir xil hisob."""
+        """5.4-banddagi qismli yopish qoidasi bilan bir xil hisob.
+
+        Natijadan KOMISSIYA VA SIRG'ANISH ayriladi. Ilgari ular
+        umuman hisobga olinmasdi va bu natijani tizimli ravishda
+        chiroyliroq ko'rsatardi: 649 ta savdoda 0.3% lik xarajat
+        ~195% ni yeb qo'yadi, ya'ni xulosani o'zgartira oladigan
+        hajm. Backtestning butun ma'nosi haqiqatni oldindan ko'rish
+        bo'lgani uchun bunday "sovg'a" eng zararli soddalashtirish.
+        """
+        return self._xom_natija(signal, exit_price, reached_tp1) - (
+            self._config.backtest.round_trip_cost_pct
+        )
+
+    def _xom_natija(self, signal, exit_price: float, reached_tp1: bool) -> float:  # noqa: ANN001
+        """Xarajatsiz, faqat narx harakatidan chiqqan natija."""
         entry = signal.levels.entry
         if not reached_tp1:
             return (exit_price - entry) / entry * 100

@@ -34,7 +34,7 @@ def _strategiya_bosqichlari() -> set[str]:
             continue
         # Ikki nuqta ham qamrab olinadi: `_reject("levels:stop_too_close")`
         # kabi aniqlashtirilgan kodlar ham nomlanishi kerak.
-        bosqichlar = set(re.findall(r'_reject\(\s*"([a-z_:]+)"', matn))
+        bosqichlar = set(re.findall(r'_reject\(\s*"([a-z0-9_:]+)"', matn))
         bosqichlar.update(SIKL_QOSHADIGAN)
         for nom in nomlar:
             topilgan.update(f"{nom}:{bosqich}" for bosqich in bosqichlar)
@@ -44,8 +44,8 @@ def _strategiya_bosqichlari() -> set[str]:
 def _sikl_bosqichlari() -> set[str]:
     """Sikl o'zi qo'yadigan kodlar — nomli ham, pozitsion ham yoziladi."""
     matn = (ILDIZ / "core" / "pipeline" / "cycle.py").read_text(encoding="utf-8")
-    nomli = re.findall(r'stage="([a-z_]+)"', matn)
-    pozitsion = re.findall(r'RejectedCandidate\(\s*"[^"]*",\s*"([a-z_]+)"', matn)
+    nomli = re.findall(r'stage="([a-z0-9_]+)"', matn)
+    pozitsion = re.findall(r'RejectedCandidate\(\s*"[^"]*",\s*"([a-z0-9_]+)"', matn)
     return set(nomli) | set(pozitsion)
 
 
@@ -72,7 +72,7 @@ def _daraja_bosqichlari() -> set[str]:
     matn = (ILDIZ / "core" / "analysis" / "scoring" / "levels.py").read_text(encoding="utf-8")
     # Barcha `"levels:*"` satrlari — shartli ifodaning ikkala tarmog'i ham
     # topilishi kerak (`A if shart else B`).
-    topilgan = set(_re.findall(r'"(levels:[a-z_]+)"', matn))
+    topilgan = set(_re.findall(r'"(levels:[a-z0-9_]+)"', matn))
     # `LevelResult.stage` ning standart qiymati ham ishlatiladi: support
     # topilmagan yoki TP qurilmagan holatlar uni o'zgartirmaydi.
     topilgan.add("levels")
@@ -86,6 +86,17 @@ def _barcha_bosqichlar() -> set[str]:
         | _risk_bosqichlari()
         | _daraja_bosqichlari()
     )
+
+
+def test_skaner_raqamli_nomni_ham_koradi() -> None:
+    """Skanerning O'ZIDAGI teshik.
+
+    Ilgari ifodalar faqat `[a-z_]` ni qabul qilardi, ya'ni ichida
+    RAQAM bo'lgan bosqich (`levels:tp2_no_structure`) skanerga
+    ko'rinmasdi. Nomsiz qolsa ham test jim o'tardi — himoyaning
+    o'zi teshik edi.
+    """
+    assert "classic_ta:levels:tp2_no_structure" in _barcha_bosqichlar()
 
 
 def test_bosqichlar_topildi() -> None:

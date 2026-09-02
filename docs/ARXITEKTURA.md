@@ -4305,7 +4305,99 @@ unga `candles_lookback` ni beradi. O'lchov: to'liq taqqoslash
 
 ---
 
-## 70. Bosqichlar holati
+## 70. Birinchi haqiqiy backtest: tizim ZARAR ko'rsatdi
+
+2026-09-02, 730 kun, 5 coin, 4 380 qadam. To'liq hisobot —
+`docs/BACKTEST_NATIJA_2026-09-02.md`.
+
+| konfiguratsiya | signal | savdo | win | o'rt.% | jami% |
+|---|---|---|---|---|---|
+| eski: past bandda to'xtash | 667 | 649 | 38% | -0.43 | -276.9 |
+| yangi: Correction Entry | 671 | 653 | 38% | -0.45 | -293.7 |
+
+**Correction Entry yoqilmadi.** U atigi 4 ta signal qo'shdi va
+natijani yomonlashtirdi. Sabab voronkada: `correction_entry:trend`
+13 462 marta rad etgan. Kunlik trend ko'tarilishda bo'lishi shart,
+Bozor Salomatligi past bo'lganda esa u odatda pastga qaragan —
+strategiya o'zi mo'ljallangan lahzada deyarli ochilmaydi.
+
+**Bundan muhimroq: asosiy tizim ham zarar ko'rsatyapti.** 649 ta
+savdo — tasodif deb yozib bo'lmaydigan namuna.
+
+Hisob oddiy va shafqatsiz:
+
+    0.299 x 1.5S - 0.621 x S ~ -0.17S,  S ~ 2.5%  ->  -0.43%
+
+Ya'ni 1:1.5 nisbatda foydali bo'lish uchun TP2 gacha 40% yetish
+kerak edi, amalda 29.9% yetadi.
+
+### Sabab kodda ochiq turgan ekan
+
+`core/analysis/scoring/levels.py`:
+
+- **TP1 — TUZILMADAN**: eng yaqin resistance zonasi
+- **TP2 — FORMULADAN**: `entry x (1 + stop_masofa x nisbat)`
+
+TP2 bozorda nima borligiga umuman qaramaydi. Stop keng bo'lsa u
+uzoqqa uchib ketadi, o'sha yerda qarshilik bormi — ahamiyatsiz.
+TP1 esa haqiqiy zonada. Shuning uchun narx TP1 gacha yetadi, TP2
+gacha 70% holatda yetmaydi.
+
+### Nima QILINMADI
+
+Beshta variantdan eng yaxshisi tanlanmadi. Muammo sozlamada emas,
+TP mantiqida — sozlama tanlash tarixga moslashib qolish bo'lardi.
+
+Ball chegarasiga (60) tegilmadi. Dastlabki tahlilda "chegara deyarli
+hamma narsani to'sadi" degan xato xulosa bor edi; voronka aslida 29%
+o'tkazadi. Xato o'z vaqtida tuzatildi — zarar ko'rsatayotgan tizimda
+chegarani pasaytirish zararni ko'paytirardi.
+
+---
+
+## 71. Backtest endi BEPUL emas: komissiya va sirg'anish
+
+70-bo'limdagi raqamlar ham hali OPTIMISTIK edi: savdo xarajatlari
+umuman modellashtirilmagan edi.
+
+`BacktestConfig`: `fee_pct` 0.1 (Binance spot taker),
+`slippage_pct` 0.05. Pozitsiya ikki marta to'laydi — kirishda va
+chiqishda — ya'ni savdo boshiga 0.3%.
+
+649 ta savdoda bu **~195%**. Ya'ni xulosani o'zgartira oladigan
+hajm, "kichik tuzatish" emas.
+
+Qiymatlar EHTIYOTKOR tomonga og'dirilgan: kirish ko'pincha LIMIT
+buyurtma (5.1.0-band), ya'ni arzonroq. Natijani yaxshiroq
+ko'rsatgandan ko'ra yomonroq ko'rsatish afzal.
+
+---
+
+## 72. TP2 tuzilmadan — bayroq ostida, o'lchash uchun
+
+70-bo'lim topgan sababga javob. `trade_rules.tp2_from_structure`
+yoqilganda TP2 formuladan emas, **TP1 dan keyingi haqiqiy
+resistance zonasidan** olinadi. Zona topilmasa — signal berilmaydi
+(`levels:tp2_no_structure`), formula bilan "to'ldirilmaydi".
+
+**Nisbat pasayadi, ehtimol oshadi.** Qaysi tomon og'irroq — bu
+taxmin emas, o'lchov savoli. Shuning uchun bayroq standart holatda
+`false`.
+
+Risk Engine ham shu manbadan o'qiydi: `classic_ta_rules()` bayroq
+yoqilganda `tp2_structural_min_rr` ni qaytaradi. Ansiz darajalar
+quriladi-yu, tekshiruv ularni darhol yo'q qilardi — e'lon
+qilingan, lekin ULANMAGAN sozlama (67-bo'limdagi xatoning aynan
+o'zi).
+
+**Test skanerining o'zida ham teshik topildi.** `test_stage_labels`
+bosqich nomlarini `[a-z_]` ifodasi bilan qidirardi, ya'ni ichida
+RAQAM bo'lgan nom (`levels:tp2_no_structure`) unga ko'rinmasdi.
+Nomsiz qolsa ham test jim o'tardi. Ifodalar tuzatildi.
+
+---
+
+## 73. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

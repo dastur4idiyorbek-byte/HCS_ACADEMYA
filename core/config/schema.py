@@ -435,6 +435,32 @@ class TradeRulesConfig:
     #: agar u 1:1 dan past bo'lsa, o'sha yarim savdo o'rtacha zarar keltiradi.
     tp1_min_risk_reward: float = 1.5
     allow_measured_tp: bool = True
+    #: TP2 TUZILMADAN olinsinmi (ikkinchi resistance zonasi).
+    #:
+    #: HOZIRCHA O'CHIRILGAN — backtest tugagach hal qilinadi.
+    #:
+    #: MUAMMO (2026-09-02 backtesti). TP1 haqiqiy resistance
+    #: zonasidan olinadi, TP2 esa FORMULADAN: stop masofasi x
+    #: `min_risk_reward`. Ya'ni TP2 bozorda nima borligiga umuman
+    #: qaramaydi — stop keng bo'lsa u uzoqqa uchib ketadi, o'sha
+    #: yerda qarshilik bormi yoki yo'qmi, ahamiyatsiz.
+    #:
+    #: O'LCHANGAN OQIBAT: TP2 gacha savdolarning atigi 29.9% i
+    #: yetadi, stop esa to'liq ishlaydi. 1:1.5 nisbatda foydali
+    #: bo'lish uchun 40% kerak edi. Ana shu 10 punktlik farq
+    #: butun tizimni zararga olib boradi (-0.43% har savdoda).
+    #:
+    #: YECHIM SINALADI, DARHOL QO'LLANMAYDI: tuzilmaviy TP2 nisbatni
+    #: PASAYTIRADI, lekin yetib borish ehtimolini oshiradi. Qaysi
+    #: tomon og'irroq — buni faqat backtest aytadi.
+    tp2_from_structure: bool = False
+    #: Tuzilmaviy TP2 uchun eng past nisbat.
+    #:
+    #: Formuladagidan PAST bo'lishi shart, aks holda tuzilmaviy TP2
+    #: hech qachon o'tmaydi va bayroq hech narsani o'zgartirmaydi —
+    #: e'lon qilingan, lekin ulanmagan sozlama bo'lib qolardi.
+    #: 1:1 dan past bo'lsa esa savdoning o'zi ma'nosiz.
+    tp2_structural_min_rr: float = 1.0
     #: KECH KIRISH ogohlantirishi: narx kirish nuqtasidan shu foizdan
     #: ko'p uzoqlashgan bo'lsa, hali kirmagan foydalanuvchiga
     #: "xavf kattalashdi, kirish tavsiya etilmaydi" deb aytiladi.
@@ -988,6 +1014,49 @@ class SinovDavriConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class BacktestConfig:
+    """6.3-band: backtestni HAQIQATGA yaqinlashtiruvchi xarajatlar.
+
+    Ilgari bular umuman modellashtirilmagan edi va bu natijani
+    tizimli ravishda CHIROYLIROQ ko'rsatardi. Spot savdoda har bir
+    pozitsiya ikki marta to'laydi: kirishda ham, chiqishda ham.
+    649 ta savdoda 0.1% lik komissiya ~130% ni yeb qo'yadi — ya'ni
+    xulosa o'zgarishi mumkin bo'lgan hajm.
+
+    Bu raqamlar TAXMIN emas, birjaning e'lon qilgan tarifi:
+    Binance spot taker 0.1%. Slippage esa o'lchanmagan, shuning
+    uchun ehtiyotkor (yuqoriroq) qiymat olinadi — natijani
+    yaxshiroq ko'rsatgandan ko'ra yomonroq ko'rsatgan afzal.
+    """
+
+    #: Bir tomonlama komissiya, foizda (Binance spot taker = 0.1)
+    fee_pct: float = 0.1
+    #: Har bir bajarilishdagi kutilayotgan sirg'anish, foizda.
+    #:
+    #: Stop va TP darajalari LIMIT emas: narx daraja orqali o'tib
+    #: ketadi va to'ldirish undan narida bo'ladi. Aniq qiymat
+    #: coinga va vaqtga bog'liq — bu ehtiyotkor o'rtacha.
+    slippage_pct: float = 0.05
+
+    @property
+    def round_trip_cost_pct(self) -> float:
+        """Bitta savdoning to'liq xarajati (kirish + chiqish), foizda.
+
+        Pozitsiya IKKI marta to'laydi: sotib olishda va sotishda.
+        TP1 da yarmi yopilsa ham jami hajm o'zgarmaydi — yarmi TP1 da,
+        yarmi keyin sotiladi — shuning uchun xarajat baribir ikki
+        tomonlama.
+
+        EHTIYOTKOR TOMONGA OG'DIRILGAN. Kirish ko'pincha LIMIT
+        buyurtma bo'ladi (5.1.0-band), ya'ni undagi komissiya
+        pastroq va sirg'anish yo'q. Bu yerda ikkalasiga ham to'liq
+        xarajat qo'yiladi: natijani yaxshiroq ko'rsatgandan ko'ra
+        yomonroq ko'rsatgan afzal.
+        """
+        return 2 * (self.fee_pct + self.slippage_pct)
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     """Butun tizimning yagona konfiguratsiya obyekti."""
 
@@ -1007,4 +1076,5 @@ class AppConfig:
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)
     market_data: MarketDataConfig = field(default_factory=MarketDataConfig)
     monitoring: MonitoringConfig = field(default_factory=MonitoringConfig)
+    backtest: BacktestConfig = field(default_factory=BacktestConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)

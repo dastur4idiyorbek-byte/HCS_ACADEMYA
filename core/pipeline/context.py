@@ -153,6 +153,9 @@ STAGE_LABELS: dict[str, str] = {
     "classic_ta:levels": "Darajalar risk qoidasiga sig'madi",
     "classic_ta:levels:stop_too_close": "Stop juda YAQIN — support zonasi yaqin",
     "classic_ta:levels:stop_too_far": "Stop juda UZOQ — ATR keng, shift 5% da",
+    "classic_ta:levels:tp2_no_structure": (
+        "TP1 dan yuqorida qarshilik zonasi yo'q — TP2 o'ylab topilmaydi"
+    ),
     "classic_ta:no_setup": "Shart bajarilmadi",
     "classic_ta:error": "Strategiya ichki xatosi",
     # 3.9 — kunlik sham ochilishi skalping
