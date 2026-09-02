@@ -5003,7 +5003,91 @@ O'lchov o'zini o'zi tekshirmasa, u o'lchov emas, bezak.
 
 ---
 
-## 83. Bosqichlar holati
+## 83. TP1 nisbat poli — sakkizta urinishdan birinchisi ishladi
+
+82-bo'lim tashxis bilan tugagan edi: **TP1 polsiz qoldi**.
+Yechim taklif qilingan edi — foiz emas, NISBAT poli
+(`enforce_tp1_ratio`). Run #11 uni o'lchadi.
+
+| | baza | nisbat poli 1.5 | nisbat poli 2.0 |
+|---|---|---|---|
+| Signal | 1297 | 807 | 643 |
+| TP2 gacha | 17.1% | **30.9%** | 27.3% |
+| Profit factor | 0.30 | **0.79** | **0.82** |
+| O'rtacha savdo | −1.31% | **−0.51%** | −0.51% |
+| Maks. pasayish | 1672% | **479%** | 489% |
+
+Bitta savdodagi natija **2.6 barobar** yaxshilandi.
+
+### MEXANIZM
+
+`min_tp_distance_pct` (3%) TP1 uchun YAGONA pol edi. Foiz
+oraliqlari o'chirilgach TP1 eng yaqin qarshilikka tushdi:
+
+```
+TP1 +0.5% da   -> yarmi sotiladi   -> +0.25%
+Stop breakeven -> qolgani nolda    ->  0.00%
+komissiya                          -> -0.30%
+                                      -------
+                                       -0.05%
+```
+
+Nisbat poli TP1 ni Stop masofasiga bog'laydi: pol qanoatlantirmagan
+zona o'tkazib yuboriladi va KEYINGISI qidiriladi. Signal
+yo'qolmaydi — mos zona topilmasa o'lchangan TP ga qaytiladi.
+
+### UCHTA NAZORAT VARIANTI — nima uchun ular zarur edi
+
+Bitta variantni "eng yaxshi" deb tanlash yetarli emas: u
+tasodifan ham chiqishi mumkin. Har bir nazorat aniq savolga
+javob beradi.
+
+| nazorat | PF | nima aytadi |
+|---|---|---|
+| foiz oraliqlari yoqilgan | 0.64 | nisbat poli ESKI YO'LDAN yaxshiroq — tashxis yangi narsa qo'shdi |
+| bitta TP (qismli sotishsiz) | 0.74 | qismli sotish muammo emas, uning JOYI muammo edi |
+| oraliq + nisbat poli | 0.76 | foiz oralig'i nisbat poli ustiga hech narsa qo'shmaydi |
+
+Birinchisi HAL QILUVCHI edi: nisbat poli 0.64 dan past chiqsa,
+"foizni qaytargan ma'qul" degan xulosa chiqardi va tashxis
+bekor bo'lardi.
+
+Uchinchisi loyiha egasining qarorini raqam bilan tasdiqlaydi:
+**foizlar keraksiz, nisbat yetarli.** Oraliq qo'shilganda natija
+bir oz YOMONLASHDI — u faqat mazmunli signallarni ortiqcha
+kesadi.
+
+### POL QIYMATI: 1.5 tanlandi
+
+2.0 jami natija bo'yicha yaxshiroq (−322.3% vs −408.9%), lekin
+**bitta savdodagi natija bir xil** (−0.51%). Ya'ni farq
+savdolar yaxshilanganidan emas, KAMAYGANIDAN — bu naqsh
+74-bo'limda ham uchragan. Pasayish chuqurroq, ushlash uzunroq.
+
+### NIMA O'ZGARMADI
+
+```
+Profit factor:  0.82   (foydali bo'lish uchun >1.0 kerak)
+Tayanch:        +31.5%,  strategiya: -322.3%
+```
+
+Tashxis to'g'ri edi va yechim ishladi, lekin YETARLI EMAS.
+
+### BAYROQ HALI HAM O'CHIQ
+
+Loyihaning o'z intizomi: "Yaxshi natija BOSHQA DAVRDA qayta
+tekshirilishi shart". Bu natija bitta davr, bitta coin
+to'plami va bitta yugurishdan olingan. Oltita variantdan eng
+yaxshisini tanlab "tasdiqlandi" deyish — backtestning eng keng
+tarqalgan xatosi, va biz uni o'z hujjatimizda ogohlantirish
+sifatida yozib qo'yganmiz.
+
+Daftarda 🟢 belgisi "o'lchandi va yo'nalish to'g'ri" degani,
+"yoqilsin" degani emas.
+
+---
+
+## 84. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

@@ -516,8 +516,17 @@ mustaqil dalil bitta sababga ishora qildi:
 
 | Holat | Sozlama | Qiymat | Izoh |
 |---|---|---|---|
-| 🔴 | `enforce_tp1_ratio` | yo'q | TUZILMAVIY TP1 ga nisbat poli — QURILDI, o'lchanmagan |
-| 🔴 | `tp1_min_risk_reward` | 1.5 | pol qiymati — 1.5 va 2.0 sinaladi |
+| 🟢 | `enforce_tp1_ratio` | yo'q | O'LCHANDI VA ISHLADI: PF 0.30 → 0.79 (natija #8) |
+| 🟡 | `tp1_min_risk_reward` | 1.5 | 2.0 jami bo'yicha yaxshiroq, lekin faqat savdo kamayganidan |
+
+> **DIQQAT — bayroq hali ham O'CHIQ.** Loyihaning o'z intizomi:
+> "Yaxshi natija BOSHQA DAVRDA qayta tekshirilishi shart". Bu
+> natija bitta davr, bitta coin to'plami va bitta yugurishdan
+> olingan. Oltita variantdan eng yaxshisini tanlab "tasdiqlandi"
+> deyish — backtestning eng keng tarqalgan xatosi.
+>
+> 🟢 belgisi "o'lchandi va yo'nalish to'g'ri" degani, "yoqilsin"
+> degani emas.
 
 Ilgari `tp1_min_risk_reward` faqat "qarshilik topilmadi"
 tarmog'ida ishlardi. Tuzilmaviy TP1 (eng yaqin qarshilik zonasi)
@@ -550,3 +559,46 @@ yangi: is_win = result_pct > 0
 ```
 
 O'lchov o'zini o'zi tekshirmasa, u o'lchov emas, bezak.
+
+---
+
+## Natija #8 — SAKKIZTA URINISHDAN BIRINCHISI ISHLADI
+
+`enforce_tp1_ratio` (natija #7 dagi tashxisdan chiqarilgan):
+
+| | baza | nisbat poli 1.5 |
+|---|---|---|
+| Profit factor | 0.30 | **0.79** |
+| O'rtacha savdo | −1.31% | **−0.51%** |
+| TP2 gacha | 17.1% | **30.9%** |
+| Maks. pasayish | 1672% | **479%** |
+
+### Uchta nazorat varianti — nima uchun ular zarur edi
+
+| nazorat | natija | nima aytadi |
+|---|---|---|
+| foiz oraliqlari yoqilgan | PF 0.64 | nisbat poli eski yo'ldan YAXSHIROQ — tashxis yangi narsa qo'shdi |
+| bitta TP (qismli sotishsiz) | PF 0.74 | qismli sotish muammo emas, uning JOYI muammo edi |
+| oraliq + nisbat poli | PF 0.76 | foiz oralig'i nisbat poli ustiga hech narsa qo'shmaydi |
+
+Uchinchisi loyiha egasining qarorini raqam bilan tasdiqlaydi:
+**foizlar keraksiz, nisbat yetarli.**
+
+### Nima O'ZGARMADI
+
+```
+Profit factor:  0.82  (foydali bo'lish uchun >1.0 kerak)
+Tayanch:        +31.5%,  strategiya: −322.3%
+```
+
+Tashxis to'g'ri edi va yechim ishladi, lekin **yetarli emas**.
+
+### Yangi 🔴 — keyingi savol
+
+| Holat | Savol |
+|---|---|
+| 🔴 | Bu natija BOSHQA DAVRDA ham takrorlanadimi |
+| 🔴 | PF 0.82 dan 1.0 gacha qolgan masofani nima yopadi |
+
+Birinchisiga javob berish uchun backtestga sinov OYNASINI
+tanlash kerak (hozir u faqat "oxirgi N kun" ni oladi).
