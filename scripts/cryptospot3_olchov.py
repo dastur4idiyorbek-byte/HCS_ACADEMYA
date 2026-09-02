@@ -73,8 +73,8 @@ def main() -> None:
 
     bazaviy = [n.breakdown.base_total for n in bilan]
     eski_bazaviy = [n.breakdown.base_total for n in siz]
-    otgan = sum(1 for r in reyting if r.passed_threshold)
-    eski_otgan = sum(1 for r in eski_reyting if r.passed_threshold)
+    otgan = sum(1 for r in reyting if r.admitted)
+    eski_otgan = sum(1 for r in eski_reyting if r.admitted)
     toliq = sum(1 for r in reyting if r.setup_complete)
 
     print("CryptoSpot3% qatlami — o'lchov (kalibrlash to'plami)")
@@ -93,7 +93,7 @@ def main() -> None:
     print(f"Chegara: {chegara:.0f}")
     print("Reyting (bazaviy -> to'liq ball):")
     for r in reyting[:10]:
-        belgi = "o'tdi" if r.passed_threshold else "—"
+        belgi = "o'tdi" if r.admitted else "—"
         yorliq = " ✓shartnoma" if r.setup_complete else ""
         print(f"  {r.rank:2d}. {r.base_score:5.1f} -> {r.score:5.1f}   {belgi}{yorliq}")
 

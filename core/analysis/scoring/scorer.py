@@ -15,6 +15,7 @@ va indeksga bog'liq. Bu modul faqat ballni hisoblaydi va saralaydi.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -37,16 +38,31 @@ from core.utils.logging_setup import get_logger
 logger = get_logger(__name__)
 
 
+#: Kirishga ruxsat berilmaganda qo'yiladigan bosqich kodlari.
+#: `core/pipeline/context.py` dagi `STAGE_LABELS` shu nomlarni
+#: o'qiydi — ular kodda qo'lda yozilmaydi.
+KIRISH_RAD_SABABLARI: tuple[str, ...] = ("threshold", "setup_contract", "score_floor")
+
+
 @dataclass(frozen=True, slots=True)
 class RankedCandidate:
     """Reytingdagi bitta nomzod."""
 
     candidate: SignalCandidate
     rank: int
-    passed_threshold: bool
-    #: CryptoSpot3% shartnomasi TO'LIQ bajarilganmi — YORLIQ, darvoza
-    #: emas. "Nega bu signal?" ekrani va o'lchov uchun.
+    #: Kirishga ruxsat berilmagan bo'lsa — sabab kodi, aks holda `None`.
+    #: Ilgari bu yerda `passed_threshold: bool` turardi va u faqat
+    #: bitta sababni ifodalay olardi. Sifat darvozasi qo'shilgach
+    #: sabablar uchtaga chiqdi, ya'ni "nega o'tmadi" degan savol
+    #: javobsiz qolardi.
+    rejection: str | None = None
+    #: CryptoSpot3% shartnomasi TO'LIQ bajarilganmi.
     setup_complete: bool = False
+
+    @property
+    def admitted(self) -> bool:
+        """Nomzod kirishga ruxsat oldimi."""
+        return self.rejection is None
 
     @property
     def score(self) -> float:
@@ -134,28 +150,37 @@ class Scorer:
         candidates: list[SignalCandidate],
         threshold: float | None,
     ) -> list[RankedCandidate]:
-        """Nomzodlarni ballga qarab saralaydi va chegarani qo'llaydi.
+        """Nomzodlarni ballga qarab saralaydi va kirishga ruxsat beradi.
 
-        BITTA DARVOZA, ICHIDA IKKALA MODUL.
+        SARALASH har doim ball bo'yicha. RUXSAT esa ikki xil bo'lishi
+        mumkin — `scoring.quality_gate.enabled` ga qarab.
 
-        Chegara BAZAVIY ballda tekshiriladi. Bu "eski modul" degani
-        EMAS: CryptoSpot3% dalillari (struktura, daraja turi, sweep)
-        aynan shu bazaviy ball ichida — ular S/R va trend omillarini
-        ko'taradi (`factors.py`, `_uplift`).
+        O'CHIQ (standart, eski mexanizm)
+            Chegara BAZAVIY ballda tekshiriladi. CryptoSpot3%
+            dalillari (struktura, daraja turi, sweep) aynan shu
+            bazaviy ball ichida — ular S/R va trend omillarini
+            ko'taradi (`factors.py`, `_uplift`), ya'ni tuzilmasi
+            kuchli nomzod chegaradan o'z kuchi bilan o'tadi.
 
-        Ya'ni ikki modul ORALASHIB ishlaydi: tuzilmasi kuchli nomzod
-        yuqoriroq bazaviy ball oladi va chegaradan O'Z KUCHI bilan
-        o'tadi. Shu sababli yangi modul nafaqat QAYSI signal
-        chiqishiga, balki QANCHA signal chiqishiga ham ta'sir qiladi.
+        YOQILGAN (sifat darvozasi)
+            Ruxsatni DALIL beradi: CryptoSpot3% shartnomasi
+            bajarilishi shart. Ball esa faqat tartiblaydi va
+            xavfsizlik poli sifatida qoladi.
 
-        Nima uchun parallel ikkinchi darvoza QILINMADI: ikkita mustaqil
-        darvoza ikkita alohida qoidalar to'plami degani — ikki barobar
-        sozlash, ikki barobar xato va "qaysi biri ishladi" degan doimiy
-        savol. Dalil omil ichiga qo'shilganda bitta raqam yetarli.
+        NIMA UCHUN IKKINCHI YO'L QO'SHILDI. Birinchi yozuvda bu yerda
+        "parallel darvoza qilinmadi, chunki dalil omil ichida" deb
+        yozilgan edi. Mulohaza to'g'ri, lekin o'lchov unga qarshi
+        chiqdi: to'rtta mustaqil kirish filtri sinaldi, signal soni
+        610 dan 884 gacha o'zgardi, win-rate esa 36.9-39.1% bo'lib
+        qoldi (`docs/BACKTEST_NATIJA_2026-09-02_6.md`).
 
-        Bonus (Kill Zone) esa chegaraga KIRMAYDI: u kirish vaqti
-        haqida, tuzilma haqida emas, va u faqat saralashga ta'sir
-        qiladi.
+        Sabab: ball nomzodlarni bir-biriga NISBATAN o'lchaydi. U "eng
+        yaxshisi qaysi" deydi, "shu yetarlimi" demaydi. Dalilni ball
+        ichiga qo'shish uni tartiblovchiga aylantiradi, qaror
+        qiluvchiga emas.
+
+        Bonus (Kill Zone) hech qaysi yo'lda ruxsatga kirmaydi: u
+        kirish vaqti haqida, tuzilma haqida emas.
 
         Args:
             threshold: minimal BAZAVIY ball. `None` — Bozor Salomatligi
@@ -167,22 +192,21 @@ class Scorer:
             RankedCandidate(
                 candidate=nomzod,
                 rank=index + 1,
-                passed_threshold=(
-                    threshold is not None and nomzod.breakdown.base_total >= threshold
-                ),
+                rejection=self._kirish_rad_sababi(nomzod, threshold),
                 setup_complete=nomzod.setup_qualified,
             )
             for index, nomzod in enumerate(tartiblangan)
         ]
 
-        otganlar = [r for r in natija if r.passed_threshold]
+        otganlar = [r for r in natija if r.admitted]
         if natija and not otganlar:
-            eng_yuqori = max(r.base_score for r in natija)
+            sabablar = Counter(r.rejection for r in natija)
             logger.info(
-                "Chegaradan hech kim o'tmadi: eng yuqori bazaviy ball %.1f, chegara %s — "
-                "signal berilmaydi (normal holat)",
-                eng_yuqori,
+                "Kirishga hech kim o'tmadi: eng yuqori bazaviy ball %.1f, "
+                "chegara %s, sabablar %s — signal berilmaydi (normal holat)",
+                max(r.base_score for r in natija),
                 f"{threshold:.0f}" if threshold is not None else "yopiq",
+                dict(sabablar),
             )
         elif otganlar:
             toliq = sum(1 for r in otganlar if r.setup_complete)
@@ -194,10 +218,41 @@ class Scorer:
             )
         return natija
 
+    def _kirish_rad_sababi(
+        self, nomzod: SignalCandidate, threshold: float | None
+    ) -> str | None:
+        """Nomzod kirishga ruxsat oldimi — olmasa, NEGA.
+
+        BALL FAQAT TARTIBLAYDI (sifat darvozasi yoqilganda).
+
+        Ball nomzodlarni bir-biriga NISBATAN o'lchaydi: u "eng
+        yaxshisi qaysi" deydi, "shu yetarlimi" demaydi. Darvoza faqat
+        balldan iborat bo'lsa, tizim uyumning eng yuqorisini oladi —
+        uyumning o'zi yomon bo'lsa ham.
+
+        Yoqilganda qaror DALILGA o'tadi: CryptoSpot3% shartnomasi
+        (yo'nalish + yalash + daraja turi) bajarilishi shart. Ball
+        esa faqat tartiblaydi va xavfsizlik poli sifatida qoladi.
+        """
+        if threshold is None:
+            # Bozor Salomatligi past — chegara umuman yopiq (3.5-band).
+            return "threshold"
+
+        ball = nomzod.breakdown.base_total
+        darvoza = self._config.scoring.quality_gate
+        if not darvoza.enabled:
+            return None if ball >= threshold else "threshold"
+
+        if darvoza.require_setup_contract and not nomzod.setup_qualified:
+            return "setup_contract"
+        if ball < darvoza.min_base_score:
+            return "score_floor"
+        return None
+
     @staticmethod
     def passed(ranked: list[RankedCandidate]) -> list[SignalCandidate]:
         """Chegaradan o'tgan nomzodlar, eng yuqori balldan boshlab."""
-        return [r.candidate for r in ranked if r.passed_threshold]
+        return [r.candidate for r in ranked if r.admitted]
 
 
 def breakdown_to_json(breakdown: ScoreBreakdown) -> str:

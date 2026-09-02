@@ -254,6 +254,26 @@ scoring:
     max_sweep_age_bars: 5          # eski yalash dalil emas
     require_bos: true              # metodikaning 4-qadami
     min_level_confidence: 0.6      # oddiy daraja yetarli emas
+  # SIFAT DARVOZASI — "ball faqat tartiblaydi"
+  #
+  # O'chiq bo'lsa: kirishga ball chegarasi ruxsat beradi (eski yo'l).
+  # Yoqilsa: ruxsatni DALIL beradi — CryptoSpot3% shartnomasi
+  # bajarilishi shart, ball esa faqat tartiblaydi va pol bo'lib qoladi.
+  #
+  # NIMA UCHUN: ball nomzodlarni bir-biriga NISBATAN o'lchaydi. U "eng
+  # yaxshisi qaysi" deydi, "shu yetarlimi" demaydi. 2026-09-02
+  # o'lchovida to'rtta kirish filtri sinaldi, signal soni 610 dan 884
+  # gacha o'zgardi, win-rate esa 36.9-39.1% bo'lib qoldi — filtrlar
+  # uyumga kim kirishini o'zgartirdi, uyum baribir tartiblanib eng
+  # yuqorisi olinaverdi.
+  #
+  # STANDART HOLATDA O'CHIQ: bu GIPOTEZA. Signal soni keskin kamayishi
+  # kutiladi va u kamayish sifat oshgani bilan to'lanadimi — faqat
+  # backtest aytadi (`docs/GIPOTEZA_DAFTARI.md`).
+  quality_gate:
+    enabled: false
+    require_setup_contract: true
+    min_base_score: 35             # XAVFSIZLIK poli, sifat chegarasi emas
 
 # --- 3.3-band: universal risk qoidasi ---
 trade_rules:

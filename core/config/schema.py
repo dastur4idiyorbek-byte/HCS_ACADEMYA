@@ -381,11 +381,53 @@ class SetupRouteConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class QualityGateConfig:
+    """Kirishga DALIL ruxsat bersin, ball esa faqat tartiblasin.
+
+    HOZIRGI MEXANIZM VA UNING KAMCHILIGI. Yagona darvoza — ball
+    chegarasi. Ball esa nomzodlarni bir-biriga NISBATAN o'lchaydi:
+    u "eng yaxshisi qaysi" deydi, "shu yetarlimi" demaydi. Natijada
+    tizim uyumning eng yuqorisini oladi — uyumning O'ZI yomon
+    bo'lsa ham.
+
+    Bu 2026-09-02 dagi o'lchov bilan mos: to'rtta mustaqil kirish
+    filtri sinaldi, signal soni 610 dan 884 gacha o'zgardi,
+    win-rate esa 36.9-39.1% bo'lib qoldi. Filtrlar uyumga KIM
+    kirishini o'zgartirdi, uyum baribir tartiblanib eng yuqorisi
+    olinaverdi.
+
+    Yoqilganda kirish sharti almashadi:
+
+        eski:  bazaviy ball >= chegara
+        yangi: CryptoSpot3% shartnomasi bajarildi
+               VA bazaviy ball xavfsizlik polidan yuqori
+
+    Shartnoma (`setup_route.py`) allaqachon hisoblanadi va
+    `SignalCandidate.setup_qualified` da yotibdi — bugungacha u
+    faqat YORLIQ edi, qarorga ta'siri yo'q edi. Ya'ni bu yerda
+    yangi mantiq yozilmaydi, mavjud dalilga OVOZ beriladi.
+
+    STANDART HOLATDA O'CHIQ: bu gipoteza, fakt emas. Signal soni
+    keskin kamayishi kutiladi — u kamayish sifat oshgani bilan
+    to'lanadimi yoki yo'qmi, faqat backtest aytadi.
+    """
+
+    enabled: bool = False
+    #: Shartnoma MAJBURIY bo'lsinmi. `False` bo'lsa faqat pol
+    #: ishlaydi — ya'ni chegara pasaygan eski mexanizm.
+    require_setup_contract: bool = True
+    #: XAVFSIZLIK poli, sifat chegarasi emas. "Tuzilma mukammal,
+    #: lekin qolgan hammasi yomon" holatini kesadi.
+    min_base_score: float = 35.0
+
+
+@dataclass(frozen=True, slots=True)
 class ScoringConfig:
     weights: ScoreWeights = field(default_factory=ScoreWeights)
     bonuses: ScoreBonuses = field(default_factory=ScoreBonuses)
     uplift: ScoreUplift = field(default_factory=ScoreUplift)
     setup_route: SetupRouteConfig = field(default_factory=SetupRouteConfig)
+    quality_gate: QualityGateConfig = field(default_factory=QualityGateConfig)
     thresholds: ScoreThresholds = field(default_factory=ScoreThresholds)
 
 

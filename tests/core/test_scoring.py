@@ -230,7 +230,8 @@ def test_chegara_yopiq_bolsa_hech_kim_otmaydi(config) -> None:  # noqa: ANN001
     scorer = Scorer(config)
     reyting = scorer.rank([nomzod("BTC", 99)], threshold=None)
 
-    assert not reyting[0].passed_threshold
+    assert not reyting[0].admitted
+    assert reyting[0].rejection == "threshold"
     assert scorer.passed(reyting) == []
 
 

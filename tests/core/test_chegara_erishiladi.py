@@ -137,7 +137,7 @@ def test_bonus_ozi_darvozani_ochmaydi(nomzodlar: list) -> None:  # noqa: ANN001
     reyting = Scorer(config).rank(nomzodlar, chegara)
 
     for r in reyting:
-        assert r.passed_threshold == (r.base_score >= chegara)
+        assert r.admitted == (r.base_score >= chegara)
 
 
 def test_dalillar_signal_SONIGA_tasir_qiladi(nomzodlar_dalilsiz: list) -> None:  # noqa: ANN001

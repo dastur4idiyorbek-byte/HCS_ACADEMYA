@@ -37,6 +37,7 @@ from pathlib import Path
 from core.backtest import Backtester, Dataset, compare, render
 from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
+from core.config.schema import QualityGateConfig
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
 from core.utils.logging_setup import get_logger, setup_logging
@@ -248,51 +249,93 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
     )
 
 
+#: Bu yugurishda O'LCHANAYOTGAN o'q.
+#:
+#: Taqqoslashning eng asosiy sharti — bitta o'zgaruvchi. Uni har
+#: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
+#: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
+#: qilishi mumkin.
+OLCHOV_OQI = "scoring.quality_gate"
+
+
+def _oqsiz(config: AppConfig) -> AppConfig:
+    """Sozlamaning o'lchov o'qi NEYTRALLANGAN nusxasi.
+
+    Ikki variantni solishtirganda o'q chiqarib tashlanadi — qolgani
+    aynan teng bo'lishi kerak. Aks holda taqqoslash bir vaqtda
+    ikkita narsani o'lchayotgan bo'ladi va qaysi biri ta'sir
+    qilganini hech kim ayta olmaydi.
+    """
+    return dataclasses.replace(
+        config,
+        scoring=dataclasses.replace(
+            config.scoring, quality_gate=QualityGateConfig()
+        ),
+    )
+
+
+def _darvoza_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`scoring.quality_gate` o'zgartirilgan nusxa."""
+    darvoza = dataclasses.replace(asos.scoring.quality_gate, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, scoring=dataclasses.replace(asos.scoring, quality_gate=darvoza)
+    )
+
+
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Uchinchi to'plam: KIRISH SIFATI.
+    """To'rtinchi to'plam: QAROR KIMDA.
 
-    IKKI GIPOTEZA ALLAQACHON RAD ETILDI:
+    OLDINGI UCHTA TO'PLAM JAVOB BERDI, HAMMASI RAD ETILDI:
 
-    1. Correction Entry (natija #1) — 4 ta signal qo'shdi, natijani
+    1. Correction Entry (natija #1) — signal qo'shdi, natijani
        yomonlashtirdi
-    2. Tuzilmaviy TP2 (natija #2) — TP2 gacha yetish 29.9% dan
-       24.7% ga TUSHDI. Kutilganning teskarisi: haqiqiy qarshilik
-       zonasi formuladagi nishondan ko'pincha UZOQROQ turar ekan
+    2. Tuzilmaviy TP2 (natija #2) — TP2 gacha yetish PASAYDI
+    3. Kirish filtrlari (natija #3 va #6) — to'rtta filtr, signal
+       soni 610 dan 884 gacha, win-rate 36.9-39.1% da qotib qoldi
 
-    Ikkalasi ham TP va kirish YO'LI haqida edi. Ma'lumot esa boshqa
-    joyni ko'rsatyapti: TP2 turli joyga qo'yilganda ham WIN-RATE
-    hamma variantda 37.5-38.4% bo'lib qoldi. Ya'ni kirishlarning
-    ~62% i TP ga umuman yaqinlashmay stopga boradi va TP ni qayerga
-    qo'yish bunga ta'sir qilmaydi.
+    Uchalasi ham SOZLAMA darajasida edi: chegarani surish, filtr
+    yoqish, TP ni ko'chirish. Hech biri ishlamadi.
 
-    Shuning uchun savol KIRISHNING O'ZIGA ko'chadi. Quyidagilar —
-    oldindan yozilgan gipotezalar, har birining mexanizm izohi bor.
+    Bu to'plam boshqa savol beradi: kirishga KIM ruxsat beradi?
 
-    INTIZOM: bulardan eng yaxshisini tanlab "tasdiqlandi" deyish
-    mumkin emas. To'rtta gipotezadan bittasi tasodifan ham yaxshi
-    chiqadi. Yaxshi natija BOSHQA DAVRDA qayta tekshirilishi shart.
+    Hozir yagona darvoza — ball chegarasi. Ball esa nomzodlarni
+    bir-biriga NISBATAN o'lchaydi: "eng yaxshisi qaysi" deydi, "shu
+    yetarlimi" demaydi. Shuning uchun tizim uyumning eng yuqorisini
+    oladi — uyumning o'zi yomon bo'lsa ham. Uchinchi to'plamning
+    natijasi aynan shunga o'xshaydi: filtrlar uyumga kim kirishini
+    o'zgartirdi, uyum baribir tartiblanib eng yuqorisi olinaverdi.
+
+    Sifat darvozasi qarorni DALILGA beradi: CryptoSpot3%
+    shartnomasi (yo'nalish + yalash + daraja turi) bajarilishi
+    shart.
+
+    NAZORAT VARIANTI ZARUR. Darvoza ikki narsani bir vaqtda
+    qiladi: shartnomani talab qiladi VA ball chegarasini polga
+    almashtiradi. "Faqat pol" varianti ikkinchisini alohida
+    o'lchaydi — ansiz natija yaxshi chiqsa, uni shartnomaga
+    yozib qo'yishimiz mumkin edi, holbuki sabab chegara
+    pasaygani bo'lishi mumkin.
     """
     return [
         ("hozirgi holat", asos),
-        # Kunlik trend hozir MAJBURIY EMAS (`require_htf_alignment: false`).
-        # Sabab hujjatlashtirilgan: u signallarning 32% ini to'sardi.
-        # Lekin to'silganlar YOMON bo'lgan bo'lishi ham mumkin —
-        # buni hech kim o'lchamagan edi.
-        _tahlil_bilan(asos, "kunlik trend majburiy", require_htf_alignment=True),
-        # Indikatorlar hozir faqat ballga ta'sir qiladi. Ular
-        # kechikadi — lekin kechikish soxta kirishlarni ham
-        # kamaytiradi. Qaysi tomon og'irroq, o'lchanmagan.
-        _tahlil_bilan(
-            asos, "indikator tasdig'i majburiy", indikator={"require_confirmation": True}
+        # ASOSIY GIPOTEZA: dalil qaror qilsin.
+        _darvoza_bilan(asos, "sifat darvozasi (pol 35)", enabled=True),
+        # Pol balandroq: "tuzilma bor, lekin qolgani zaif" holatini
+        # ko'proq kesadi. Signal yana kamayadi.
+        _darvoza_bilan(
+            asos, "sifat darvozasi (pol 45)", enabled=True, min_base_score=45.0
         ),
-        # Tekis bozorda support/resistance ma'nosini yo'qotadi:
-        # narx zonalar orasida tebranadi va ikkalasini ham buzadi.
-        _tahlil_bilan(
-            asos, "faqat kuchli trend (ADX 25)", indikator={"adx_trend_threshold": 25.0}
+        # NAZORAT: shartnomasiz, faqat pol. Ya'ni "chegara 55 dan 35
+        # ga tushirildi" degani. Bu variant asosiydan YAXSHI chiqsa,
+        # sabab shartnomada emas — signal soni oshganida.
+        _darvoza_bilan(
+            asos,
+            "faqat pol 35 (shartnomasiz)",
+            enabled=True,
+            require_setup_contract=False,
         ),
-        # Diapazonning pastki qismida stopgacha masofa qisqaroq va
-        # qaytish ehtimoli yuqoriroq.
-        _sr_bilan(asos, "faqat chuqur Discount (40%)", entry_max_range_pct=40.0),
     ]
 
 

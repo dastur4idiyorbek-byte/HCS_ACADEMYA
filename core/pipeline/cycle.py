@@ -141,16 +141,22 @@ class SignalCycle:
         reyting = self._scorer.rank(nomzodlar, chegara)
         otganlar = self._scorer.passed(reyting)
 
+        darvoza = self._config.scoring.quality_gate
         for element in reyting:
-            if not element.passed_threshold:
-                rad_etilganlar.append(
-                    RejectedCandidate(
-                        symbol=element.candidate.symbol,
-                        stage="threshold",
-                        detail=f"Ball {element.score:.0f} < chegara {chegara:.0f}",
-                        score=element.score,
-                    )
+            if element.admitted:
+                continue
+            # Bosqich kodi Scorer'dan keladi — u qaysi shart
+            # to'xtatganini biladi. Ilgari hammasi "threshold" deb
+            # yozilardi va sifat darvozasi yoqilganda dashboard
+            # "ball past" deb noto'g'ri sabab ko'rsatardi.
+            rad_etilganlar.append(
+                RejectedCandidate(
+                    symbol=element.candidate.symbol,
+                    stage=element.rejection or "threshold",
+                    detail=self._rad_izohi(element, chegara, darvoza),
+                    score=element.score,
                 )
+            )
 
         # 4) Risk Engine — MAJBURIY qatlam (4-bo'lim)
         chiqarilganlar = []
@@ -234,6 +240,23 @@ class SignalCycle:
                 )
             )
         return nomzod
+
+    @staticmethod
+    def _rad_izohi(element, chegara: float | None, darvoza) -> str:  # noqa: ANN001
+        """Rad etish sababini odam o'qiydigan qilib yozadi."""
+        if element.rejection == "setup_contract":
+            return (
+                "CryptoSpot3% shartnomasi to'liq emas — kirish uchun "
+                "yo'nalish, yalash va daraja turi birgalikda talab qilinadi"
+            )
+        if element.rejection == "score_floor":
+            return (
+                f"Ball {element.base_score:.0f} < xavfsizlik poli "
+                f"{darvoza.min_base_score:.0f}"
+            )
+        if chegara is None:
+            return "Bozor Salomatligi past — chegara yopiq"
+        return f"Ball {element.base_score:.0f} < chegara {chegara:.0f}"
 
     def _risk_context(
         self,

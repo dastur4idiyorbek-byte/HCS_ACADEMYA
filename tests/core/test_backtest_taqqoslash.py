@@ -22,6 +22,7 @@ import pytest
 
 from core.config import load_config
 from scripts.backtest import (
+    OLCHOV_OQI,
     KeshYetishmaydi,
     _kerakli_timeframelar,
     _keshdan_yigish,
@@ -65,22 +66,43 @@ def test_hozirgi_holat_ham_olchanadi(config) -> None:  # noqa: ANN001
     assert asoslar, "o'zgartirilmagan sozlama variantlar ichida yo'q"
 
 
-def test_har_bir_variant_bitta_narsani_ozgartiradi(config) -> None:  # noqa: ANN001
-    """Bir vaqtda ikkita sozlama o'zgarsa, qaysi biri ta'sir qilgani
+def test_variantlar_faqat_olchov_oqini_ozgartiradi(config) -> None:  # noqa: ANN001
+    """Bir vaqtda ikkita narsa o'zgarsa, qaysi biri ta'sir qilgani
     noma'lum bo'lib qoladi.
 
     Bu taqqoslashning eng asosiy sharti: bitta o'zgaruvchi.
+
+    Tekshiruv o'lchov o'qi NOMINI o'qiydi (`OLCHOV_OQI`), o'zi
+    ro'yxat tutmaydi. Ilgari bu yerda tekshiriladigan sozlamalar
+    qo'lda sanab chiqilgan edi — o'q ko'chganda ro'yxat eskirib
+    qolardi va test jimgina bo'sh ishlardi.
     """
-    olchanadigan = [
-        lambda c: c.analysis.require_htf_alignment,
-        lambda c: c.analysis.indicators.require_confirmation,
-        lambda c: c.analysis.indicators.adx_trend_threshold,
-        lambda c: c.analysis.support_resistance.entry_max_range_pct,
+    from scripts.backtest import _oqsiz
+
+    assert OLCHOV_OQI, "o'lchov o'qi nomlanmagan"
+    for nom, variant in _variantlar(config):
+        assert _oqsiz(variant) == _oqsiz(config), (
+            f"{nom}: o'lchov o'qidan ({OLCHOV_OQI}) tashqarida ham "
+            "sozlama o'zgargan — taqqoslash bir vaqtda ikkita narsani "
+            "o'lchayapti"
+        )
+
+
+def test_olchov_oqi_haqiqatan_ozgaradi(config) -> None:  # noqa: ANN001
+    """Kamida bitta variant o'qni O'ZGARTIRSIN.
+
+    Aks holda beshta bir xil yugurish qilinib, "farq yo'q" degan
+    xulosa chiqarilardi.
+    """
+    ozgargan = [
+        nom
+        for nom, v in _variantlar(config)
+        if v.scoring.quality_gate != config.scoring.quality_gate
     ]
 
-    for nom, variant in _variantlar(config):
-        farqlar = [o for o in olchanadigan if o(variant) != o(config)]
-        assert len(farqlar) <= 1, f"{nom}: bir vaqtda {len(farqlar)} sozlama o'zgargan"
+    assert len(ozgargan) >= 2, (
+        f"o'lchov o'qini ({OLCHOV_OQI}) o'zgartirgan variant kam: {ozgargan}"
+    )
 
 
 def test_variantlar_bir_biriga_tasir_qilmaydi(config) -> None:  # noqa: ANN001
@@ -89,12 +111,10 @@ def test_variantlar_bir_biriga_tasir_qilmaydi(config) -> None:  # noqa: ANN001
     Aks holda ro'yxatdagi keyingi variant oldingisining sozlamasi
     bilan ishlab ketardi va taqqoslash yolg'on natija berardi.
     """
+    oldin = load_config()
     _variantlar(config)
 
-    assert not config.analysis.require_htf_alignment, "asos sozlama o'zgardi"
-    assert not config.analysis.indicators.require_confirmation
-    assert config.analysis.indicators.adx_trend_threshold == 20.0
-    assert config.analysis.support_resistance.entry_max_range_pct == 55.0
+    assert config == oldin, "asos sozlama o'zgardi"
 
 
 def test_rad_etilgan_gipotezalar_yoqilmagan(config) -> None:  # noqa: ANN001
@@ -112,12 +132,26 @@ def test_rad_etilgan_gipotezalar_yoqilmagan(config) -> None:  # noqa: ANN001
         assert not variant.trade_rules.tp2_from_structure, nom
 
 
+def test_rad_etilgan_kirish_filtrlari_ham_yopiq(config) -> None:  # noqa: ANN001
+    """Uchinchi to'plamda rad etilgan to'rtta filtr qayta yoqilmasin.
+
+    Natija #3 va #6: to'rttasi ham win-rate ni qimirlatmadi. Ular
+    jimgina qaytib kelsa, yangi o'lchov ularning ta'siri bilan
+    aralashib ketardi.
+    """
+    for nom, variant in _variantlar(config):
+        assert not variant.analysis.require_htf_alignment, nom
+        assert not variant.analysis.indicators.require_confirmation, nom
+        assert variant.analysis.indicators.adx_trend_threshold == 20.0, nom
+        assert variant.analysis.support_resistance.entry_max_range_pct == 55.0, nom
+
+
 def test_boshqa_sozlamalar_tegilmaydi(config) -> None:  # noqa: ANN001
     """Faqat o'lchanayotgan narsa o'zgaradi — taqqoslash halol bo'lsin."""
     for _nom, variant in _variantlar(config):
-        assert variant.scoring == config.scoring
         assert variant.market_health == config.market_health
         assert variant.backtest == config.backtest
+        assert variant.trade_rules == config.trade_rules
         assert variant.risk_engine == config.risk_engine
 
 

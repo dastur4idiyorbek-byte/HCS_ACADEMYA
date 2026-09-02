@@ -123,6 +123,9 @@ STAGE_LABELS: dict[str, str] = {
     # Sikl darajasi — bitta yozuv BARCHA coinlarni to'xtatadi
     "market_health": "Bozor Salomatligi past",
     "threshold": "Ball chegaradan past",
+    # 3.5 — sifat darvozasi (`scoring.quality_gate`) yoqilganda
+    "setup_contract": "CryptoSpot3% shartnomasi to'liq emas",
+    "score_floor": "Ball xavfsizlik polidan past",
     "risk_engine": "Risk Engine to'xtatdi",
     # 4-bo'lim: qaysi qoida to'xtatgani. Bularsiz dashboard 13 ta
     # qoidani bitta qatorga yig'ib, sababni yashirardi.

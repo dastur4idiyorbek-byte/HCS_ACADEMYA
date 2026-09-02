@@ -387,3 +387,34 @@ Bu ikki savolni ochadi va ikkalasi ham o'lchanmagan:
 |---|---|
 | `scoring.weights.*` | omillar shunday vaznlanishi kerakmi — yoki shift shundan |
 | `scoring.thresholds.*` | 55/50 taqsimotdan olingan, lekin NATIJA bilan bog'lab tekshirilmagan |
+
+---
+
+## Sifat darvozasi — yangi 🔴 (2026-09-02)
+
+`scoring.quality_gate` — retseptning 3-qadami, "ball faqat
+tartiblaydi".
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🔴 | `quality_gate.enabled` | yo'q | GIPOTEZA — hali o'lchanmagan |
+| 🔴 | `quality_gate.require_setup_contract` | ha | shartnoma majburiymi |
+| 🔴 | `quality_gate.min_base_score` | 35 | XAVFSIZLIK poli, sifat chegarasi emas |
+
+**Gipoteza:** ball nomzodlarni bir-biriga NISBATAN o'lchaydi — u
+"eng yaxshisi qaysi" deydi, "shu yetarlimi" demaydi. Shuning uchun
+tizim uyumning eng yuqorisini oladi, uyumning o'zi yomon bo'lsa
+ham. Kirishga DALIL (CryptoSpot3% shartnomasi) ruxsat bersa,
+win-rate ko'tarilishi kerak.
+
+**Kutilayotgan narx:** signal soni keskin kamayadi. Shartnoma
+uchta shartni birgalikda talab qiladi (yo'nalish + yalash +
+daraja turi), va har biri alohida ham kam uchraydi.
+
+**Nima rad etardi:** signal kamayadi-yu, win-rate qimirlamaydi.
+U holda shartnoma ham yaxshi savdoni yomonidan ajrata olmaydi —
+ya'ni oldingi oltita gipoteza bilan bir taqdirni bo'lishadi.
+
+**Diqqat — bu oldingi rad etishlar bilan bir xil emas.** Ular
+sozlamani o'zgartirardi (chegara, filtr, TP joyi). Bu esa QAROR
+KIMDA ekanini o'zgartiradi.

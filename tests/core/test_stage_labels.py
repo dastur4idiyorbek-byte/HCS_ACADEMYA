@@ -1,6 +1,6 @@
 """Rad etish bosqichlari uchun odam o'qiydigan nomlar (3.7-band).
 
-Dashboard adminга `classic_ta:zone_position` deb ko'rsatsa, u hech
+Dashboard adminga `classic_ta:zone_position` deb ko'rsatsa, u hech
 narsa demaydi. Nomlar `core/pipeline/context.py` da yozilgan, lekin
 bosqich kodlari BOSHQA fayllarda (strategiyalar, sikl) yaratiladi —
 ya'ni ikkisi bir-biridan ajralib ketishi mumkin va buni faqat ish
@@ -79,12 +79,28 @@ def _daraja_bosqichlari() -> set[str]:
     return {f"classic_ta:{b}" for b in topilgan}
 
 
+def _kirish_bosqichlari() -> set[str]:
+    """Kirishga ruxsat bermaslik sabablari — `Scorer` dan keladi.
+
+    Sikl ularni `stage=element.rejection` deb yozadi, ya'ni kodda
+    satr sifatida ko'rinmaydi. Manba `KIRISH_RAD_SABABLARI` —
+    `risk_engine:{BlockReason}` bilan bir xil naqsh.
+    """
+    from core.analysis.scoring.scorer import KIRISH_RAD_SABABLARI
+
+    matn = (ILDIZ / "core" / "pipeline" / "cycle.py").read_text(encoding="utf-8")
+    if "element.rejection" not in matn:
+        return set()
+    return set(KIRISH_RAD_SABABLARI)
+
+
 def _barcha_bosqichlar() -> set[str]:
     return (
         _strategiya_bosqichlari()
         | _sikl_bosqichlari()
         | _risk_bosqichlari()
         | _daraja_bosqichlari()
+        | _kirish_bosqichlari()
     )
 
 
@@ -105,6 +121,10 @@ def test_bosqichlar_topildi() -> None:
     assert len(bosqichlar) > 15, f"skaner juda kam bosqich topdi: {bosqichlar}"
     assert "classic_ta:zone_position" in bosqichlar
     assert "threshold" in bosqichlar
+    assert "setup_contract" in bosqichlar, (
+        "Sifat darvozasining rad etish sababi ham nomlanishi kerak — "
+        "aks holda dashboard 'ball past' deb noto'g'ri sabab ko'rsatadi"
+    )
     assert "risk_engine:correlation" in bosqichlar, (
         "Risk Engine sabablari ham nomlanishi kerak — aks holda dashboard "
         "13 ta qoidani bitta qatorga yig'ib, sababni yashiradi"
