@@ -28,8 +28,19 @@ def config():  # noqa: ANN201
 
 
 def test_barcha_strategiyalar_quriladi(config) -> None:  # noqa: ANN001
+    """YOQILGANLARI — konfiguratsiyaga qarab."""
     nomlar = {s.name for s in build_strategies(config)}
     assert nomlar == {"classic_ta", "opening_range_scalp"}
+
+
+def test_correction_entry_registrda_bor_lekin_ochirilgan(config) -> None:  # noqa: ANN001
+    """Brief talabi: "hech qanday yangi qoida sinovsiz jonli ishga
+    tushirilmasin". Kod tayyor va registrda, lekin YOQILMAGAN."""
+    hammasi = {s.name for s in build_strategies(config, enabled_only=False)}
+    assert "correction_entry" in hammasi
+    assert config.strategies.correction_entry.enabled is False, (
+        "backtest tugamaguncha yoqilmasligi kerak"
+    )
 
 
 def test_ochirilgan_strategiya_royxatga_kirmaydi(config) -> None:  # noqa: ANN001
@@ -39,7 +50,9 @@ def test_ochirilgan_strategiya_royxatga_kirmaydi(config) -> None:  # noqa: ANN00
     )
 
     assert {s.name for s in build_strategies(yangi)} == {"classic_ta"}
-    assert len(build_strategies(yangi, enabled_only=False)) == 2
+    # Ro'yxatda `correction_entry` ham bor — u registrga qo'shilgan,
+    # lekin backtest tugamaguncha konfiguratsiyada o'chirilgan.
+    assert len(build_strategies(yangi, enabled_only=False)) == 3
 
 
 def test_timeframelar_birlashtiriladi(config) -> None:  # noqa: ANN001

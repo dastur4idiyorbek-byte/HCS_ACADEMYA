@@ -102,6 +102,26 @@ class SignalSource(str, Enum):
     CORRECTION_ENTRY = "correction_entry"  # 3.10 — pasayishdagi tuzilmaviy kirish
 
 
+class MarketRegime(str, Enum):
+    """Bozor Salomatligi belgilaydigan KIRISH REJIMI.
+
+    Indeks signal berish/bermaslikni emas, QAYSI USUL ishlatilishini
+    belgilaydi. Past indeks — narxlar arzonlashgan payt, ya'ni "arzon
+    ol" strategiyasi uchun eng qulay lahza; uni to'xtatish o'rniga
+    tuzilmaviy kirish usuliga o'tiladi.
+    """
+
+    NORMAL = "normal"          # o'rta/yuqori indeks — odatiy strategiyalar
+    CORRECTION = "correction"  # past indeks — faqat korreksiya kirishi
+
+    @property
+    def label(self) -> str:
+        return {
+            "normal": "odatiy rejim",
+            "correction": "korreksiya rejimi",
+        }[self.value]
+
+
 class HalalStatus(str, Enum):
     """1.4 / 3.4-band: coin halollik holati.
 

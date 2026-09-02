@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from core.analysis.strategies.base import Strategy
 from core.analysis.strategies.classic_ta import ClassicTaStrategy
+from core.analysis.strategies.correction_entry import CorrectionEntryStrategy
 from core.analysis.strategies.opening_range_scalp import OpeningRangeScalpStrategy
 from core.config.schema import AppConfig
 from core.utils.logging_setup import get_logger
@@ -24,6 +25,7 @@ logger = get_logger(__name__)
 _STRATEGY_TYPES: list[type[Strategy]] = [
     ClassicTaStrategy,
     OpeningRangeScalpStrategy,
+    CorrectionEntryStrategy,
 ]
 
 

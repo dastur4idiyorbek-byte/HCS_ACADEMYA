@@ -29,6 +29,7 @@ import pytest
 
 from core.analysis.scoring import Scorer
 from core.config import load_config
+from core.domain.enums import MarketRegime
 from core.risk_engine import RiskEngine
 
 ILDIZ = Path(__file__).resolve().parents[2]
@@ -180,12 +181,33 @@ def test_orta_chegara_yuqoridan_qattiqroq() -> None:
     assert thresholds.threshold_mid_health >= thresholds.threshold_high_health
 
 
-def test_past_salomatlikda_signal_yoq() -> None:
-    """4.9-band: indeks past bo'lsa chegara emas, umuman to'xtash."""
+def test_past_salomatlikda_chegara_QATTIQROQ_boladi() -> None:
+    """Past indeks endi TO'XTATMAYDI — rejimni almashtiradi.
+
+    Ilgari bu yerda `None` kutilardi, ya'ni indeks 40 dan pastga
+    tushganda tizim coinlarni umuman tahlil qilmasdi. Bu esa
+    strategiyaning o'z falsafasiga zid edi: past indeks aynan
+    narxlar ARZONLASHGAN payt. Tizim shunda ko'zini yumib, indeks
+    qayta ko'tarilgach signal berardi — ya'ni doim KECH kirardi.
+
+    Endi chegara qaytadi, lekin QATTIQROQ: pasayishdagi kirish
+    ko'proq dalil talab qiladi.
+    """
     config = load_config()
     motor = RiskEngine(config)
-    past = config.scoring.thresholds.health_mid_min - 1
-    assert motor.score_threshold(past) is None
+    chegaralar = config.scoring.thresholds
+    past = chegaralar.health_mid_min - 1
+
+    assert motor.score_threshold(past) == chegaralar.threshold_low_health
+    assert motor.score_threshold(past) > chegaralar.threshold_mid_health, (
+        "past bandda talab qattiqroq bo'lishi kerak"
+    )
+    assert motor.market_regime(past) is MarketRegime.CORRECTION
+
+
+def test_indeks_hisoblanmagan_bolsa_hali_ham_toxtaydi() -> None:
+    """YAGONA to'xtash sababi bo'lib qoldi: noaniqlik (0.3-band)."""
+    assert RiskEngine(load_config()).score_threshold(None) is None
 
 
 # --------------------------------------------------------------------------- #

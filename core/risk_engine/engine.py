@@ -16,7 +16,7 @@ from datetime import datetime
 
 from core.analysis.strategies.opening_range_scalp import scalp_trade_rules
 from core.config.schema import AppConfig
-from core.domain.enums import BlockReason, SignalSource
+from core.domain.enums import BlockReason, MarketRegime, SignalSource
 from core.domain.models import RiskDecision, SignalCandidate
 from core.risk_engine.context import RiskContext
 from core.risk_engine.rules import (
@@ -173,8 +173,18 @@ class RiskEngine:
     def score_threshold(self, market_health_value: float | None) -> float | None:
         """3.5-band: minimal ball chegarasi — statik EMAS, indeksga qarab moslashadi.
 
-        Returns:
-            Chegara qiymati, yoki `None` — bu holda signal umuman berilmaydi.
+        PAST BAND ENDI `None` QAYTARMAYDI. Ilgari qaytarardi va bu
+        siklni butunlay to'xtatardi: indeks 40 dan pastga tushganda
+        coinlar umuman tahlil qilinmasdi. Bu strategiyaning o'z
+        falsafasiga zid edi — past indeks aynan narxlar ARZONLASHGAN
+        payt. Tizim shunda ko'zini yumib, indeks qayta ko'tarilgach —
+        narx allaqachon o'sgach — signal berardi, ya'ni doim KECH.
+
+        Endi past band REJIMNI almashtiradi (`market_regime()`), chegara
+        esa qattiqroq bo'ladi.
+
+        `None` faqat BITTA holatda qoladi: indeks umuman hisoblanmagan.
+        Noaniqlikda signal berilmaydi (0.3-band).
         """
         thresholds = self._config.scoring.thresholds
         if market_health_value is None:
@@ -183,4 +193,23 @@ class RiskEngine:
             return thresholds.threshold_high_health
         if market_health_value >= thresholds.health_mid_min:
             return thresholds.threshold_mid_health
-        return None
+        return thresholds.threshold_low_health
+
+    def market_regime(self, market_health_value: float | None) -> MarketRegime | None:
+        """Indeks QAYSI KIRISH USULI ishlatilishini belgilaydi.
+
+        Bu — `bozor_salomatligi_asosiy_tuzatish.md` ning markaziy
+        o'zgarishi: indeks ON/OFF kalit emas, REJIM tanlovchi.
+
+            past    -> korreksiya rejimi: faqat `correction_entry`
+            o'rta   -> odatiy rejim: `classic_ta` va boshqalar
+            yuqori  -> odatiy rejim, lekin chegara pastroq (bozor kuchli)
+
+        `None` — indeks hisoblanmagan, ya'ni rejim ham noma'lum.
+        """
+        thresholds = self._config.scoring.thresholds
+        if market_health_value is None:
+            return None
+        if market_health_value >= thresholds.health_mid_min:
+            return MarketRegime.NORMAL
+        return MarketRegime.CORRECTION

@@ -164,17 +164,43 @@ def test_bosh_natija_xato_emas(config) -> None:  # noqa: ANN001
 # --------------------------------------------------------------------------- #
 
 
-def test_past_salomatlikda_sikl_umuman_ishlamaydi(config) -> None:  # noqa: ANN001
-    """4.9-band: indeks past -> tahlil ham qilinmaydi, resurs tejaladi."""
+def test_past_salomatlikda_faqat_korreksiya_strategiyasi_ishlaydi(config) -> None:  # noqa: ANN001
+    """Past indeks endi siklni TO'XTATMAYDI — rejimni almashtiradi.
+
+    Ilgari bu yerda "coinlar umuman tahlil qilinmaydi" kutilardi. Bu
+    strategiyaning o'z falsafasiga zid edi: past indeks aynan narxlar
+    ARZONLASHGAN payt. Tizim shunda ko'zini yumib, indeks qayta
+    ko'tarilgach signal berardi — ya'ni doim KECH kirardi.
+
+    Endi past bandda faqat `correction_entry` ishlaydi: u tushayotgan
+    bozorga emas, ko'tarilishdagi KORREKSIYAGA mo'ljallangan.
+    """
     ballar = {"BTC": 99.0}
-    sikl = SignalCycle(config, [SoxtaStrategiya(ballar)])
+    oddiy = SoxtaStrategiya(ballar)
+    sikl = SignalCycle(config, [oddiy])
 
     natija = sikl.run(kirish(config, ballar, market_health=salomatlik(25.0)))
 
+    # Oddiy strategiya past bandda ishlamaydi
     assert natija.emitted_count == 0
-    assert natija.threshold is None
-    assert natija.analyzed_count == 0, "coinlar umuman tahlil qilinmasligi kerak"
+    assert natija.analyzed_count == 0
     assert natija.rejected[0].stage == "market_health"
+    # Lekin chegara endi BOR — sikl "yopiq" emas, rejimda
+    assert natija.threshold == config.scoring.thresholds.threshold_low_health
+
+
+def test_past_salomatlikda_korreksiya_strategiyasi_tahlil_qilinadi(config) -> None:  # noqa: ANN001
+    """Korreksiya strategiyasi past bandda COINLARNI KO'RADI."""
+    from core.domain.enums import SignalSource
+
+    ballar = {"BTC": 99.0}
+    korreksiya = SoxtaStrategiya(ballar)
+    korreksiya.name = SignalSource.CORRECTION_ENTRY.value
+    sikl = SignalCycle(config, [korreksiya])
+
+    natija = sikl.run(kirish(config, ballar, market_health=salomatlik(25.0)))
+
+    assert natija.analyzed_count > 0, "korreksiya rejimida tahlil bo'lishi kerak"
 
 
 def test_salomatlik_hisoblanmagan_bolsa_signal_yoq(config) -> None:  # noqa: ANN001

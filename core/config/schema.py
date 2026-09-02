@@ -280,6 +280,19 @@ class ScoreThresholds:
     #: olmaydi). Natijada birorta signal chiqmasdi.
     threshold_high_health: float = 50
     threshold_mid_health: float = 55
+    #: PAST band chegarasi — Correction Entry rejimi uchun.
+    #:
+    #: Ilgari bu band `None` qaytarardi, ya'ni indeks 40 dan pastga
+    #: tushganda tizim coinlarni UMUMAN tahlil qilmasdi. Bu esa
+    #: strategiyaning o'z falsafasiga zid edi: past indeks — narxlar
+    #: ARZONLASHGAN payt, ya'ni "arzon ol" uchun eng qulay lahza.
+    #: Tizim aynan shunda ko'zini yumib, indeks qayta ko'tarilgach —
+    #: narx allaqachon o'sgach — signal berardi. Ya'ni doim KECH.
+    #:
+    #: Endi bu band to'xtatmaydi, REJIMNI almashtiradi: faqat
+    #: `correction_entry` ishlaydi va chegara qattiqroq bo'ladi —
+    #: pasayishdagi kirish ko'proq dalil talab qiladi.
+    threshold_low_health: float = 60
 
 
 @dataclass(frozen=True, slots=True)

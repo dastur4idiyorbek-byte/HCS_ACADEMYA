@@ -105,7 +105,21 @@ class FridayPrayerRule(_BaseRule):
 
 
 class MarketHealthRule(_BaseRule):
-    """Indeks 40dan past bo'lsa yangi signal butunlay to'xtaydi (3.7-band)."""
+    """Indeks past bo'lganda FAQAT korreksiya strategiyasi o'tadi (3.7-band).
+
+    ILGARI BU QOIDA HAMMASINI TO'XTATARDI. Bu strategiyaning o'z
+    falsafasiga zid edi: past indeks — narxlar ARZONLASHGAN payt,
+    ya'ni "arzon ol" uchun eng qulay lahza. Tizim shunda ko'zini
+    yumib, indeks qayta ko'tarilgach — narx allaqachon o'sgach —
+    signal berardi. Natijada doim KECH kirardi.
+
+    Endi past bandda `correction_entry` o'tadi: u tushayotgan bozorga
+    emas, KO'TARILISHDAGI korreksiyaga mo'ljallangan va o'zining
+    qat'iy yo'nalish darvozasi bor.
+
+    Qolgan strategiyalar past bandda baribir to'xtatiladi — ular
+    korreksiya uchun mo'ljallanmagan.
+    """
 
     name = "market_health"
 
@@ -118,10 +132,12 @@ class MarketHealthRule(_BaseRule):
                 "Bozor Salomatligi Indeksi hisoblanmagan — noaniqlikda signal berilmaydi.",
             )
         if health.band is HealthBand.LOW:
+            if candidate.source is SignalSource.CORRECTION_ENTRY:
+                return RiskDecision.allow()
             return RiskDecision.block(
                 BlockReason.MARKET_HEALTH_LOW,
                 f"Bozor Salomatligi Indeksi past ({health.value:.0f}/100) — "
-                "tizim faqat kuzatuv rejimida.",
+                "bu bandda faqat korreksiya kirishi ko'riladi.",
             )
         return RiskDecision.allow()
 

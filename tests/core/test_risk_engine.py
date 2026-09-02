@@ -155,11 +155,17 @@ def test_ball_chegarasi_salomatlikka_qarab_moslashadi(
 
     assert engine.score_threshold(90) == chegaralar.threshold_high_health
     assert engine.score_threshold(60) == chegaralar.threshold_mid_health
-    assert engine.score_threshold(20) is None, "past indeksda signal umuman yo'q"
+    # Past band endi TO'XTATMAYDI — rejimni almashtiradi va talabni
+    # qattiqlashtiradi. Ilgari bu yerda `None` kutilardi va aynan shu
+    # tizimni doim KECH kirishga majburlagan edi.
+    assert engine.score_threshold(20) == chegaralar.threshold_low_health
     assert engine.score_threshold(None) is None, "0.3-band: hisoblanmasa — yo'q"
 
     assert engine.score_threshold(60) >= engine.score_threshold(90), (
         "bozor zaiflashsa talab oshishi kerak"
+    )
+    assert engine.score_threshold(20) >= engine.score_threshold(60), (
+        "pasayishdagi kirish eng ko'p dalil talab qiladi"
     )
 
 

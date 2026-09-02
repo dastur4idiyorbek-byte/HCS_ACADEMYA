@@ -18,6 +18,7 @@ from __future__ import annotations
 from core.analysis.scoring import Scorer
 from core.analysis.strategies import Strategy, StrategyInput
 from core.config.schema import AppConfig
+from core.domain.enums import MarketRegime, SignalSource
 from core.pipeline.context import CycleInput, CycleResult, RejectedCandidate, SymbolData
 from core.risk_engine import RiskContext, RiskEngine
 from core.utils.logging_setup import get_logger
@@ -40,6 +41,29 @@ class SignalCycle:
         self._risk_engine = risk_engine or RiskEngine(config)
         self._scorer = scorer or Scorer(config)
 
+    #: Korreksiya rejimida FAQAT shu manba ishlaydi.
+    #:
+    #: Qolgan strategiyalar pasayish uchun mo'ljallanmagan: ular
+    #: S/R zonasi yoki ochilish diapazoniga tayanadi va past indeksda
+    #: ularning taxminlari ishlamaydi.
+    KORREKSIYA_MANBALARI = frozenset({SignalSource.CORRECTION_ENTRY})
+
+    def _for_regime(self, regime: MarketRegime | None) -> list[Strategy]:
+        """Rejimga mos strategiyalar.
+
+        Odatiy rejimda HAMMASI ishlaydi — `correction_entry` ham,
+        chunki korreksiya kirishi o'rta bandda ham to'g'ri bo'lishi
+        mumkin. Korreksiya rejimida esa faqat o'sha bitta strategiya:
+        boshqalarning taxminlari past indeksda ishlamaydi.
+        """
+        if regime is not MarketRegime.CORRECTION:
+            return list(self._strategies)
+        return [
+            s
+            for s in self._strategies
+            if getattr(s, "name", "") == SignalSource.CORRECTION_ENTRY.value
+        ]
+
     def run(self, data: CycleInput) -> CycleResult:
         """Siklni bir marta bajaradi."""
         rad_etilganlar: list[RejectedCandidate] = []
@@ -49,27 +73,53 @@ class SignalCycle:
         chegara = self._risk_engine.score_threshold(salomatlik_qiymati)
 
         if chegara is None:
-            # 4.9-band: indeks past yoki hisoblanmagan — yangi signal yo'q.
-            # Coinlarni tahlil qilishning ma'nosi yo'q, resurs tejaladi.
+            # Indeks HISOBLANMAGAN — bu yagona to'xtash sababi.
+            # Noaniqlikda signal berilmaydi (0.3-band).
+            logger.info("Sikl to'xtatildi: Bozor Salomatligi hisoblanmagan")
+            return CycleResult(
+                emitted=[],
+                rejected=[
+                    RejectedCandidate(
+                        "*", "market_health", "Bozor Salomatligi hisoblanmagan"
+                    )
+                ],
+                threshold=None,
+                market_health=data.market_health,
+                analyzed_count=0,
+            )
+
+        # 1a) REJIM — indeks QAYSI KIRISH USULI ishlashini belgilaydi.
+        #
+        # Ilgari past indeks siklni butunlay to'xtatardi. Bu
+        # strategiyaning falsafasiga zid edi: past indeks aynan
+        # narxlar ARZONLASHGAN payt. Endi u rejimni almashtiradi.
+        rejim = self._risk_engine.market_regime(salomatlik_qiymati)
+        faol_strategiyalar = self._for_regime(rejim)
+        if not faol_strategiyalar:
             sabab = (
-                f"Bozor Salomatligi past ({salomatlik_qiymati:.0f}/100)"
-                if salomatlik_qiymati is not None
-                else "Bozor Salomatligi hisoblanmagan"
+                f"Bozor Salomatligi past ({salomatlik_qiymati:.0f}/100), lekin "
+                "korreksiya strategiyasi o'chirilgan"
             )
             logger.info("Sikl to'xtatildi: %s", sabab)
             return CycleResult(
                 emitted=[],
                 rejected=[RejectedCandidate("*", "market_health", sabab)],
-                threshold=None,
+                threshold=chegara,
                 market_health=data.market_health,
                 analyzed_count=0,
+            )
+        if rejim is MarketRegime.CORRECTION:
+            logger.info(
+                "Korreksiya rejimi (indeks %.0f): %s",
+                salomatlik_qiymati or 0,
+                ", ".join(s.name for s in faol_strategiyalar),
             )
 
         # 2) Strategiyalarni har bir coinga qo'llash
         nomzodlar = []
         tafsilotlar = {}
         for coin in data.symbols:
-            for strategiya in self._strategies:
+            for strategiya in faol_strategiyalar:
                 nomzod = self._analyze(strategiya, coin, data, rad_etilganlar)
                 if nomzod is not None:
                     nomzodlar.append(nomzod)

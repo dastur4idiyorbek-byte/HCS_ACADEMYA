@@ -264,7 +264,12 @@ def test_indeks_ball_chegarasini_boshqaradi(calculator, config) -> None:  # noqa
     )
 
     assert engine.score_threshold(yuqori.value) is not None
-    assert engine.score_threshold(past.value) is None, "past indeksda signal umuman yo'q"
+    # Past indeks endi to'xtatmaydi, chegarani QATTIQLASHTIRADI:
+    # o'sha payt narxlar arzonlashgan bo'ladi va "arzon ol"
+    # strategiyasi uchun ko'zni yumish mantiqqa zid edi.
+    past_chegara = engine.score_threshold(past.value)
+    assert past_chegara is not None
+    assert past_chegara > engine.score_threshold(yuqori.value)
 
 
 def test_indeks_diapazon_chegaralari(calculator) -> None:  # noqa: ANN001

@@ -197,7 +197,7 @@ scoring:
     #
     # Natijada 80 lik chegara BIR MARTA HAM ishlamadi va "moslashuvchi
     # chegara" amalda doim 55 bo'lib qoldi.
-    health_high_min: 65            # indeks >= 70 -> "yashil" rejim
+    health_high_min: 65            # indeks >= 65 -> "yashil" rejim
     health_mid_min: 40             # indeks >= 40 -> "sariq" rejim
     # O'LCHAB tanlangan chegaralar. Ilgari 70 va 80 edi — bu raqamlar 100
     # ballik shkalada mantiqiy ko'rinadi, lekin ball funksiyasi amalda
@@ -215,6 +215,17 @@ scoring:
     # ball" qatoriga qarang: u haqiqiy bozordagi taqsimotni ko'rsatadi.
     threshold_high_health: 50      # bozor kuchli — chegara pastroq
     threshold_mid_health: 55       # bozor o'rtacha — talab qattiqroq
+    # PAST band endi TO'XTATMAYDI, rejimni almashtiradi.
+    #
+    # Ilgari bu yerda "signal yo'q" turardi: indeks 40 dan pastga
+    # tushganda coinlar umuman tahlil qilinmasdi. Bu strategiyaning
+    # o'z falsafasiga zid edi — past indeks aynan narxlar ARZONLASHGAN
+    # payt. Tizim shunda ko'zini yumib, indeks qayta ko'tarilgach
+    # signal berardi, ya'ni doim KECH kirardi.
+    #
+    # Endi past bandda faqat `correction_entry` ishlaydi va chegara
+    # qattiqroq: pasayishdagi kirish ko'proq dalil talab qiladi.
+    threshold_low_health: 60
     # indeks < health_mid_min bo'lsa yangi signal umuman berilmaydi
   # Bonus — bazaviy 100 USTIGA. Faqat BITTA omil qoldi: Kill Zone.
   # Struktura, daraja turi va sweep endi bonus EMAS — ular mavjud
@@ -454,7 +465,17 @@ strategies:
   # QAT'IY DARVOZA: kunlik timeframe KO'TARILISHDA bo'lishi shart.
   # Tushayotgan bozorda "arzon" degan narsa yo'q.
   correction_entry:
-    enabled: true
+    # HOZIRCHA O'CHIRILGAN — backtest tugagach yoqiladi.
+    #
+    # Brief talabi: "hech qanday yangi qoida sinovsiz jonli ishga
+    # tushirilmasin". Strategiya kodi tayyor va testlar bilan
+    # qoplangan, lekin haqiqiy bozorda o'lchanmagan.
+    #
+    # Yoqish tartibi:
+    #   1. python -m scripts.backtest --taqqosla --days 365
+    #   2. natija eski tizimdan yaxshi bo'lsa -> enabled: true
+    #   3. dastlab kuzatuv ostida, kichik hajm bilan
+    enabled: false
     zone_timeframe: "4h"        # zona shu yerda topiladi
     confirm_timeframe: "15m"    # aniq nuqta shu yerda tasdiqlanadi
     trend_timeframe: "1d"       # yo'nalish darvozasi
