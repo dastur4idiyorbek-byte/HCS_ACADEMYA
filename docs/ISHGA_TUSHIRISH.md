@@ -24,6 +24,8 @@ Backtest:
 python -m scripts.backtest --compare --days 730
 ```
 
+Qadamma-qadam sodda qo'llanma: [`BACKTEST_QOLLANMA.md`](BACKTEST_QOLLANMA.md)
+
 ---
 
 ## 1. Server tayyorlash (Oracle Cloud bepul)

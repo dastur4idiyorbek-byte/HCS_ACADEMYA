@@ -245,6 +245,11 @@ class BinanceCandleProvider(CandleProvider):
 
         while len(yigilgan) < limit:
             kerak = limit - len(yigilgan)
+            if yigilgan:
+                # Ikkinchi va undan keyingi sahifalar oldida pauza —
+                # aks holda uzoq tarix so'ralganda o'nlab so'rov bir
+                # zumda ketadi va Binance IP ni bloklaydi.
+                await asyncio.sleep(self._config.candle_page_pause_seconds)
             sahifa = await self._fetch_page(
                 pair, interval, kerak, end_time, eng_yangi_sahifa=not yigilgan
             )

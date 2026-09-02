@@ -857,6 +857,14 @@ class MarketDataConfig:
     #: keyin 418 (IP ban) qaytaradi. Ya'ni ro'yxatni kengaytirish
     #: chegarasiz ishlamaydi.
     max_concurrent_candle_requests: int = 8
+    #: Sahifalab yuklashda ikki so'rov orasidagi pauza (soniya).
+    #:
+    #: Backtest 730 kunlik 15 daqiqalik qatorni so'raganda bu ~70 ta
+    #: KETMA-KET so'rov bo'ladi (har biri 1000 sham). Pauzasiz ular bir
+    #: zumda ketadi va Binance avval 429, keyin 418 (IP ban) qaytaradi.
+    #: Jonli botga ta'siri yo'q: u 1000 dan kam so'raydi, ya'ni bitta
+    #: sahifa — pauza umuman ishlamaydi.
+    candle_page_pause_seconds: float = 0.25
     #: Sham ma'lumoti necha "timeframe" gacha eski bo'lishi mumkin.
     #:
     #: `stale_price_seconds` (90s) TIK oqimi uchun — u kuzatuvchida

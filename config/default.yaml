@@ -585,6 +585,11 @@ market_data:
   # timeframe = 450 ta parallel so'rov, Binance esa 429 va keyin 418 (IP ban)
   # qaytaradi — ya'ni ro'yxat kengaygani sari tizim KAMROQ ma'lumot olardi.
   max_concurrent_candle_requests: 8
+  # Sahifalab yuklashda ikki so'rov orasidagi pauza. Backtest uzoq
+  # tarix so'raganda o'nlab ketma-ket so'rov bo'ladi — pauzasiz
+  # Binance avval 429, keyin 418 (IP ban) qaytaradi. Jonli botga
+  # ta'siri yo'q: u bitta sahifa so'raydi.
+  candle_page_pause_seconds: 0.25
 
 # --- 6.4-band: logging ---
 # --- Kuzatuv vositalari (savdo qaroriga ta'sir qilmaydi) ---

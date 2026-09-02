@@ -154,6 +154,8 @@ signal berish paytida emas.
 
 **Haqiqiy pul ishlatilishidan oldin bu majburiy** (6.3-band).
 
+Qadamma-qadam sodda qo'llanma: [`docs/BACKTEST_QOLLANMA.md`](docs/BACKTEST_QOLLANMA.md)
+
 ```bash
 python -m scripts.backtest --compare --days 730
 ```
