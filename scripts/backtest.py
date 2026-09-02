@@ -148,15 +148,18 @@ async def _yukla(
     provider = BinanceCandleProvider(config.market_data, config.halal_screening.quote_asset)
     dataset = Dataset()
 
-    # Binance bir so'rovda 1000 sham beradi — kerakli sonini hisoblaymiz
-    daqiqalar = {"15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440}
+    # Necha sham kerakligi kunlardan hisoblanadi. Provayder 1000 dan
+    # ortig'ini SAHIFALAB yuklaydi — ilgari bu yerda `min(1000, ...)`
+    # turardi va `--days 730` 4 soatlik timeframeda jimgina ~166 kunga
+    # aylanardi.
+    daqiqalar = {"15m": 15, "30m": 30, "1h": 60, "4h": 240, "1d": 1440, "1w": 10080}
 
     try:
         for symbol in symbols:
             for tf in timeframelar:
                 shamlar = None if refresh else _keshdan_oqish(symbol, tf)
                 if shamlar is None:
-                    kerak = min(1000, int(days * 1440 / daqiqalar.get(tf, 15)))
+                    kerak = max(1, int(days * 1440 / daqiqalar.get(tf, 15)))
                     logger.info("Yuklanmoqda: %s %s (%d sham)", symbol, tf, kerak)
                     shamlar = await provider.fetch_candles(symbol, tf, kerak)
                     _keshga_yozish(symbol, tf, shamlar)

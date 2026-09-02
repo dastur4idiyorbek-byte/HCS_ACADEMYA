@@ -323,3 +323,135 @@ async def test_bosh_reyting_xato_beradi() -> None:
     """0.3-band: bo'sh ro'yxat bilan davom etish — eski ro'yxatni yo'qotish."""
     with pytest.raises(RankingUnavailableError):
         await _coingecko(SoxtaSession(jami=0)).fetch_ranking(150)
+
+
+# --------------------------------------------------------------------------- #
+#  Tarixiy shamlar: 1000 dan ortig'i SAHIFALAB yuklanadi
+# --------------------------------------------------------------------------- #
+
+
+class SoxtaKlinesJavobi:
+    """`session.get(...)` qaytaradigan kontekst menejeri."""
+
+    def __init__(self, xom: list) -> None:
+        self._xom = xom
+
+    async def __aenter__(self):  # noqa: ANN204
+        return self
+
+    async def __aexit__(self, *_: object) -> None:
+        return None
+
+    def raise_for_status(self) -> None:
+        return None
+
+    async def json(self) -> list:
+        return self._xom
+
+
+class SoxtaKlinesSessiyasi:
+    """Binance klines javobini taqlid qiladi — tarmoqqa chiqmaydi.
+
+    Tarix CHEKLI: `jami` tadan ortiq sham yo'q. Shu bilan "tarix
+    tugadi" holati ham sinaladi.
+    """
+
+    def __init__(self, jami: int, interval_ms: int = 4 * 3600 * 1000) -> None:
+        self.jami = jami
+        self.interval_ms = interval_ms
+        self.eng_yangi = 1_800_000_000_000
+        self.sorovlar: list[dict] = []
+        self.closed = False
+
+    def get(self, _url: str, params: dict):  # noqa: ANN201
+        self.sorovlar.append(dict(params))
+        limit = int(params["limit"])
+        oxiri = int(params.get("endTime", self.eng_yangi))
+
+        # Eng eski ruxsat etilgan sham vaqti
+        eng_eski = self.eng_yangi - (self.jami - 1) * self.interval_ms
+        songgi = min(oxiri, self.eng_yangi)
+        # `songgi` dan orqaga qarab `limit` ta sham
+        vaqtlar = []
+        t = songgi - (songgi - self.eng_yangi) % self.interval_ms
+        while len(vaqtlar) < limit and t >= eng_eski:
+            vaqtlar.append(t)
+            t -= self.interval_ms
+        vaqtlar.reverse()
+
+        return SoxtaKlinesJavobi(
+            [[v, "1.0", "2.0", "0.5", "1.5", "100.0"] for v in vaqtlar]
+        )
+
+
+def _provayder(sessiya) -> object:  # noqa: ANN001
+    from core.market_data.binance import BinanceCandleProvider
+
+    provider = BinanceCandleProvider(MarketDataConfig())
+    provider._session = sessiya
+    return provider
+
+
+@pytest.mark.asyncio
+async def test_ming_shamdan_ortigi_sahifalab_yuklanadi() -> None:
+    """`--days 730` JIMGINA ~166 kunga aylanardi.
+
+    Eski kod so'rovni `min(limit, 1000)` bilan qirqardi va bu hech
+    qayerda aytilmasdi. 4 soatlik timeframeda 1000 sham — atigi 166
+    kun. Spetsifikatsiya esa 1-2 yillik sinovni MAJBURIY deb
+    belgilaydi: shart bajarilgandek ko'rinib, aslida bajarilmasdi.
+    """
+    sessiya = SoxtaKlinesSessiyasi(jami=5000)
+    provider = _provayder(sessiya)
+
+    shamlar = await provider.fetch_candles("BTC", "4h", 2500)
+
+    assert len(shamlar) == 2500
+    assert len(sessiya.sorovlar) == 3, "1000 + 1000 + 500"
+    assert all(
+        oldingi.open_time < keyingi.open_time
+        for oldingi, keyingi in zip(shamlar, shamlar[1:], strict=False)
+    ), "eng eskisidan eng yangisiga tartiblangan bo'lishi kerak"
+
+
+@pytest.mark.asyncio
+async def test_faqat_eng_songgi_sham_yopilmagan_bolishi_mumkin() -> None:
+    """Sahifalashda har 1000 shamda bittasi "yopilmagan" bo'lib qolmasin.
+
+    Javobning oxirgi shami yopilmagan bo'lishi mumkin — lekin bu
+    faqat ENG YANGI sahifaga tegishli. Eski sahifalarga ham
+    qo'llanilsa, backtest tarix bo'ylab sochilgan soxta "yopilmagan"
+    shamlarni ko'rardi.
+    """
+    provider = _provayder(SoxtaKlinesSessiyasi(jami=5000))
+
+    shamlar = await provider.fetch_candles("BTC", "4h", 2500)
+
+    yopilmagan = [s for s in shamlar if not s.closed]
+    assert len(yopilmagan) == 1
+    assert yopilmagan[0] is shamlar[-1]
+
+
+@pytest.mark.asyncio
+async def test_tarix_tugasa_bor_narsa_qaytadi() -> None:
+    """Coin so'ralgancha eski bo'lmasa — cheksiz so'rov yuborilmasin."""
+    sessiya = SoxtaKlinesSessiyasi(jami=1200)
+    provider = _provayder(sessiya)
+
+    shamlar = await provider.fetch_candles("BTC", "4h", 5000)
+
+    assert len(shamlar) == 1200
+    assert len(sessiya.sorovlar) <= 3, "tarix tugagach to'xtashi kerak"
+
+
+@pytest.mark.asyncio
+async def test_kichik_sorov_bitta_sahifada_qoladi() -> None:
+    """Jonli bot yo'li o'zgarmasligi kerak: 1000 gacha — bitta so'rov."""
+    sessiya = SoxtaKlinesSessiyasi(jami=5000)
+    provider = _provayder(sessiya)
+
+    shamlar = await provider.fetch_candles("BTC", "4h", 200)
+
+    assert len(shamlar) == 200
+    assert len(sessiya.sorovlar) == 1
+    assert "endTime" not in sessiya.sorovlar[0]

@@ -4168,6 +4168,24 @@ Offline rejim: quyidagi kesh fayllari yo'q —
 30 tadan kam savdo bo'lsa hisobot "namuna kichik" ogohlantirishini
 chiqaradi — bunday natijadan xulosa chiqarilmaydi.
 
+**`--days 730` JIMGINA ~166 kunga aylanardi.** Ma'lumot yuklovchida
+`min(1000, ...)` turardi va Binance provayderi ham so'rovni 1000 ta
+sham bilan qirqardi. Kirish timeframei 4 soatlik: 1000 sham — atigi
+166 kun. Ya'ni "1-2 yillik backtest" degan MAJBURIY shart
+bajarilgandek ko'rinib, aslida bajarilmasdi va bu hech qayerda
+aytilmasdi.
+
+`BinanceCandleProvider.fetch_candles()` endi 1000 dan ortig'ini
+sahifalab yuklaydi: har safar oldingi sahifaning eng eski shamidan
+bir millisekund oldingi vaqt `endTime` ga beriladi. Tarix tugasa
+to'xtaydi. 1000 gacha so'rovlar — ya'ni jonli botning yo'li — bir
+xil qoladi, `endTime` ham qo'shilmaydi.
+
+Sahifalashning nozik joyi: javobning oxirgi shami yopilmagan
+bo'lishi mumkin, lekin bu FAQAT eng yangi sahifaga tegishli. Eski
+sahifalarga ham qo'llanilsa, backtest tarix bo'ylab har 1000
+shamda bitta soxta "yopilmagan" shamni ko'rardi.
+
 ---
 
 ## 67. Correction Entry ning R/R si ULANMAGAN edi

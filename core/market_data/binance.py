@@ -162,6 +162,10 @@ class BinancePriceStream(PriceStream):
         self._resubscribe.set()
 
 
+#: Binance bitta so'rovda shundan ortiq sham qaytarmaydi
+BINANCE_MAX_KLINES = 1000
+
+
 class BinanceCandleProvider(CandleProvider):
     """REST orqali tarixiy OHLCV (indikatorlar va backtest uchun)."""
 
@@ -177,14 +181,23 @@ class BinanceCandleProvider(CandleProvider):
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def fetch_candles(self, symbol: str, timeframe: str, limit: int) -> list[Candle]:
-        interval = _TIMEFRAME_MAP.get(timeframe)
-        if interval is None:
-            raise ValueError(f"Qo'llab-quvvatlanmaydigan timeframe: {timeframe}")
-
-        pair = to_binance_symbol(symbol, self._quote).upper()
+    async def _fetch_page(
+        self,
+        pair: str,
+        interval: str,
+        limit: int,
+        end_time: int | None,
+        eng_yangi_sahifa: bool,
+    ) -> list[Candle]:
+        """Bitta so'rov — Binance ko'pi bilan 1000 sham qaytaradi."""
         url = f"{self._config.rest_base_url}/api/v3/klines"
-        params = {"symbol": pair, "interval": interval, "limit": min(limit, 1000)}
+        params: dict[str, str | int] = {
+            "symbol": pair,
+            "interval": interval,
+            "limit": min(limit, BINANCE_MAX_KLINES),
+        }
+        if end_time is not None:
+            params["endTime"] = end_time
 
         session = await self._get_session()
         async with session.get(url, params=params) as javob:
@@ -199,11 +212,51 @@ class BinanceCandleProvider(CandleProvider):
                 low=float(qator[3]),
                 close=float(qator[4]),
                 volume=float(qator[5]),
-                # Oxirgi sham hali yopilmagan bo'lishi mumkin
-                closed=index < len(xom) - 1,
+                # Faqat ENG YANGI shamning yopilmagan bo'lishi mumkin.
+                # Eski sahifalarning oxirgi shami allaqachon yopilgan —
+                # aks holda backtest tarixning har 1000 shamida bittasini
+                # "yopilmagan" deb belgilab chiqardi.
+                closed=not (eng_yangi_sahifa and index == len(xom) - 1),
             )
             for index, qator in enumerate(xom)
         ]
+
+    async def fetch_candles(self, symbol: str, timeframe: str, limit: int) -> list[Candle]:
+        """Tarixiy shamlar, eng eskisidan eng yangisiga.
+
+        1000 DAN ORTIQ SO'RALSA SAHIFALAB YUKLANADI. Ilgari so'rov
+        `min(limit, 1000)` bilan qirqilardi va bu JIMGINA sodir
+        bo'lardi: `--days 730` deb yozilgan backtest 4 soatlik
+        timeframeda aslida atigi ~166 kunni ko'rardi. Spetsifikatsiya
+        esa 1-2 yillik sinovni MAJBURIY deb belgilaydi — ya'ni
+        majburiy shart bajarilgandek ko'rinib, aslida bajarilmasdi.
+
+        Sahifalar ORQAGA qarab olinadi: har safar oldingi sahifaning
+        eng eski shamidan bir millisekund oldingi vaqt `endTime` ga
+        beriladi.
+        """
+        interval = _TIMEFRAME_MAP.get(timeframe)
+        if interval is None:
+            raise ValueError(f"Qo'llab-quvvatlanmaydigan timeframe: {timeframe}")
+
+        pair = to_binance_symbol(symbol, self._quote).upper()
+        yigilgan: list[Candle] = []
+        end_time: int | None = None
+
+        while len(yigilgan) < limit:
+            kerak = limit - len(yigilgan)
+            sahifa = await self._fetch_page(
+                pair, interval, kerak, end_time, eng_yangi_sahifa=not yigilgan
+            )
+            if not sahifa:
+                # Tarix tugadi — coin bunchalik eski emas.
+                break
+            yigilgan = sahifa + yigilgan
+            end_time = int(sahifa[0].open_time.timestamp() * 1000) - 1
+            if len(sahifa) < min(kerak, BINANCE_MAX_KLINES):
+                break
+
+        return yigilgan[-limit:] if len(yigilgan) > limit else yigilgan
 
     async def close(self) -> None:
         if self._session is not None and not self._session.closed:
