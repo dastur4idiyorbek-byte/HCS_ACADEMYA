@@ -255,7 +255,7 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "scoring.quality_gate + trade_rules"
+OLCHOV_OQI = "trade_rules (TP1 poli)"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
@@ -274,6 +274,8 @@ def _oqsiz(config: AppConfig) -> AppConfig:
         trade_rules=dataclasses.replace(
             config.trade_rules,
             enforce_distance_bands=False,
+            enforce_tp1_ratio=False,
+            tp1_min_risk_reward=1.5,
             max_take_profits=2,
             max_holding_hours=0.0,
         ),
@@ -291,78 +293,71 @@ def _darvoza_bilan(
 
 
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """To'rtinchi to'plam: QAROR KIMDA.
+    """Beshinchi to'plam: TP1 POLI.
 
-    OLDINGI UCHTA TO'PLAM JAVOB BERDI, HAMMASI RAD ETILDI:
+    OLDINGI TO'RTTA TO'PLAM JAVOB BERDI:
 
-    1. Correction Entry (natija #1) — signal qo'shdi, natijani
-       yomonlashtirdi
-    2. Tuzilmaviy TP2 (natija #2) — TP2 gacha yetish PASAYDI
-    3. Kirish filtrlari (natija #3 va #6) — to'rtta filtr, signal
-       soni 610 dan 884 gacha, win-rate 36.9-39.1% da qotib qoldi
+    1. Correction Entry (natija #1)          -> rad etildi
+    2. Tuzilmaviy TP2 (natija #2)            -> rad etildi
+    3. Kirish filtrlari (natija #3 va #6)    -> rad etildi
+    4. Qaror mexanizmi (natija #7)           -> uchtasi rad etildi
 
-    Uchalasi ham SOZLAMA darajasida edi: chegarani surish, filtr
-    yoqish, TP ni ko'chirish. Hech biri ishlamadi.
+    Lekin to'rtinchisi faqat "ishlamadi" demadi — SABABNI
+    ko'rsatdi. Uchta mustaqil dalil bitta joyga ishora qildi:
 
-    Bu to'plam boshqa savol beradi: kirishga KIM ruxsat beradi?
+      • foiz oraliqlari o'chirilganda PF 0.64 -> 0.30
+      • BITTA TP (qismli sotishsiz) eng yaxshi variant: PF 0.74
+      • ikkalasining mexanizmi bir xil
 
-    Hozir yagona darvoza — ball chegarasi. Ball esa nomzodlarni
-    bir-biriga NISBATAN o'lchaydi: "eng yaxshisi qaysi" deydi, "shu
-    yetarlimi" demaydi. Shuning uchun tizim uyumning eng yuqorisini
-    oladi — uyumning o'zi yomon bo'lsa ham. Uchinchi to'plamning
-    natijasi aynan shunga o'xshaydi: filtrlar uyumga kim kirishini
-    o'zgartirdi, uyum baribir tartiblanib eng yuqorisi olinaverdi.
+    Mexanizm: TP1 da pozitsiyaning bir qismi sotiladi va Stop
+    kirish narxiga ko'tariladi. TP1 juda yaqin bo'lsa o'sha qism
+    arzimas foyda beradi, qolgani nolda yopiladi, komissiyadan
+    keyin savdo manfiy chiqadi.
 
-    Sifat darvozasi qarorni DALILGA beradi: CryptoSpot3%
-    shartnomasi (yo'nalish + yalash + daraja turi) bajarilishi
-    shart.
+        TP1 +0.5% da   -> yarmi sotiladi   -> +0.25%
+        Stop breakeven -> qolgani nolda    ->  0.00%
+        komissiya                          -> -0.30%
+                                              -------
+                                               -0.05%
 
-    NAZORAT VARIANTI ZARUR. Darvoza ikki narsani bir vaqtda
-    qiladi: shartnomani talab qiladi VA ball chegarasini polga
-    almashtiradi. "Faqat pol" varianti ikkinchisini alohida
-    o'lchaydi — ansiz natija yaxshi chiqsa, uni shartnomaga
-    yozib qo'yishimiz mumkin edi, holbuki sabab chegara
-    pasaygani bo'lishi mumkin.
+    `min_tp_distance_pct` TP1 uchun YAGONA pol edi va u foiz
+    oraliqlari bilan birga o'chdi.
+
+    BU TO'PLAM SHU TASHXISNI SINAYDI. Yechim foizni qaytarish
+    emas — TP1 ga NISBAT poli qo'yish (`enforce_tp1_ratio`).
+
+    NAZORAT VARIANTLARI ZARUR. Nisbat poli ikki narsani bir
+    vaqtda qiladi: TP1 ni uzoqlashtiradi VA ba'zi signallarni
+    umuman yo'q qiladi (mos zona topilmasa o'lchangan TP ga
+    o'tadi). "Bitta TP" varianti tashxisning boshqa tomonini
+    tekshiradi: qismli sotishning O'ZI muammomi?
     """
     return [
         ("hozirgi holat", asos),
-        # ASOSIY GIPOTEZA: dalil qaror qilsin.
-        _darvoza_bilan(asos, "sifat darvozasi (pol 35)", enabled=True),
-        # Pol balandroq: "tuzilma bor, lekin qolgani zaif" holatini
-        # ko'proq kesadi. Signal yana kamayadi.
-        _darvoza_bilan(
-            asos, "sifat darvozasi (pol 45)", enabled=True, min_base_score=45.0
-        ),
-        # NAZORAT: shartnomasiz, faqat pol. Ya'ni "chegara 55 dan 35
-        # ga tushirildi" degani. Bu variant asosiydan YAXSHI chiqsa,
-        # sabab shartnomada emas — signal soni oshganida.
-        _darvoza_bilan(
+        # ASOSIY GIPOTEZA: TP1 ga nisbat poli.
+        _qoidalar_bilan(asos, "TP1 nisbat poli 1.5", enforce_tp1_ratio=True),
+        # Balandroq pol: TP1 yanada uzoqlashadi, mos zona kamayadi.
+        _qoidalar_bilan(
             asos,
-            "faqat pol 35 (shartnomasiz)",
-            enabled=True,
-            require_setup_contract=False,
+            "TP1 nisbat poli 2.0",
+            enforce_tp1_ratio=True,
+            tp1_min_risk_reward=2.0,
         ),
-        # TP SONI. `max_take_profits` — yuqori chegara, majburiy son
-        # emas: uchinchi TP faqat oraliqda haqiqiy zona bo'lganda
-        # qo'shiladi. Mexanizm: erta qismli sotish o'rtacha
-        # natijani ko'taradimi yoki foydani kesib qo'yadimi?
+        # NAZORAT 1: qismli sotishning O'ZI muammomi? Bitta TP da
+        # TP1 umuman yo'q — natija #7 da bu eng yaxshi variant edi.
         _qoidalar_bilan(asos, "bitta TP (yakuniy nishon)", max_take_profits=1),
-        _qoidalar_bilan(asos, "uchtagacha TP", max_take_profits=3),
-        # FOIZ ORALIQLARI. Standart holatda ular o'chiq (loyiha
-        # egasining qarori). Bu variant ularni QAYTA YOQADI — ya'ni
-        # eski xatti-harakat. Farq qarorning narxini ko'rsatadi.
+        # NAZORAT 2: eski xatti-harakat. Foiz oralig'i TP1 ni 3%
+        # da ushlab turardi, ya'ni pol vazifasini ham bajarardi.
+        # Nisbat poli undan YAXSHIROQ ishlashi kerak — aks holda
+        # tashxis noto'g'ri.
         _qoidalar_bilan(asos, "foiz oraliqlari yoqilgan", enforce_distance_bands=True),
-        # MUDDAT. Hozir chiqish faqat TP yoki Stop — vaqt bo'yicha
-        # chiqish umuman yo'q. Mexanizm: foydasiz pozitsiya kapitalni
-        # band qilib turadi, va o'sha vaqtda tizim boshqa hech narsa
-        # qila olmaydi (ochiq signal limiti to'ladi).
-        #
-        # Ikkita muddat sinaladi, chunki "qisqa yaxshimi yoki uzun"
-        # degan savolga bitta raqam javob bermaydi. O'rtacha ushlash
-        # 45.2 soat, ya'ni 24 soat ko'pchilikni kesadi, 72 esa faqat
-        # eng uzoq cho'zilganlarini.
-        _qoidalar_bilan(asos, "muddat 24 soat", max_holding_hours=24.0),
-        _qoidalar_bilan(asos, "muddat 72 soat", max_holding_hours=72.0),
+        # Ikkalasi birga: pol ham, oraliq ham.
+        _qoidalar_bilan(
+            asos,
+            "oraliq + nisbat poli",
+            enforce_distance_bands=True,
+            enforce_tp1_ratio=True,
+        ),
     ]
 
 

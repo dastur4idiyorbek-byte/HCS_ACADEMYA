@@ -94,11 +94,12 @@ def test_olchov_oqi_haqiqatan_ozgaradi(config) -> None:  # noqa: ANN001
     Aks holda beshta bir xil yugurish qilinib, "farq yo'q" degan
     xulosa chiqarilardi.
     """
-    ozgargan = [
-        nom
-        for nom, v in _variantlar(config)
-        if v.scoring.quality_gate != config.scoring.quality_gate
-    ]
+
+    # O'q ko'chib turadi (bir yugurishda `scoring.quality_gate`,
+    # boshqasida `trade_rules`). Shuning uchun tekshiruv NOM
+    # bo'yicha emas, FARQ bo'yicha: variant asosdan farq qilsa,
+    # farq faqat neytrallanadigan qismda bo'lishi kerak.
+    ozgargan = [nom for nom, v in _variantlar(config) if v != config]
 
     assert len(ozgargan) >= 2, (
         f"o'lchov o'qini ({OLCHOV_OQI}) o'zgartirgan variant kam: {ozgargan}"

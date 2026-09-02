@@ -105,7 +105,7 @@ def build_levels(
     stop = stop_natija
     stop_masofa_pct = (entry - stop) / entry * 100
 
-    tp1_natija = _build_tp1(entry, zone_map, rules)
+    tp1_natija = _build_tp1(entry, zone_map, rules, stop_masofa_pct)
     tuzilmaviy_tp = tp1_natija is not None
 
     if tp1_natija is None:
@@ -288,20 +288,49 @@ def _stop_narxi(
     return min(atr_stop, tuzilmaviy)
 
 
-def _build_tp1(entry: float, zone_map: ZoneMap, rules: TradeRulesConfig) -> float | None:
-    """TP1 — eng yaqin resistance.
+def _build_tp1(
+    entry: float,
+    zone_map: ZoneMap,
+    rules: TradeRulesConfig,
+    stop_distance_pct: float = 0.0,
+) -> float | None:
+    """TP1 — eng yaqin MAZMUNLI resistance.
 
-    Foiz oralig'i faqat `enforce_distance_bands` yoqilganda
-    qo'llanadi. O'chiq bo'lsa yagona shart — zona kirish narxidan
-    yuqorida bo'lsin: haqiqiy qarshilik 3% dan yaqinroqda bo'lishi
-    butunlay normal va uni rad etish tuzilmani e'tiborsiz
-    qoldirish demakdir.
+    Ikkita mustaqil shart bor va ular boshqa-boshqa savolga javob
+    beradi:
+
+        foiz oralig'i   MASOFA haqida. Faqat `enforce_distance_bands`
+                        yoqilganda qo'llanadi (loyiha egasining
+                        qarori: foizlar majburiy emas).
+
+        nisbat poli     NISBAT haqida. `enforce_tp1_ratio` yoqilganda
+                        zona `tp1_min_risk_reward` dan past nisbatda
+                        bo'lsa O'TKAZIB YUBORILADI.
+
+    NIMA UCHUN NISBAT POLI KERAK (natija #7). TP1 da pozitsiyaning
+    bir qismi sotiladi va Stop kirish narxiga ko'tariladi. TP1 juda
+    yaqin bo'lsa o'sha qism arzimas foyda beradi, qolgani esa nolda
+    yopiladi — komissiyadan keyin savdo manfiy chiqadi. Turkum
+    "g'alaba", pul esa kamaygan.
+
+    Zona rad etilsa KEYINGISI qidiriladi: uzoqroqdagi qarshilik
+    ham haqiqiy nishon. Hech biri yetmasa `None` qaytadi va
+    chaqiruvchi o'lchangan TP ga o'tadi — u allaqachon shu
+    nisbatga bo'ysunadi.
     """
+    eng_past_nisbat = (
+        stop_distance_pct * rules.tp1_min_risk_reward
+        if rules.enforce_tp1_ratio
+        else 0.0
+    )
+
     for zona in zone_map.resistances:
         # Zonaning PASTKI chegarasi — narx u yerga yetganda sotish boshlanadi
         nishon = zona.low
         if nishon <= entry:
             continue
+        if (nishon - entry) / entry * 100 < eng_past_nisbat:
+            continue  # nisbat past — qismli sotish ma'nosiz bo'lardi
         if not rules.enforce_distance_bands:
             return nishon
         eng_past = entry * (1 + rules.min_tp_distance_pct / 100)

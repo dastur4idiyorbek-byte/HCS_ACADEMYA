@@ -516,9 +516,40 @@ class TradeRulesConfig:
     max_take_profits: int = 2
     #: QAT'IY SHART: TP2/Stop nisbati shundan past bo'lsa signal yo'q
     min_risk_reward: float = 3.0
-    #: TP1 uchun eng past nisbat. TP1 da pozitsiyaning yarmi yopiladi —
-    #: agar u 1:1 dan past bo'lsa, o'sha yarim savdo o'rtacha zarar keltiradi.
+    #: TP1 uchun eng past nisbat. TP1 da pozitsiyaning bir qismi
+    #: yopiladi — agar u 1:1 dan past bo'lsa, o'sha qism o'rtacha
+    #: zarar keltiradi.
     tp1_min_risk_reward: float = 1.5
+    #: Shu nisbat TUZILMAVIY TP1 ga ham qo'llanilsinmi.
+    #:
+    #: MUAMMO (natija #7). `tp1_min_risk_reward` faqat "qarshilik
+    #: topilmadi" tarmog'ida ishlardi. Zona topilganda TP1 o'sha
+    #: zonaga qo'yilardi va hech qanday pol tekshirilmasdi.
+    #:
+    #: Foiz oraliqlari majburiy bo'lganda buni `min_tp_distance_pct`
+    #: (3%) yashirib turardi. Oraliqlar o'chirilgach TP1 eng yaqin
+    #: qarshilikka tushdi — u +0.5% bo'lishi mumkin — va savdo
+    #: shunday ko'rinish oldi:
+    #:
+    #:     TP1 +0.5% da   -> yarmi sotiladi   -> +0.25%
+    #:     Stop breakeven -> qolgani nolda    ->  0.00%
+    #:     komissiya                          -> -0.30%
+    #:                                           -------
+    #:                                            -0.05%
+    #:
+    #: Ya'ni "g'alaba" deb yozilgan savdo amalda nolga yaqin, Stop
+    #: esa keng qoladi: kichkina yutuqlar, katta zararlar. Profit
+    #: factor 0.64 dan 0.30 ga tushdi.
+    #:
+    #: Yoqilganda nisbat poliga yetmagan zona O'TKAZIB YUBORILADI
+    #: va keyingisi qidiriladi. Hech biri yetmasa o'lchangan TP ga
+    #: qaytiladi — u allaqachon shu nisbatga bo'ysunadi.
+    #:
+    #: Bu FOIZ emas, NISBAT poli: loyiha egasining "TP STOP FOIZLARI
+    #: MAJBURIY EMAS — RISK 1/3" qoidasiga zid emas.
+    #:
+    #: STANDART HOLATDA O'CHIQ — gipoteza, o'lchanmagan.
+    enforce_tp1_ratio: bool = False
     allow_measured_tp: bool = True
     #: TP2 TUZILMADAN olinsinmi (ikkinchi resistance zonasi).
     #:

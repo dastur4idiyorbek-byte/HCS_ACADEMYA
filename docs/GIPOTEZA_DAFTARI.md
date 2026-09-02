@@ -516,12 +516,27 @@ mustaqil dalil bitta sababga ishora qildi:
 
 | Holat | Sozlama | Qiymat | Izoh |
 |---|---|---|---|
-| 🔴 | `tp1_min_risk_reward` | 1.5 | TUZILMAVIY TP1 ga ham qo'llanilsinmi |
+| 🔴 | `enforce_tp1_ratio` | yo'q | TUZILMAVIY TP1 ga nisbat poli — QURILDI, o'lchanmagan |
+| 🔴 | `tp1_min_risk_reward` | 1.5 | pol qiymati — 1.5 va 2.0 sinaladi |
 
-Hozir bu qiymat faqat "qarshilik topilmadi" tarmog'ida ishlaydi.
-Tuzilmaviy TP1 (eng yaqin qarshilik zonasi) unga umuman
-bo'ysunmaydi. Loyiha egasining qoidasiga zid emas: bu FOIZ emas,
-NISBAT poli.
+Ilgari `tp1_min_risk_reward` faqat "qarshilik topilmadi"
+tarmog'ida ishlardi. Tuzilmaviy TP1 (eng yaqin qarshilik zonasi)
+unga umuman bo'ysunmasdi. Loyiha egasining qoidasiga zid emas:
+bu FOIZ emas, NISBAT poli.
+
+**Qurildi** (`enforce_tp1_ratio`): nisbat poliga yetmagan zona
+o'tkazib yuboriladi va KEYINGISI qidiriladi. Hech biri yetmasa
+o'lchangan TP ga qaytiladi — u allaqachon shu nisbatga
+bo'ysunadi. Ya'ni pol signal SONINI kesmaydi, TP1 ni mazmunli
+joyga suradi.
+
+**Nima rad etardi:** profit factor 0.30 dan sezilarli
+ko'tarilmasa. U holda tashxis noto'g'ri — muammo TP1 joyida
+emas, boshqa joyda.
+
+**Nazorat:** "foiz oraliqlari yoqilgan" varianti PF 0.64 beradi.
+Nisbat poli undan YAXSHIROQ chiqishi kerak — aks holda foizni
+qaytargan ma'qul edi, ya'ni tashxis yangi narsa qo'shmagan.
 
 ### Yo'l-yo'lakay: `win_rate` ta'rifi tuzatildi
 
