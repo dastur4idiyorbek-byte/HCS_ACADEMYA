@@ -99,6 +99,7 @@ class SignalSource(str, Enum):
     MANUAL = "manual"                      # 2-bo'lim: admin qo'lda kiritgan
     CLASSIC_TA = "classic_ta"              # 3.1 — S/R + indikatorlar
     OPENING_RANGE_SCALP = "opening_range_scalp"  # 3.9 — kunlik sham ochilishi
+    CORRECTION_ENTRY = "correction_entry"  # 3.10 — pasayishdagi tuzilmaviy kirish
 
 
 class HalalStatus(str, Enum):

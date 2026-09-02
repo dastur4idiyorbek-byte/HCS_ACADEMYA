@@ -32,7 +32,9 @@ def _strategiya_bosqichlari() -> set[str]:
         nomlar = re.findall(r'^\s*name = "([a-z_]+)"', matn, re.MULTILINE)
         if not nomlar:
             continue
-        bosqichlar = set(re.findall(r'_reject\(\s*"([a-z_]+)"', matn))
+        # Ikki nuqta ham qamrab olinadi: `_reject("levels:stop_too_close")`
+        # kabi aniqlashtirilgan kodlar ham nomlanishi kerak.
+        bosqichlar = set(re.findall(r'_reject\(\s*"([a-z_:]+)"', matn))
         bosqichlar.update(SIKL_QOSHADIGAN)
         for nom in nomlar:
             topilgan.update(f"{nom}:{bosqich}" for bosqich in bosqichlar)

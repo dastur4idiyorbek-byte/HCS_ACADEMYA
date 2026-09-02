@@ -444,6 +444,34 @@ strategies:
     # STRATEGIYA darajasida: boshqa turdagi strategiya qo'shilsa, u
     # o'zining tabiiy nisbatini (1:2-1:5) saqlaydi.
     min_risk_reward: 1.5
+  # Bozor pasayganda ishlaydigan kirish usuli (Correction Entry).
+  #
+  # Bozor Salomatligi past bo'lgan payt — narxlar ARZONLASHGAN payt.
+  # Eski tizim aynan shunda qidirishni to'xtatardi va indeks qayta
+  # ko'tarilganda, narx allaqachon o'sib bo'lgach signal berardi —
+  # ya'ni doim KECH kirardi. Bu strategiya o'sha bo'shliqni to'ldiradi.
+  #
+  # QAT'IY DARVOZA: kunlik timeframe KO'TARILISHDA bo'lishi shart.
+  # Tushayotgan bozorda "arzon" degan narsa yo'q.
+  correction_entry:
+    enabled: true
+    zone_timeframe: "4h"        # zona shu yerda topiladi
+    confirm_timeframe: "15m"    # aniq nuqta shu yerda tasdiqlanadi
+    trend_timeframe: "1d"       # yo'nalish darvozasi
+    impulse_lookback: 60
+    fib_ratios: [0.382, 0.618]  # "oltin zona"
+    ob_min_move_pct: 1.0
+    fvg_min_gap_pct: 0.1
+    # Kamida ikkita TURLI manba bir joyga tushishi shart. Beshta
+    # usuldan "eng mosini" tanlash har doim qandaydir usul topiladi
+    # degani — bu tarixga moslashib qolish (overfitting).
+    min_confluence: 2
+    confirm_lookback: 20
+    stop_buffer_pct: 0.15
+    # BOSHLANG'ICH qiymat — backtest bilan aniqlanadi.
+    min_risk_reward: 2.0
+    rsi_reversal_max: 45.0
+
   opening_range_scalp:
     enabled: true
     session_open_utc: "00:00"

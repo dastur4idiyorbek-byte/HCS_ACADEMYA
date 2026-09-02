@@ -166,6 +166,20 @@ STAGE_LABELS: dict[str, str] = {
     "opening_range_scalp:levels": "Darajalar risk qoidasiga sig'madi",
     "opening_range_scalp:no_setup": "Shart bajarilmadi",
     "opening_range_scalp:error": "Strategiya ichki xatosi",
+    # 3.10 — Correction Entry (pasayishdagi tuzilmaviy kirish)
+    "correction_entry:halal": "Halol ro'yxatda emas",
+    "correction_entry:data": "Sham ma'lumoti yetarli emas",
+    "correction_entry:trend": "Kunlik trend ko'tarilishda emas",
+    "correction_entry:impulse": "Ko'tarilish impulsi topilmadi",
+    "correction_entry:retracement": "Narx hali korreksiyaga tushmagan",
+    "correction_entry:confluence": "Tuzilma manbalari bir joyga tushmadi",
+    "correction_entry:zone_position": "Narx kirish zonasiga yetmagan",
+    "correction_entry:confirm": "Pastki timeframeda qaytish belgisi yo'q",
+    "correction_entry:levels": "Darajalar risk qoidasiga sig'madi",
+    "correction_entry:levels:stop_too_close": "Tuzilmaviy Stop juda YAQIN",
+    "correction_entry:levels:stop_too_far": "Tuzilmaviy Stop juda UZOQ",
+    "correction_entry:no_setup": "Shart bajarilmadi",
+    "correction_entry:error": "Strategiya ichki xatosi",
 }
 
 

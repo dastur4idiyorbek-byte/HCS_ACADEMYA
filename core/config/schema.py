@@ -709,8 +709,63 @@ class OpeningRangeScalpConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class CorrectionEntryConfig:
+    """Bozor pasayganda ishlaydigan kirish usuli.
+
+    NIMA UCHUN KERAK. Bozor Salomatligi past bo'lgan payt — narxlar
+    ARZONLASHGAN payt, ya'ni "arzon ol" strategiyasi uchun eng qulay
+    lahza. Eski tizim esa aynan shunda qidirishni to'xtatardi va
+    indeks qayta ko'tarilganda — narx allaqachon o'sib bo'lgach —
+    signal berardi. Ya'ni doim KECH kirardi.
+
+    Bu strategiya o'sha bo'shliqni to'ldiradi: pasayishda ham qaraydi,
+    lekin FAQAT tuzilma ruxsat bergan joyda.
+
+    QAT'IY DARVOZA: yuqori timeframe KO'TARILISHDA bo'lishi shart.
+    Tushayotgan bozorda "arzon" degan narsa yo'q — narx yana ham
+    arzonlashaveradi. Spot xaridida bu eng qimmat xato.
+    """
+
+    enabled: bool = True
+    #: Kirish nuqtasi qidiriladigan timeframe (zona shu yerda topiladi)
+    zone_timeframe: str = "4h"
+    #: Aniq nuqtani tasdiqlaydigan PASTKI timeframe
+    confirm_timeframe: str = "15m"
+    #: Yo'nalish darvozasi shu timeframedan olinadi
+    trend_timeframe: str = "1d"
+    #: Impuls qidiriladigan oyna (sham soni)
+    impulse_lookback: int = 60
+    #: Fibonacci korreksiya oralig'i — "oltin zona"
+    fib_ratios: list[float] = field(default_factory=lambda: [0.382, 0.618])
+    #: Order block deb hisoblash uchun keyingi harakat shu foizdan katta
+    ob_min_move_pct: float = 1.0
+    #: FVG shu foizdan tor bo'lsa e'tiborga olinmaydi
+    fvg_min_gap_pct: float = 0.1
+    #: KAMIDA shuncha TURLI manba bir joyga tushishi shart.
+    #:
+    #: Nima uchun 2: beshta usuldan "eng mosini" tanlash har doim
+    #: qandaydir usul topiladi degani — bu tarixga moslashib qolish
+    #: (overfitting). Ikki mustaqil manbaning bir joyda uchrashuvi
+    #: esa tasodif bo'lish ehtimoli ancha past.
+    min_confluence: int = 2
+    #: Pastki TF tasdig'i shuncha oxirgi sham ichida qidiriladi
+    confirm_lookback: int = 20
+    #: Stop zona chekkasidan shuncha foiz pastda (shovqin uchun zaxira)
+    stop_buffer_pct: float = 0.15
+    #: Eng kam TP2/Stop nisbati. BOSHLANG'ICH qiymat — backtest bilan
+    #: aniqlanadi (metodika hujjati "taxminan 1:2" deydi, lekin uni
+    #: raqam bilan tasdiqlash shart).
+    min_risk_reward: float = 2.0
+    #: RSI shu qiymatdan pastga tushib QAYTGAN bo'lsa — qo'shimcha dalil
+    rsi_reversal_max: float = 45.0
+
+
+@dataclass(frozen=True, slots=True)
 class StrategiesConfig:
     classic_ta: ClassicTaConfig = field(default_factory=ClassicTaConfig)
+    correction_entry: CorrectionEntryConfig = field(
+        default_factory=CorrectionEntryConfig
+    )
     opening_range_scalp: OpeningRangeScalpConfig = field(default_factory=OpeningRangeScalpConfig)
 
 
