@@ -629,3 +629,61 @@ def test_xarajat_nolga_tushirilishi_mumkin() -> None:
     motor = Backtester(config)
 
     assert motor._result_pct(signal, 106.0, reached_tp1=False) == pytest.approx(6.0)
+
+
+# --------------------------------------------------------------------------- #
+#  Tayanch: "olib ushlab turish"
+# --------------------------------------------------------------------------- #
+
+
+def test_tayanch_hisoblanadi() -> None:
+    """Strategiyaning raqamiga o'LCHOV kerak.
+
+    "O'rtacha -0.73% har savdoda" o'z-o'zicha hech narsa demaydi:
+    yomonmi, NIMAGA nisbatan? Agar coinlar shu davrda o'sgan bo'lsa,
+    strategiya hech narsa qilmaslikdan ham yomon ishlagan bo'ladi.
+    """
+    config = tez_config()
+    dataset = dataset_uchun(config, {"BTC": savdo_beradigan_qator()})
+
+    natija = Backtester(config, label="tayanch").run(dataset, max_steps=300)
+
+    assert natija.buy_and_hold_pct is not None
+    assert natija.buy_and_hold_pct > 0, "sinov qatori ko'tariluvchi"
+
+
+def test_tayanch_hisobotda_korinadi() -> None:
+    """Raqam hisoblanib, ekranda ko'rinmasa — foydasi yo'q."""
+    natija = BacktestResult(
+        label="sinov",
+        trades=[savdo("stop", -1.0, i) for i in range(40)],
+        buy_and_hold_pct=25.0,
+    )
+
+    matn = render(natija)
+
+    assert "olib ushlab turish" in matn
+    assert "+25.0%" in matn
+    assert "HECH NARSA QILMASLIKDAN yomon" in matn
+
+
+def test_tayanchdan_yaxshi_bolsa_ogohlantirish_yoq() -> None:
+    natija = BacktestResult(
+        label="sinov",
+        trades=[savdo("tp2_hit", 4.0, i) for i in range(40)],
+        buy_and_hold_pct=5.0,
+    )
+
+    matn = render(natija)
+
+    assert "olib ushlab turish" in matn
+    assert "HECH NARSA QILMASLIKDAN yomon" not in matn
+
+
+def test_tayanch_yoq_bolsa_qator_chiqmaydi() -> None:
+    """Hisoblab bo'lmasa — raqam O'YLAB TOPILMAYDI."""
+    natija = BacktestResult(
+        label="sinov", trades=[savdo("stop", -1.0, i) for i in range(40)]
+    )
+
+    assert "olib ushlab turish" not in render(natija)

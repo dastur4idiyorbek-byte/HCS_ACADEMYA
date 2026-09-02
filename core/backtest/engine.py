@@ -77,6 +77,17 @@ class BacktestResult:
     #: (3.5-band). Nol signal chiqqanda "umuman nomzod yo'q edi"mi yoki
     #: "nomzod bor edi, lekin ball yetmadi"mi — shuni ajratadi.
     near_miss_scores: list[float] = field(default_factory=list)
+    #: TAYANCH: sinov davrida coinni shunchaki olib ushlab turgan
+    #: bo'lsak, o'rtacha necha foiz bo'lardi.
+    #:
+    #: Ansiz "o'rtacha -0.73%" degan raqamning o'lchovi yo'q. Yomonmi?
+    #: NIMAGA nisbatan? Agar coinlar o'sgan bo'lsa, strategiya nafaqat
+    #: zarar keltirgan, balki HECH NARSA QILMASLIKDAN ham yomon
+    #: ishlagan bo'ladi. Agar tushgan bo'lsa — raqam boshqacha
+    #: o'qiladi.
+    #:
+    #: `None` — hisoblab bo'lmadi (ma'lumot yetarli emas).
+    buy_and_hold_pct: float | None = None
 
     @property
     def closed(self) -> int:
@@ -259,7 +270,10 @@ class Backtester:
 
         qarorlar = verdicts or {}
         tracker = SignalTracker()
-        natija = BacktestResult(label=self._label)
+        natija = BacktestResult(
+            label=self._label,
+            buy_and_hold_pct=self._buy_and_hold(dataset, baholanadigan, entry_tf),
+        )
         signal_id = 0
         #: signal kaliti -> (ochilish vaqti, ball, salomatlik, TP1 olindimi)
         kontekst: dict[int, dict] = {}
@@ -464,6 +478,38 @@ class Backtester:
         tp1_foizi = (signal.levels.tp1 - entry) / entry * 100
         qolgan = (exit_price - entry) / entry * 100
         return tp1_foizi * ulush + qolgan * (1 - ulush)
+
+    def _buy_and_hold(
+        self, dataset: Dataset, qadamlar: list[datetime], timeframe: str
+    ) -> float | None:
+        """Sinov davrida coinlarni shunchaki olib ushlab turish natijasi.
+
+        TAYANCH SIFATIDA KERAK. "O'rtacha -0.73% har savdoda" degan
+        raqam o'z-o'zicha hech narsa demaydi: yomonmi, NIMAGA
+        nisbatan? Agar shu davrda coinlar o'sgan bo'lsa, strategiya
+        nafaqat zarar keltirgan, balki hech narsa qilmaslikdan ham
+        yomon ishlagan bo'ladi.
+
+        Hisob sodda va ataylab shunday: har bir coinga teng ulush,
+        birinchi qadamda olinadi, oxirgi qadamda sotiladi. Bu
+        strategiyaning o'z hisobi bilan (har savdoga teng miqdor)
+        bir xil shkalada.
+        """
+        if len(qadamlar) < 2:
+            return None
+
+        boshi, oxiri = qadamlar[0], qadamlar[-1]
+        foizlar: list[float] = []
+        for symbol in dataset.symbols:
+            birinchi = dataset.price_at(symbol, boshi, timeframe)
+            songgi = dataset.price_at(symbol, oxiri, timeframe)
+            if not birinchi or not songgi or birinchi <= 0:
+                continue
+            foizlar.append((songgi - birinchi) / birinchi * 100)
+
+        if not foizlar:
+            return None
+        return sum(foizlar) / len(foizlar)
 
     def _etalon_shamlar(
         self, dataset: Dataset, moment: datetime, timeframe: str

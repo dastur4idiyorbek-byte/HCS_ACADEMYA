@@ -43,6 +43,7 @@ def render(result: BacktestResult) -> str:
         f"   Ketma-ket zarar: {result.max_consecutive_losses} ta",
         f"   O'rtacha ushlash: {result.average_holding_hours:.1f} soat",
     ]
+    qatorlar += _tayanch_qatorlari(result)
 
     if result.closed < MIN_TRADES_FOR_CONCLUSION:
         qatorlar += [
@@ -65,6 +66,30 @@ def render(result: BacktestResult) -> str:
 def _raqam(qiymat: float | None) -> str:
     """Hisoblab bo'lmagan qiymat "0.00" bo'lib ko'rinmasligi kerak."""
     return "—" if qiymat is None else f"{qiymat:.2f}"
+
+
+def _tayanch_qatorlari(result: BacktestResult) -> list[str]:
+    """"Olib ushlab turish" bilan taqqoslash.
+
+    Ansiz "o'rtacha -0.73%" degan raqamning o'lchovi yo'q: yomonmi,
+    NIMAGA nisbatan? Agar shu davrda coinlar o'sgan bo'lsa,
+    strategiya nafaqat zarar keltirgan, balki hech narsa
+    qilmaslikdan ham yomon ishlagan bo'ladi.
+    """
+    if result.buy_and_hold_pct is None:
+        return []
+
+    tayanch = result.buy_and_hold_pct
+    qatorlar = [
+        "",
+        f"   Tayanch — olib ushlab turish: {tayanch:+.1f}% "
+        "(coinlar bo'yicha o'rtacha)",
+    ]
+    if result.total_return_pct < tayanch:
+        qatorlar.append(
+            "   ⚠️ Strategiya HECH NARSA QILMASLIKDAN yomon ishlagan."
+        )
+    return qatorlar
 
 
 def _voronka_qatorlari(result: BacktestResult) -> list[str]:
@@ -144,8 +169,16 @@ def compare(results: list[BacktestResult]) -> str:
             f"{natija.max_drawdown_pct:>8.1f}%"
         )
 
-    yetarli = [r for r in results if r.closed >= MIN_TRADES_FOR_CONCLUSION]
+    tayanchlar = [r.buy_and_hold_pct for r in results if r.buy_and_hold_pct is not None]
     qatorlar.append("")
+    if tayanchlar:
+        qatorlar.append(
+            f"Tayanch — olib ushlab turish: {tayanchlar[0]:+.1f}% "
+            "(coinlar bo'yicha o'rtacha, sinov davrida)"
+        )
+        qatorlar.append("")
+
+    yetarli = [r for r in results if r.closed >= MIN_TRADES_FOR_CONCLUSION]
 
     if not yetarli:
         qatorlar.append(

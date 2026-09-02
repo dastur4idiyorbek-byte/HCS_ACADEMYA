@@ -4451,7 +4451,79 @@ tekshirilishi shart.
 
 ---
 
-## 74. Bosqichlar holati
+## 74. Kirish filtrlari ham ishlamadi — va nima uchun
+
+To'liq hisobot — `docs/BACKTEST_NATIJA_2026-09-02_3.md`.
+
+| variant | signal | savdo | win | **o'rt.%** | jami% |
+|---|---|---|---|---|---|
+| hozirgi holat | 667 | 649 | 37.9% | **-0.73** | -471.6 |
+| kunlik trend majburiy | 454 | 431 | 37.8% | **-0.65** | -280.2 |
+| indikator tasdig'i majburiy | 635 | 616 | 37.3% | **-0.72** | -446.6 |
+| faqat kuchli trend (ADX 25) | 540 | 525 | 37.5% | **-0.74** | -386.1 |
+| faqat chuqur Discount (40%) | 633 | 610 | 38.0% | **-0.73** | -443.6 |
+
+Birinchi qarashda `kunlik trend majburiy` g'olib: -471.6% dan
+-280.2% ga. **Lekin bu savdolar yaxshilanganidan emas, KAMAYGANIDAN:**
+
+    649 x -0.73% = -474%
+    431 x -0.65% = -280%
+
+Bitta savdodagi natija atigi 0.08 punktga o'zgardi. Zarar
+keltiruvchi ishni kamroq bajarish — tuzatish emas: 0 savdo ham
+"yaxshilaydi".
+
+**ASOSIY TOPILMA — win-rate qimirlamadi.** To'rtta mustaqil filtr,
+signal soni 454 dan 667 gacha, win-rate esa 37.3–38.0%. TP2 gacha
+yetish 28.1–30.0%.
+
+Filtr haqiqatan sifatni oshirsa, o'chirilgan savdolar o'rtachadan
+yomonroq bo'lishi va win-rate KO'TARILISHI kerak edi. Bo'lmadi.
+Ya'ni filtrlar signallarni kamaytiradi, lekin yaxshisini yomonidan
+ajrata olmaydi.
+
+### Nolga chiqish uchun nima kerak
+
+    TP2 (1.5R):  29.9%   TP1+breakeven: 8.0%   stop: 62.1%
+    kutilma = 0.299 x 1.5 + 0.080 x 0.375 - 0.621 = -0.14R
+
+Nol uchun TP2 gacha yetish ~35.6% kerak. Eng yaxshi filtr 30.0%
+berdi — farqni yopishga yaqin ham kelmadi.
+
+### Uch gipoteza, uch rad
+
+| # | Gipoteza | Natija |
+|---|---|---|
+| 1 | Correction Entry past bandda yordam beradi | ❌ |
+| 2 | Tuzilmaviy TP2 ehtimolni oshiradi | ❌ teskari chiqdi |
+| 3 | Kirish filtrlari sifatni oshiradi | ❌ win-rate qimirlamadi |
+
+Uchalasi ham sozlama darajasidagi tuzatish edi.
+
+---
+
+## 75. Tayanch qo'shildi: "olib ushlab turish"
+
+74-bo'lim bir narsani ochdi: **taqqoslash uchun tayanch yo'q edi.**
+
+"O'rtacha -0.73% har savdoda" — bu yomonmi? NIMAGA nisbatan? Agar
+sinov davrida coinlar o'sgan bo'lsa, strategiya nafaqat zarar
+keltirgan, balki hech narsa qilmaslikdan ham yomon ishlagan
+bo'ladi. Agar tushgan bo'lsa — raqam boshqacha o'qiladi.
+
+`BacktestResult.buy_and_hold_pct`: har bir coinga teng ulush,
+birinchi qadamda olinadi, oxirgi qadamda sotiladi. Strategiyaning
+o'z hisobi (har savdoga teng miqdor) bilan bir xil shkalada.
+
+Hisobot strategiya tayanchdan yomon ishlaganda buni OCHIQ yozadi:
+"Strategiya HECH NARSA QILMASLIKDAN yomon ishlagan."
+
+Bu — 3.6-banddagi halollik talabining davomi. O'lchovsiz raqam
+ko'rsatish, aslida, raqamni yashirish bilan barobar.
+
+---
+
+## 76. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
