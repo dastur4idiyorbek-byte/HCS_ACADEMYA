@@ -5087,7 +5087,58 @@ Daftarda 🟢 belgisi "o'lchandi va yo'nalish to'g'ri" degani,
 
 ---
 
-## 84. Bosqichlar holati
+## 84. Sinov OYNASI: takroriy o'lchov endi mumkin
+
+83-bo'lim "bayroq o'chiq" bilan tugadi va sabab bitta edi:
+natijani boshqa davrda tekshirishning YO'LI yo'q edi. Backtest
+har doim "oxirgi N kun" ni olardi. Ya'ni hujjatlarimizda
+qayta-qayta yozilgan talab —
+
+> "Yaxshi natija BOSHQA DAVRDA qayta tekshirilishi shart"
+
+— texnik jihatdan bajarib bo'lmaydigan talab bo'lib turardi.
+Bu 78-bo'limdagi naqshning yana bir ko'rinishi: qoida yozilgan,
+lekin uni bajaradigan mexanizm qurilmagan.
+
+### O'ZGARISH
+
+`BinanceCandleProvider.fetch_candles(..., until=None)` va
+`scripts/backtest.py --end-date YYYY-MM-DD`.
+
+Uchta nozik joy bor edi:
+
+**1. Birinchi sahifa endi "eng yangi" emas.** Provayder javobning
+oxirgi shamini yopilmagan deb belgilaydi (66-bo'lim). Oyna oxiri
+o'tmishda bo'lsa bu noto'g'ri — u sham allaqachon yopilgan.
+`oyna_belgilangan` bayrog'i shu farqni ushlaydi.
+
+**2. Oyna KESH NOMIGA kiradi.** `BTC_4h_2025-09-02.json`. Ansiz
+2025-yilgi oyna uchun yuklangan shamlar 2026-yilgi yugurishda
+jimgina qayta ishlatilardi va ikkita "mustaqil" o'lchov aslida
+BIR XIL ma'lumotda bajarilardi. Bu xatoning eng yomon tomoni —
+u xato ko'rinmaydi: ikkinchi yugurish muvaffaqiyatli tugaydi va
+"tasdiqlandi" degan xulosa beradi.
+
+**3. Isinish oynadan OLDIN.** `--days 365 --end-date 2025-09-02`
+degani "2024-09 dan 2025-09 gacha tahlil qilinadi", va uning
+ustiga 427 kunlik isinish yuklanadi (80-bo'lim). Tahlil oynasi
+va isinish aralashmaydi.
+
+### QO'RIQCHI
+
+`tests/core/test_sinov_oynasi.py` beshta narsani ushlaydi, eng
+muhimi — ikkita oyna bitta kesh faylini bo'lishmasligi.
+
+### BUNDAN KEYIN
+
+Endi 🔴 savolga javob berish mumkin: TP1 nisbat poli boshqa
+davrda ham ishlaydimi. Ikkita kesishmaydigan yil o'lchanadi.
+Bitta oynada ishlab, ikkinchisida ishlamasa — bu gipoteza rad
+etilgan demak, va daftarga shunday yoziladi.
+
+---
+
+## 85. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

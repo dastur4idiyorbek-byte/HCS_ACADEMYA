@@ -32,6 +32,7 @@ import argparse
 import asyncio
 import dataclasses
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from core.backtest import Backtester, Dataset, compare, render
@@ -57,12 +58,22 @@ class KeshYetishmaydi(RuntimeError):
 # --------------------------------------------------------------------------- #
 
 
-def _kesh_yoli(symbol: str, timeframe: str) -> Path:
-    return KESH / f"{symbol}_{timeframe}.json"
+def _kesh_yoli(symbol: str, timeframe: str, until: str | None = None) -> Path:
+    """Kesh fayli yo'li.
+
+    OYNA NOMGA KIRADI. Aks holda 2025-yilgi oyna uchun yuklangan
+    shamlar 2026-yilgi yugurishda jimgina qayta ishlatilardi va
+    ikkita "mustaqil" o'lchov aslida BIR XIL ma'lumotda bo'lardi —
+    ya'ni takroriy tekshiruvning butun ma'nosi yo'qolardi.
+    """
+    oyna = f"_{until}" if until else ""
+    return KESH / f"{symbol}_{timeframe}{oyna}.json"
 
 
-def _keshdan_oqish(symbol: str, timeframe: str) -> list[Candle] | None:
-    yol = _kesh_yoli(symbol, timeframe)
+def _keshdan_oqish(
+    symbol: str, timeframe: str, until: str | None = None
+) -> list[Candle] | None:
+    yol = _kesh_yoli(symbol, timeframe, until)
     if not yol.exists():
         return None
     from datetime import datetime
@@ -81,9 +92,11 @@ def _keshdan_oqish(symbol: str, timeframe: str) -> list[Candle] | None:
     ]
 
 
-def _keshga_yozish(symbol: str, timeframe: str, candles: list[Candle]) -> None:
+def _keshga_yozish(
+    symbol: str, timeframe: str, candles: list[Candle], until: str | None = None
+) -> None:
     KESH.mkdir(parents=True, exist_ok=True)
-    _kesh_yoli(symbol, timeframe).write_text(
+    _kesh_yoli(symbol, timeframe, until).write_text(
         json.dumps(
             [
                 {
@@ -124,15 +137,17 @@ def _kerakli_timeframelar(config: AppConfig) -> list[str]:
     return sorted(kerakli)
 
 
-def _keshdan_yigish(symbols: list[str], timeframelar: list[str]) -> Dataset:
+def _keshdan_yigish(
+    symbols: list[str], timeframelar: list[str], until: str | None = None
+) -> Dataset:
     """Tarmoqqa umuman chiqmaydi. Yetishmagani aniq aytiladi."""
     dataset = Dataset()
     yoq: list[str] = []
     for symbol in symbols:
         for tf in timeframelar:
-            shamlar = _keshdan_oqish(symbol, tf)
+            shamlar = _keshdan_oqish(symbol, tf, until)
             if shamlar is None:
-                yoq.append(str(_kesh_yoli(symbol, tf)))
+                yoq.append(str(_kesh_yoli(symbol, tf, until)))
                 continue
             dataset.add(symbol, tf, shamlar)
 
@@ -153,12 +168,18 @@ async def _yukla(
     days: int,
     refresh: bool,
     offline: bool = False,
+    until: datetime | None = None,
 ) -> Dataset:
-    """Kerakli barcha timeframelarni yuklaydi (yoki keshdan oladi)."""
+    """Kerakli barcha timeframelarni yuklaydi (yoki keshdan oladi).
+
+    `until` — sinov oynasining OXIRI. Berilmasa eng so'nggi
+    ma'lumot olinadi.
+    """
     timeframelar = _kerakli_timeframelar(config)
+    oyna = until.date().isoformat() if until is not None else None
 
     if offline:
-        return _keshdan_yigish(symbols, timeframelar)
+        return _keshdan_yigish(symbols, timeframelar, oyna)
 
     provider = BinanceCandleProvider(config.market_data, config.halal_screening.quote_asset)
     dataset = Dataset()
@@ -181,7 +202,7 @@ async def _yukla(
         for symbol in symbols:
             for tf in timeframelar:
                 kerak = max(1, int(jami_kun * 1440 / daqiqalar.get(tf, 15)))
-                shamlar = None if refresh else _keshdan_oqish(symbol, tf)
+                shamlar = None if refresh else _keshdan_oqish(symbol, tf, oyna)
                 if shamlar is not None and len(shamlar) < kerak:
                     # Kesh eski, KALTA so'rov bilan yig'ilgan. Uni jimgina
                     # ishlatish backtestni isinishsiz qoldirardi.
@@ -195,8 +216,8 @@ async def _yukla(
                     shamlar = None
                 if shamlar is None:
                     logger.info("Yuklanmoqda: %s %s (%d sham)", symbol, tf, kerak)
-                    shamlar = await provider.fetch_candles(symbol, tf, kerak)
-                    _keshga_yozish(symbol, tf, shamlar)
+                    shamlar = await provider.fetch_candles(symbol, tf, kerak, until)
+                    _keshga_yozish(symbol, tf, shamlar, oyna)
                 dataset.add(symbol, tf, shamlar)
     finally:
         await provider.close()
@@ -417,6 +438,16 @@ async def main() -> None:
             "https://data-api.binance.vision ni bering"
         ),
     )
+    parser.add_argument(
+        "--end-date",
+        default=None,
+        help=(
+            "sinov oynasining OXIRI (YYYY-MM-DD). Berilmasa eng so'nggi "
+            "ma'lumot olinadi. Takroriy o'lchov uchun: bir yugurish "
+            "2025-09-02 gacha, boshqasi 2026-09-02 gacha — oynalar "
+            "kesishmasin uchun `--days` ni ham qisqartiring"
+        ),
+    )
     parser.add_argument("--max-steps", type=int, default=None)
     argumentlar = parser.parse_args()
 
@@ -432,10 +463,19 @@ async def main() -> None:
     yoz = Chiqish(Path(argumentlar.output) if argumentlar.output else None)
     coinlar = [s.strip().upper() for s in argumentlar.symbols.split(",") if s.strip()]
 
+    oxiri: datetime | None = None
+    if argumentlar.end_date:
+        try:
+            oxiri = datetime.fromisoformat(argumentlar.end_date).replace(tzinfo=UTC)
+        except ValueError:
+            print(f"--end-date noto'g'ri: {argumentlar.end_date} (YYYY-MM-DD kutiladi)")
+            raise SystemExit(1) from None
+
     isinish = warmup_days(config)
+    oyna_matni = f", {oxiri.date()} gacha" if oxiri else ""
     print(
         f"Ma'lumot tayyorlanmoqda: {', '.join(coinlar)} "
-        f"({argumentlar.days} kun tahlil + {isinish} kun isinish)\n"
+        f"({argumentlar.days} kun tahlil + {isinish} kun isinish{oyna_matni})\n"
     )
     try:
         dataset = await _yukla(
@@ -444,6 +484,7 @@ async def main() -> None:
             argumentlar.days,
             argumentlar.refresh,
             offline=argumentlar.offline,
+            until=oxiri,
         )
     except KeshYetishmaydi as xato:
         print(str(xato))
@@ -472,6 +513,7 @@ async def main() -> None:
     yoz(
         f"Coinlar: {', '.join(coinlar)} | {argumentlar.days} kun | "
         f"{tahlil_qadam:,} tahlil qadami (+{isinish} kun isinish)"
+        + (f" | oyna {oxiri.date()} gacha" if oxiri else "")
     )
     yoz()
     yoz(compare(natijalar))

@@ -22,6 +22,10 @@ on:
         description: "Coinlar (vergul bilan)"
         required: true
         default: "BTC,ETH,SOL,BNB,XRP"
+      end_date:
+        description: "Sinov oynasining OXIRI (YYYY-MM-DD, bo'sh = eng so'nggi)"
+        required: false
+        default: ""
       base_url:
         description: "Binance manbai"
         required: true
@@ -60,11 +64,13 @@ jobs:
         env:
           SYMBOLS: ${{ inputs.symbols }}
           DAYS: ${{ inputs.days }}
+          END_DATE: ${{ inputs.end_date }}
         run: |
           COINLAR=$(printf '%s' "$SYMBOLS" | tr ',' '-' | tr -cd 'A-Za-z0-9-')
           KUNLAR=$(printf '%s' "$DAYS" | tr -cd '0-9')
+          OYNA=$(printf '%s' "$END_DATE" | tr -cd '0-9-')
           ISINISH=$(python -c "from core.backtest.warmup import warmup_days; from core.config import load_config; print(warmup_days(load_config()))")
-          echo "qiymat=candles-$COINLAR-$((KUNLAR + ISINISH))" >> "$GITHUB_OUTPUT"
+          echo "qiymat=candles-$COINLAR-$((KUNLAR + ISINISH))-${OYNA:-oxirgi}" >> "$GITHUB_OUTPUT"
           echo "asos=candles-$COINLAR-" >> "$GITHUB_OUTPUT"
 
       # Yuklangan shamlar saqlanadi — keyingi ishga tushirishda
@@ -83,12 +89,22 @@ jobs:
           DAYS: ${{ inputs.days }}
           SYMBOLS: ${{ inputs.symbols }}
           BASE_URL: ${{ inputs.base_url }}
+          END_DATE: ${{ inputs.end_date }}
         run: |
+          # Oyna berilmasa bayroq umuman qo'shilmaydi — bo'sh matn
+          # `--end-date ""` bo'lib ketsa skript uni sana deb o'qishga
+          # urinardi.
+          if [ -n "$END_DATE" ]; then
+            OYNA=(--end-date "$END_DATE")
+          else
+            OYNA=()
+          fi
           python -m scripts.backtest \
             --compare \
             --days "$DAYS" \
             --symbols "$SYMBOLS" \
             --base-url "$BASE_URL" \
+            "${OYNA[@]}" \
             --output natija.txt
 
       - name: Natijani saqlash

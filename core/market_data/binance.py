@@ -221,8 +221,24 @@ class BinanceCandleProvider(CandleProvider):
             for index, qator in enumerate(xom)
         ]
 
-    async def fetch_candles(self, symbol: str, timeframe: str, limit: int) -> list[Candle]:
+    async def fetch_candles(
+        self,
+        symbol: str,
+        timeframe: str,
+        limit: int,
+        until: datetime | None = None,
+    ) -> list[Candle]:
         """Tarixiy shamlar, eng eskisidan eng yangisiga.
+
+        `until` — oynaning OXIRI. Berilmasa eng so'nggi shamlargacha
+        olinadi (jonli tizim shunday ishlaydi). Berilsa o'sha
+        paytgacha bo'lgan tarix qaytariladi.
+
+        NIMA UCHUN KERAK: bitta davrda o'lchangan natija dalil emas.
+        Loyihaning o'z intizomi buni talab qiladi — "yaxshi natija
+        BOSHQA DAVRDA qayta tekshirilishi shart". Oyna tanlanmasa
+        backtest doim bitta (eng so'nggi) davrni ko'rardi va
+        takroriy o'lchov umuman mumkin emas edi.
 
         1000 DAN ORTIQ SO'RALSA SAHIFALAB YUKLANADI. Ilgari so'rov
         `min(limit, 1000)` bilan qirqilardi va bu JIMGINA sodir
@@ -241,7 +257,11 @@ class BinanceCandleProvider(CandleProvider):
 
         pair = to_binance_symbol(symbol, self._quote).upper()
         yigilgan: list[Candle] = []
-        end_time: int | None = None
+        end_time = int(until.timestamp() * 1000) if until is not None else None
+        #: Oyna oxiri berilganda BIRINCHI sahifa ham yopilmagan
+        #: shamni o'z ichiga olmaydi — u o'tmishda, ya'ni allaqachon
+        #: yopilgan.
+        oyna_belgilangan = until is not None
 
         while len(yigilgan) < limit:
             kerak = limit - len(yigilgan)
@@ -251,7 +271,11 @@ class BinanceCandleProvider(CandleProvider):
                 # zumda ketadi va Binance IP ni bloklaydi.
                 await asyncio.sleep(self._config.candle_page_pause_seconds)
             sahifa = await self._fetch_page(
-                pair, interval, kerak, end_time, eng_yangi_sahifa=not yigilgan
+                pair,
+                interval,
+                kerak,
+                end_time,
+                eng_yangi_sahifa=not yigilgan and not oyna_belgilangan,
             )
             if not sahifa:
                 # Tarix tugadi — coin bunchalik eski emas.

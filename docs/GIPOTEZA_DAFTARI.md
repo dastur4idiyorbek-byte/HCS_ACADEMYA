@@ -601,4 +601,25 @@ Tashxis to'g'ri edi va yechim ishladi, lekin **yetarli emas**.
 | 🔴 | PF 0.82 dan 1.0 gacha qolgan masofani nima yopadi |
 
 Birinchisiga javob berish uchun backtestga sinov OYNASINI
-tanlash kerak (hozir u faqat "oxirgi N kun" ni oladi).
+tanlash kerak edi — hozir u qurildi.
+
+---
+
+## Sinov oynasi qurildi (`--end-date`)
+
+`docs/ARXITEKTURA.md`, 84-bo'lim. Endi ikkita KESISHMAYDIGAN
+davrni alohida o'lchash mumkin:
+
+```bash
+python -m scripts.backtest --compare --days 365 --end-date 2025-09-02
+python -m scripts.backtest --compare --days 365
+```
+
+Har oynaning keshi alohida (`BTC_4h_2025-09-02.json`) — aks
+holda ikkinchi yugurish birinchisining shamlarini jimgina qayta
+ishlatardi va "ikkita mustaqil o'lchov" aslida bitta bo'lardi.
+
+**Qoida:** `enforce_tp1_ratio` bayrog'i faqat IKKALA oynada ham
+bir yo'nalishda natija bergandagina yoqiladi. Bitta oynada
+ishlab ikkinchisida ishlamasa — gipoteza rad etiladi va shu
+yerga ⚫ bilan yoziladi.

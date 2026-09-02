@@ -364,3 +364,32 @@ Biror fayl yetishmasa, dastur uning nomini aniq aytadi.
 | `--symbols BTC,ETH` | qaysi coinlar (standart: BTC, ETH, SOL, BNB, XRP) |
 | `--refresh` | ma'lumotni qaytadan yuklaydi |
 | `--offline` | internetsiz — faqat saqlangan ma'lumot |
+| `--end-date 2025-09-02` | sinov oynasining OXIRI. Berilmasa oxirgi kunlar olinadi |
+
+---
+
+## Takroriy o'lchov — BOSHQA davrda
+
+Bitta davrda olingan yaxshi natija hali dalil emas. Tarix bitta,
+va unga yetarlicha ko'p variant sinalsa, ulardan biri shunchaki
+tasodifan yaxshi chiqadi. Shuning uchun qoida: **yaxshi natija
+boshqa davrda qayta tekshirilishi shart.**
+
+`--end-date` shuning uchun bor. Ikkita KESISHMAYDIGAN oyna:
+
+```bash
+python -m scripts.backtest --compare --days 365 --end-date 2025-09-02
+python -m scripts.backtest --compare --days 365
+```
+
+Birinchisi 2024-09 dan 2025-09 gacha, ikkinchisi oxirgi yil.
+Xulosa faqat IKKALASIDA ham bir xil yo'nalishda bo'lsa
+qabul qilinadi.
+
+Har oynaning keshi alohida saqlanadi (`BTC_4h_2025-09-02.json`).
+Ansiz ikkinchi yugurish birinchisining shamlarini jimgina qayta
+ishlatardi va "ikkita mustaqil o'lchov" aslida bitta bo'lardi.
+
+GitHub Actions'da ham xuddi shunday: `Run workflow` oynasida
+`end_date` maydonini to'ldiring.
+
