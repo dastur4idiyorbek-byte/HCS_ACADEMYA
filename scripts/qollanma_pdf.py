@@ -25,6 +25,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas as pdfcanvas
 
+from core.config import load_config
+
 ILDIZ = Path(__file__).resolve().parent.parent
 LOGO = ILDIZ / "web" / "public" / "logo.jpg"
 CHIQISH = ILDIZ / "docs" / "HALOL_CRYPTO_SAVDO_qollanma.pdf"
@@ -62,10 +64,13 @@ def shriftlar() -> None:
 class Sahifa:
     """Joriy sahifa: `y` yuqoridan pastga suriladi."""
 
-    def __init__(self, c: pdfcanvas.Canvas) -> None:
+    def __init__(self, c: pdfcanvas.Canvas, quyi_sarlavha: str = "Tizim qanday ishlaydi") -> None:
         self.c = c
         self.y = BALAND - CHET
         self.raqam = 0
+        # Sarlavha ostidagi qator hujjatga qarab o'zgaradi: qo'llanma
+        # va yangilanish hisoboti bitta chizish kodini baham ko'radi.
+        self.quyi_sarlavha = quyi_sarlavha
 
     # -- tuzilma ------------------------------------------------------------ #
 
@@ -95,7 +100,7 @@ class Sahifa:
         c.drawString(CHET + 54, BALAND - 30, "HALOL CRYPTO SAVDO")
         c.setFont(ODDIY, 8.5)
         c.setFillColor(HexColor("#9ab0d2"))
-        c.drawString(CHET + 54, BALAND - 43, "Tizim qanday ishlaydi")
+        c.drawString(CHET + 54, BALAND - 43, self.quyi_sarlavha)
 
     def _oyoq(self) -> None:
         c = self.c
@@ -399,7 +404,7 @@ def sahifa_umumiy(s: Sahifa) -> None:
         s,
         2,
         "BOZOR SALOMATLIGI",
-        "Savol: bugun umuman savdo qilsa bo'ladimi? Besh omil bitta 0-100 "
+        "Savol: bugun umuman savdo qilsa bo'ladimi? Olti omil bitta 0-100 "
         "raqamga jamlanadi. Raqam pastligicha tizim yangi signal bermaydi — "
         "coinlarni tahlil qilib ham o'tirmaydi.",
         APELSIN,
@@ -446,42 +451,86 @@ def sahifa_umumiy(s: Sahifa) -> None:
     )
 
 
-def sahifa_salomatlik(s: Sahifa) -> None:
+def sahifa_salomatlik(s: Sahifa, konfig) -> None:  # noqa: ANN001
     s.yangi("2. Bozor Salomatligi")
     s.matn(
         "Muammo: omillar alohida-alohida tekshirilsa, ular bir-biriga zid "
         'javob beradi — bitta o\'lchov "bozor yaxshi" desa, boshqasi '
-        '"balans yo\'q" deydi. Yechim: beshtasini BITTA 0-100 raqamga '
+        '"balans yo\'q" deydi. Yechim: oltitasini BITTA 0-100 raqamga '
         "jamlash. Raqam har sham yopilganda qayta hisoblanadi.",
         rang=MATN_PAST,
     )
 
-    s.sarlavhacha("Besh omil va ularning vazni")
+    # RAQAMLAR KONFIGURATSIYADAN. Ilgari ular qo'lda yozilgan edi va
+    # vaznlar o'zgargach hujjat jimgina eskirib qoldi.
+    v = konfig.market_health.weights
+    s.sarlavhacha("Omillar va ularning vazni")
     jadval(
         s,
         ["Omil", "Vazn", "Nimani o'lchaydi"],
         [
-            ["BTC Dominance", "20", "Pul boshqa coinlardan BTC ga qochyaptimi"],
-            ["Halol ro'yxat kengligi", "25", "Ro'yxatdagi nechta coin ko'tarilishda"],
-            ["Volatillik rejimi", "20", "Bozorda trend bormi (o'rtacha ADX)"],
-            ["Foydalanuvchi sig'imi", "20", "Odamlarning puli allaqachon bandmi"],
-            ["Signal to'yinganligi", "15", "Ochiq signallar soni ko'p emasmi"],
+            [
+                "Struktura kengligi",
+                f"{v.halal_structure_breadth:.0f}",
+                "Ro'yxatdagi nechta coin ko'tarilish strukturasida",
+            ],
+            [
+                "Volatillik rejimi",
+                f"{v.volatility_regime:.0f}",
+                "Bozorda trend bormi (o'rtacha ADX)",
+            ],
+            [
+                "Foydalanuvchi sig'imi",
+                f"{v.aggregate_user_capacity:.0f}",
+                "Odamlarning puli allaqachon bandmi",
+            ],
+            [
+                "Signal to'yinganligi",
+                f"{v.signal_saturation:.0f}",
+                "Ochiq signallar soni ko'p emasmi",
+            ],
+            [
+                "BTC dominatsiyasi",
+                f"{v.btc_dominance_stability:.0f}",
+                "Qo'shimcha kontekst - qaror mezoni emas",
+            ],
+            [
+                "QT davri (AMDX)",
+                f"{v.quarterly_phase:.0f}",
+                "Sutkaning qaysi davri - yig'ish yoki harakat",
+            ],
         ],
         [152, 40, 255],
     )
 
+    ch = konfig.scoring.thresholds
+    lim = konfig.risk_engine.max_open_signals_by_health
     s.sarlavhacha("Raqam nimani boshqaradi")
     jadval(
         s,
         ["Indeks", "Rejim", "Ball chegarasi", "Ochiq signal limiti"],
         [
-            ["80 - 100", "Erkin", "50", "5 ta"],
-            ["65 - 79", "O'rtacha", "50", "3 ta"],
-            ["40 - 64", "Ehtiyotkor", "55", "3 ta"],
-            ["0 - 39", "Yopiq", "signal berilmaydi", "0"],
+            [
+                f"{ch.health_high_min:.0f} - 100",
+                "Erkin",
+                f"{ch.threshold_high_health:.0f}",
+                f"{lim.high} ta",
+            ],
+            [
+                f"{ch.health_mid_min:.0f} - {ch.health_high_min - 1:.0f}",
+                "Ehtiyotkor",
+                f"{ch.threshold_mid_health:.0f}",
+                f"{lim.mid} ta",
+            ],
+            [
+                f"0 - {ch.health_mid_min - 1:.0f}",
+                "Yopiq",
+                "signal berilmaydi",
+                f"{lim.low}",
+            ],
         ],
         [92, 100, 130, 125],
-        ranglar=[TURKUAZ, TURKUAZ, SARIQ, QIZIL],
+        ranglar=[TURKUAZ, SARIQ, QIZIL],
     )
 
     eslatma(
@@ -502,9 +551,10 @@ def sahifa_salomatlik(s: Sahifa) -> None:
     s.sarlavhacha("Kun boshida")
     s.matn(
         "UTC 00:00 atrofida, yangi kunlik sham ochilishidan oldin tizim "
-        "BTC Dominance asosida kunning umumiy yo'nalishini oldindan "
-        "baholaydi. Bu - boshlang'ich qiymat, aniq o'lchov emas: kun "
-        "davomida har sham yopilganda raqam qayta hisoblanadi.",
+        "halol ro'yxatning STRUKTURA holatiga qarab kunning umumiy "
+        "yo'nalishini oldindan baholaydi. Bu - boshlang'ich qiymat, aniq "
+        "o'lchov emas: kun davomida har sham yopilganda raqam qayta "
+        "hisoblanadi.",
         rang=MATN_PAST,
     )
 
@@ -617,6 +667,7 @@ def sahifa_signal(s: Sahifa) -> None:
 
 
 def main() -> None:
+    konfig = load_config()
     shriftlar()
     CHIQISH.parent.mkdir(parents=True, exist_ok=True)
     c = pdfcanvas.Canvas(str(CHIQISH), pagesize=A4)
@@ -627,7 +678,7 @@ def main() -> None:
     c.showPage()  # muqovadan keyin yangi varaq
     s = Sahifa(c)
     sahifa_umumiy(s)
-    sahifa_salomatlik(s)
+    sahifa_salomatlik(s, konfig)
     sahifa_ketma_ketlik(s)
     sahifa_signal(s)
 
