@@ -8,6 +8,7 @@ mustahkamlanadi.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 import pytest
@@ -177,3 +178,90 @@ def test_bogliqlik_faqat_pastga_qaraydi(modul: str) -> None:
         "Bog'liqlik TEPAGA qaragan: " + ", ".join(buzilganlar) + ". "
         "Ikki tomon ham ishlatadigan tipni `core/domain` ga ko'chiring."
     )
+
+
+# --------------------------------------------------------------------------- #
+#  Yopiq holatlar ro'yxati BITTA joyda
+# --------------------------------------------------------------------------- #
+
+
+def test_yopiq_holatlar_qolda_takrorlanmasin() -> None:
+    """`tp2_hit + stopped + cancelled` uchligi kodda yozilmasin.
+
+    Bu ro'yxat `repositories.py` da uch joyda, saytda esa yana ikki
+    joyda qo'lda yozilgan edi. Yangi yopuvchi holat qo'shilganda
+    ularning biri unutilsa, signal ba'zi ko'rinishlarda abadiy
+    "ochiq" bo'lib qolardi va statistika jimgina boshqa raqam
+    berardi — hech qanday xato xabari chiqmasdan.
+
+    Manba: `SignalStatus.closed_values()` (Python) va
+    `YOPIQ_HOLATLAR` (sayt). Ular `is_closed` dan chiqadi.
+    """
+    from core.domain.enums import SignalStatus
+
+    ildiz = Path(__file__).resolve().parent.parent
+    uchlik = {"tp2_hit", "stopped", "cancelled"}
+
+    #: Ro'yxat bir necha qatorga yoyilgan bo'lishi mumkin —
+    #: `repositories.py` da u aynan shunday yozilgan edi. Shuning
+    #: uchun qator emas, OYNA tekshiriladi.
+    OYNA = 6
+
+    #: E'lon qilish TAKRORLASH emas. Enum a'zosi va TS union a'zosi
+    #: holatlarni SANAB CHIQADI — bu ularning yagona ta'rifi. Test
+    #: qidirayotgan narsa boshqa: "yopiqmi" degan savolga javob
+    #: beruvchi TO'PLAM ikkinchi marta yozilgani.
+    ELON = re.compile(r'^\s*(\|\s*"|[A-Z][A-Z0-9_]*\s*=\s*")')
+
+    #: To'plam ekanini ko'rsatuvchi belgilar. Bularsiz uchta nom bir
+    #: joyda uchrashi mumkin (masalan har biriga alohida javob
+    #: qaytaruvchi `yakuni()` funksiyasi) — u takrorlash emas.
+    KONTEKST = ("in_(", "not_in(", "in (", "in [", "in {", "= [", "= {", "||", ".includes(")
+
+    def qidir(matn: str) -> list[int]:
+        satrlar = matn.splitlines()
+        topilgan: list[int] = []
+        for i in range(len(satrlar)):
+            oyna = [s for s in satrlar[i : i + OYNA] if not ELON.match(s)]
+            if any("YOPIQ_HOLATLAR" in s for s in oyna):
+                continue
+            birlashgan = "\n".join(oyna)
+            if not any(belgi in birlashgan for belgi in KONTEKST):
+                continue
+            bor = {
+                h
+                for h in uchlik
+                if f"'{h}'" in birlashgan
+                or f'"{h}"' in birlashgan
+                or f"{h.upper()}.value" in birlashgan
+                or f"SignalStatus.{h.upper()}" in birlashgan
+            }
+            if len(bor) == len(uchlik):
+                topilgan.append(i + 1)
+        return topilgan
+
+    ayblanuvchi: list[str] = []
+    fayllar = [
+        *(ildiz / "core").rglob("*.py"),
+        *(ildiz / "bot").rglob("*.py"),
+        *(ildiz / "web" / "src").rglob("*.ts"),
+        *(ildiz / "web" / "src").rglob("*.tsx"),
+    ]
+    for fayl in fayllar:
+        if "node_modules" in fayl.parts or fayl.name == "enums.py":
+            continue
+        uchragan = qidir(fayl.read_text(encoding="utf-8"))
+        if uchragan:
+            ayblanuvchi.append(f"{fayl.relative_to(ildiz)}:{uchragan[0]}")
+
+    assert not ayblanuvchi, (
+        "Yopiq holatlar ro'yxati qo'lda takrorlangan:\n  "
+        + "\n  ".join(ayblanuvchi)
+        + "\n\nO'rniga `SignalStatus.closed_values()` yoki "
+        "`YOPIQ_HOLATLAR` ishlating."
+    )
+
+    # Manbaning o'zi to'g'ri ishlayotganini ham tekshiramiz — aks holda
+    # yuqoridagi skaner bo'sh ro'yxatni "yaxshi" deb o'qib qo'yardi.
+    assert set(SignalStatus.closed_values()) == uchlik
+    assert set(SignalStatus.open_values()) & uchlik == set()

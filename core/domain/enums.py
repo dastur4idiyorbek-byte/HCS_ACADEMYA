@@ -24,6 +24,22 @@ class SignalStatus(str, Enum):
     def is_open(self) -> bool:
         return not self.is_closed
 
+    @classmethod
+    def closed_values(cls) -> list[str]:
+        """Yopiq holatlarning bazadagi qiymatlari.
+
+        BITTA MANBA. Bu ro'yxat `repositories.py` da uch joyda qo'lda
+        yozilgan edi. Yangi yopuvchi holat qo'shilganda ularning biri
+        unutilsa, signal ba'zi ko'rinishlarda abadiy "ochiq" bo'lib
+        qolardi va xato hech qayerda ko'rinmasdi — statistika jimgina
+        boshqa raqam berardi.
+        """
+        return [s.value for s in cls if s.is_closed]
+
+    @classmethod
+    def open_values(cls) -> list[str]:
+        return [s.value for s in cls if s.is_open]
+
     @property
     def is_enterable(self) -> bool:
         """Bu signalga HOZIR qo'shilish mumkinmi.

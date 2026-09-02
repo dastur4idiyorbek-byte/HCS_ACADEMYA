@@ -99,8 +99,18 @@ export function davomEtmoqda(holat: SignalHolati): boolean {
   return !yopilgan(holat);
 }
 
+/** Yopiq holatlar — BITTA MANBA.
+ *
+ * Ilgari bu ro'yxat ikki joyda alohida yozilgan edi: shu funksiyada va
+ * `yopilganSignallar()` ning SQL so'rovida. Yangi yopuvchi holat
+ * qo'shilganda ularning biri unutilsa, signal jadvalda ko'rinmay
+ * qolardi yoki abadiy "ochiq" bo'lib turardi — va xato hech qayerda
+ * xabar bermasdi. Botdagi `SignalStatus.closed_values()` bilan bir xil
+ * qoida. */
+export const YOPIQ_HOLATLAR = ["tp2_hit", "stopped", "cancelled"] as const;
+
 export function yopilgan(holat: SignalHolati): boolean {
-  return holat === "tp2_hit" || holat === "stopped" || holat === "cancelled";
+  return (YOPIQ_HOLATLAR as readonly string[]).includes(holat);
 }
 
 export type Salomatlik = {
@@ -772,11 +782,11 @@ export function yopilganSignallar(limit = 50): YopilganSignal[] {
               market_health_at_entry, result_pct, tp1_reached, is_false_signal,
               created_at, closed_at
          from signals
-        where status in ('tp2_hit', 'stopped', 'cancelled')
+        where status in (${YOPIQ_HOLATLAR.map(() => "?").join(", ")})
         order by closed_at desc, id desc
         limit ?`,
     )
-    .all(limit) as Qator[];
+    .all(...YOPIQ_HOLATLAR, limit) as Qator[];
 
   return qatorlar.map((q) => ({
     id: Number(q.id),

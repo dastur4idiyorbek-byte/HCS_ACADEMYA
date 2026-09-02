@@ -525,11 +525,7 @@ class SignalRepository:
 
         Bot qayta ishga tushganda kuzatuv nolday boshlanmasligi kerak.
         """
-        yopiq = [
-            SignalStatus.TP2_HIT.value,
-            SignalStatus.STOPPED.value,
-            SignalStatus.CANCELLED.value,
-        ]
+        yopiq = SignalStatus.closed_values()
         stmt = (
             select(SignalRecord)
             .where(SignalRecord.status.not_in(yopiq))
@@ -573,7 +569,7 @@ class SignalRepository:
             yozuv.tp1_reached = True
         if status is SignalStatus.ACTIVE and yozuv.activated_at is None:
             yozuv.activated_at = at
-        if status in {SignalStatus.TP2_HIT, SignalStatus.STOPPED, SignalStatus.CANCELLED}:
+        if status.is_closed:
             yozuv.closed_at = at
             yozuv.close_price = price
             tp1_narxi = yozuv.tp1 if (yozuv.tp1_reached and tp1_close_pct is not None) else None
@@ -602,9 +598,7 @@ class SignalRepository:
             select(SignalRecord)
             .where(
                 SignalRecord.broadcast_at.is_(None),
-                SignalRecord.status.in_(
-                    [s.value for s in SignalStatus if s.is_open]
-                ),
+                SignalRecord.status.in_(SignalStatus.open_values()),
             )
             .order_by(SignalRecord.created_at)
             .limit(limit)
@@ -665,11 +659,7 @@ class SignalRepository:
         TP1 ga yetganini `signal_events` dan bilib olamiz — bu farq muhim:
         "Stop yedi" va "TP1 oldi, keyin Stop yedi" bir xil natija emas.
         """
-        yopiq = [
-            SignalStatus.TP2_HIT.value,
-            SignalStatus.STOPPED.value,
-            SignalStatus.CANCELLED.value,
-        ]
+        yopiq = SignalStatus.closed_values()
         stmt = (
             select(SignalRecord)
             .where(
