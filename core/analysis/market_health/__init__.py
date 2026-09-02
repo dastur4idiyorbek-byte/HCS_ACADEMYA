@@ -18,8 +18,16 @@ Indeks quyidagilarni boshqaradi:
   - `MarketHealthRule` — 40 dan past bo'lsa signal umuman yo'q (4.9)
 """
 
+from core.analysis.market_health.breadth import UniverseFacts, universe_facts
 from core.analysis.market_health.calculator import MarketHealthCalculator, describe
 from core.analysis.market_health.factors import build_factors
 from core.analysis.market_health.inputs import HealthInputs
 
-__all__ = ["HealthInputs", "MarketHealthCalculator", "build_factors", "describe"]
+__all__ = [
+    "HealthInputs",
+    "MarketHealthCalculator",
+    "UniverseFacts",
+    "build_factors",
+    "describe",
+    "universe_facts",
+]

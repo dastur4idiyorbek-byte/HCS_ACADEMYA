@@ -192,15 +192,52 @@ def _shamlar(n: int):  # noqa: ANN202
 
 
 def test_qisqa_tarixli_coin_hisobdan_chiqariladi(config: AppConfig) -> None:
-    """Runner darajasidagi himoya: yetarli tarixsiz coin kenglikka kirmaydi."""
+    """Yetarli tarixsiz coin kenglikka KIRMAYDI (0.3-band).
+
+    Tekshiruv endi manba matnida emas, XATTI-HARAKATDA: hisob
+    `universe_facts()` ga ko'chdi va uni jonli tizim ham, backtest ham
+    chaqiradi. Matnni qidirish o'sha ko'chishdan keyin yolg'on
+    signal berardi.
+    """
+    from core.analysis.market_health import universe_facts
+
+    tf = config.analysis.market_health_timeframe
+    kerak = config.analysis.indicators.min_candles
+
+    faktlar = universe_facts(
+        {
+            "UZUN": {tf: _shamlar(kerak + 20)},
+            "QISQA": {tf: _shamlar(kerak - 5)},
+        },
+        config.analysis,
+    )
+
+    assert "UZUN" in faktlar.structures
+    assert "QISQA" not in faktlar.structures, (
+        "tarix yetarliligi tekshiruvi olib tashlangan — haftalik indeks buziladi"
+    )
+
+
+def test_kenglik_jonli_va_backtestda_bir_xil_funksiyadan(config: AppConfig) -> None:
+    """Ikki joy hisobni O'ZIDA takrorlamasin.
+
+    Aynan shu takror jonli tizim bilan backtestni ajratib yuborgan
+    edi: biri haftalik strukturani, ikkinchisi 4 soatlikni o'qirdi
+    (`docs/ARXITEKTURA.md`, 68-bo'lim).
+    """
     import inspect
 
     from bot.services import runner as runner_moduli
+    from core.backtest import engine as backtest_moduli
 
-    manba = inspect.getsource(runner_moduli.PipelineRunner.compute_health)
-    assert "len(seriya) < indicators.min_candles" in manba, (
-        "tarix yetarliligi tekshiruvi olib tashlangan — haftalik indeks buziladi"
-    )
+    jonli = inspect.getsource(runner_moduli.PipelineRunner.compute_health)
+    sinov = inspect.getsource(backtest_moduli.Backtester._build_input)
+
+    for nom, manba in (("runner", jonli), ("backtest", sinov)):
+        assert "universe_facts(" in manba, f"{nom}: umumiy funksiya chaqirilmayapti"
+        assert "analyze_structure(" not in manba, (
+            f"{nom}: kenglik hisobi yana takrorlanyapti"
+        )
 
 
 def test_ball_ham_strategiya_nisbatiga_tayanadi(config: AppConfig) -> None:

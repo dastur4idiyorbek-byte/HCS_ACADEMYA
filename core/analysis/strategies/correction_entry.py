@@ -35,7 +35,6 @@ from dataclasses import dataclass
 
 from core.analysis.indicators.momentum import rsi, rsi_recovering_from_oversold
 from core.analysis.indicators.trend import closes
-from core.analysis.market_structure import analyze_structure
 from core.analysis.smc import (
     Confluence,
     StructureZone,
@@ -161,12 +160,8 @@ class CorrectionEntryStrategy(Strategy):
         # Tushayotgan bozorda korreksiya YUQORIGA bo'ladi va undan
         # keyin narx YANA PASTGA ketadi. Spot xaridida bunga kirish —
         # tushayotgan pichoqni ushlash.
-        struktura = analyze_structure(
-            trend_shamlar,
-            self._config.analysis.market_structure.swing_lookback,
-            self._config.analysis.market_structure.min_swings,
-            self._config.analysis.market_structure.fallback_min_pct,
-        )
+        # FAKT QATLAMIDAN: `classic_ta` ham xuddi shu javobni ko'radi.
+        struktura = data.structure(c.trend_timeframe)
         if struktura.direction is not TrendDirection.UP:
             return self._reject(
                 "trend",

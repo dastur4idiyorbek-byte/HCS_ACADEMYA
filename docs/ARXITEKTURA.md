@@ -4573,7 +4573,51 @@ qoida hujjatda emas, kodda yashaydi.
 
 ---
 
-## 77. Bosqichlar holati
+## 77. Fakt qatlami: struktura endi BIR MARTA hisoblanadi
+
+`analyze_structure()` **yettita joyda** chaqirilardi: runner,
+backtest, `classic_ta` (kirish TF + har bir HTF), `correction_entry`,
+kenglik, QT davri. Har biri sozlamani o'zi uzatardi — ya'ni bitta
+fakt haqida yettita javob bo'lishi mumkin edi.
+
+Bu mavhum xavf emas. Aynan shu turkumdagi uch farq bugun topildi va
+ular backtest bilan jonli tizimni ajratib yubordi (68 va 69-bo'limlar).
+
+### Ikki manba qoldi, uchinchisi mustaqil
+
+**1. `StrategyInput.structure(timeframe)`** — strategiyalar uchun.
+
+Kirish endi BITTA COIN uchun bir marta quriladi (`cycle.py`), sozlama
+ham unda turadi. Ikkinchi so'rovda kesh qaytadi:
+
+    classic_ta      -> data.structure(entry_tf), data.structure(htf)
+    correction_entry -> data.structure(trend_tf)
+
+Ikki strategiya bir xil sham qatori haqida boshqa-boshqa javob bera
+olmaydi — bu endi tuzilma darajasida imkonsiz.
+
+**2. `market_health/breadth.py -> universe_facts()`** — kenglik uchun.
+
+Jonli tizim ham, backtest ham shu bitta funksiyani chaqiradi. Ilgari
+ikkalasi hisobni o'zida takrorlardi va ular ajralib ketgan edi.
+
+**3. `quarterly.py`** — QT davri o'z oynasida ishlaydi (`lookback=40`)
+va sozlamasi boshqacha. U alohida qoladi.
+
+### Qoida testda
+
+- `tests/core/test_fakt_qatlami.py` — kesh ishlaydimi, ikki
+  strategiya bitta javobni ko'radimi, va strategiya faylida
+  `analyze_structure` qolmaganmi
+- `test_mean_reversion_tuzatish.py` — kenglik hisobi ikki joyda
+  takrorlanmayotganini tekshiradi
+
+Manba matnini qidirish o'rniga XATTI-HARAKAT tekshiriladi: qisqa
+tarixli coin haqiqatan kenglikdan chiqarilyaptimi.
+
+---
+
+## 78. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

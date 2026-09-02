@@ -18,13 +18,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from core.analysis.indicators import adx, atr_pct
-from core.analysis.market_health import HealthInputs, MarketHealthCalculator
-from core.analysis.market_structure import analyze_structure
+from core.analysis.indicators import atr_pct
+from core.analysis.market_health import (
+    HealthInputs,
+    MarketHealthCalculator,
+    universe_facts,
+)
 from core.analysis.strategies import build_strategies
 from core.backtest.dataset import Dataset
 from core.config.schema import AppConfig
-from core.domain.enums import SignalStatus
+from core.domain.enums import HalalStatus, SignalStatus
 from core.domain.models import Candle, HalalVerdict, Signal
 from core.pipeline import CycleInput, SignalCycle, SymbolData
 from core.signals import SignalEventKind, SignalTracker
@@ -534,18 +537,9 @@ class Backtester:
         entry_tf: str,
     ) -> CycleInput:
         indicators = self._config.analysis.indicators
-        # Bozor Salomatligi O'Z timeframeida o'lchanadi — jonli tizimda
-        # ham shunday (`bot/services/runner.py`). Ilgari backtest uni
-        # kirish timeframeidan (4h) hisoblardi: ya'ni jonli tizim
-        # HAFTALIK strukturani, backtest esa 4 SOATLIK strukturani
-        # ko'rardi. Indeks butun rejim tanlovini boshqarganidan keyin
-        # bu farq backtest javobini ishonchsiz qilardi — o'lchanayotgan
-        # narsa jonlidagi narsa emas edi.
-        salomatlik_tf = self._config.analysis.market_health_timeframe
         coinlar = []
-        adx_qiymatlari = {}
         atr_qiymatlari = {}
-        strukturalar = {}
+        oynalar: dict[str, dict[str, list[Candle]]] = {}
 
         for symbol in dataset.symbols:
             oyna = dataset.window(symbol, moment, self._oyna)
@@ -553,39 +547,29 @@ class Backtester:
             if len(seriya) < indicators.min_candles:
                 continue
 
+            oynalar[symbol] = oyna
             coinlar.append(
                 SymbolData(
                     symbol=symbol,
                     halal_verdict=verdicts.get(
-                        symbol,
-                        HalalVerdict(symbol, __import__(
-                            "core.domain.enums", fromlist=["HalalStatus"]
-                        ).HalalStatus.HALAL, "backtest"),
+                        symbol, HalalVerdict(symbol, HalalStatus.HALAL, "backtest")
                     ),
                     candles=oyna,
                 )
             )
 
-            qiymat = adx(seriya, indicators.adx_period)
-            if qiymat is not None:
-                adx_qiymatlari[symbol] = qiymat
             atr = atr_pct(seriya, indicators.atr_period)
             if atr is not None:
                 atr_qiymatlari[symbol] = atr
-            # 3.7-band, ASOSIY omil: SMC strukturasi. Bu "katta rasm
-            # ko'tarilishdami" degan REJIM savoli, kirish qarori emas.
-            # Shuning uchun u salomatlik timeframeida o'lchanadi;
-            # ma'lumot bo'lmasa — jonli tizimdagidek kirish
-            # timeframeiga qaytadi.
-            kenglik_seriyasi = oyna.get(salomatlik_tf) or seriya
-            if len(kenglik_seriyasi) < indicators.min_candles:
-                continue
-            strukturalar[symbol] = analyze_structure(
-                kenglik_seriyasi,
-                self._config.analysis.market_structure.swing_lookback,
-                self._config.analysis.market_structure.min_swings,
-                self._config.analysis.market_structure.fallback_min_pct,
-            ).direction
+
+        # Kenglik va ADX — JONLI TIZIM BILAN BIR XIL funksiyadan.
+        # Ilgari bu hisob shu yerda takrorlangan edi va jonli tizim
+        # haftalik strukturani, backtest esa 4 soatlikni o'qiyotgan
+        # edi (`docs/ARXITEKTURA.md`, 68-bo'lim). Endi ajralish uchun
+        # joy yo'q.
+        faktlar = universe_facts(oynalar, self._config.analysis)
+        strukturalar = faktlar.structures
+        adx_qiymatlari = faktlar.adx_values
 
         limitlar = self._config.risk_engine.max_open_signals_by_health
         ochiqlar = tracker.open_signals
@@ -603,7 +587,9 @@ class Backtester:
                 # yo'q edi va omil backtestda HAR DOIM neytral
                 # qolardi — ya'ni jonli tizimda ta'sir qiladigan
                 # narsa sinovda umuman o'lchanmasdi.
-                reference_candles=self._etalon_shamlar(dataset, moment, salomatlik_tf),
+                reference_candles=self._etalon_shamlar(
+                    dataset, moment, self._config.analysis.market_health_timeframe
+                ),
                 capacity_headroom=None,
                 open_signals=len(ochiqlar),
                 max_open_signals=limitlar.high,

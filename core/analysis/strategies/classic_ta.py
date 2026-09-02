@@ -38,7 +38,6 @@ from dataclasses import dataclass
 
 from core.analysis.indicators import build_snapshot, confirm
 from core.analysis.level_types import classify_level_type
-from core.analysis.market_structure import analyze_structure
 from core.analysis.scoring import Scorer, build_levels
 from core.analysis.scoring.setup_route import evaluate_setup
 from core.analysis.strategies.base import Strategy, StrategyInput
@@ -190,12 +189,10 @@ class ClassicTaStrategy(Strategy):
         # bazaviy 100 ballik tizimda baholanishda davom etadi. Metodika
         # hujjatining o'zi ham shuni talab qiladi — yangi omillar
         # qat'iy filtr sifatida qo'shilmasin.
-        struktura = analyze_structure(
-            shamlar,
-            analysis.market_structure.swing_lookback,
-            analysis.market_structure.min_swings,
-            analysis.market_structure.fallback_min_pct,
-        )
+        # FAKT QATLAMIDAN o'qiladi, o'zi hisoblamaydi: bitta coin
+        # uchun struktura bir marta hisoblanadi va barcha strategiyalar
+        # o'sha bitta javobni ko'radi (`StrategyInput.structure`).
+        struktura = data.structure(analysis.entry_timeframe)
         if analysis.require_structure_alignment and struktura.direction is TrendDirection.DOWN:
             return self._reject(
                 "structure",
@@ -272,18 +269,9 @@ class ClassicTaStrategy(Strategy):
         Sham yetarli bo'lmagan timeframe `FLAT` deb belgilanadi — bu
         muvofiqlikni buzadi, lekin signalni to'xtatmaydi (0.3-band).
         """
-        struktura = self._config.analysis.market_structure
         return MultiTimeframeView(
             trends=[
-                TimeframeTrend(
-                    timeframe=tf,
-                    direction=analyze_structure(
-                        data.series(tf),
-                        struktura.swing_lookback,
-                        struktura.min_swings,
-                        struktura.fallback_min_pct,
-                    ).direction,
-                )
+                TimeframeTrend(timeframe=tf, direction=data.structure(tf).direction)
                 for tf in self._config.analysis.htf_confirmation
             ]
         )

@@ -377,7 +377,14 @@ def test_yuqori_timeframe_STRUKTURA_bilan_tasniflanadi(config) -> None:  # noqa:
     )
     kod = kod[: kod.index('"""')] + kod[kod.rindex('"""') :]
 
-    assert "analyze_structure" in kod
+    # Struktura FAKT QATLAMIDAN olinadi. Strategiya uni o'zi
+    # hisoblamaydi — aks holda ikki strategiya bir xil sham qatori
+    # haqida boshqa-boshqa javob berishi mumkin edi.
+    assert "data.structure(" in kod
+    assert "analyze_structure" not in kod, (
+        "Strategiya strukturani O'ZI hisoblamasligi kerak — "
+        "`StrategyInput.structure()` orqali oladi"
+    )
     assert "timeframe_trend" not in kod, "EMA asosidagi tasnif qolib ketgan"
     assert "ema" not in kod.lower(), "HTF tasnifida EMA qolmasligi kerak"
 

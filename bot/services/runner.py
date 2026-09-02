@@ -22,8 +22,11 @@ from bot.i18n import DEFAULT_LANGUAGE, t
 from bot.services.broadcast import broadcast_signal, obunachilar
 from core.analysis import decide_entry_plan
 from core.analysis.indicators import adx, atr_pct
-from core.analysis.market_health import HealthInputs, MarketHealthCalculator
-from core.analysis.market_structure import analyze_structure
+from core.analysis.market_health import (
+    HealthInputs,
+    MarketHealthCalculator,
+    universe_facts,
+)
 from core.analysis.scoring import breakdown_to_json
 from core.analysis.strategies import build_strategies, required_timeframes
 from core.config.schema import AppConfig
@@ -199,41 +202,12 @@ class PipelineRunner:
         open_signals: int,
     ) -> MarketHealth:
         """3.7-band: Bozor Salomatligi Indeksini hisoblaydi."""
-        indicators = self._config.analysis.indicators
-        kunlik = self._config.analysis.market_health_timeframe
-
-        strukturalar = {}
-        adx_qiymatlari = {}
-        for symbol, tf_shamlar in candles.items():
-            seriya = tf_shamlar.get(kunlik) or tf_shamlar.get(
-                self._config.analysis.entry_timeframe, []
-            )
-            if not seriya:
-                continue
-            # Tarix YETARLIMI. Aniqlab bo'lmagan coin hisobga umuman
-            # kirmaydi (0.3-band: noaniqlik dalil emas).
-            #
-            # Chegara 200 dan `min_candles` ga tushdi: u EMA200 uchun
-            # kerak edi, EMA esa olib tashlandi. Haftalik timeframeda
-            # 200 sham ~3.8 yil tarix degani va ko'p altcoinlar jimgina
-            # "ko'tarilishda emas" deb sanalardi — bozor kengligi
-            # sun'iy tushib, indeks signalni to'xtatardi (33-bo'lim).
-            if len(seriya) < indicators.min_candles:
-                continue
-
-            # 3.7-band, ASOSIY omil: SMC strukturasi. Bu "katta rasm
-            # ko'tarilishdami" degan REJIM savoli, kirish qarori emas.
-            struktura = analyze_structure(
-                seriya,
-                self._config.analysis.market_structure.swing_lookback,
-                self._config.analysis.market_structure.min_swings,
-                self._config.analysis.market_structure.fallback_min_pct,
-            )
-            strukturalar[symbol] = struktura.direction
-
-            qiymat = adx(seriya, indicators.adx_period)
-            if qiymat is not None:
-                adx_qiymatlari[symbol] = qiymat
+        # Kenglik va ADX — YAGONA manbadan. Backtest ham aynan shu
+        # funksiyani chaqiradi, ya'ni ikkisi ajralib keta olmaydi
+        # (`core/analysis/market_health/breadth.py`).
+        faktlar = universe_facts(candles, self._config.analysis)
+        strukturalar = faktlar.structures
+        adx_qiymatlari = faktlar.adx_values
 
         async with self._db.session() as session:
             foydalanuvchilar = await UserRepository(session).active_users(

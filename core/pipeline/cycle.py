@@ -19,7 +19,7 @@ from core.analysis.scoring import Scorer
 from core.analysis.strategies import Strategy, StrategyInput
 from core.config.schema import AppConfig
 from core.domain.enums import MarketRegime, SignalSource
-from core.pipeline.context import CycleInput, CycleResult, RejectedCandidate, SymbolData
+from core.pipeline.context import CycleInput, CycleResult, RejectedCandidate
 from core.risk_engine import RiskContext, RiskEngine
 from core.utils.logging_setup import get_logger
 
@@ -119,8 +119,20 @@ class SignalCycle:
         nomzodlar = []
         tafsilotlar = {}
         for coin in data.symbols:
+            # Kirish BITTA COIN uchun bir marta quriladi va barcha
+            # strategiyalarga beriladi. Shu sababdan struktura kabi
+            # faktlar bir marta hisoblanadi — ikki strategiya bir xil
+            # sham qatori haqida boshqa-boshqa javob bera olmaydi.
+            kirish = StrategyInput(
+                symbol=coin.symbol,
+                now=data.now,
+                halal_verdict=coin.halal_verdict,
+                candles=coin.candles,
+                market_health=data.market_health,
+                structure_config=self._config.analysis.market_structure,
+            )
             for strategiya in faol_strategiyalar:
-                nomzod = self._analyze(strategiya, coin, data, rad_etilganlar)
+                nomzod = self._analyze(strategiya, kirish, rad_etilganlar)
                 if nomzod is not None:
                     nomzodlar.append(nomzod)
                     tafsilotlar[nomzod.symbol] = nomzod.breakdown
@@ -188,28 +200,26 @@ class SignalCycle:
     def _analyze(
         self,
         strategy: Strategy,
-        coin: SymbolData,
-        data: CycleInput,
+        kirish: StrategyInput,
         rejected: list[RejectedCandidate],
     ):  # noqa: ANN202
-        """Bitta strategiyani bitta coinga qo'llaydi.
+        """Bitta strategiyani tayyor kirishga qo'llaydi.
+
+        Kirish TASHQARIDA quriladi — bitta coin uchun bir marta. Shu
+        sababdan fakt qatlami (struktura) barcha strategiyalar uchun
+        umumiy bo'ladi.
 
         0.3-band: strategiyaning nosozligi butun siklni to'xtatmaydi.
         """
-        kirish = StrategyInput(
-            symbol=coin.symbol,
-            now=data.now,
-            halal_verdict=coin.halal_verdict,
-            candles=coin.candles,
-            market_health=data.market_health,
-        )
         try:
             nomzod = strategy.analyze(kirish)
         except Exception:  # noqa: BLE001
-            logger.exception("Strategiya xato berdi: %s / %s", strategy.name, coin.symbol)
+            logger.exception(
+                "Strategiya xato berdi: %s / %s", strategy.name, kirish.symbol
+            )
             rejected.append(
                 RejectedCandidate(
-                    coin.symbol, f"{strategy.name}:error", "Strategiya ichki xatosi"
+                    kirish.symbol, f"{strategy.name}:error", "Strategiya ichki xatosi"
                 )
             )
             return None
@@ -218,7 +228,7 @@ class SignalCycle:
             sabab = getattr(strategy, "last_rejection", None)
             rejected.append(
                 RejectedCandidate(
-                    symbol=coin.symbol,
+                    symbol=kirish.symbol,
                     stage=f"{strategy.name}:{sabab.stage if sabab else 'no_setup'}",
                     detail=sabab.detail if sabab else "Shart bajarilmadi",
                 )
