@@ -215,6 +215,13 @@ class Backtester:
     def __init__(self, config: AppConfig, label: str = "standart") -> None:
         self._config = config
         self._label = label
+        # Har qadamda strategiyaga beriladigan tarix oynasi. Jonli
+        # tizim birjadan aynan shuncha sham so'raydi (`runner.py`),
+        # ya'ni indikatorlar ham shu oynada hisoblanadi. Backtest
+        # butun tarixni bersa, ADX va S/R zonalari BOSHQA oynada
+        # chiqadi — sinov jonli qarorni emas, boshqa qarorni
+        # o'lchagan bo'lardi.
+        self._oyna = config.analysis.candles_lookback
         self._strategies = build_strategies(config)
         self._cycle = SignalCycle(config, self._strategies)
         self._health = MarketHealthCalculator(config)
@@ -347,7 +354,7 @@ class Backtester:
         ko'rsatishidan afzal (0.3 va 3.6-band).
         """
         for symbol in {s.symbol for s in tracker.open_signals}:
-            shamlar = dataset.window(symbol, moment).get(entry_tf, [])
+            shamlar = dataset.window(symbol, moment, self._oyna).get(entry_tf, [])
             if not shamlar:
                 continue
             sham = shamlar[-1]
@@ -456,7 +463,7 @@ class Backtester:
         etalon = self._config.risk_engine.btc_filter.reference_symbol.upper()
         if etalon not in dataset.series:
             return []
-        return dataset.window(etalon, moment).get(timeframe, [])
+        return dataset.window(etalon, moment, self._oyna).get(timeframe, [])
 
     def _build_input(
         self,
@@ -481,7 +488,7 @@ class Backtester:
         strukturalar = {}
 
         for symbol in dataset.symbols:
-            oyna = dataset.window(symbol, moment)
+            oyna = dataset.window(symbol, moment, self._oyna)
             seriya = oyna.get(entry_tf, [])
             if len(seriya) < indicators.min_candles:
                 continue

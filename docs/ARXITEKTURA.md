@@ -4277,7 +4277,35 @@ almashtirish).
 
 ---
 
-## 69. Bosqichlar holati
+## 69. Backtest butun tarixni berardi — jonli tizim esa 500 sham
+
+68-bo'limdagi tuzatishdan keyin GitHub Actions'da ishga tushirilgan
+ikki yillik backtest 13 daqiqada ham tugamadi. Sabab qidirilganda
+undan kattaroq narsa chiqdi.
+
+**Jonli tizim birjadan `analysis.candles_lookback` (500) tadan ortiq
+sham SO'RAMAYDI** (`bot/services/runner.py`). Ya'ni ADX ham, S/R
+zonalari ham, struktura ham ana shu 500 shamlik oynada hisoblanadi.
+
+Backtest esa `Dataset.window()` orqali O'SHA PAYTGACHA MAVJUD BUTUN
+tarixni berardi. Ikki yillik sinovda bu 4 soatlik qatorda 4380 sham
+degani — indikatorlar boshqa oynada, boshqa qiymat bilan chiqardi.
+Ya'ni sinov jonli qarorni emas, BOSHQA qarorni o'lchardi.
+
+Bu 68-bo'limdagi xato bilan bir xil turkumdan: backtest bilan jonli
+tizim orasidagi jimgina farq. Bunday farq eng yomon xato turi,
+chunki natija ishonchli KO'RINADI.
+
+Ikkinchi oqibati — tezlik. Indikatorlar butun ro'yxat bo'ylab
+yuradi, ya'ni har qadamda ish hajmi o'sib borardi: O(n²).
+
+`up_to()` va `window()` endi `limit` qabul qiladi, `Backtester` esa
+unga `candles_lookback` ni beradi. O'lchov: to'liq taqqoslash
+(730 kun, 5 coin, 5 variant) ~6 daqiqa.
+
+---
+
+## 70. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

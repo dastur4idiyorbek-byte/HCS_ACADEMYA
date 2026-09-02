@@ -518,3 +518,55 @@ def test_backtest_jonli_kuzatuvchini_ishlatadi() -> None:
     assert SignalTracker is not None
     natija = Backtester(config).run(ds, max_steps=5)
     assert natija.steps == 5
+
+
+# --------------------------------------------------------------------------- #
+#  Tarix oynasi jonli tizimdagidek cheklanadi
+# --------------------------------------------------------------------------- #
+
+
+def test_oyna_cheklanadi_va_oxirgi_shamlar_qoladi() -> None:
+    """`limit` eng SO'NGGI shamlarni qoldiradi, eng eskilarini emas."""
+    ds = Dataset()
+    ds.add("BTC", "15m", qator(100))
+
+    hammasi = ds.window("BTC", BOSH + timedelta(minutes=15 * 99))["15m"]
+    cheklangan = ds.window("BTC", BOSH + timedelta(minutes=15 * 99), limit=10)["15m"]
+
+    assert len(hammasi) == 100
+    assert len(cheklangan) == 10
+    assert cheklangan == hammasi[-10:]
+
+
+def test_backtest_jonli_oyna_bilan_ishlaydi() -> None:
+    """Indikatorlar jonli tizimdagi OYNADA hisoblanishi kerak.
+
+    Jonli bot birjadan `analysis.candles_lookback` (500) tadan ortiq
+    sham so'ramaydi — ya'ni ADX ham, S/R zonalari ham shu oynada
+    hisoblanadi. Backtest butun tarixni bersa, ikki yillik sinovda
+    4 soatlik qatorda 4380 sham bo'lardi va indikatorlar BOSHQA
+    qiymat berardi. Sinov o'shanda jonli qarorni emas, boshqa
+    qarorni o'lchagan bo'lardi.
+
+    Ikkinchi oqibati — tezlik: indikatorlar butun ro'yxat bo'ylab
+    yuradi, ya'ni har qadamda ish hajmi o'sib borardi.
+    """
+    config = tez_config()
+    dataset = dataset_uchun(config, {"BTC": savdo_beradigan_qator()})
+
+    from core.signals import SignalTracker
+
+    kirish = Backtester(config)._build_input(
+        dataset,
+        BOSH + timedelta(minutes=15 * 1100),
+        SignalTracker(config),
+        {},
+        config.analysis.entry_timeframe,
+    )
+
+    assert kirish.symbols, "sinov shartini tekshiradi: coin bo'lishi kerak"
+    for coin in kirish.symbols:
+        for tf, shamlar in coin.candles.items():
+            assert len(shamlar) <= config.analysis.candles_lookback, (
+                f"{tf}: oyna {config.analysis.candles_lookback} shamdan oshmasligi kerak"
+            )

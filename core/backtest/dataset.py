@@ -34,17 +34,31 @@ class SymbolSeries:
         self.candles[timeframe] = tartiblangan
         self._times[timeframe] = [c.open_time for c in tartiblangan]
 
-    def up_to(self, timeframe: str, moment: datetime) -> list[Candle]:
+    def up_to(
+        self, timeframe: str, moment: datetime, limit: int | None = None
+    ) -> list[Candle]:
         """Faqat `moment` gacha OCHILGAN shamlar.
 
         Chegara: `open_time <= moment`. Oxirgi sham hali yopilmagan
         bo'lishi mumkin — bu jonli rejimdagi holatni aynan takrorlaydi.
+
+        `limit` — eng so'nggi shuncha sham. Jonli tizim birjadan
+        `analysis.candles_lookback` (500) tadan ortiq sham SO'RAMAYDI,
+        ya'ni ADX ham, S/R zonalari ham ana shu oynada hisoblanadi.
+        Backtest esa butun tarixni berardi: ikki yillik sinovda bu
+        4 soatlik qatorda 4380 sham degani — indikatorlar boshqa
+        oynada, boshqa qiymat bilan chiqardi va qarorlar jonlidagidan
+        farq qilardi.
+
+        Ikkinchi oqibati — tezlik. Indikatorlar butun ro'yxat bo'ylab
+        yuradi, ya'ni har qadamda ish hajmi o'sib borardi (O(n^2)).
         """
         vaqtlar = self._times.get(timeframe)
         if not vaqtlar:
             return []
         chegara = bisect_right(vaqtlar, moment)
-        return self.candles[timeframe][:chegara]
+        boshi = max(0, chegara - limit) if limit else 0
+        return self.candles[timeframe][boshi:chegara]
 
     @property
     def timeframes(self) -> list[str]:
@@ -65,12 +79,18 @@ class Dataset:
     def symbols(self) -> list[str]:
         return sorted(self.series)
 
-    def window(self, symbol: str, moment: datetime) -> dict[str, list[Candle]]:
-        """Bitta coin uchun barcha timeframelar, `moment` gacha kesilgan."""
+    def window(
+        self, symbol: str, moment: datetime, limit: int | None = None
+    ) -> dict[str, list[Candle]]:
+        """Bitta coin uchun barcha timeframelar, `moment` gacha kesilgan.
+
+        `limit` — jonli tizimdagi `analysis.candles_lookback` bilan bir
+        xil oyna. Berilmasa butun tarix qaytadi (eski xatti-harakat).
+        """
         seriya = self.series.get(symbol)
         if seriya is None:
             return {}
-        return {tf: seriya.up_to(tf, moment) for tf in seriya.timeframes}
+        return {tf: seriya.up_to(tf, moment, limit) for tf in seriya.timeframes}
 
     def timeline(self, timeframe: str) -> list[datetime]:
         """Backtest qadamlari — berilgan timeframedagi barcha sham vaqtlari.
@@ -85,7 +105,12 @@ class Dataset:
 
     def price_at(self, symbol: str, moment: datetime, timeframe: str) -> float | None:
         """Berilgan vaqtdagi yopilish narxi."""
-        shamlar = self.series[symbol].up_to(timeframe, moment) if symbol in self.series else []
+        # Faqat oxirgi sham kerak — butun tarix nusxalanmaydi.
+        shamlar = (
+            self.series[symbol].up_to(timeframe, moment, limit=1)
+            if symbol in self.series
+            else []
+        )
         return shamlar[-1].close if shamlar else None
 
     def future_candles(
