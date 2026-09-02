@@ -20,7 +20,10 @@ Qaysi biri yaxshi? Buni faqat tarixiy ma'lumot aytadi.
 
 ---
 
-## 1-qadam. Kodni yangilash
+## 1-qadam. Kodni yangilash (Linux / macOS)
+
+> Windows'da bo'lsangiz — pastdagi **Windows (PowerShell)** bo'limiga
+> o'ting.
 
 Terminalni ochib, loyiha papkasiga kiring:
 
@@ -34,7 +37,81 @@ git pull
 
 ---
 
-## 2-qadam. Muhitni tayyorlash
+## Windows (PowerShell) — eng sodda yo'l
+
+Windows'da ishlayotgan bo'lsangiz, shu bo'limni o'qing va 2-5 qadamlarni
+o'tkazib yuboring.
+
+**Muhim maslahat: `activate` ni ishlatmang.** PowerShell odatda uni
+bloklaydi ("running scripts is disabled on this system" degan xato).
+Buning o'rniga Python'ni to'g'ridan-to'g'ri chaqiramiz — bir xil
+natija, lekin hech qanday xato yo'q.
+
+### Bir marta o'rnatiladigan narsalar
+
+1. **Python 3.11** — https://www.python.org/downloads/
+   O'rnatishda **"Add python.exe to PATH"** katagini albatta belgilang.
+2. **Git** — https://git-scm.com/download/win
+   Barcha savollarga standart javob (Next, Next).
+
+Tekshirish — PowerShell'ni ochib:
+
+```powershell
+python --version
+git --version
+```
+
+`Python 3.11.x` va `git version ...` chiqsa — tayyor.
+
+### Loyihani olish (birinchi marta)
+
+```powershell
+cd $HOME
+git clone https://github.com/dastur4idiyorbek-byte/HCS_ACADEMYA.git
+cd HCS_ACADEMYA
+git checkout claude/assalomu-alaykum-hncsjy
+```
+
+### Muhit (birinchi marta)
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+Bir necha daqiqa oladi. Oxirida `Successfully installed ...` chiqadi.
+
+### Ishga tushirish
+
+Avval kichik sinov:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.backtest --compare --days 90 --symbols BTC
+```
+
+Xatosiz tugasa — asosiysi:
+
+```powershell
+.venv\Scripts\python.exe -m scripts.backtest --compare --days 730
+```
+
+### Keyingi safar
+
+```powershell
+cd $HOME\HCS_ACADEMYA
+git pull
+.venv\Scripts\python.exe -m scripts.backtest --compare --days 730
+```
+
+Shu xolos. Natijani o'qish — 5- va 6-qadamda.
+
+> **Diqqat:** buyruqlarda `/` emas, `\` ishlatiladi va `python`
+> o'rniga `.venv\Scripts\python.exe` yoziladi. Boshqa hamma narsa
+> bir xil.
+
+---
+
+## 2-qadam. Muhitni tayyorlash (Linux / macOS)
 
 Buni faqat BIRINCHI marta qilasiz. Keyingi safar 3-qadamdan boshlaysiz.
 
@@ -175,8 +252,17 @@ Hammasi `passed` bo'lsa — kod joyida.
 
 ## Muammolar
 
+**`running scripts is disabled on this system`** (faqat Windows)
+Siz `activate` ni ishlatibsiz. Uni tashlang va Python'ni to'g'ridan-
+to'g'ri chaqiring: `.venv\Scripts\python.exe -m scripts.backtest ...`
+
+**`python is not recognized`** (faqat Windows)
+Python o'rnatilmagan yoki PATH'ga qo'shilmagan. Qayta o'rnating va
+**"Add python.exe to PATH"** katagini belgilang.
+
 **`ModuleNotFoundError`**
-Muhit yoqilmagan. `source .venv/bin/activate` ni qayta yozing.
+Muhit yoqilmagan. Linux/macOS'da `source .venv/bin/activate` ni qayta
+yozing. Windows'da `.venv\Scripts\python.exe` orqali chaqiring.
 
 **`Connection error` yoki `403`**
 Internetda Binance yopiq bo'lishi mumkin (ba'zi mamlakatlarda). VPN
