@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from core.analysis.strategies.correction_entry import correction_entry_trade_rules
 from core.analysis.strategies.opening_range_scalp import scalp_trade_rules
 from core.config.schema import AppConfig
 from core.domain.enums import BlockReason, MarketRegime, SignalSource
@@ -91,6 +92,11 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
                     config.strategies.classic_ta.min_risk_reward,
                     config.trade_rules.min_stop_distance_pct,
                 ),
+                # Correction Entry TPni TUZILMADAN oladi (impuls
+                # cho'qqisi), 3–5% oralig'idan emas. Global nisbatni
+                # qo'llash uning o'z `min_risk_reward` ini ULANMAGAN
+                # raqamga aylantirardi.
+                SignalSource.CORRECTION_ENTRY: correction_entry_trade_rules(config),
             },
         ),
     ]

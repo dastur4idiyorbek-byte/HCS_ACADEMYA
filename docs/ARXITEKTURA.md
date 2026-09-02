@@ -4170,7 +4170,50 @@ chiqaradi — bunday natijadan xulosa chiqarilmaydi.
 
 ---
 
-## 67. Bosqichlar holati
+## 67. Correction Entry ning R/R si ULANMAGAN edi
+
+Taqqoslashni qurayotib topilgan xato — 66-bo'limdagi ish paytida.
+
+`CorrectionEntryConfig.min_risk_reward` 2.0 deb turardi va strategiya
+darajalarni AYNAN shu nisbat bo'yicha qurardi. Lekin `TradeRulesRule`
+ning `overrides` ro'yxatida bu manba yo'q edi — demak unga GLOBAL
+qiymat (1:3) qo'llanardi. Natijada 1:2 va 1:3 orasidagi har bir
+nomzod strategiyadan o'tib, keyingi qadamda jimgina yo'q qilinardi.
+Sozlamadagi 2.0 raqami MAVJUD, lekin hech qachon amalda ishlamasdi.
+
+Bu loyihada takrorlanuvchi xato turi: **e'lon qilingan, lekin
+ulanmagan**. Avval BTC Dominance bilan (33-bo'lim), keyin Kill Zone
+bonusi bilan bo'lgan edi.
+
+Yechim `classic_ta_rules()` bilan bir xil naqsh:
+`correction_entry_trade_rules(config)` — YAGONA manba, ikkala tomon
+ham shundan o'qiydi.
+
+**TP quyi chegarasi ham boshqacha.** Global 3% `classic_ta` uchun
+(3.3-band TP ni 3–5% deb belgilaydi). Bu yerda TP tuzilmadan keladi:
+TP2 — impuls cho'qqisi, TP1 — yo'lning yarmi. Shuning uchun chegara
+o'ylab topilmaydi, CHIQARIB olinadi:
+
+    eng kichik TP1 = eng kichik Stop x min_risk_reward / 2
+
+Sozlama o'zgarsa chegara o'zi ergashadi.
+
+**TP yuqori chegarasi strategiyaning O'ZIDA tekshiriladi.** Yangi
+`levels:tp_too_far` rad etish sababi qo'shildi. Ilgari bunday nomzod
+strategiyadan o'tib, Risk Engine'da umumiy "risk qoidalari buzildi"
+xabari bilan tugardi — Jonli Oshxonada haqiqiy sabab ko'rinmasdi.
+Qoida oddiy: **strategiya Risk Engine rad etadigan narsani
+chiqarmasligi kerak.**
+
+**Testdagi "ijobiy yo'l" ham noto'g'ri edi.** Fixture 100 dan 150
+gacha impuls berardi, TP2 esa kirishdan 21.16% uzoqda chiqardi —
+ya'ni global 20% chegarasidan tashqarida. Test "signal chiqdi" deb
+o'tardi, lekin bu signal foydalanuvchiga hech qachon yetib
+bormasdi. Cho'qqi 145 ga tushirildi.
+
+---
+
+## 68. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

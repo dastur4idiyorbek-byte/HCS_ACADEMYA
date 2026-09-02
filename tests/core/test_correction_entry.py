@@ -69,9 +69,14 @@ def pasayish(n: int = 30, boshi: float = 200.0, qadam: float = 2.0) -> list[Cand
 def korreksiyali_zona() -> list[Candle]:
     """Impuls + korreksiya: Fibonacci va Order Block bir joyda.
 
-    100 dan 150 gacha ko'tarilish (Fib "oltin zona" 119.1-130.9),
-    impuls oldida Order Block (tanasi 121-124). Ikkisining kesishmasi
+    100 dan 145 gacha ko'tarilish, impuls oldida Order Block
+    (tanasi 121-124). Fibonacci "oltin zonasi" va OB kesishmasi
     121-124 — kirish zonasi. Narx shu zonaga qaytadi.
+
+    Cho'qqi NEGA 145: TP2 aynan cho'qqiga qo'yiladi va u kirishdan
+    `max_tp_distance_pct` (20%) dan uzoq bo'lmasligi kerak. Ilgari
+    bu yerda 150 turardi — ya'ni "ijobiy yo'l" testi haqiqatda
+    Risk Engine'dan o'tolmaydigan signalni tekshirardi.
     """
     return [
         sham(0, 100, 110, 99.5, 110),
@@ -80,10 +85,10 @@ def korreksiyali_zona() -> list[Candle]:
         sham(2, 124, 124.6, 120.4, 121),
         # Impuls yuqoriga
         sham(3, 121, 133, 120.9, 132),
-        sham(4, 132, 145, 131, 144),
-        sham(5, 144, 150, 143, 149),   # cho'qqi 150
+        sham(4, 132, 143, 131, 142),
+        sham(5, 142, 145, 141, 144),   # cho'qqi 145
         # Korreksiya pastga — zonaga qaytadi
-        sham(6, 149, 149.5, 140, 141),
+        sham(6, 144, 144.5, 140, 141),
         sham(7, 141, 142, 130, 131),
         sham(8, 131, 131.5, 123.5, 124),
         sham(9, 124, 124.4, 123.2, 123.8),  # zona ichida, tepasiga yaqin
@@ -237,7 +242,7 @@ def test_signal_chiqadi_va_stop_zona_ostida_turadi(strategiya) -> None:  # noqa:
     assert lv.entry > lv.stop
     assert lv.tp1 < lv.tp2
     # TP2 — impuls cho'qqisi (tuzilmadan, o'ylab topilgan foiz emas)
-    assert lv.tp2 == 150.0
+    assert lv.tp2 == 145.0
 
 
 def test_ball_confluence_va_korreksiyadan_chiqadi(strategiya) -> None:  # noqa: ANN001
@@ -320,3 +325,79 @@ def test_strategiya_plugin_shartnomasiga_mos(strategiya, config) -> None:  # noq
     tf = strategiya.required_timeframes()
     assert len(tf) == len(set(tf)), "timeframelar takrorlanmasligi kerak"
     assert config.strategies.correction_entry.confirm_timeframe in tf
+
+
+# --------------------------------------------------------------------------- #
+#  Risk Engine bilan bir xil raqamga tayanadimi
+# --------------------------------------------------------------------------- #
+
+
+def test_risk_engine_strategiyaning_nisbatini_qollaydi(config) -> None:  # noqa: ANN001
+    """Darajalarni QURGAN va TEKSHIRGAN raqam bitta bo'lishi SHART.
+
+    Bu ulanish yo'q edi: strategiya `min_risk_reward=2.0` deb ishlardi,
+    Risk Engine esa unga global 3.0 ni qo'llardi. Ya'ni 1:2 va 1:3
+    orasidagi HAR BIR nomzod strategiyadan o'tib, keyingi qadamda
+    jimgina yo'q qilinardi — sozlamadagi 2.0 raqami mavjud, lekin
+    hech qachon amalda ishlamasdi.
+    """
+    from core.domain.enums import SignalSource
+    from core.risk_engine.engine import build_default_rules
+
+    qoida = next(q for q in build_default_rules(config) if q.name == "trade_rules")
+    _min_tp, _max_tp, min_rr, _min_stop = qoida._bounds_for(SignalSource.CORRECTION_ENTRY)
+
+    assert min_rr == config.strategies.correction_entry.min_risk_reward
+
+
+def test_tuzilmaviy_signal_risk_engineda_bloklanmaydi(strategiya, config) -> None:  # noqa: ANN001
+    """Uchidan uchiga: strategiya bergan nomzod Risk Engine'dan o'tadi.
+
+    Alohida-alohida to'g'ri ishlaydigan ikki qism birga ishlamasligi
+    mumkin. Bu yerda aynan shu tekshiriladi — chunki ilgari ishlamasdi.
+    """
+    from core.domain.enums import SignalSource
+    from core.risk_engine.engine import build_default_rules
+
+    nomzod = strategiya.analyze(kirish(korreksiyali_zona(), kotarilish()))
+    assert nomzod is not None, "sinov shartini tekshiradi: nomzod bo'lishi kerak"
+    assert nomzod.source is SignalSource.CORRECTION_ENTRY
+
+    qoida = next(q for q in build_default_rules(config) if q.name == "trade_rules")
+    qaror = qoida.check(nomzod, None)
+
+    assert qaror.allowed, "; ".join(qaror.details)
+
+
+def test_tp_quyi_chegarasi_tuzilmadan_hisoblanadi(config) -> None:  # noqa: ANN001
+    """TP chegarasi o'ylab topilmaydi — sozlamadan CHIQARIB olinadi.
+
+    Global 3% `classic_ta` uchun (TP 3–5%). Bu yerda TP2 impuls
+    cho'qqisi, TP1 esa yo'lning yarmida — demak eng kichik TP1 =
+    eng kichik Stop x nisbat / 2. Sozlama o'zgarsa chegara ergashadi.
+    """
+    import dataclasses
+
+    from core.analysis.strategies.correction_entry import correction_entry_trade_rules
+
+    min_tp, _max_tp, _rr, _min_stop = correction_entry_trade_rules(config)
+    kutilgan = (
+        config.trade_rules.min_stop_distance_pct
+        * config.strategies.correction_entry.min_risk_reward
+        / 2
+    )
+    assert min_tp == kutilgan
+
+    qattiqroq = dataclasses.replace(
+        config,
+        strategies=dataclasses.replace(
+            config.strategies,
+            correction_entry=dataclasses.replace(
+                config.strategies.correction_entry, min_risk_reward=4.0
+            ),
+        ),
+    )
+    yangi_min_tp, _, yangi_rr, _ = correction_entry_trade_rules(qattiqroq)
+
+    assert yangi_rr == 4.0
+    assert yangi_min_tp > min_tp, "chegara sozlamaga ergashishi kerak"

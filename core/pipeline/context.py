@@ -178,6 +178,8 @@ STAGE_LABELS: dict[str, str] = {
     "correction_entry:levels": "Darajalar risk qoidasiga sig'madi",
     "correction_entry:levels:stop_too_close": "Tuzilmaviy Stop juda YAQIN",
     "correction_entry:levels:stop_too_far": "Tuzilmaviy Stop juda UZOQ",
+    "correction_entry:levels:tp_too_far": "TP juda UZOQ — cho'qqi haddan baland",
+    "correction_entry:levels:tp_too_close": "TP juda YAQIN — harakat kichik",
     "correction_entry:no_setup": "Shart bajarilmadi",
     "correction_entry:error": "Strategiya ichki xatosi",
 }

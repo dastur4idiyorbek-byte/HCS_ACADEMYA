@@ -75,6 +75,47 @@ class EntryPlan:
     retracement: float | None
 
 
+def correction_entry_trade_rules(config: AppConfig) -> tuple[float, float, float, float]:
+    """`correction_entry` uchun Risk Engine tekshiradigan chegaralar.
+
+    YAGONA MANBA TALABI. Darajalarni QURADIGAN kod (`_levels()`) va
+    ularni TEKSHIRADIGAN kod (`TradeRulesRule`) bir xil raqamga
+    tayanishi shart. Aks holda TP2 bir nisbat bo'yicha quriladi,
+    boshqasi bo'yicha rad etiladi — va strategiya jimgina o'lik
+    bo'lib qoladi.
+
+    Bu aynan shu yerda sodir bo'lgan edi: strategiya `min_risk_reward`
+    ni 2.0 deb e'lon qilardi, Risk Engine esa unga global 3.0 ni
+    qo'llardi (chunki `overrides` da bu manba yo'q edi). 2.0–3.0
+    oralig'idagi har bir nomzod strategiyadan o'tib, keyingi qadamda
+    yo'q qilinardi. Sozlamadagi 2.0 raqami mavjud, lekin ULANMAGAN
+    edi — loyihada takrorlanuvchi xato turi.
+
+    TP QUYI CHEGARASI ham boshqacha. Global 3% `classic_ta` uchun
+    (3.3-band TP ni 3–5% deb belgilaydi). Bu yerda TP TUZILMADAN
+    keladi: TP2 — impuls cho'qqisi, TP1 esa yo'lning yarmida. Ya'ni
+    eng kichik mumkin bo'lgan TP1 quyidagicha CHIQARIB olinadi:
+
+        eng kichik TP2 = eng kichik Stop x min_risk_reward
+        eng kichik TP1 = shuning yarmi
+
+    Raqam o'ylab topilmaydi — u strategiyaning o'z tuzilishidan
+    hisoblanadi va sozlama o'zgarsa o'zi ergashadi.
+
+    Returns:
+        `(min_tp_pct, max_tp_pct, min_risk_reward, min_stop_pct)`.
+    """
+    qoidalar = config.trade_rules
+    nisbat = config.strategies.correction_entry.min_risk_reward
+    eng_kichik_tp1 = qoidalar.min_stop_distance_pct * nisbat / 2
+    return (
+        eng_kichik_tp1,
+        qoidalar.max_tp_distance_pct,
+        nisbat,
+        qoidalar.min_stop_distance_pct,
+    )
+
+
 class CorrectionEntryStrategy(Strategy):
     """Korreksiya tugashini kutib, tuzilmaviy kirish nuqtasini qidiradi."""
 
@@ -240,6 +281,30 @@ class CorrectionEntryStrategy(Strategy):
                 f"1:{c.min_risk_reward} nisbat uchun joy yetmadi "
                 f"(Stop {reja.entry - reja.stop:.6g}, cho'qqi {impuls.high:.6g})",
             )
+
+        # TP masofasi Risk Engine chegarasidan chiqib ketmasin. Bu
+        # tekshiruv AYNAN shu yerda bo'lishi kerak: aks holda nomzod
+        # strategiyadan o'tib, keyingi qadamda umumiy "risk qoidalari
+        # buzildi" xabari bilan yo'q qilinardi va Jonli Oshxonada
+        # HAQIQIY sabab ko'rinmasdi.
+        eng_kichik_tp, eng_katta_tp, _, _ = correction_entry_trade_rules(self._config)
+        for nom, masofa in (
+            ("TP1", darajalar.tp1_distance_pct),
+            ("TP2", darajalar.tp2_distance_pct),
+        ):
+            if masofa > eng_katta_tp:
+                return self._reject(
+                    "levels:tp_too_far",
+                    f"{nom} juda uzoq ({masofa:.2f}% > {eng_katta_tp}%) — "
+                    "impuls cho'qqisi haddan tashqari baland, unga yetish "
+                    "ehtimoli past",
+                )
+            if masofa < eng_kichik_tp:
+                return self._reject(
+                    "levels:tp_too_close",
+                    f"{nom} juda yaqin ({masofa:.2f}% < {eng_kichik_tp}%) — "
+                    "harakat komissiya va shovqinni ham qoplamaydi",
+                )
 
         tafsilot = self._score(data.symbol, reja, impuls, zona_shamlar)
         logger.info(
