@@ -43,22 +43,45 @@ jobs:
       - name: Kutubxonalar
         run: pip install -r requirements.txt
 
+      # Kesh kaliti VERGUL saqlamaydi — GitHub uni rad etadi va butun
+      # ish shu yerda to'xtaydi. Shuning uchun "BTC,ETH" -> "BTC-ETH".
+      #
+      # Qiymat `env` orqali beriladi, `run` matniga to'g'ridan-to'g'ri
+      # qo'yilmaydi: aks holda kiritilgan matn buyruqning bir qismiga
+      # aylanib qolishi mumkin.
+      - name: Kesh kaliti
+        id: kalit
+        env:
+          SYMBOLS: ${{ inputs.symbols }}
+          DAYS: ${{ inputs.days }}
+        run: |
+          COINLAR=$(printf '%s' "$SYMBOLS" | tr ',' '-' | tr -cd 'A-Za-z0-9-')
+          KUNLAR=$(printf '%s' "$DAYS" | tr -cd '0-9')
+          echo "qiymat=candles-$COINLAR-$KUNLAR" >> "$GITHUB_OUTPUT"
+          echo "asos=candles-$COINLAR-" >> "$GITHUB_OUTPUT"
+
       # Yuklangan shamlar saqlanadi — keyingi ishga tushirishda
-      # Binance'dan qayta so'ralmaydi.
+      # Binance'dan qayta so'ralmaydi. Kesh nosozligi backtestni
+      # to'xtatmasligi kerak: u tezlik uchun, natija uchun emas.
       - name: Sham keshi
         uses: actions/cache@v4
+        continue-on-error: true
         with:
           path: data/candles
-          key: candles-${{ inputs.symbols }}-${{ inputs.days }}
-          restore-keys: candles-${{ inputs.symbols }}-
+          key: ${{ steps.kalit.outputs.qiymat }}
+          restore-keys: ${{ steps.kalit.outputs.asos }}
 
       - name: Backtest
+        env:
+          DAYS: ${{ inputs.days }}
+          SYMBOLS: ${{ inputs.symbols }}
+          BASE_URL: ${{ inputs.base_url }}
         run: |
           python -m scripts.backtest \
             --compare \
-            --days "${{ inputs.days }}" \
-            --symbols "${{ inputs.symbols }}" \
-            --base-url "${{ inputs.base_url }}" \
+            --days "$DAYS" \
+            --symbols "$SYMBOLS" \
+            --base-url "$BASE_URL" \
             --output natija.txt
 
       - name: Natijani saqlash
