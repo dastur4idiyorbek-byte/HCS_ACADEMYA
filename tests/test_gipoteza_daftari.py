@@ -56,6 +56,8 @@ DAFTARSIZ = {
     "confirm_timeframe", "trend_timeframe", "timeframe",
     # sana va muddat
     "boshlandi", "kunlar", "session_open_utc", "start_date",
+    # post jadvali — bozor haqida emas, e'lon vaqti haqida
+    "kunlik_soat_utc", "haftalik_kun", "haftalik_soat_utc",
 }
 
 

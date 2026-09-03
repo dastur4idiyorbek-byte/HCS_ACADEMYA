@@ -1073,6 +1073,22 @@ class PortfolioConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class BozorKorinishiConfig:
+    """Sayt uchun haftalik va kunlik qarash.
+
+    SIGNALGA BOG'LANMAYDI — loyiha egasining sharti. Asosiy
+    tahlil 4 soatlikda qoladi, bu esa faqat saytdagi post.
+    """
+
+    enabled: bool = True
+    #: Kunlik post soati (UTC).
+    kunlik_soat_utc: int = 5
+    #: Haftalik post kuni (0 — dushanba) va soati.
+    haftalik_kun: int = 0
+    haftalik_soat_utc: int = 5
+
+
+@dataclass(frozen=True, slots=True)
 class PostmortemConfig:
     """3.8-band: o'z-o'zini tekshirish sozlamalari."""
 
@@ -1316,6 +1332,9 @@ class AppConfig:
     market_health: MarketHealthConfig = field(default_factory=MarketHealthConfig)
     portfolio: PortfolioConfig = field(default_factory=PortfolioConfig)
     postmortem: PostmortemConfig = field(default_factory=PostmortemConfig)
+    bozor_korinishi: BozorKorinishiConfig = field(
+        default_factory=BozorKorinishiConfig
+    )
     position_sizing: PositionSizingConfig = field(default_factory=PositionSizingConfig)
     strategies: StrategiesConfig = field(default_factory=StrategiesConfig)
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)

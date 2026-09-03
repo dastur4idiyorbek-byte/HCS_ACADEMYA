@@ -46,6 +46,7 @@ from core.domain.portfolio import (
 )
 from core.storage.models import (
     AuditReport,
+    BozorKesimi,
     CoinRuling,
     Content,
     DailyStat,
@@ -60,6 +61,7 @@ from core.storage.models import (
     UserPosition,
     Violation,
 )
+from core.storage.models import BozorKorinishi as BozorKorinishiRecord
 from core.storage.models import (
     SignalEvent as SignalEventRow,
 )
@@ -889,6 +891,84 @@ def _davr_harfi(health: MarketHealth) -> str | None:
             harf = omil.explanation[len(belgi) :].strip()[:1]
             return harf if harf in {"A", "M", "D", "X"} else None
     return None
+
+
+class BozorKesimiRepository:
+    """Sayt uchun bozor kesimlari tarixi.
+
+    NIMA UCHUN KERAK. BTC.D, USDT.D, TOTAL va boshqalar birjadan
+    sham sifatida kelmaydi — manba faqat HOZIRGI holatni beradi.
+    Yo'nalishni aytish uchun esa tarix kerak, va uni o'zimiz
+    yig'amiz.
+
+    SIGNALGA BOG'LANMAYDI: bu ma'lumot faqat sayt postida
+    ishlatiladi (loyiha egasining sharti).
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def yozish(self, kod: str, qiymat: float, olingan: datetime) -> BozorKesimi:
+        yozuv = BozorKesimi(kod=kod, qiymat=qiymat, olingan=olingan)
+        self._session.add(yozuv)
+        await self._session.flush()
+        return yozuv
+
+    async def tarix(self, kod: str, limit: int = 30) -> list[float]:
+        """Eng eskisidan eng yangisiga — `korinish_qur()` shunday kutadi."""
+        stmt = (
+            select(BozorKesimi)
+            .where(BozorKesimi.kod == kod)
+            .order_by(BozorKesimi.olingan.desc())
+            .limit(limit)
+        )
+        yozuvlar = list((await self._session.execute(stmt)).scalars())
+        return [y.qiymat for y in reversed(yozuvlar)]
+
+    async def oxirgi_vaqt(self, kod: str) -> datetime | None:
+        """Shu kod uchun oxirgi yozuv vaqti — takror yozmaslik uchun."""
+        stmt = (
+            select(BozorKesimi.olingan)
+            .where(BozorKesimi.kod == kod)
+            .order_by(BozorKesimi.olingan.desc())
+            .limit(1)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+
+class BozorKorinishiRepository:
+    """Tayyor postlar — saytning yagona manbai."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def saqlash(
+        self,
+        turi: str,
+        sana: datetime,
+        asboblar_json: str,
+        xulosa: str,
+        kutilma: str,
+    ) -> BozorKorinishiRecord:
+        yozuv = BozorKorinishiRecord(
+            turi=turi,
+            sana=sana,
+            asboblar_json=asboblar_json,
+            xulosa=xulosa,
+            kutilma=kutilma,
+        )
+        self._session.add(yozuv)
+        await self._session.flush()
+        return yozuv
+
+    async def oxirgisi(self, turi: str) -> BozorKorinishiRecord | None:
+        stmt = (
+            select(BozorKorinishiRecord)
+            .where(BozorKorinishiRecord.turi == turi)
+            .order_by(BozorKorinishiRecord.sana.desc())
+            .limit(1)
+        )
+        return (await self._session.execute(stmt)).scalar_one_or_none()
 
 
 class MarketHealthRepository:

@@ -553,3 +553,55 @@ class MarketHealthLog(Base, TimestampMixin):
     detail: Mapped[str | None] = mapped_column(Text)
 
     __table_args__ = (Index("ix_market_health_created", "created_at"),)
+
+
+class BozorKesimi(Base, TimestampMixin):
+    """Sayt uchun bozor kesimlari — BTC.D, USDT.D, TOTAL, TOTAL2/3, OTHERS.
+
+    NIMA UCHUN SAQLANADI. Bu qiymatlar birjadan SHAM sifatida
+    kelmaydi: manba faqat HOZIRGI holatni beradi. Yo'nalish esa
+    tarixsiz aniqlanmaydi. Shuning uchun har kuni bir marta
+    yozib boramiz va tarix shundan yig'iladi.
+
+    SIGNALGA BOG'LANMAYDI. Loyiha egasining sharti: haftalik va
+    kunlik qarash faqat sayt uchun, asosiy tahlil 4 soatlikda
+    qoladi.
+    """
+
+    __tablename__ = "bozor_kesimlari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: `BTC.D`, `USDT.D`, `TOTAL`, `TOTAL2`, `TOTAL3`, `OTHERS`
+    kod: Mapped[str] = mapped_column(String(16), nullable=False)
+    qiymat: Mapped[float] = mapped_column(Float, nullable=False)
+    olingan: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
+
+    __table_args__ = (
+        Index("ix_bozor_kesim_kod_vaqt", "kod", "olingan"),
+    )
+
+
+class BozorKorinishi(Base, TimestampMixin):
+    """Tayyor POST — hafta boshida va kun boshida.
+
+    NIMA UCHUN TAYYOR HOLDA SAQLANADI. Postni bot quradi: unda
+    BTC va ETH shamlari bor, saytda esa yo'q. Sayt uni qayta
+    hisoblasa, ikkita joyda ikkita javob paydo bo'lardi — bu
+    loyihada besh marta uchragan xato turi.
+
+    Sayt faqat O'QIYDI va ko'rsatadi.
+    """
+
+    __tablename__ = "bozor_korinishlari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: `haftalik` yoki `kunlik`
+    turi: Mapped[str] = mapped_column(String(16), nullable=False)
+    sana: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
+    #: Qatorlar JSON ko'rinishida: kod, nom, qiymat, o'zgarish, yo'nalish
+    asboblar_json: Mapped[str] = mapped_column(Text, nullable=False)
+    xulosa: Mapped[str] = mapped_column(Text, nullable=False)
+    #: An'anaviy o'qish — KAFOLAT EMAS, matnda ham shunday yozilgan
+    kutilma: Mapped[str] = mapped_column(Text, nullable=False)
+
+    __table_args__ = (Index("ix_bozor_korinish_turi_sana", "turi", "sana"),)

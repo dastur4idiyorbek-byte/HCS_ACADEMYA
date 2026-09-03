@@ -767,8 +767,26 @@ postmortem:
   # Haftalik hisobot qaysi kun yuboriladi (Monday=0 ... Sunday=6)
   report_weekday: 0
   report_hour_utc: 6
+
   # Faol bo'lgach shu vaqt ichida Stop yesa — "yolg'on signal"
   false_signal_window_minutes: 60
+
+# SAYT UCHUN BOZOR KO'RINISHI — haftalik va kunlik qarash.
+#
+# LOYIHA EGASINING SHARTI: bu SIGNALGA BOG'LANMAYDI. Asosiy
+# tahlil 4 soatlikda qoladi. Haftalik va kunlik — faqat saytdagi
+# post: BTC, ETH, BTC.D, USDT.D, TOTAL, TOTAL2, TOTAL3, OTHERS.
+#
+# Bir marta rejim sifatida sinalgan (haftalik/kunlik 4 soatlik
+# kirishni to'sadigan qilib) va O'LCHOV UNI RAD ETGAN:
+# PF 0.84 -> 0.75 (docs/BACKTEST_NATIJA_2026-09-03.md). Qaror ham,
+# o'lchov ham bir xil javob berdi.
+bozor_korinishi:
+  enabled: true
+  kunlik_soat_utc: 5
+  haftalik_kun: 0        # dushanba
+  haftalik_soat_utc: 5
+
 
 # --- 1.2-band: obuna ---
 subscriptions:

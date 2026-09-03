@@ -94,6 +94,10 @@ class PipelineRunner:
         self._candles = candles
         self._ranking = ranking
         self._watcher = watcher
+        #: Sham manbai — fon vazifalari ham ishlatadi (bozor ko'rinishi).
+        #: Yangi provayder qurish o'rniga bittasi bo'lishi kerak: aks
+        #: holda ikkita ulanish va ikkita limit hisobi paydo bo'lardi.
+        self.candles = candles
         self._dominance = dominance
 
         self._strategies = build_strategies(config)

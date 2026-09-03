@@ -29,6 +29,10 @@ export const MENYU: MenyuBandi[] = [
   // savolning ikki yarmi: "bozor qanday?" va "shuning uchun bugun nima
   // bo'ldi?".
   { kod: "salomatlik", yol: "/salomatlik", kalit: "menyu.salomatlik", belgi: "🩺", talab: null },
+  // Bozor ko'rinishi — haftalik va kunlik qarash. SIGNAL EMAS:
+  // loyiha egasining sharti bo'yicha asosiy tahlil 4 soatlikda
+  // qoladi, bu sahifa esa umumiy manzarani ko'rsatadi.
+  { kod: "bozor", yol: "/bozor", kalit: "menyu.bozor", belgi: "🌍", talab: null },
   { kod: "signallar", yol: "/signallar", kalit: "menyu.signallar", belgi: "📈", talab: "lite" },
   { kod: "video", yol: "/video", kalit: "menyu.video", belgi: "🎬", talab: "pro" },
   { kod: "kurs", yol: "/kurs", kalit: "menyu.kurs", belgi: "🎓", talab: null, tezKunda: true },

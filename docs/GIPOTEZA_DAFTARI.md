@@ -802,6 +802,55 @@ tasdiqni kutish ham yordam bermaydi va muammo boshqa joyda.
 
 ---
 
+## Natija #12 — KITOB USULI RAD ETILDI
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| ⚫ | `narx_harakati.enabled` | false | win 28.9% → 21.3%, PF 0.84 → 0.74 |
+| ⚫ | `tasdiq_shami_shart` | true | tasdiqsiz variant BIROZ YAXSHIROQ (0.85 vs 0.84) |
+| ⚫ | `qayta_sinov_oynasi` | 12 | 5 bilan natija AYNAN bir xil — ta'sirsiz |
+
+### Eng muhim raqam
+
+```
+                         o'rtacha savdo
+classic_ta                   −0.46%
+narx harakati (kitob)        −0.46%
+```
+
+Ikkita BUTUNLAY BOSHQA kirish mexanizmi — biri arzon zonada
+kiradi, ikkinchisi yorilish va qayta sinovni kutadi — va bitta
+savdodagi natija AYNAN teng.
+
+"Jami natija yaxshiroq" (−138.7 vs −277.7) aldamasin: savdo soni
+ikki barobar kam. Bu naqsh loyihada oltinchi marta uchradi.
+
+### Yangi xulosa — oldingisidan qattiqroq
+
+Sakkizta to'plam, kirish tomonida beshta rad etish. Endi ikkita
+mustaqil dalil bitta narsani aytadi:
+
+> 4 soatlik shamlardan hisoblanadigan hech bir naqsh keyingi
+> harakatni oldindan aytmayapti. Qaysi qoidani qo'ymaylik,
+> o'rtacha natija bir xil chiqmoqda.
+
+### Bitta foydali farq
+
+Kitob usuli ancha TINCH: pasayish 451% dan 185% ga tushdi.
+Foyda bermaydi, lekin kapitalni kamroq silkitadi. Bu — qaror
+uchun ma'lumot, tavsiya emas.
+
+---
+
+## Bozor ko'rinishi (sayt) — GIPOTEZA EMAS
+
+`bozor_korinishi` sozlamalari daftarga kirmaydi: ular bozor
+haqida emas, POST VAQTI haqida. Modul signalga umuman
+bog'lanmaydi va `tests/core/test_bozor_korinishi.py` buni kod
+bilan qulflaydi.
+
+---
+
 ## Natija #11 — REJIM RAD ETILDI, skalp qarori TASDIQLANDI
 
 | Holat | Sozlama | Qiymat | Izoh |

@@ -22,8 +22,10 @@ from aiogram.types import FSInputFile
 
 from bot.hosting import video_dir
 from bot.i18n import DEFAULT_LANGUAGE, t
+from bot.services.bozor_korinishi import BozorKorinishiXizmati
 from bot.services.broadcast import broadcast_signal, obunachilar
 from bot.services.runner import PipelineRunner, cycle_interval
+from core.analysis.bozor_korinishi import KorinishTuri
 from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import OrderType
@@ -101,6 +103,14 @@ class Scheduler:
             ),
             ("subscriptions", timedelta(hours=1), self._check_subscriptions, timedelta(minutes=2)),
             ("weekly-report", timedelta(hours=24), self._weekly_report, timedelta(minutes=5)),
+            # SAYT UCHUN BOZOR KO'RINISHI — signalga bog'lanmaydi.
+            # Soatiga bir marta tekshiriladi, kuniga bir marta yozadi.
+            (
+                "bozor-korinishi",
+                timedelta(hours=1),
+                self._bozor_korinishi,
+                timedelta(minutes=3),
+            ),
             ("cleanup", timedelta(hours=24), self._cleanup, timedelta(minutes=10)),
             # Veb-panelda yaratilgan signallar shu vazifa orqali hayotga
             # kiradi. Oraliq qisqa: signal yozilgandan keyin obunachiga
@@ -295,6 +305,38 @@ class Scheduler:
             logger.info(
                 "Dars videosi Telegramga chiqdi: id=%s sarlavha=%s", content_id, sarlavha
             )
+
+    async def _bozor_korinishi(self) -> None:
+        """Sayt uchun haftalik va kunlik qarash.
+
+        SIGNALGA BOG'LANMAYDI — loyiha egasining sharti. Bu
+        vazifa `PipelineRunner` ni chaqirmaydi va hech bir
+        strategiyaga ta'sir qilmaydi. Yagona natijasi — bazaga
+        yoziladigan post.
+        """
+        sozlama = self._config.bozor_korinishi
+        if not sozlama.enabled:
+            return
+
+        hozir = utc_now()
+        if hozir.hour != sozlama.kunlik_soat_utc:
+            return
+
+        xizmat = BozorKorinishiXizmati(
+            self._db, self._config, self._runner.candles
+        )
+        try:
+            yangilandi = await xizmat.kunlik_yozuv(hozir)
+            if not yangilandi:
+                return
+            await xizmat.post_qur(KorinishTuri.KUNLIK, hozir)
+            if (
+                hozir.weekday() == sozlama.haftalik_kun
+                and hozir.hour == sozlama.haftalik_soat_utc
+            ):
+                await xizmat.post_qur(KorinishTuri.HAFTALIK, hozir)
+        finally:
+            await xizmat.close()
 
     async def _weekly_report(self) -> None:
         """3.8-band: haftalik o'z-o'zini tekshirish hisoboti (faqat admin)."""

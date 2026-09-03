@@ -5337,7 +5337,103 @@ ortiqcha ko'rayotgan bo'lishi mumkin — bu tekshirilmagan.
 
 ---
 
-## 87. Bosqichlar holati
+## 87. Kitobning yadrosi o'lchandi — va rad etildi
+
+Loyiha egasi manba berdi: "PRICE ACTION STRATEGIES — TOP 15"
+(`docs/NARX_HARAKATI_STRATEGIYALARI.md`). To'qqizta XARID
+strategiyasidan oltitasi aynan bir xil uch qadamni takrorlaydi:
+
+    1. daraja YORIB o'tiladi
+    2. narx unga QAYTA SINOVGA keladi
+    3. o'sha yerda BUQASIMON sham  ->  kirish
+
+Bizda bu yo'q edi — `classic_ta` qaytishni kutmaydi va tasdiq
+so'ramaydi. Kitob esa aynan shu xatoni ogohlantiradi.
+
+`core/analysis/narx_harakati.py` + alohida strategiya qurildi.
+Faqat XARID: kitobdagi sotish naqshlari umuman qurilmagan
+(loyiha egasining sharti va kitobning o'z qoidasi).
+
+### NATIJA
+
+```
+                         signal    win     PF    o'rtacha
+classic_ta                  603   28.9%   0.84    −0.46%
+narx harakati (kitob)       300   21.3%   0.74    −0.46%
+```
+
+**Bitta savdodagi natija AYNAN BIR XIL.** Ikkita butunlay
+boshqa kirish mexanizmi, bir xil o'rtacha. Win-rate esa
+pasaydi.
+
+Kitobning eng ko'p takrorlangan qoidasi — buqasimon shamni
+kutish — ham yordam bermadi: tasdiqsiz variant biroz
+yaxshiroq chiqdi (PF 0.85 vs 0.84).
+
+### XULOSA QATTIQLASHDI
+
+Sakkizta to'plam, kirish tomonida beshta rad etish. Endi
+ikkita mustaqil dalil bitta narsani aytadi:
+
+> 4 soatlik shamlardan hisoblanadigan hech bir naqsh keyingi
+> harakatni oldindan aytmayapti.
+
+### BITTA FOYDALI FARQ
+
+Kitob usuli tinch: pasayish 451% dan 185% ga tushdi, savdo
+soni ikki barobar kam. Foyda bermaydi, lekin kapitalni kamroq
+silkitadi.
+
+---
+
+## 88. Sayt uchun bozor ko'rinishi — signaldan AJRATILGAN
+
+Loyiha egasining sharti:
+
+> "Haftalik va kunlik shunchaki qarash. Asosiy tahlil 4
+>  soatlik. Bu umumiy ta'sir qilmaydi, faqat veb sayt uchun
+>  post. San uni 4 soatlikka bog'lama."
+
+Bu shart 86-bo'limdagi rejim tajribasidan keyin keldi va u
+bilan bir xil javob beradi: rejim (haftalik/kunlik 4 soatlik
+kirishni to'sadigan qilib) O'LCHANDI VA RAD ETILDI —
+PF 0.84 → 0.75.
+
+Ya'ni qaror ham, o'lchov ham bir tomonda.
+
+### QURILDI
+
+    core/analysis/bozor_korinishi.py    postni quradi (sof)
+    core/market_data/global_metrics.py  TOTAL va ustunliklar
+    bot/services/bozor_korinishi.py     yozadi va saqlaydi
+    web .../bozor/page.tsx              ko'rsatadi
+
+Ko'rsatiladigan ro'yxat loyiha egasi bergani: BTC, ETH, BTC.D,
+USDT.D, TOTAL, TOTAL2, TOTAL3, OTHERS.
+
+### NIMA UCHUN QIYMATLAR SAQLANADI
+
+BTC.D, TOTAL va hosilalari birjadan SHAM sifatida kelmaydi —
+manba faqat hozirgi holatni beradi. Yo'nalish esa tarixsiz
+aniqlanmaydi, shuning uchun har kuni o'zimiz yozib boramiz
+(`bozor_kesimlari` jadvali).
+
+### AJRALISH KOD BILAN QULFLANGAN
+
+`tests/core/test_bozor_korinishi.py` strategiya va quvur
+fayllarini skanerlaydi. Ularda `bozor_korinishi` so'zi paydo
+bo'lsa test yiqiladi. Izoh yozib qo'yish yetarli emas —
+loyihada izoh bir necha marta koddan ajralib ketgan.
+
+### TAXMIN YOZILMAYDI
+
+Post FAKT beradi: qiymat, o'zgarish, yo'nalish. "Kutilma"
+qatori esa an'anaviy o'qishdan iborat va har safar "Kafolat
+emas" deb belgilanadi — test buni ham tekshiradi.
+
+---
+
+## 89. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|
