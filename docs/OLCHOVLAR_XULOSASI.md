@@ -72,6 +72,41 @@ ochiq statistika bilan qoladi.
 
 ---
 
+---
+
+## ESKI TIZIM YOPILDI — 2026-09-03
+
+Yuqoridagi 16 o'lchov ESKI, 100 balllik tahlil moduliga tegishli.
+O'sha modul 2026-09-03 da butunlay o'chirildi
+(`docs/OCHIRISH_ROYXATI.md`) va o'rniga to'rt blokli zanjir
+qurildi (`docs/YANGI_TAHLIL_MODULI.md`).
+
+**Bu jadval TARIX sifatida qoladi va hech qachon o'chirilmaydi.**
+Sabab: yangi tizimda "yana bitta narsa qo'shaylik" degan taklif
+kelganda, javob shu yerda turibdi — o'n oltita urinishdan bittasi
+ishlagan.
+
+### Yangi tizimga KO'CHIRILGAN uchta saboq
+
+| Saboq | Qayerdan | Yangi tizimda qanday |
+|---|---|---|
+| TP1/Stop poli ishlaydi | #8, #9 (PF 0.30 → 0.84) | `darajalar.tp1_eng_kam_nisbat` — pol SAQLANDI |
+| Surilgan Stop zarar keltiradi | #16 (PF 0.84 → 0.36) | `trailing_yoqilgan: false`, faqat TP2 dan keyin |
+| Ball tizimining 60% i bo'sh | #13 (ablatsiya) | Ball YO'Q — zanjir, va ablatsiya MAJBURIY |
+
+### Yangi tizimning o'lchovlari QAYERDA bo'ladi
+
+Yangi natijalar shu faylga QO'SHILMAYDI — ular alohida boshlanadi
+(`BACKTEST_NATIJA_2026-09-XX_zanjir.md`). Ikkalasini aralashtirish
+xato bo'lardi: eski raqamlar boshqa arxitekturaga tegishli va
+ularni yangisi bilan solishtirib bo'lmaydi.
+
+Yagona solishtiriladigan raqam — **tayanch**: coinni olib ushlab
+turish (+31.5%). U ikkala tizim uchun ham bir xil savol beradi:
+"bu strategiya hech narsa qilmaslikdan yaxshiroqmi?"
+
+---
+
 ## To'liq hujjatlar
 
     #1-#9    docs/BACKTEST_NATIJA_2026-09-02*.md
