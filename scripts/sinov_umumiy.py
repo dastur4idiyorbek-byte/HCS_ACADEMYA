@@ -56,6 +56,19 @@ def umumiy_argumentlar(parser: argparse.ArgumentParser) -> None:
         default=None,
         help="tahlil qadamlari soni — tez sinab ko'rish uchun",
     )
+    # STANDART "WARNING", `scripts.backtest` dagi "INFO" emas.
+    #
+    # Bu skriptlar o'nlab backtestni ketma-ket yuritadi va INFO
+    # darajasida har qadam uchun bir necha satr yoziladi: GitHub
+    # Actions logi bir necha million belgi bo'lib ketadi va oxiridagi
+    # JADVALNI o'sha uyumdan qidirish kerak bo'ladi. Hisobot baribir
+    # `reports/` ga to'liq yoziladi, ya'ni hech narsa yo'qolmaydi.
+    parser.add_argument(
+        "--log-level",
+        default="WARNING",
+        choices=("DEBUG", "INFO", "WARNING", "ERROR"),
+        help="jurnal darajasi (standart: WARNING — jadval ko'rinib tursin)",
+    )
 
 
 async def malumot_tayyorla(
@@ -72,7 +85,7 @@ async def malumot_tayyorla(
     from core.utils.logging_setup import setup_logging
     from scripts.backtest import KeshYetishmaydi, _yukla
 
-    setup_logging(level="INFO")
+    setup_logging(level=argumentlar.log_level)
     config = load_config()
     if argumentlar.base_url:
         config = dataclasses.replace(
