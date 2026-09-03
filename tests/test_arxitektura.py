@@ -59,25 +59,43 @@ def test_core_bot_paketiga_boglanmagan(fayl: Path) -> None:
     )
 
 
-def test_spetsifikatsiyadagi_barcha_papkalar_mavjud() -> None:
-    """7-bo'lim 1-bosqich: struktura BOSHIDANOQ to'liq bo'lishi kerak."""
+def test_infratuzilma_papkalari_mavjud() -> None:
+    """Tahlil modulidan MUSTAQIL qatlamlar — ular hech qachon yo'qolmasin.
+
+    2026-09-03 — eski `core/analysis/*` ro'yxati bu yerdan chiqarildi:
+    o'sha modul butunlay o'chirildi. Yangi tahlil moduli qurilgan sari
+    uning papkalari `test_yangi_modul_papkalari` ga qo'shiladi — ikki
+    ro'yxat ataylab alohida: biri O'ZGARMAYDIGAN poydevor, ikkinchisi
+    O'SIB BORADIGAN qurilish.
+    """
     kutilgan = [
-        "core/analysis/support_resistance",
-        "core/analysis/indicators",
-        "core/analysis/scoring",
-        "core/analysis/market_health",
-        "core/analysis/postmortem",
-        "core/analysis/strategies",
         "core/risk_engine",
         "core/position_sizing",
         "core/halal_screening",
         "core/market_data",
         "core/backtest",
+        "core/storage",
+        "core/domain",
+        "core/config",
         "bot/handlers",
         "bot/i18n",
     ]
     yetishmayotgan = [yol for yol in kutilgan if not (LOYIHA / yol).is_dir()]
     assert not yetishmayotgan, f"Yetishmayotgan papkalar: {yetishmayotgan}"
+
+
+def test_yangi_modul_papkalari() -> None:
+    """2-prompt, 9-qism: yangi tahlil moduli qurilgan qismlari.
+
+    Ro'yxat HAR BOSQICHDA o'sadi. Hozir 1-bosqich bajarilgan:
+    market_data ichida Bitget mijozi va narx solishtirish.
+    """
+    kutilgan = [
+        "core/market_data/bitget.py",
+        "core/market_data/price_reconciliation.py",
+    ]
+    yetishmayotgan = [yol for yol in kutilgan if not (LOYIHA / yol).exists()]
+    assert not yetishmayotgan, f"Yetishmayotgan fayllar: {yetishmayotgan}"
 
 
 def test_har_bir_paket_hujjatlangan() -> None:
