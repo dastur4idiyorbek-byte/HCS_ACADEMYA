@@ -5551,3 +5551,93 @@ tanlash mexanizmi haqiqiy ustunlik bermayapti.
 | 15 | Hammasini bog'lash | ✅ |
 | 16 | Backtest mexanizmi | ✅ (haqiqiy ma'lumot serverda kerak) |
 | 17 | Yakuniy test, migratsiya, joylashtirish | ✅ |
+
+---
+
+## 92. YANGI TAHLIL MODULI — to'rt blokli zanjir (2026-09-03)
+
+Eski modul butunlay o'chirildi (`OCHIRISH_ROYXATI.md`) va o'rniga
+boshqa arxitektura qurildi. To'liq tavsif:
+`docs/YANGI_TAHLIL_MODULI.md`.
+
+### Nima o'zgardi — bitta jumlada
+
+```
+ESKI:  6 omil QO'SHILADI    -> yig'indi chegara bilan solishtiriladi
+YANGI: 4 blok KETMA-KET     -> biri bo'sh bo'lsa zanjir UZILADI
+```
+
+Yig'indida bitta kuchli omil qolgan beshtasining yo'qligini yopib
+ketardi. Zanjirda bunday almashtirish mumkin emas — har bir blok
+o'z halqasi.
+
+### Uchinchi holat: `MALUMOT_YOQ`
+
+Bu — modulning eng muhim qarori va u loyihaning eng qimmat
+saboqidan kelib chiqadi.
+
+Har bir tekshiruv UCHTA javob beradi: `HA`, `YOQ`, `MALUMOT_YOQ`.
+Uchinchisi blok MAXRAJIGA kirmaydi.
+
+Nima uchun: fundamental manbalarning yarmida 2 yillik tarix yo'q
+(`FUNDAMENTAL_MALUMOT_MANBALARI.md`). "Ma'lumot yo'q" ni "yo'q" deb
+hisoblasak, backtestda 1-blok doim 0/4 chiqib zanjir HECH QACHON
+ulanmasdi — ya'ni biz strategiyani emas, ma'lumot yetishmasligini
+o'lchagan bo'lardik.
+
+Blok "2/4" o'rniga halol "1/2" yozadi.
+
+### Zona bloki boshqalaridan farq qiladi
+
+Blok 1, 2 va 4 da har bir ichki tekshiruv MUSTAQIL ovoz. Blok 3 da
+esa Fib/OB/FVG — bir-birini ICHIGA OLGAN qatlamlar:
+
+```
+faqat Fib         ZAIF
+Fib + OB          O'RTA
+Fib + OB + FVG    KUCHLI
+```
+
+OB va FVG faqat Fib zonasi bilan KESISHSA hisoblanadi. Aks holda
+grafikning boshqa-boshqa joyidagi uchta zona "3/4 kuchli" deb
+o'qilardi — aslida ular uchta alohida daraja, konfluensiya emas.
+
+Zona natijasi Entry va Stop uchun ham ishlatiladi: qatlamlarning
+KESISHMASI olinadi (birlashma emas — u Stopni uzoqlashtirib R/R ni
+buzardi).
+
+### Eski xatolar qaytarilmadi — ro'yxat
+
+| Eski xato | Yangi tizimda |
+|---|---|
+| `entry = joriy narx` (LIMIT tarmog'i o'lik edi) | Entry zona ichida yoki zona chetida |
+| Qat'iy foizli Stop/TP | Zona chetidan va struktura nuqtalaridan |
+| Ko'p qat'iy "VA" filtri, voronka nolga | Blok 1/4 bilan ham o'tadi |
+| Ma'lumotsiz omil ball berardi | `MALUMOT_YOQ` maxrajdan chiqadi |
+| Pastki TF uchun ALOHIDA kod | O'sha funksiyalar qayta chaqiriladi |
+| Trailing Stop TP1 dan oldin | Faqat TP2 dan keyin, standart holatda O'CHIQ |
+
+### Yassi grafik tuzatildi (qurish paytida topilgan)
+
+Birinchi versiyada `qarshi_choch_yoq` yo'nalish umuman aniqlanmagan
+holatda ham `True` qaytardi. Oqibati: YASSI, o'lik grafik ham
+"qarshi CHOCH yo'q ✅" olardi va struktura bloki 1/3 bilan o'tardi
+— ya'ni hech narsa bo'lmagani "yaxshi xabar" deb o'qilardi.
+
+Endi na BOS, na CHOCH bo'lsa `None` qaytadi va tekshiruv
+o'lchanmagan deb belgilanadi. Bu — eski tizimni o'ldirgan naqshning
+aynan o'zi edi (hissa qo'shmaydigan omil ball berardi).
+
+### Bosqichma-bosqich holat (6-qism)
+
+`state_tracker.py` zanjirni har sham yopilganda to'liq qayta
+hisoblamaydi. Tartib QAT'IY:
+
+1. Eski "to'liq" bloklar TEZ tekshiriladi (qattiq to'siq / qarshi
+   CHOCH / narx zonadan chiqdimi)
+2. Buzilgan bo'lsa — o'sha blokdan KEYINGI hammasi bekor qilinadi
+3. Faqat shundan keyin — hali to'lmagan blok yangilanadi
+
+Teskarisi bo'lsa: 4-blok tasdiqlanadi, signal chiqadi, va faqat
+keyin 2-blokning buzilgani ma'lum bo'lardi — signal ALLAQACHON
+yuborilgan bo'lardi.
