@@ -979,3 +979,48 @@ strategiya emas:
 | Holat | Savol |
 |---|---|
 | 🔴 | `max_open_signals` (5) chegarasi eng yaxshi nomzodni tanlaydimi yoki BIRINCHI kelganini |
+
+---
+
+## 2026-09-03 — 9-to'plam: CHIQISH TOMONI (oxirgi yo'nalish)
+
+### Nima uchun aynan shu
+
+O'n besh o'lchov davomida natijani FAQAT bitta narsa qimirlatdi:
+TP1 nisbat poli (PF 0.30 -> 0.84). U chiqish tomonida edi.
+
+Kirish tomonida sakkizta g'oya sinaldi va hammasi rad etildi. Eng
+aniq dalil: ikkita BUTUNLAY BOSHQA kirish mexanizmi aynan bir xil
+natija berdi (−0.46%). Ya'ni "o'ntadan uchtasi to'g'ri chiqadi" ni
+o'zgartirib bo'lmadi.
+
+Uchta richag qoldi va uchalasi ham chiqish/xarajat tomonida:
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🔴 | `trailing_stop.enabled` | false | g'olib savdoni uzoqroq ushlash — yagona sinalmagan richag |
+| 🔴 | `trailing_stop.activate_at_r` | 1.0 | surish shu foydadan keyin boshlanadi; erta surish shovqinni Stopga aylantiradi |
+| 🔴 | `trailing_stop.trail_r` | 1.0 | Stop cho'qqidan shuncha R pastda ergashadi |
+
+Ikkinchi va uchinchi richag yangi sozlama talab qilmaydi — ular
+mavjud qiymatlar bilan o'lchanadi:
+
+    kamroq savdo   scoring.thresholds  +3 punkt
+    sig'im         risk_engine.max_open_signals  5 -> 3
+
+### TO'XTASH QOIDASI — OLDINDAN YOZILADI
+
+Bu qoida natija chiqishidan OLDIN yozildi. Sabab oddiy: natija
+ko'ringach "yana bittasini sinab ko'ray" deyish oson bo'ladi va biz
+buni allaqachon o'n besh marta qildik.
+
+> **Variant PF 1.0 dan yuqori chiqsa** — u IKKINCHI, kesishmaydigan
+> oynada takrorlanadi. Ikkalasida ham o'tsa, yoqiladi.
+>
+> **Hech bir variant PF 1.0 ga yetmasa** — foyda ortidan quvish
+> TO'XTAYDI. Signal moduli bor holicha qoladi, mahsulot esa halol
+> skrining, risk boshqaruvi, ochiq statistika va ta'lim yo'nalishiga
+> buriladi. Ular PF 1.0 ni talab qilmaydi.
+
+Qo'shimcha shart: PF 1.0 dan o'tgan variant kamida 100 ta savdo
+bilan o'tsin. Kam savdoda PF tasodifdan farq qilmaydi.

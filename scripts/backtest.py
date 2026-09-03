@@ -38,6 +38,7 @@ from pathlib import Path
 from core.backtest import Backtester, Dataset, compare, render
 from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
+from core.config.schema import TrailingStopConfig
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
 from core.utils.logging_setup import get_logger, setup_logging
@@ -275,7 +276,7 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "audit 3-bosqich (uchta yarim holat)"
+OLCHOV_OQI = "chiqish tomoni: surilgan Stop + kamroq savdo + sig'im"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
@@ -287,17 +288,73 @@ def _oqsiz(config: AppConfig) -> AppConfig:
     qilganini hech kim ayta olmaydi.
     """
     qoidalar = dataclasses.replace(
-        config.trade_rules, tp1_ratio_tuzilmaviy_zonaga=True
+        config.trade_rules, trailing_stop=TrailingStopConfig()
     )
-    sr = dataclasses.replace(
-        config.analysis.support_resistance,
-        chuqurlik_darvozadan=False,
-        zona_yagona_manba=False,
+    chegaralar = dataclasses.replace(
+        config.scoring.thresholds,
+        threshold_high_health=ASOSIY_CHEGARA_YUQORI,
+        threshold_mid_health=ASOSIY_CHEGARA_ORTA,
     )
     return dataclasses.replace(
         config,
         trade_rules=qoidalar,
-        analysis=dataclasses.replace(config.analysis, support_resistance=sr),
+        scoring=dataclasses.replace(config.scoring, thresholds=chegaralar),
+        risk_engine=dataclasses.replace(
+            config.risk_engine,
+            max_open_signals=ASOSIY_SIGIM,
+            # Bandlar jadvali ham qaytariladi: `max_open_signals`
+            # o'zgarib, jadval eski qolsa, amalda jadval ishlardi va
+            # o'q "neytrallandi" degan da'vo yolg'on bo'lardi.
+            max_open_signals_by_health=dataclasses.replace(
+                config.risk_engine.max_open_signals_by_health,
+                high=ASOSIY_SIGIM,
+                mid=ASOSIY_SIGIM_ORTA,
+            ),
+        ),
+    )
+
+
+#: O'q neytrallanganda qaytariladigan ASOSIY qiymatlar.
+#:
+#: Ular `config/default.yaml` dan o'qilmaydi, ATAYLAB: `_oqsiz()`
+#: "hozirgi holat" ni emas, TAQQOSLASH NUQTASINI belgilaydi. YAML
+#: o'zgarsa taqqoslash nuqtasi ham jimgina siljib ketardi va eski
+#: natijalar bilan solishtirib bo'lmasdi.
+ASOSIY_CHEGARA_YUQORI = 50.0
+ASOSIY_CHEGARA_ORTA = 55.0
+ASOSIY_SIGIM = 5
+ASOSIY_SIGIM_ORTA = 3
+
+
+def _surish_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`trade_rules.trailing_stop` o'zgartirilgan nusxa."""
+    surish = dataclasses.replace(
+        asos.trade_rules.trailing_stop, enabled=True, **ozgarishlar
+    )
+    return nom, dataclasses.replace(
+        asos, trade_rules=dataclasses.replace(asos.trade_rules, trailing_stop=surish)
+    )
+
+
+def _kamroq_savdo(asos: AppConfig, qoshimcha: float = 3.0) -> AppConfig:
+    """Ball chegarasi ko'tarilgan nusxa — kamroq, tanlangan signal.
+
+    NIMA UCHUN CHEGARA. Xarajatsiz bitta savdo -0.16%, ya'ni deyarli
+    nol; xarajat esa 0.3%. Tizim "nol" ni "zarar"ga aylantiruvchi
+    mashina. Savdo sonini kamaytirish xarajatni to'g'ridan-to'g'ri
+    kamaytiradi.
+
+    Ball shifti ~60, chegara 55 — ya'ni +3 sezilarli kesish.
+    """
+    chegaralar = dataclasses.replace(
+        asos.scoring.thresholds,
+        threshold_high_health=ASOSIY_CHEGARA_YUQORI + qoshimcha,
+        threshold_mid_health=ASOSIY_CHEGARA_ORTA + qoshimcha,
+    )
+    return dataclasses.replace(
+        asos, scoring=dataclasses.replace(asos.scoring, thresholds=chegaralar)
     )
 
 
@@ -366,58 +423,75 @@ def _darvoza_bilan(
 
 
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """To'qqizinchi to'plam: AUDITNING UCHTA YARIM HOLATI.
+    """To'qqizinchi to'plam: CHIQISH TOMONI — OXIRGI YO'NALISH.
 
-    Har biri "kod bir narsa qiladi, izoh boshqa narsa aytadi"
-    turkumidan. Ular gipoteza sifatida emas, NOMUVOFIQLIK sifatida
-    topilgan — shuning uchun savol "yaxshimi" emas, "tuzatilsa
-    natija qanday o'zgaradi".
+    NIMA UCHUN AYNAN SHU. O'n besh o'lchov davomida natijani FAQAT
+    bitta narsa qimirlatdi: TP1 nisbat poli (PF 0.30 -> 0.84). U
+    chiqish tomonida edi.
 
-    3.1  TP1 POLI TUZILMAVIY ZONAGA
-         Pol (2.0) yakuniy nishondan (1.5) yuqori, shuning uchun
-         signal DOIM bitta TP bilan chiqadi — 189/189 o'lchandi.
-         Qismli sotish amalda ishlamaydi. O'chirilganda tuzilmaviy
-         TP1 yaqinroq bo'ladi va haqiqiy ikkita TP qaytadi.
+    Kirish tomonida sakkizta g'oya sinaldi va hammasi rad etildi.
+    Eng aniq dalil: ikkita BUTUNLAY BOSHQA kirish mexanizmi aynan
+    bir xil natija berdi (-0.46%). Ya'ni "o'ntadan uchtasi to'g'ri
+    chiqadi" ni o'zgartirib bo'lmadi va yana bir naqsh ham uni
+    o'zgartirmaydi.
 
-    3.2  CHUQURLIK DARVOZADAN
-         Darvoza 55%, chuqurlik esa 50% dan o'lchanadi. 50-55%
-         oralig'idagi nomzod darvozadan o'tadi-yu, S/R omilidan
-         8.75 ball yo'qotadi. Shift ~60, chegara 55 — ya'ni
-         darvoza kiritgan nomzodni ball darhol o'ldiradi.
+    UCHTA RICHAG QOLDI:
 
-    3.3  ZONA YAGONA MANBA
-         Ball bir zonadan, Stop boshqasidan hisoblanadi (saralash
-         kalitlari boshqa). Narx ikki zona orasida bo'lsa ular
-         ajraladi.
+    1. SURILGAN STOP — g'alaba qilgan savdoni uzoqroq ushlash.
+       Foydali savdo ulushini oshira olmadik; qolgan yagona yo'l —
+       o'sha uchtasini kattaroq qilish.
 
-    Oxirgi variant uchalasini birga yoqadi: alohida ta'sirsiz
-    bo'lgan narsa birga ta'sir qilishi mumkin (ablation darsi).
+    2. KAMROQ SAVDO — xarajatsiz bitta savdo -0.16% (deyarli nol),
+       xarajat esa 0.3%. Tizim "nol"ni "zarar"ga aylantiruvchi
+       mashina. Chegarani ko'tarish xarajatni to'g'ridan-to'g'ri
+       kamaytiradi.
+
+    3. SIG'IM — voronka 3540 marta "o'rin yo'q" deb rad etganini
+       ko'rsatdi. Tizim eng yaxshisini emas, BIRINCHI KELGANINI
+       oladi. Limitni kamaytirish tanlovni qattiqroq qiladi.
+
+    Oxirgi ikki variant ularni birlashtiradi: alohida ta'sirsiz
+    narsa birga ta'sir qilishi mumkin (ablation darsi), va aksincha
+    — 3-bosqichdagi "uchalasi birga" ham shuni ko'rsatdi.
+
+    TO'XTASH QOIDASI OLDINDAN YOZILADI (`docs/GIPOTEZA_DAFTARI.md`):
+    biror variant PF 1.0 dan yuqori chiqsa, u IKKINCHI, kesishmaydigan
+    oynada takrorlanadi. Ikkalasida ham o'tsa — yoqiladi. Aks holda
+    foyda ortidan quvish TO'XTAYDI.
     """
+    surilgan = _surish_bilan(asos, "surilgan Stop 1R/1R")[1]
     return [
         ("hozirgi holat", asos),
-        _qoidalar_bilan(
-            asos, "3.1 pol faqat o'lchanganda", tp1_ratio_tuzilmaviy_zonaga=False
-        ),
-        _sr_bilan(asos, "3.2 chuqurlik darvozadan", chuqurlik_darvozadan=True),
-        _sr_bilan(asos, "3.3 zona yagona manba", zona_yagona_manba=True),
-        _uchalasi(asos),
+        _surish_bilan(asos, "surilgan Stop 1R/1R"),
+        _surish_bilan(asos, "surilgan Stop 1R/0.5R", trail_r=0.5),
+        _surish_bilan(asos, "surilgan Stop 2R/1R", activate_at_r=2.0),
+        ("kamroq savdo (chegara +3)", _kamroq_savdo(asos)),
+        ("surilgan + kamroq savdo", _kamroq_savdo(surilgan)),
+        _sigim_bilan(_kamroq_savdo(surilgan), "surilgan + kamroq + sig'im 3", 3),
     ]
 
 
-def _uchalasi(asos: AppConfig) -> tuple[str, AppConfig]:
-    """Uchala tuzatish birga."""
-    qoidalar = dataclasses.replace(
-        asos.trade_rules, tp1_ratio_tuzilmaviy_zonaga=False
+def _sigim_bilan(
+    asos: AppConfig, nom: str, limit: int
+) -> tuple[str, AppConfig]:
+    """Bir vaqtda ochiq turadigan signallar chegarasi o'zgartirilgan nusxa.
+
+    Bandlar bo'yicha limit ham birga o'zgaradi — aks holda
+    `max_open_signals` o'zgaradi-yu, amalda `by_health` jadvali
+    qo'llanib eski qiymat ishlardi.
+    """
+    bandlar = dataclasses.replace(
+        asos.risk_engine.max_open_signals_by_health,
+        high=limit,
+        mid=min(limit, asos.risk_engine.max_open_signals_by_health.mid),
     )
-    sr = dataclasses.replace(
-        asos.analysis.support_resistance,
-        chuqurlik_darvozadan=True,
-        zona_yagona_manba=True,
-    )
-    return "3.1+3.2+3.3 birga", dataclasses.replace(
+    return nom, dataclasses.replace(
         asos,
-        trade_rules=qoidalar,
-        analysis=dataclasses.replace(asos.analysis, support_resistance=sr),
+        risk_engine=dataclasses.replace(
+            asos.risk_engine,
+            max_open_signals=limit,
+            max_open_signals_by_health=bandlar,
+        ),
     )
 
 

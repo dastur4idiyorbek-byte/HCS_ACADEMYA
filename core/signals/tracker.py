@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
-from core.config.schema import AppConfig
+from core.config.schema import AppConfig, TrailingStopConfig
 from core.domain.enums import SignalStatus
 from core.domain.models import Signal
 from core.signals.events import SignalEvent, SignalEventKind
@@ -43,12 +43,14 @@ class SignalTracker:
         false_signal_window: timedelta = DEFAULT_FALSE_SIGNAL_WINDOW,
         pending_expiry: timedelta = DEFAULT_PENDING_EXPIRY,
         max_holding: timedelta | None = None,
+        trailing: TrailingStopConfig | None = None,
     ) -> None:
         self._signals: dict[int, Signal] = {}
         self._next_local_id = -1
         self._false_signal_window = false_signal_window
         self._pending_expiry = pending_expiry
         self._max_holding = max_holding
+        self._trailing = trailing or TrailingStopConfig()
 
     # ------------------------------------------------------------------ #
     #  Boshqaruv
@@ -305,11 +307,21 @@ class SignalTracker:
             # (gap). Bunday holatda buyurtma bajarilib, darhol Stop yegan
             # deb qaraladi — bu eng ehtiyotkor talqin (0.3-band).
 
+        # --- 📈 Stopni orqadan surish ---
+        #
+        # Stop TEKSHIRUVIDAN OLDIN yangilanadi, lekin faqat narx
+        # cho'qqidan yuqoriga chiqqanda ko'tariladi. Tartib muhim:
+        # avval tekshirilsa, o'sha shamning o'zida surilgan Stop
+        # ishlab ketardi va bir sham ichida ham ko'tarilib, ham
+        # tegib qolgandek bo'lardi.
+        self._stopni_sur(signal, price)
+
         # --- 🛑 Stop (TP'dan OLDIN tekshiriladi — ehtiyotkor talqin) ---
         #
         # AMALDAGI Stop ishlatiladi: TP1 olingach u kirish narxiga
-        # ko'tariladi (breakeven). Eski `levels.stop` ni ishlatsak,
-        # TP1 dagi foyda qaytib ketishi mumkin bo'lardi.
+        # ko'tariladi (breakeven), surilgan Stop undan ham yuqori
+        # bo'lishi mumkin. Eski `levels.stop` ni ishlatsak, olingan
+        # foyda qaytib ketishi mumkin bo'lardi.
         amaldagi_stop = signal.effective_stop
         if price <= amaldagi_stop:
             signal.closed_at = at
@@ -399,6 +411,40 @@ class SignalTracker:
 
         return hodisalar
 
+    def _stopni_sur(self, signal: Signal, price: float) -> None:
+        """Cho'qqini yangilaydi va Stopni orqadan suradi.
+
+        R = kirish - DASTLABKI Stop. Barcha masofalar shu birlikda:
+        foiz coinga bog'liq, R esa har doim "bitta savdodagi xavf".
+
+        Uch qoida:
+
+            1. Surish `activate_at_r` foydadan keyin boshlanadi —
+               erta surish oddiy shovqinni Stopga aylantiradi.
+            2. Stop cho'qqidan `trail_r` pastda ergashadi.
+            3. Stop FAQAT YUQORIGA harakat qiladi. Pastga tushirish
+               foydalanuvchi rozi bo'lgan xavfni kattalashtirardi —
+               ya'ni signal berilgandagi va'dani buzardi.
+        """
+        if not self._trailing.enabled or signal.status is SignalStatus.PENDING:
+            return
+
+        signal.peak_price = (
+            price if signal.peak_price is None else max(signal.peak_price, price)
+        )
+
+        levels = signal.levels
+        xavf = levels.entry - levels.stop
+        if xavf <= 0:
+            return
+
+        if signal.peak_price - levels.entry < xavf * self._trailing.activate_at_r:
+            return
+
+        yangi = signal.peak_price - xavf * self._trailing.trail_r
+        if signal.trailing_stop is None or yangi > signal.trailing_stop:
+            signal.trailing_stop = yangi
+
     def _is_false_signal(self, signal: Signal, at: datetime) -> bool:
         """3.8-band: faol bo'lgach tez Stop yeganmi."""
         if signal.activated_at is None:
@@ -424,4 +470,5 @@ def kuzatuvchi_qur(config: AppConfig) -> SignalTracker:
             minutes=config.postmortem.false_signal_window_minutes
         ),
         max_holding=timedelta(hours=soat) if soat > 0 else None,
+        trailing=config.trade_rules.trailing_stop,
     )

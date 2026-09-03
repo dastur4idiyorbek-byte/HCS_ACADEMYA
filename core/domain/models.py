@@ -464,6 +464,13 @@ class Signal:
     #: "birinchisiga yetdi" va "ikkinchisiga ham yetdi" bir xil
     #: ko'rinardi.
     reached_tps: int = 0
+    #: Narxning kirishdan keyingi ENG YUQORI nuqtasi. Surilgan Stop
+    #: shundan hisoblanadi; `None` — hali kuzatuv boshlanmagan.
+    peak_price: float | None = None
+    #: SURILGAN Stop (trailing). Kuzatuvchi hisoblab qo'yadi — domen
+    #: modeli sozlamani bilmaydi va bilmasligi ham kerak.
+    #: `None` — surish o'chirilgan yoki hali ishga tushmagan.
+    trailing_stop: float | None = None
 
     @property
     def tp1_reached(self) -> bool:
@@ -492,8 +499,16 @@ class Signal:
 
         Bu SPOT uchun ayniqsa mos: leverage yo'q, ya'ni pozitsiyani
         "nolda" yopish haqiqatan ham zararsiz chiqish.
+
+        SURILGAN STOP undan ham yuqori bo'lishi mumkin. Stop faqat
+        YUQORIGA harakat qiladi: pastga tushirish signal berilgandagi
+        va'dani buzardi — foydalanuvchi bir xavfga rozi bo'lgan,
+        keyin u kattalashib ketardi.
         """
-        return self.levels.entry if self.tp1_reached else self.levels.stop
+        asos = self.levels.entry if self.tp1_reached else self.levels.stop
+        if self.trailing_stop is None:
+            return asos
+        return max(asos, self.trailing_stop)
 
     @property
     def stop_at_breakeven(self) -> bool:

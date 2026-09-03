@@ -550,6 +550,29 @@ class ScoringConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class TrailingStopConfig:
+    """Stopni orqadan surish — foydani ushlab turish uchun.
+
+    Barcha masofalar R BIRLIGIDA o'lchanadi, foizda emas:
+
+        R = kirish narxi - dastlabki Stop
+
+    Nima uchun R: foiz coinga bog'liq (BTC ning 3% i va meme coinning
+    3% i boshqa narsa), R esa har doim "bitta savdodagi xavf". Butun
+    loyihada nisbatlar shu birlikda o'lchanadi — TP1 poli ham.
+    """
+
+    enabled: bool = False
+    #: Surish shu foydadan keyin BOSHLANADI. 1.0 — narx bir R foydaga
+    #: chiqqach. Undan oldin dastlabki Stop o'z joyida turadi: erta
+    #: surish shovqinni Stopga aylantiradi.
+    activate_at_r: float = 1.0
+    #: Stop cho'qqidan shuncha R pastda ergashadi. Kichik qiymat
+    #: foydani tez qulflaydi, lekin harakatni erta kesadi.
+    trail_r: float = 1.0
+
+
+@dataclass(frozen=True, slots=True)
 class TradeRulesConfig:
     """3.3-band: universal risk qoidasi.
 
@@ -673,6 +696,23 @@ class TradeRulesConfig:
     #: Nazorat variantlari ham ikkalasida bir xil javob berdi.
     #: Tizim shunda ham tayanchdan yomon — bu bayroq bitta
     #: teshikni yopdi, tizimni foydali qilmadi (natija #9).
+    #: STOPNI ORQADAN SURISH — chiqish tomonining sinalmagan qismi.
+    #:
+    #: NIMA UCHUN AYNAN SHU. O'n besh o'lchov davomida natijani FAQAT
+    #: bitta narsa qimirlatdi: TP1 nisbat poli (PF 0.30 -> 0.84). U
+    #: chiqish tomonida edi. Kirish tomonida sakkizta g'oya sinalib,
+    #: hammasi rad etildi va ikkita butunlay boshqa kirish mexanizmi
+    #: aynan bir xil natija berdi (-0.46%).
+    #:
+    #: Ya'ni "o'ntadan uchtasi to'g'ri chiqadi" ni o'zgartira olmadik.
+    #: Qolgan yagona yo'l — o'sha uchtasini KATTAROQ qilish.
+    #:
+    #: MEXANIZM. R = kirish - dastlabki Stop (bitta "xavf birligi").
+    #: Narx `activate_at_r` x R foydaga chiqqach, Stop cho'qqidan
+    #: `trail_r` x R pastda ergashib boradi va faqat YUQORIGA suriladi.
+    #:
+    #: GIPOTEZA — standart holatda o'chiq.
+    trailing_stop: TrailingStopConfig = field(default_factory=lambda: TrailingStopConfig())
     enforce_tp1_ratio: bool = True
     #: TP1 nisbat poli TUZILMAVIY zonaga ham qo'llanadimi.
     #:

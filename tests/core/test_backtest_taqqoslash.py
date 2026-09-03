@@ -26,6 +26,7 @@ from scripts.backtest import (
     KeshYetishmaydi,
     _kerakli_timeframelar,
     _keshdan_yigish,
+    _oqsiz,
     _variantlar,
 )
 
@@ -148,12 +149,22 @@ def test_rad_etilgan_kirish_filtrlari_ham_yopiq(config) -> None:  # noqa: ANN001
 
 
 def test_boshqa_sozlamalar_tegilmaydi(config) -> None:  # noqa: ANN001
-    """Faqat o'lchanayotgan narsa o'zgaradi — taqqoslash halol bo'lsin."""
-    for _nom, variant in _variantlar(config):
-        assert variant.market_health == config.market_health
-        assert variant.backtest == config.backtest
-        assert variant.portfolio == config.portfolio
-        assert variant.risk_engine == config.risk_engine
+    """Faqat o'lchanayotgan narsa o'zgaradi — taqqoslash halol bo'lsin.
+
+    Taqqoslash O'Q NEYTRALLANGANDAN KEYIN qilinadi: o'q ba'zan
+    `risk_engine` ga ham tegadi (masalan sig'im o'lchanayotganda) va
+    unda bu tekshiruv o'qning o'zini "begona o'zgarish" deb
+    ko'rsatardi.
+
+    `market_health`, `backtest` va `portfolio` esa hech qachon o'q
+    bo'lmagan — ular to'g'ridan-to'g'ri solishtiriladi.
+    """
+    neytral = _oqsiz(config)
+    for nom, variant in _variantlar(config):
+        assert variant.market_health == config.market_health, nom
+        assert variant.backtest == config.backtest, nom
+        assert variant.portfolio == config.portfolio, nom
+        assert _oqsiz(variant).risk_engine == neytral.risk_engine, nom
 
 
 def test_xarajat_barcha_variantda_bir_xil(config) -> None:  # noqa: ANN001

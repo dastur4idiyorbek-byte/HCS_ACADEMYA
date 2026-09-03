@@ -431,6 +431,34 @@ trade_rules:
   # TIZIM SHUNDA HAM TAYANCHDAN YOMON (natija #9, 3-bo'lim) —
   # bu bayroq bitta teshikni yopdi, tizimni foydali qilmadi.
   enforce_tp1_ratio: true
+
+  # STOPNI ORQADAN SURISH — chiqish tomonining sinalmagan qismi.
+  #
+  # NIMA UCHUN AYNAN SHU YO'NALISH. O'n besh o'lchov davomida
+  # natijani FAQAT bitta narsa qimirlatdi: TP1 nisbat poli
+  # (PF 0.30 -> 0.84). U chiqish tomonida edi.
+  #
+  # Kirish tomonida sakkizta g'oya sinaldi va hammasi rad etildi.
+  # Eng aniq dalil: ikkita BUTUNLAY BOSHQA kirish mexanizmi aynan
+  # bir xil natija berdi (-0.46%). Ya'ni "o'ntadan uchtasi to'g'ri
+  # chiqadi" ni o'zgartirib bo'lmadi.
+  #
+  # Qolgan yagona yo'l — o'sha uchtasini KATTAROQ qilish.
+  #
+  # MEXANIZM. R = kirish - dastlabki Stop (bitta xavf birligi).
+  # Narx `activate_at_r` x R foydaga chiqqach, Stop cho'qqidan
+  # `trail_r` x R pastda ergashadi va faqat YUQORIGA suriladi.
+  #
+  # Nima uchun foiz emas, R: foiz coinga bog'liq (BTC ning 3% i va
+  # meme coinning 3% i boshqa narsa), R esa har doim "bitta
+  # savdodagi xavf". Loyihada barcha nisbatlar shu birlikda.
+  #
+  # GIPOTEZA — o'chiq. To'qqizinchi to'plam o'lchaydi.
+  trailing_stop:
+    enabled: false
+    activate_at_r: 1.0
+    trail_r: 1.0
+
   # Kech kirish ogohlantirishi: narx kirish nuqtasidan shu foizdan ko'p
   # uzoqlashsa, HALI KIRMAGAN foydalanuvchiga xavf kattalashgani
   # aytiladi va kirish tavsiya etilmaydi. Ikkala tomonga ham: yuqoriga
