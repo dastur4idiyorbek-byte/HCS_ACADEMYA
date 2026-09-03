@@ -242,3 +242,56 @@ def test_rad_sababi_raqamsiz_guruhlanadi() -> None:
     assert _sabab_turi("stop juda yaqin (2.60%)") == "stop juda yaqin"
     assert _sabab_turi("TP1/Stop nisbati past (0.71)") == "TP1/Stop nisbati past"
     assert _sabab_turi(None) == "nomalum"
+
+
+# --------------------------------------------------------------------------- #
+#  Nomzod chegara — faqat BAYROQ bilan
+# --------------------------------------------------------------------------- #
+
+
+def test_bayroqsiz_chegara_ozgarmaydi() -> None:
+    """Bayroq berilmasa sozlama TEGILMAYDI.
+
+    Bu — `test_skript_config_qiymatlarini_ozgartirmaydi` bilan bitta
+    qoidaning ikki tomoni: o'lchov strategiyani jimgina o'zgartira
+    olmaydi. O'zgarish faqat ATAYLAB, komanda qatorida ko'rinib
+    turgan holda bo'ladi.
+    """
+    from core.config.loader import load_config
+    from scripts.zanjir_umumiy import chegara_qolla, umumiy_argumentlar
+
+    asos = load_config()
+    bosh = umumiy_argumentlar("x").parse_args([])
+    assert chegara_qolla(asos, bosh) is asos
+
+
+def test_bayroq_faqat_darajalarga_tegadi() -> None:
+    from core.config.loader import load_config
+    from scripts.zanjir_umumiy import chegara_qolla, umumiy_argumentlar
+
+    asos = load_config()
+    argumentlar = umumiy_argumentlar("x").parse_args(
+        ["--stop-eng-kam", "0.5", "--tp1-nisbat", "1.5"]
+    )
+    yangi = chegara_qolla(asos, argumentlar)
+
+    assert yangi.zanjir.darajalar.stop_eng_kam_pct == pytest.approx(0.5)
+    assert yangi.zanjir.darajalar.tp1_eng_kam_nisbat == pytest.approx(1.5)
+    assert yangi.zanjir.bloklar == asos.zanjir.bloklar
+    assert yangi.zanjir.chiqish == asos.zanjir.chiqish
+    assert yangi.risk_engine == asos.risk_engine
+
+
+def test_bitta_bayroq_ikkinchisiga_tegmaydi() -> None:
+    from core.config.loader import load_config
+    from scripts.zanjir_umumiy import chegara_qolla, umumiy_argumentlar
+
+    asos = load_config()
+    argumentlar = umumiy_argumentlar("x").parse_args(["--stop-eng-kam", "1.0"])
+    yangi = chegara_qolla(asos, argumentlar)
+
+    assert yangi.zanjir.darajalar.stop_eng_kam_pct == pytest.approx(1.0)
+    assert (
+        yangi.zanjir.darajalar.tp1_eng_kam_nisbat
+        == asos.zanjir.darajalar.tp1_eng_kam_nisbat
+    )

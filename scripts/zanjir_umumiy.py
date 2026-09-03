@@ -45,7 +45,37 @@ def umumiy_argumentlar(tavsif: str) -> argparse.ArgumentParser:
         default=None,
         help="Binance REST manzilini almashtiradi (GitHub Actions uchun)",
     )
+    # NOMZOD CHEGARA. `zanjir_chegara.py` topgan qiymatni BOSHQA
+    # o'lchovda (masalan walk-forward) tekshirish uchun.
+    #
+    # Nima uchun bu kerak: parametr izlash natijasi BITTA oynada
+    # topiladi. Uni o'sha oynada maqtash — o'zini aldash. Eski
+    # loyihaning eng achchiq saboqi aynan shu edi: izlash natijasi
+    # keyingi davrga O'TMAGAN (`OLCHOVLAR_XULOSASI.md` #13).
+    #
+    # Berilmasa — HECH NARSA o'zgarmaydi (test bilan qulflangan).
+    p.add_argument("--stop-eng-kam", type=float, default=None)
+    p.add_argument("--tp1-nisbat", type=float, default=None)
     return p
+
+
+def chegara_qolla(config: AppConfig, argumentlar) -> AppConfig:  # noqa: ANN001
+    """Nomzod chegarani qo'llaydi. Bayroqsiz — o'zgarishsiz qaytaradi."""
+    stop = getattr(argumentlar, "stop_eng_kam", None)
+    nisbat = getattr(argumentlar, "tp1_nisbat", None)
+    if stop is None and nisbat is None:
+        return config
+
+    ozgarishlar = {}
+    if stop is not None:
+        ozgarishlar["stop_eng_kam_pct"] = stop
+    if nisbat is not None:
+        ozgarishlar["tp1_eng_kam_nisbat"] = nisbat
+
+    darajalar = dataclasses.replace(config.zanjir.darajalar, **ozgarishlar)
+    return dataclasses.replace(
+        config, zanjir=dataclasses.replace(config.zanjir, darajalar=darajalar)
+    )
 
 
 async def malumot_tayyorla(argumentlar) -> tuple[AppConfig, Dataset, list[str]]:  # noqa: ANN001
@@ -79,7 +109,7 @@ async def malumot_tayyorla(argumentlar) -> tuple[AppConfig, Dataset, list[str]]:
         offline=argumentlar.offline,
         until=until,
     )
-    return config, dataset, symbols
+    return chegara_qolla(config, argumentlar), dataset, symbols
 
 
 @dataclass(frozen=True, slots=True)

@@ -26,6 +26,12 @@ on:
       base_url:
         description: "Binance REST manzili"
         default: "https://data-api.binance.vision"
+      stop_eng_kam:
+        description: "Nomzod stop chegarasi (bo'sh — config qiymati)"
+        default: ""
+      tp1_nisbat:
+        description: "Nomzod TP1/Stop nisbati (bo'sh — config qiymati)"
+        default: ""
 
 jobs:
   olchov:
@@ -94,6 +100,8 @@ jobs:
           python -m scripts.zanjir_walk_forward \
             --days "${{ inputs.days }}" \
             --symbols "${{ inputs.symbols }}" \
+            ${{ inputs.stop_eng_kam != '' && format('--stop-eng-kam {0}', inputs.stop_eng_kam) || '' }} \
+            ${{ inputs.tp1_nisbat != '' && format('--tp1-nisbat {0}', inputs.tp1_nisbat) || '' }} \
             --offline \
             | tee natija_walk_forward.txt
 
