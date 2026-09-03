@@ -70,6 +70,37 @@ analysis:
   # qanday kirishni to'sadi. Jonli o'lchov: rad etishlarning 32% i aynan
   # shu to'siqda edi.
   require_htf_alignment: false
+
+  # BOZOR REJIMI — har timeframe BITTA ish qiladi.
+  #
+  # Loyiha egasining tuzilmasi (2026-09-03):
+  #
+  #     haftalik   ->  bu hafta nima kutamiz   (yo'nalish)
+  #     kunlik     ->  bugun bozor qay holatda (rejim)
+  #     4 soatlik  ->  kirish shu yerda        (tahlil)
+  #
+  # Haftalik va kunlik SIGNAL BERMAYDI — ular rejimni aytadi.
+  # Rejim esa qanday qoida bilan ishlashni belgilaydi:
+  #
+  #     ko'tarilish  ->  tuzatish kutiladi (odatiy Discount)
+  #     diapazon     ->  faqat TUB (chuqurroq talab)
+  #     tushish      ->  umuman olinmaydi
+  #
+  # NIMA UCHUN BU BALL EMAS. Ballda hech kim "yo'q" deya olmaydi:
+  # haftalik tushayotgan bo'lsa ham, boshqa beshta omil yaxshi
+  # bo'lsa, ball yetadi va signal chiqadi. Rejim esa SHART.
+  #
+  # GIPOTEZA — o'chiq, backtest bilan o'lchanadi.
+  regime_rules:
+    enabled: false
+    trend_timeframe: "1w"
+    regime_timeframe: "1d"
+    # Ko'tarilishda chegara kengroq: trend ichidagi tuzatish
+    # ko'pincha diapazon o'rtasiga yetmay tugaydi.
+    kotarilish_max_range_pct: 55.0
+    # Diapazonda qattiqroq: bu yerda trend yordam bermaydi,
+    # faqat tubdan olingan xarid ma'noga ega.
+    diapazon_max_range_pct: 35.0
   # Istisno: kelajakda alohida "uzoq muddatli/pozitsion" strategiya qo'shilsa,
   # u yuqori timeframelarni O'ZI e'lon qiladi (`Strategy.required_timeframes()`
   # orqali) — asosiy strategiyaga taalluqli emas, konfiguratsiya o'zgarmaydi.
@@ -101,6 +132,20 @@ analysis:
     # o'ringa chiqadi — qat'iy jar shunchaki chetdagini yo'q qilardi.
     entry_max_range_pct: 55.0
     fibonacci_levels: [0.382, 0.5, 0.618]
+    # Zona qidiriladigan oyna — nechta ENG SO'NGGI sham.
+    #
+    # MUAMMO. Indikator oynasi 500 sham va zona qidiruvi ham
+    # o'shani olardi. 4 soatlikda 500 sham ≈ 83 kun. Kod uch oy
+    # oldingi darajani ham, o'tgan haftadagisini ham TENG
+    # hisoblaydi — trader esa yaqin tuzilmaga ko'proq ishonadi.
+    # Ya'ni bot eskirgan chiziqlarga savdo qilayotgan bo'lishi
+    # mumkin.
+    #
+    # 200 sham ≈ 33 kun: so'nggi impuls, so'nggi korreksiya va
+    # joriy diapazon shu ichida.
+    #
+    # 0 — cheklov yo'q. GIPOTEZA, shuning uchun hozircha 0.
+    zone_lookback: 0
 
   indicators:
     # EMA OLIB TASHLANDI (58-bo'lim). Trend YO'NALISHINI endi SMC
@@ -609,7 +654,20 @@ strategies:
     rsi_reversal_max: 45.0
 
   opening_range_scalp:
-    enabled: true
+    # O'CHIRILDI (loyiha egasining qarori, 2026-09-03).
+    #
+    # O'LCHOV: oxirgi backtestda eng ko'p rad etish aynan shu
+    # strategiyadan chiqdi — 16 473 marta hajm sharti, 2 476 marta
+    # diapazon sharti. Ya'ni u juda ko'p ish qilib, deyarli hech
+    # narsa bermayapti.
+    #
+    # SABAB: 15 daqiqalik shamlar katta ko'rinadi, lekin narx
+    # bor-yo'g'i chorak foiz yuradi. Kelib-ketish xarajati 0.3%
+    # — ya'ni harakatning o'zi xarajatdan kichik.
+    #
+    # Shu bilan birga 15 daqiqalik qator umuman yuklanmaydi:
+    # tahlil endi FAQAT 4 soatlikda.
+    enabled: false
     session_open_utc: "00:00"
     range_minutes: 15              # ochilish diapazoni shakllanish vaqti
     timeframe: "15m"               # diapazon shu timeframening birinchi shamidan olinadi

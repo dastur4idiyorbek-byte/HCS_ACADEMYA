@@ -38,6 +38,7 @@ from pathlib import Path
 from core.backtest import Backtester, Dataset, compare, render
 from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
+from core.config.schema import RegimeRulesConfig
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
 from core.utils.logging_setup import get_logger, setup_logging
@@ -275,7 +276,7 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "strategies.classic_ta.min_risk_reward (yakuniy nishon)"
+OLCHOV_OQI = "yangi tuzilma (skalp, rejim, zona oynasi)"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
@@ -286,12 +287,56 @@ def _oqsiz(config: AppConfig) -> AppConfig:
     ikkita narsani o'lchayotgan bo'ladi va qaysi biri ta'sir
     qilganini hech kim ayta olmaydi.
     """
-    classic_ta = dataclasses.replace(
-        config.strategies.classic_ta, min_risk_reward=1.5
+    skalp = dataclasses.replace(
+        config.strategies.opening_range_scalp, enabled=False
+    )
+    sr = dataclasses.replace(
+        config.analysis.support_resistance, zone_lookback=0
     )
     return dataclasses.replace(
         config,
-        strategies=dataclasses.replace(config.strategies, classic_ta=classic_ta),
+        strategies=dataclasses.replace(
+            config.strategies, opening_range_scalp=skalp
+        ),
+        analysis=dataclasses.replace(
+            config.analysis,
+            support_resistance=sr,
+            regime_rules=RegimeRulesConfig(),
+        ),
+    )
+
+
+def _rejim_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`analysis.regime_rules` o'zgartirilgan nusxa."""
+    rejim = dataclasses.replace(asos.analysis.regime_rules, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, analysis=dataclasses.replace(asos.analysis, regime_rules=rejim)
+    )
+
+
+def _zona_oynasi_bilan(
+    asos: AppConfig, nom: str, oyna: int, **rejim_ozgarishlari: object
+) -> tuple[str, AppConfig]:
+    """Zona qidiruv oynasi (va kerak bo'lsa rejim) o'zgartirilgan nusxa."""
+    sr = dataclasses.replace(asos.analysis.support_resistance, zone_lookback=oyna)
+    rejim = dataclasses.replace(asos.analysis.regime_rules, **rejim_ozgarishlari)
+    return nom, dataclasses.replace(
+        asos,
+        analysis=dataclasses.replace(
+            asos.analysis, support_resistance=sr, regime_rules=rejim
+        ),
+    )
+
+
+def _skalp_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`strategies.opening_range_scalp` o'zgartirilgan nusxa."""
+    skalp = dataclasses.replace(asos.strategies.opening_range_scalp, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, strategies=dataclasses.replace(asos.strategies, opening_range_scalp=skalp)
     )
 
 
@@ -316,55 +361,68 @@ def _darvoza_bilan(
 
 
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Oltinchi to'plam: YAKUNIY NISHON NISBATI.
+    """Yettinchi to'plam: TAHLIL TUZILMASI.
 
-    BESHTA TO'PLAM JAVOB BERDI:
+    OLTITA TO'PLAM JAVOB BERDI:
 
-    1. Correction Entry (natija #1)          -> rad etildi
-    2. Tuzilmaviy TP2 (natija #2)            -> rad etildi
-    3. Kirish filtrlari (natija #3 va #6)    -> rad etildi
-    4. Qaror mexanizmi (natija #7)           -> uchtasi rad etildi
-    5. TP1 nisbat poli (natija #8 va #9)     -> ISHLADI, YOQILDI
+    1. Correction Entry (natija #1)            -> rad etildi
+    2. Tuzilmaviy TP2 (natija #2)              -> rad etildi
+    3. Kirish filtrlari (natija #3 va #6)      -> rad etildi
+    4. Qaror mexanizmi (natija #7)             -> uchtasi rad etildi
+    5. TP1 nisbat poli (natija #8 va #9)       -> ISHLADI, yoqildi
+    6. Yakuniy nishon nisbati (natija #10)     -> rad etildi
 
-    Beshinchisini yoqishda YASHIRIN BOG'LIQLIK ochildi. Ikkita
-    nisbat bor va ular bir-biriga bog'liq:
+    BULARNING HAMMASI CHIQISH VA BALL HAQIDA EDI. Kirish
+    tanlovining o'zi hech qachon o'zgarmadi va aynan u zaif:
+    o'nta signaldan uchtasi nishonga yetadi, kerakli miqdor
+    to'rt-beshta.
 
-        trade_rules.tp1_min_risk_reward          2.0  (TP1 poli)
-        strategies.classic_ta.min_risk_reward    1.5  (yakuniy)
+    LOYIHA EGASINING TASHXISI (2026-09-03) boshqa joyni
+    ko'rsatdi — TUZILMANI:
 
-    Pol yakuniy nishondan YUQORI. Ya'ni polga bo'ysungan har
-    qanday TP1 avtomatik ravishda yakuniy nishondan ham uzoqda
-    bo'ladi va ikkinchi nishon degan narsa qolmaydi.
+      • bir nechta timeframe bitta ballga qo'shiladi, ya'ni bitta
+        dalil bir necha marta sanaladi;
+      • ballda hech kim "YO'Q" deya olmaydi — haftalik tushayotgan
+        bo'lsa ham boshqa omillar uni qoplab ketadi;
+      • 15 daqiqalik shamda narx chorak foiz yuradi, xarajat esa
+        0.3% — harakatning o'zi xarajatdan kichik;
+      • zona qidiruvi 500 sham (≈83 kun) ichida, ya'ni uch oy
+        oldingi daraja bugungisi bilan TENG hisoblanadi.
 
-    Ilgari bu JIMGINA sodir bo'lardi: kod TP2 ni `tp1 * 1.001`
-    ga qo'yardi. Natija #8 va #9 raqamlarida buning izi bor —
-    win-rate va "TP2 gacha" deyarli teng (34.6% va 34.3%).
+    YANGI TUZILMA: har timeframe BITTA ish qiladi.
 
-    YA'NI o'lchangan mexanizm aslida "TP1 ni yaxshilash" emas,
-    "yagona nishonni YETARLICHA UZOQQA qo'yish" edi.
+        haftalik   ->  yo'nalish   (bu hafta nima kutamiz)
+        kunlik     ->  rejim       (bugun qay holatda)
+        4 soatlik  ->  kirish      (tahlil shu yerda)
 
-    BU TO'PLAM SHU SAVOLNI SO'RAYDI: yakuniy nishon polidan
-    yuqoriga ko'tarilsa — ya'ni HAQIQIY ikkita TP qaytsa —
-    natija saqlanadimi yoki yo'qoladimi?
+    Rejim BALL emas, SHART. Pasayishda spot xaridi umuman
+    ko'rilmaydi; diapazonda faqat tubdan olinadi.
 
-    Loyiha egasining qoidasi ikkalasiga ham ruxsat beradi
-    ("1 TP, 2 TP yoki 3 TP — sharoitga qarab"), shuning uchun
-    tanlovni raqam qilsin.
-
-    NAZORAT: "hozirgi holat" (1.5) — bugungi yoqilgan sozlama,
-    ya'ni amalda BITTA TP. Yangi qiymatlar undan yaxshi
-    chiqmasa, bitta TP shundayligicha qoladi.
+    OGOHLANTIRISH: "hozirgi holat" bu yugurishda SKALPSIZ —
+    ya'ni u natija #10 dagi bazadan farq qiladi. Shuning uchun
+    skalp alohida NAZORAT varianti sifatida qoldirildi: uni
+    o'chirish to'g'ri qaror edimi degan savolga shu javob
+    beradi.
     """
     return [
         ("hozirgi holat", asos),
-        # Poldan (2.0) sal yuqori: TP1 va yakuniy orasida tor,
-        # lekin HAQIQIY joy paydo bo'ladi.
-        _classic_ta_bilan(asos, "yakuniy nishon 2.2", min_risk_reward=2.2),
-        _classic_ta_bilan(asos, "yakuniy nishon 2.5", min_risk_reward=2.5),
-        # Global qoida (1:3) — brief shuni talab qiladi.
-        _classic_ta_bilan(asos, "yakuniy nishon 3.0", min_risk_reward=3.0),
-        # Ataylab uzoq: nishon yetib bo'lmaydigan bo'lib qoladimi?
-        _classic_ta_bilan(asos, "yakuniy nishon 4.0", min_risk_reward=4.0),
+        # NAZORAT: skalpni o'chirish to'g'ri edimi. Agar u bilan
+        # natija yaxshiroq bo'lsa, qaror qaytariladi.
+        _skalp_bilan(asos, "skalp yoqilgan (nazorat)", enabled=True),
+        # ASOSIY GIPOTEZA: rejim — haftalik yo'nalish, kunlik holat.
+        _rejim_bilan(asos, "rejim yoqilgan", enabled=True),
+        # Diapazonda yanada qattiqroq: faqat eng tubdan.
+        _rejim_bilan(
+            asos,
+            "rejim + diapazon 25%",
+            enabled=True,
+            diapazon_max_range_pct=25.0,
+        ),
+        # IKKINCHI GIPOTEZA: zona oynasi qisqaradi (≈33 kun).
+        # Rejimsiz — alohida o'lchanishi kerak.
+        _zona_oynasi_bilan(asos, "zona oynasi 200", 200),
+        # Ikkalasi birga.
+        _zona_oynasi_bilan(asos, "rejim + zona oynasi 200", 200, enabled=True),
     ]
 
 

@@ -58,7 +58,12 @@ def test_toxtash_nuqtasigacha_hammasi_otgan_deb_belgilanadi() -> None:
     otgan = [h.stage for h in hodisalar if h.status is EventStatus.PASSED]
     yiqilgan = [h for h in hodisalar if h.status is EventStatus.FAILED]
 
-    assert otgan == ["classic_ta:halal", "classic_ta:data", "classic_ta:zones"]
+    assert otgan == [
+        "classic_ta:halal",
+        "classic_ta:data",
+        "classic_ta:regime",
+        "classic_ta:zones",
+    ]
     assert len(yiqilgan) == 1
     assert yiqilgan[0].stage == "classic_ta:zone_position"
     assert yiqilgan[0].reason == "uzoq"

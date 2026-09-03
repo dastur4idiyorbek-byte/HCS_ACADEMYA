@@ -153,14 +153,35 @@ async def test_reyting_olinmasa_eski_royxat_saqlanadi(db: Database, config) -> N
 
 
 async def test_barcha_timeframelar_yuklanadi(db: Database, config) -> None:  # noqa: ANN001
+    """YOQILGAN strategiyalar so'ragan har bir qator yuklansin.
+
+    RO'YXAT EMAS, TALAB tekshiriladi. Ilgari bu yerda `"15m"` deb
+    qattiq yozilgan edi va u strategiya o'chirilishi bilan
+    yiqildi. Undan ham yomoni teskarisi bo'lardi: strategiya
+    yangi qator so'rasa, test buni sezmasdi va qator jimgina
+    yuklanmay qolardi — bu loyihada BESH marta uchragan xato turi
+    (`docs/ARXITEKTURA.md`, 80-bo'lim).
+
+    Bozor Salomatligi timeframei ham shu ro'yxatda: u hech bir
+    strategiyaning ro'yxatida yo'q, lekin usiz indeks o'lik
+    bo'lib qoladi.
+    """
+    from core.analysis.strategies import build_strategies, required_timeframes
+
     shamlar = SoxtaCandles()
     ish = runner(db, config, candles=shamlar)
     await ish.refresh_universe()
     await ish.run_once()
 
     so_ralganlar = {tf for _, tf in shamlar.calls}
-    assert "15m" in so_ralganlar
-    assert "1d" in so_ralganlar
+    kerakli = set(required_timeframes(build_strategies(config)))
+    kerakli.add(config.analysis.market_health_timeframe)
+
+    yetishmayapti = kerakli - so_ralganlar
+    assert not yetishmayapti, (
+        f"bu qatorlar so'ralmadi: {sorted(yetishmayapti)} "
+        f"(so'ralganlari: {sorted(so_ralganlar)})"
+    )
 
 
 async def test_bitta_coin_xatosi_siklni_toxtatmaydi(db: Database, config) -> None:  # noqa: ANN001

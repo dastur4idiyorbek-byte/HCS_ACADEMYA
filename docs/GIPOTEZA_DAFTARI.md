@@ -676,5 +676,99 @@ BITTA TP bilan quriladi.
 | Holat | Savol |
 |---|---|
 | 🔴 | Yakuniy nishon nisbati polidan yuqori bo'lsa (2.2 / 2.5 / 3.0 / 4.0) natija saqlanadimi |
+
+---
+
+## Natija #10 — yakuniy nishon nisbati RAD ETILDI
+
+Nishon qanchalik uzoq bo'lsa, natija shunchalik yomon. Chiziq
+to'ppa-to'g'ri pastga ketdi:
+
+| yakuniy nishon | signal | win | PF | o'rt.% |
+|---|---|---|---|---|
+| **1.5 (hozirgi)** | 653 | **28.0%** | **0.83** | **−0.47** |
+| 2.2 | 630 | 26.4% | 0.78 | −0.58 |
+| 2.5 | 592 | 25.5% | 0.69 | −0.85 |
+| 3.0 | 517 | 25.0% | 0.70 | −0.81 |
+| 4.0 | 440 | 25.5% | 0.64 | −1.02 |
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| ⚫ | `classic_ta.min_risk_reward` | 1.5 | 2.2-4.0 sinaldi, hammasi yomonroq |
+
+**Bu loyiha egasining "RISK 1/3" qoidasiga tegishli.** 3.0
+varianti — aynan o'sha talab. U hozirgi holatdan yomonroq
+chiqdi. Qoida o'zgartirilmadi: qaror loyiha egasiniki, bu yerda
+faqat o'lchov yozilgan.
+
+### Nima uchun uzoq nishon yordam bermaydi
+
+Har nisbat uchun kerakli "nishonga yetish" foizi:
+
+| nisbat | kerak | bizda |
+|---|---|---|
+| 1:1.5 | 40% | 28% |
+| 1:3 | 25% | 19% |
+| 1:4 | 20% | 15% |
+
+Nisbat o'zgarganda kerakli foiz ham, bizning foizimiz ham
+BIRGA pasayadi — farq yopilmaydi. Ya'ni muammo nisbatda emas,
+**kirish tanlovida**.
+
+---
+
+## Yangi tuzilma (2026-09-03) — 7-to'plam
+
+Oltita to'plam chiqish va ball haqida edi. Kirish tanlovining
+o'zi hech qachon o'zgarmadi va aynan u zaif.
+
+Loyiha egasining tashxisi tuzilmani ko'rsatdi. Uchta yangi
+sozlama, uchalasi ham 🔴:
+
+| Holat | Sozlama | Qiymat | Savol |
+|---|---|---|---|
+| 🔴 | `regime_rules` (`enabled`) | false | Har timeframe bitta ish qilsa natija yaxshilanadimi |
+| 🔴 | `kotarilish_max_range_pct` | 55.0 | Ko'tarilishda chegara shu bo'lsinmi |
+| 🔴 | `diapazon_max_range_pct` | 35.0 | Diapazonda qanchalik qattiq bo'lsin |
+| 🔴 | `zone_lookback` | 0 | Zona qidiruvi 200 shamga qisqarsa yaxshilanadimi |
+| 🔴 | `regime_timeframe` | "1d" | Rejim kunlikdan o'qilsinmi |
+
+### Rejim nima qiladi
+
+```
+haftalik   ->  yo'nalish   (bu hafta nima kutamiz)
+kunlik     ->  rejim       (bugun qay holatda)
+4 soatlik  ->  kirish      (tahlil shu yerda)
+```
+
+Rejim BALL emas, **SHART**:
+
+| rejim | qoida |
+|---|---|
+| ko'tarilish | tuzatish kutiladi (odatiy Discount) |
+| diapazon | faqat TUB (chuqurroq talab) |
+| pasayish | umuman olinmaydi |
+
+**Nima uchun bu ballda mumkin emas edi.** Ballda hech kim "yo'q"
+deya olmaydi: haftalik tushayotgan bo'lsa ham, boshqa beshta
+omil yaxshi bo'lsa ball yetadi va signal chiqadi.
+
+**OGOHLANTIRISH.** Shunga o'xshash narsa bir marta sinalgan —
+"kunlik trend majburiy" filtri (natija #3), va u ishlamagan.
+Farqi: u FILTR edi, faqat kesardi. Bu yerda har rejim uchun
+BOSHQA qoida bor. Agar bu ham ishlamasa, tashxis noto'g'ri
+degani va shu yerga ⚫ yoziladi.
+
+### Skalp o'chirildi — nazorat varianti bilan
+
+`opening_range_scalp.enabled: false`. O'lchov asos bo'ldi:
+oxirgi yugurishda eng ko'p rad etish o'sha strategiyadan chiqdi
+(16 473 marta hajm sharti), signal esa deyarli bermasdi.
+
+15 daqiqalik shamda narx chorak foiz yuradi, kelib-ketish
+xarajati 0.3% — harakatning o'zi xarajatdan kichik.
+
+Backtestda "skalp yoqilgan" NAZORAT varianti bor: o'chirish
+to'g'ri qaror edimi degan savolga o'sha javob beradi.
 | 🔴 | Ball shifti 55.0 — ikkinchi oynada ham aynan shu ko'rindi |
 | 🔴 | PF 1.0 dan yuqoriga nima ko'taradi |

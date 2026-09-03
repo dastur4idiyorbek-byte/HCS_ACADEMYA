@@ -2,8 +2,13 @@
 
 To'g'ri tartib:
 
-    1. AVVAL: muhim S/R zonalari aniqlanadi
-    2. Narx Support zonasida VA Discount zonadami (3.1-band davomi)
+    0. REJIM: haftalik yo'nalishni, kunlik holatni aytadi. Bu ball
+       emas, SHART — pasayishda spot xaridi umuman ko'rilmaydi
+       (`core/analysis/regime.py`, bayroq ostida).
+    1. Muhim S/R zonalari aniqlanadi
+    2. Narx Support zonasida VA Discount zonadami (3.1-band davomi).
+       Chegara REJIMGA bog'liq: diapazonda tubdan, ko'tarilishda
+       tuzatishdan.
     3. Stop/TP darajalari S/R va ATR asosida quriladi (3.3 chegaralari bilan)
     4. KEYIN: indikatorlar va yuqori timeframelar BALLGA qo'shiladi
     5. CryptoSpot3% dalillari (SMC struktura, MSNR daraja turi, LIT
@@ -38,6 +43,7 @@ from dataclasses import dataclass
 
 from core.analysis.indicators import build_snapshot, confirm
 from core.analysis.level_types import classify_level_type
+from core.analysis.regime import kirish_chegarasi, rejimni_aniqla
 from core.analysis.scoring import Scorer, build_levels
 from core.analysis.scoring.setup_route import evaluate_setup
 from core.analysis.strategies.base import Strategy, StrategyInput
@@ -108,8 +114,21 @@ class ClassicTaStrategy(Strategy):
         return self._config.strategies.classic_ta.enabled
 
     def required_timeframes(self) -> list[str]:
+        """Strategiya QAYSI qatorlarsiz ishlay olmaydi.
+
+        Rejim yoqilganda haftalik va kunlik qatorlar ham SHU
+        RO'YXATGA kiradi. Ular ballga qo'shilmaydi — ular qaror
+        qiladi, ya'ni yuklanmasa strategiya umuman ishlamaydi.
+        Ro'yxatga qo'shilmasa, backtest ularni jimgina yuklamay
+        qo'yardi va rejim doim "aniq emas" bo'lib qolardi — bu
+        loyihada besh marta uchragan xato turi (80-bo'lim).
+        """
         analysis = self._config.analysis
-        return [analysis.entry_timeframe, *analysis.htf_confirmation]
+        kerakli = [analysis.entry_timeframe, *analysis.htf_confirmation]
+        rejim = analysis.regime_rules
+        if rejim.enabled:
+            kerakli.extend([rejim.trend_timeframe, rejim.regime_timeframe])
+        return list(dict.fromkeys(kerakli))
 
     @property
     def last_rejection(self) -> RejectionReason | None:
@@ -135,13 +154,39 @@ class ClassicTaStrategy(Strategy):
                 f"({len(shamlar)} < {analysis.indicators.min_candles})",
             )
 
-        # 1) S/R zonalari — BIRLAMCHI tahlil
-        zona_xaritasi = self._detector.detect(shamlar)
+        # 1) BOZOR REJIMI — haftalik yo'nalish, kunlik holat.
+        #
+        #    Bu BALL EMAS, SHART. Rejim "tushish" desa, ball qancha
+        #    bo'lishidan qat'i nazar signal chiqmaydi. Ilgari
+        #    haftalik pasayish shunchaki bir necha ball ayirardi va
+        #    boshqa omillar uni qoplab ketardi.
+        qoidalar_rejim = analysis.regime_rules
+        rejim_qarori = None
+        if qoidalar_rejim.enabled:
+            rejim_qarori = rejimni_aniqla(
+                haftalik=data.structure(qoidalar_rejim.trend_timeframe).direction,
+                kunlik=data.structure(qoidalar_rejim.regime_timeframe).direction,
+            )
+            if not rejim_qarori.kirish_mumkin:
+                return self._reject("regime", rejim_qarori.sabab)
+
+        # 2) S/R zonalari — BIRLAMCHI tahlil
+        #
+        #    ZONA OYNASI indikator oynasidan QISQAROQ bo'lishi mumkin
+        #    (`zone_lookback`): uch oy oldingi daraja bugungi kirish
+        #    uchun dalil emas.
+        zona_shamlari = self._zona_shamlari(shamlar)
+        zona_xaritasi = self._detector.detect(zona_shamlari)
         if zona_xaritasi is None:
             return self._reject("zones", "S/R zonalari aniqlanmadi (ATR yoki sham yetarli emas)")
 
-        # 2) Narx Support zonasida VA Discount zonadami
+        # 3) Narx Support zonasida VA Discount zonadami.
+        #
+        #    Chegara REJIMGA bog'liq: diapazonda faqat tubdan
+        #    olinadi, ko'tarilishda tuzatish kutiladi.
         chegara = analysis.support_resistance.entry_max_range_pct
+        if rejim_qarori is not None:
+            chegara = kirish_chegarasi(rejim_qarori.rejim, qoidalar_rejim)
         if not zona_xaritasi.entry_allowed(chegara):
             return self._reject("zone_position", self._explain_zone(zona_xaritasi, chegara))
 
@@ -153,7 +198,7 @@ class ClassicTaStrategy(Strategy):
                 "masofasida emas",
             )
 
-        # 3) Ko'p timeframe muvofiqligi (3.2-band) — endi BALL uchun
+        # 4) Ko'p timeframe muvofiqligi (3.2-band) — endi BALL uchun
         korinish = self._timeframe_view(data)
         moslik = korinish.alignment_ratio(TrendDirection.UP)
         if analysis.require_htf_alignment and not korinish.all_aligned(TrendDirection.UP):
@@ -163,7 +208,7 @@ class ClassicTaStrategy(Strategy):
                 f"Timeframelar zid: {', '.join(zid)} ko'tarilishni tasdiqlamadi",
             )
 
-        # 4) Indikatorlar — TASDIQ EMAS, BAHO
+        # 5) Indikatorlar — TASDIQ EMAS, BAHO
         holat = build_snapshot(shamlar, analysis.indicators)
         if holat is None or not holat.is_complete:
             return self._reject("indicators", "Indikatorlar to'liq hisoblanmadi")
@@ -177,13 +222,13 @@ class ClassicTaStrategy(Strategy):
                 f"tasdiqlamaganlar: {', '.join(rad_etganlar)}",
             )
 
-        # 5) Darajalar (3.3-band chegaralari bilan)
+        # 6) Darajalar (3.3-band chegaralari bilan)
         qoidalar = classic_ta_rules(self._config)
         daraja_natijasi = build_levels(zona_xaritasi, qoidalar)
         if not daraja_natijasi.ok:
             return self._reject(daraja_natijasi.stage, daraja_natijasi.reason)
 
-        # 6) CryptoSpot3% qatlami — BONUS uchun, TO'SIQ EMAS
+        # 7) CryptoSpot3% qatlami — BONUS uchun, TO'SIQ EMAS
         #
         # Uchalasi ham "yo'q" bo'lishi mumkin va bu normal: nomzod
         # bazaviy 100 ballik tizimda baholanishda davom etadi. Metodika
@@ -212,7 +257,7 @@ class ClassicTaStrategy(Strategy):
             struktura, daraja_turi, yalash, self._config.scoring.setup_route
         )
 
-        # 7) Ball
+        # 8) Ball
         tafsilot = self._scorer.score(
             symbol=data.symbol,
             zone_map=zona_xaritasi,
@@ -252,6 +297,17 @@ class ClassicTaStrategy(Strategy):
         )
 
     # ------------------------------------------------------------------ #
+
+    def _zona_shamlari(self, shamlar: list) -> list:  # noqa: ANN001
+        """Zona qidiriladigan oyna.
+
+        `zone_lookback` 0 bo'lsa hech narsa o'zgarmaydi — bu eski
+        xatti-harakat va standart holat.
+        """
+        oyna = self._config.analysis.support_resistance.zone_lookback
+        if oyna <= 0 or len(shamlar) <= oyna:
+            return shamlar
+        return shamlar[-oyna:]
 
     def _timeframe_view(self, data: StrategyInput) -> MultiTimeframeView:
         """3.2-band: har bir yuqori timeframe uchun trend yo'nalishi.

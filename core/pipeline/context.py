@@ -149,6 +149,7 @@ STAGE_LABELS: dict[str, str] = {
     "classic_ta:data": "Sham ma'lumoti yetarli emas",
     "classic_ta:structure": "Struktura pasayishda (SMC: LH/LL)",
     "classic_ta:zones": "Support/Resistance zonasi topilmadi",
+    "classic_ta:regime": "Bozor rejimi kirishga ruxsat bermadi",
     "classic_ta:zone_position": "Narx support zonasidan uzoq",
     "classic_ta:timeframes": "Timeframelar bir-biriga zid",
     "classic_ta:indicators": "Indikatorlar hisoblanmadi",

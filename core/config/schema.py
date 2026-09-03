@@ -66,6 +66,21 @@ class SupportResistanceConfig:
     #: nomzodlarni butunlay yo'q qilardi.
     entry_max_range_pct: float = 55.0
     fibonacci_levels: list[float] = field(default_factory=lambda: [0.382, 0.5, 0.618])
+    #: Zona qidiriladigan oyna — nechta ENG SO'NGGI sham.
+    #:
+    #: MUAMMO (loyiha egasining kuzatuvi). Indikatorlar 500 sham
+    #: oynada ishlaydi va zona qidiruvi ham o'shani olardi. 4
+    #: soatlikda 500 sham ≈ 83 kun. Kod uch oy oldingi darajani
+    #: ham, o'tgan haftadagisini ham TENG hisoblaydi — trader esa
+    #: yaqin tuzilmaga ko'proq ishonadi.
+    #:
+    #: Oqibati: bot eskirgan chiziqlarga savdo qilayotgan bo'lishi
+    #: mumkin. 4 soatlikda 200 sham ≈ 33 kun — so'nggi impuls,
+    #: so'nggi korreksiya va joriy diapazon shu ichida.
+    #:
+    #: 0 — cheklov yo'q (eski xatti-harakat).
+    #: GIPOTEZA — o'lchanmagan.
+    zone_lookback: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -174,6 +189,33 @@ class SessionOverlapConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class RegimeRulesConfig:
+    """Bozor rejimi qoidalari — har timeframe bitta ish qiladi.
+
+    `core/analysis/regime.py` da to'liq izoh bor. Qisqasi:
+    haftalik yo'nalishni, kunlik rejimni aytadi, 4 soatlik kirishni
+    topadi. Rejim BALL emas, SHART: "yo'q" desa signal chiqmaydi.
+
+    STANDART HOLATDA O'CHIQ — gipoteza, o'lchanmagan.
+    """
+
+    enabled: bool = False
+    #: Yo'nalish qaysi timeframedan o'qiladi.
+    trend_timeframe: str = "1w"
+    #: Rejim qaysi timeframedan o'qiladi.
+    regime_timeframe: str = "1d"
+    #: Ko'tarilish rejimida narx diapazonning shu foizigacha
+    #: bo'lishi mumkin. Trend ichidagi tuzatish ko'pincha
+    #: o'rtaga yetmaydi, shuning uchun chegara kengroq.
+    #: GIPOTEZA — o'lchanmagan.
+    kotarilish_max_range_pct: float = 55.0
+    #: Diapazon rejimida chegara QATTIQROQ: trend yordam
+    #: bermaydi, faqat tubdan olingan xarid ma'noga ega.
+    #: GIPOTEZA — o'lchanmagan.
+    diapazon_max_range_pct: float = 35.0
+
+
+@dataclass(frozen=True, slots=True)
 class AnalysisConfig:
     """3.2-band: asosiy klassik strategiya uchun standart timeframe to'plami."""
 
@@ -205,6 +247,8 @@ class AnalysisConfig:
     #: kechikuvchi o'lchov. Uni majburiy qilish burilish nuqtasidagi har
     #: qanday kirishni to'sadi.
     require_htf_alignment: bool = False
+    #: Bozor rejimi qoidalari (uchta holat: ko'tarilish/diapazon/tushish).
+    regime_rules: RegimeRulesConfig = field(default_factory=RegimeRulesConfig)
     #: SMC strukturasi muvofiqligi signal uchun MAJBURIYmi.
     #:
     #: `False` (standart) — struktura faqat BALL BONUSI beradi. Metodika

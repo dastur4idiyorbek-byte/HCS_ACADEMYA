@@ -28,9 +28,31 @@ def config():  # noqa: ANN201
 
 
 def test_barcha_strategiyalar_quriladi(config) -> None:  # noqa: ANN001
-    """YOQILGANLARI — konfiguratsiyaga qarab."""
+    """YOQILGANLARI — konfiguratsiyaga qarab.
+
+    Hozir bitta: `opening_range_scalp` o'chirildi (loyiha
+    egasining qarori). O'LCHOV asos bo'ldi — oxirgi backtestda
+    eng ko'p rad etish aynan o'sha strategiyadan chiqdi (16 473
+    marta hajm sharti), signal esa deyarli bermasdi. 15 daqiqalik
+    shamda narx chorak foiz yuradi, kelib-ketish xarajati esa
+    0.3% — harakatning o'zi xarajatdan kichik.
+
+    Registrda qoladi, faqat yoqilmaydi.
+    """
     nomlar = {s.name for s in build_strategies(config)}
-    assert nomlar == {"classic_ta", "opening_range_scalp"}
+    assert nomlar == {"classic_ta"}
+
+
+def test_skalp_registrda_bor_lekin_ochirilgan(config) -> None:  # noqa: ANN001
+    """Kod o'chirilmaydi — bayroq o'chiriladi.
+
+    Qaror o'lchovga tayangan va o'lchov qaytarilishi mumkin.
+    Kodni o'chirib tashlasak, qaytarish uchun uni qaytadan yozish
+    kerak bo'lardi.
+    """
+    hammasi = {s.name for s in build_strategies(config, enabled_only=False)}
+    assert "opening_range_scalp" in hammasi
+    assert config.strategies.opening_range_scalp.enabled is False
 
 
 def test_correction_entry_registrda_bor_lekin_ochirilgan(config) -> None:  # noqa: ANN001

@@ -5219,7 +5219,99 @@ alohida test bilan yozib qo'yilgan, unutilmasin uchun.
 
 ---
 
-## 86. Bosqichlar holati
+## 86. Tuzilma o'zgardi: har timeframe BITTA ish qiladi
+
+Oltita gipoteza to'plami sinaldi va hammasi CHIQISH yoki BALL
+haqida edi. Kirish tanlovining o'zi hech qachon o'zgarmadi —
+aynan u zaif: o'nta signaldan uchtasi nishonga yetadi, kerakli
+miqdor to'rt-beshta.
+
+Loyiha egasining tashxisi (2026-09-03) boshqa joyni ko'rsatdi.
+
+### TOPILGAN TO'RTTA KAMCHILIK
+
+**1. Bitta dalil bir necha marta sanaladi.** Bir nechta
+timeframe bitta ballga qo'shiladi, lekin ular mustaqil emas:
+kunlik ko'tarilish va 4 soatlik ko'tarilish ko'pincha AYNAN bir
+xil narsa.
+
+**2. Hech kim "YO'Q" deya olmaydi.** Haftalik tushayotgan
+bo'lsa ham, boshqa beshta omil yaxshi bo'lsa ball yetadi va
+signal chiqadi. Ballda faqat "kamroq ball" bor, "to'xta" yo'q.
+
+**3. Mayda timeframe xarajatdan kichik.** 15 daqiqalik shamda
+narx chorak foiz yuradi, kelib-ketish xarajati 0.3%.
+
+**4. Zona qidiruvi juda uzun.** 500 sham ≈ 83 kun, va kod uch
+oy oldingi darajani bugungisi bilan TENG hisoblaydi.
+
+### YANGI TUZILMA
+
+```
+haftalik   ->  yo'nalish   (bu hafta nima kutamiz)
+kunlik     ->  rejim       (bugun qay holatda)
+4 soatlik  ->  kirish      (tahlil shu yerda)
+```
+
+Haftalik va kunlik SIGNAL BERMAYDI — ular rejimni aytadi
+(`core/analysis/regime.py`):
+
+| rejim | qoida |
+|---|---|
+| ko'tarilish | tuzatish kutiladi (odatiy Discount) |
+| diapazon | faqat TUB (chuqurroq talab) |
+| pasayish | umuman olinmaydi |
+
+Rejim ball emas, SHART. U `analyze()` da ZONALARDAN OLDIN
+turadi va bu tasodif emas: pasayayotgan bozorda zona qidirishning
+ma'nosi yo'q.
+
+### POYDEVOR TEKSHIRILDI — birinchi marta
+
+`tests/core/test_poydevor_tekshiruvi.py`. Shamlar QO'LDA
+quriladi, ya'ni to'g'ri javob oldindan ma'lum. Bozor ma'lumoti
+ishlatilmaydi — u yerda "to'g'ri javob" degan narsa yo'q.
+
+Tekshirildi va ta'rifga mos ishlaydi: S/R zonalari, tegishlar
+soni, HH/HL va LH/LL, FVG bo'shlig'i, order block tanasi,
+impuls yo'nalishi.
+
+**BITTA KAMCHILIK TOPILDI VA HUJJATLASHTIRILDI.** Klassik
+ta'rifda order block impulsi tuzilmani BUZISHI kerak (oldingi
+cho'qqi olinadi). Bizning aniqlovchi buni talab qilmaydi: har
+qanday tushuvchi shamdan keyin ~1% ko'tarilish bo'lsa, u "order
+block" deb belgilanadi — pasayish trendi ichida ham. Ya'ni
+"order block yaqinida" degan ball ko'pincha oddiy qizil shamga
+beriladi.
+
+Ball noto'g'ri emas — u shunchaki o'zi o'ylagan narsani
+o'lchamaydi.
+
+### SKALP O'CHIRILDI
+
+`opening_range_scalp` — o'lchov asos bo'ldi: oxirgi yugurishda
+eng ko'p rad etish o'sha strategiyadan chiqdi (16 473 marta hajm
+sharti), signal esa deyarli bermasdi. Kod registrda qoladi,
+faqat bayroq o'chdi — qaror o'lchovga tayangan va o'lchov
+qaytarilishi mumkin.
+
+Shu bilan 15 daqiqalik qator umuman yuklanmaydi.
+
+### HAMMASI BAYROQ OSTIDA
+
+`regime_rules.enabled` va `zone_lookback` standart holatda
+o'chiq. Yettinchi to'plam ularni o'lchaydi, va "skalp yoqilgan"
+NAZORAT varianti o'chirish to'g'ri qaror edimi degan savolga
+javob beradi.
+
+Ogohlantirish daftarga ham yozildi: shunga o'xshash narsa bir
+marta sinalgan — "kunlik trend majburiy" filtri (natija #3), va
+u ishlamagan. Farqi shundaki, u FILTR edi va faqat kesardi; bu
+yerda har rejim uchun BOSHQA qoida bor.
+
+---
+
+## 87. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

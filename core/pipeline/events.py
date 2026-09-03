@@ -54,6 +54,10 @@ CYCLE_STAGES = frozenset({"market_health"})
 CLASSIC_TA_STAGES: tuple[str, ...] = (
     "halal",
     "data",
+    # Bozor rejimi — haftalik yo'nalish, kunlik holat. Bu bosqich
+    # ZONALARDAN OLDIN turadi va bu tasodif emas: pasayayotgan
+    # bozorda zonalarni qidirishning ma'nosi yo'q.
+    "regime",
     "zones",
     "zone_position",
     "timeframes",
