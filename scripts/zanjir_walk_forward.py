@@ -137,18 +137,36 @@ def _xulosa(olchovlar) -> None:  # noqa: ANN001
         return
 
     pflar = [o.profit_factor for o in ishonchli]
+    ortachalar = [o.ortacha_pct for o in ishonchli]
     print(f"\nPF vaqt bo'yicha ({len(ishonchli)} oyna): "
           f"{' → '.join(f'{p:.2f}' for p in pflar)}")
+    print(f"Bitta savdodagi natija:      "
+          f"{' → '.join(f'{o:+.2f}%' for o in ortachalar)}")
 
-    if pflar[-1] < pflar[0] - 0.1:
-        print("🔴 PF VAQT BILAN PASAYADI — sozlama o'tmishga moslashgan.")
-        print("   Bu eski tizimni o'ldirgan naqsh (1.00 → 0.84 → 0.69).")
-    elif all(p >= 1.0 for p in pflar):
-        print(f"🟢 O'lchangan {len(ishonchli)} oynada PF ≥ 1.0.")
-        if chetlatilgan:
-            print("   DIQQAT: bu 'barcha oynada' degani emas — yuqoriga qarang.")
+    pasaymoqda = pflar[-1] < pflar[0] - 0.1
+    hammasi_foydali = all(p >= 1.0 for p in pflar)
+
+    # UCH HOLAT, IKKITA EMAS. Ilgari bu yerda ikkita shox bor edi va
+    # 3.18 → 2.78 pasayishi "sozlama o'tmishga moslashgan" deb
+    # belgilanardi — holbuki uchala oyna ham PF 2.78 dan yuqori,
+    # ya'ni ustunlik BOR, faqat torayyapti. Eski tizimni o'ldirgan
+    # naqsh boshqacha edi: 1.00 → 0.84 → 0.69, ya'ni 1.0 dan PASTGA
+    # o'tish. Ikkalasini bitta belgi bilan atash — yolg'on.
+    if not hammasi_foydali:
+        print("🔴 Kamida bitta oynada PF 1.0 dan past — ustunlik saqlanmaydi.")
+        if pasaymoqda:
+            print("   Va u VAQT BILAN pasaymoqda: eski tizimni o'ldirgan naqsh.")
+    elif pasaymoqda:
+        farq_pct = (pflar[0] - pflar[-1]) / pflar[0] * 100
+        print(f"🟡 Barcha oynada PF ≥ 1.0, LEKIN ustunlik {farq_pct:.0f}% toraygan.")
+        print("   Bu 'moslashgan' degani emas — hali ham foydali. Lekin")
+        print("   yo'nalish bir tomonga: jonli kuzatuvda shu qator")
+        print("   birinchi navbatda tekshiriladi.")
     else:
-        print("⚫ PF barqaror, lekin 1.0 dan past — foyda yo'q.")
+        print(f"🟢 O'lchangan {len(ishonchli)} oynada PF ≥ 1.0 va pasaymayapti.")
+
+    if chetlatilgan:
+        print("   DIQQAT: yuqorida chetlatilgan oyna bor — u hisobga kirmadi.")
 
 
 if __name__ == "__main__":

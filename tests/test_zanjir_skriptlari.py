@@ -295,3 +295,40 @@ def test_bitta_bayroq_ikkinchisiga_tegmaydi() -> None:
         yangi.zanjir.darajalar.tp1_eng_kam_nisbat
         == asos.zanjir.darajalar.tp1_eng_kam_nisbat
     )
+
+
+def test_pasayish_1_dan_pastga_otmasa_qizil_emas(capsys) -> None:  # noqa: ANN001
+    """3.18 → 2.78 va 1.00 → 0.69 — BIR XIL BELGI bilan atalmasin.
+
+    Birinchisida uchala oyna ham foydali, ikkinchisida ustunlik
+    yo'qolgan. Ikkalasini "sozlama o'tmishga moslashgan" deb
+    belgilash — yolg'on.
+    """
+    from scripts.zanjir_walk_forward import _xulosa
+
+    _xulosa([
+        Olchov("oyna 1", 79, 62.0, 3.18, 2.14, 169.4, 20.4),
+        Olchov("oyna 2", 62, 64.5, 3.07, 1.81, 112.3, 22.4),
+        Olchov("oyna 3", 79, 67.1, 2.78, 1.05, 83.2, 7.8),
+    ])
+    chiqish = capsys.readouterr().out
+
+    assert "🟡" in chiqish
+    assert "o'tmishga moslashgan" not in chiqish
+    # Bitta savdodagi natija ham ko'rsatilsin — u PF dan tezroq pasaygan
+    assert "+2.14%" in chiqish and "+1.05%" in chiqish
+
+
+def test_ustunlik_yoqolsa_qizil(capsys) -> None:  # noqa: ANN001
+    """Eski tizimni o'ldirgan naqsh — 1.0 dan PASTGA o'tish."""
+    from scripts.zanjir_walk_forward import _xulosa
+
+    _xulosa([
+        Olchov("oyna 1", 50, 40.0, 1.00, 0.0, 0.0, 10.0),
+        Olchov("oyna 2", 50, 38.0, 0.84, -0.4, -20.0, 15.0),
+        Olchov("oyna 3", 50, 35.0, 0.69, -0.8, -40.0, 25.0),
+    ])
+    chiqish = capsys.readouterr().out
+
+    assert "🔴" in chiqish
+    assert "o'ldirgan naqsh" in chiqish
