@@ -1024,3 +1024,84 @@ buni allaqachon o'n besh marta qildik.
 
 Qo'shimcha shart: PF 1.0 dan o'tgan variant kamida 100 ta savdo
 bilan o'tsin. Kam savdoda PF tasodifdan farq qilmaydi.
+
+---
+
+## 2026-09-03 — 9-TO'PLAM NATIJASI: TO'XTASH QOIDASI ISHGA TUSHDI
+
+Manba: Actions run 33757139027, commit `0973f86`, BTC/ETH/SOL/BNB/XRP,
+730 kun (+427 kun isinish), 4,412 tahlil qadami, xarajat 0.3%/savdo.
+
+| Variant | Signal | Win | PF | O'rt.% | Jami% | Pasayish |
+|---|---|---|---|---|---|---|
+| hozirgi holat | 593 | 28.8% | **0.84** | −0.45 | −269.5 | 445.1% |
+| surilgan Stop 1R/1R | 926 | 15.2% | 0.36 | −2.13 | −1968.2 | 1976.2% |
+| surilgan Stop 1R/0.5R | 1064 | 7.0% | 0.15 | −3.06 | −3259.0 | 3259.0% |
+| surilgan Stop 2R/1R | 639 | 25.7% | 0.72 | −0.83 | −531.8 | 663.6% |
+| kamroq savdo (+3) | 577 | 27.4% | 0.79 | −0.62 | −360.0 | 487.7% |
+| surilgan + kamroq | 848 | 14.7% | 0.35 | −2.19 | −1860.6 | 1860.6% |
+| surilgan + kamroq + sig'im 3 | 818 | 14.8% | 0.35 | −2.17 | −1775.9 | 1775.9% |
+
+**Hech bir variant PF 1.0 ga yetmadi. Eng yaxshisi — hech narsa
+o'zgartirmagan hozirgi holat (0.84).**
+
+### Surilgan Stop nima uchun ZARAR keltirdi
+
+Kutish: g'olib savdolar uzoqroq ushlanadi. Haqiqat: surilgan Stop
+g'olib savdolarni emas, hali shakllanmagan savdolarni o'ldirdi.
+
+Dalil — ushlash vaqti va savdo soni:
+
+    hozirgi holat        79.7 soat ushlash, 593 savdo, 28.8% g'alaba
+    surilgan 1R/1R       48.2 soat ushlash, 926 savdo, 15.2% g'alaba
+    surilgan 1R/0.5R     40.5 soat ushlash, 1064 savdo,  7.0% g'alaba
+
+Savdo qanchalik tez yopilsa, g'alaba shunchalik kam. Surish qattiqroq
+bo'lsa (0.5R), natija yomonroq — bu tasodif emas, bir yo'nalishli
+bog'liqlik. 4 soatlik shamda narx 1R ko'tarilib keyin 1R qaytishi
+oddiy shovqin; surilgan Stop uni "chiqish signali" deb o'qidi va
+savdoni TP ga yetmasdan yopdi. Ketma-ket zarar 21 tadan 88 taga
+chiqdi.
+
+Xulosa: bu strategiyada qattiq Stop — o'z-o'zini zararlash. Aynan
+shu sabab TP1 poli (2-bosqichda tekshirilgan) foydali edi: u savdoga
+NAFAS berardi, surilgan Stop esa nafasni bo'g'adi.
+
+### Kamroq savdo va sig'im — sezilarli emas
+
+`kamroq savdo (+3)`: PF 0.84 -> 0.79, savdo 593 -> 577. 16 ta savdo
+kam, PF pasaydi. Chegarani ko'tarish sifatni oshirmaydi — bu
+9-o'lchovda oltinchi marta tasdiqlandi.
+
+`sig'im 3`: surilgan Stop bilan birga o'lchandi, shuning uchun toza
+o'lchov emas — lekin 848 -> 818 savdoda PF 0.35 -> 0.35, ya'ni ta'sir
+nolga yaqin. Sig'imni kamaytirish "yaxshiroq savdoni tanlash" degani
+emas; u shunchaki birinchi kelganini kamroq oladi.
+
+### QAROR
+
+To'xtash qoidasi shartsiz ishga tushdi:
+
+> Hech bir variant PF 1.0 ga yetmadi -> **foyda ortidan quvish
+> TO'XTAYDI.**
+
+Ikkinchi oynada takrorlash O'TKAZILMAYDI — qoida bo'yicha u faqat
+PF > 1.0 chiqqan variant uchun edi. Yangi variant ham sinalmaydi.
+
+Nima qoladi:
+- Signal moduli bor holicha qoladi (o'chirilmaydi, "yaxshilanmaydi").
+- `trailing_stop.enabled` **false** bo'lib qoladi — kod bor, lekin
+  o'lchov uni yoqishga ruxsat bermadi.
+- Mahsulot yo'nalishi: halol skrining, risk boshqaruvi, ochiq
+  statistika, ta'lim.
+
+### Yopilgan 🔴 lar
+
+| Sozlama | Yangi holat | Sabab |
+|---|---|---|
+| `trailing_stop.enabled` | 🔒 false — qayta ochilmaydi | PF 0.84 -> 0.36 |
+| `trailing_stop.activate_at_r` | 🔒 1.0 (ishlatilmaydi) | 2R ham yordam bermadi (0.72) |
+| `trailing_stop.trail_r` | 🔒 1.0 (ishlatilmaydi) | 0.5R yomonroq (0.15) |
+
+Bu uchtasi endi gipoteza emas — yopiq savol. Qayta ochish uchun
+yangi dalil kerak, "bir marta yana sinab ko'ramiz" emas.
