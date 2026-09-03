@@ -1146,9 +1146,9 @@ boshlang'ich nuqta, javob emas.
 | 🔴 | `bloklar.sweep_qaytish_sham` | 3 | Necha sham ichida qaytsin |
 | 🔴 | `bloklar.rsi_past_zona` | 35.0 | RSI "sotilgan" chegarasi |
 | 🔴 | `bloklar.wick_farq_chegara_pct` | 1.0 | Ikki birja wicki qancha ajralsa shubhali |
-| 🔴 | `darajalar.stop_eng_kam_pct` | 3.0 | Stop qanchalik yaqin bo'lishi mumkin |
+| 🟢 | `darajalar.stop_eng_kam_pct` | **1.5** | O'LCHANDI: 3.0 savdolarning 6 dan 5 ini to'sardi. 0.5→PF 3.26/195 savdo, 1.5→3.17/82, 3.0→1.83/35 |
 | 🔴 | `darajalar.stop_eng_kop_pct` | 15.0 | Stop qanchalik uzoq bo'lishi mumkin |
-| 🔴 | `darajalar.tp1_eng_kam_nisbat` | 1.2 | TP1/Stop poli |
+| ⚫ | `darajalar.tp1_eng_kam_nisbat` | 1.2 | O'LCHANDI: 1.0→PF 1.86, **1.2→1.83**, 1.5→2.11 (31 savdo), 2.0→1.51 (9 savdo). 1.2 qoladi — yuqorisida savdo qolmaydi |
 | 🔴 | `chiqish.qoldiq_muddat_kun` | 14 | Qoldiq qancha kutsin |
 | 🔴 | `chiqish.umumiy_muddat_kun` | 28 | Umumiy muddat |
 | 🔴 | `nomzod.eng_kam_hajm_usd` | 50M | Likvidlik chegarasi |
@@ -1192,3 +1192,56 @@ o'rniga halol "1/2" yoziladi.
 Qo'shimcha shart (eski daftardan): PF 1.0 dan o'tgan variant
 kamida 100 ta savdo bilan o'tsin va IKKINCHI, kesishmaydigan
 oynada takrorlansin.
+
+
+---
+
+## 2026-09-03 — ZANJIR BIRINCHI MARTA O'LCHANDI
+
+To'liq natija: `docs/BACKTEST_NATIJA_2026-09-03_zanjir.md`.
+
+### Nima o'lchandi
+
+| Holat | Sozlama | Eski | Yangi | Dalil |
+|---|---|---|---|---|
+| 🟢 | `stop_eng_kam_pct` | 3.0 | **1.5** | 35 savdo/PF 1.83 → 82 savdo/PF 3.17 |
+| ⚫ | `tp1_eng_kam_nisbat` | 1.2 | 1.2 | 1.5 va 2.0 sinaldi — savdo qolmaydi |
+
+### 🟢 ZANJIR USTUNLIK BERDI — uchala oynada
+
+```
+stop 0.5%:   PF 3.18 → 3.07 → 2.78    (79 / 62 / 79 savdo)
+stop 1.5%:   PF 3.37 → 2.90 → 2.44    (42 / 34 / 28 savdo)
+```
+
+Eski tizim bilan farq:
+
+```
+ESKI:   1.00 → 0.84 → 0.69    ustunlik YO'QOLADI
+YANGI:  3.37 → 2.90 → 2.44    ustunlik BOR, torayadi
+```
+
+**TO'XTASH QOIDASI ISHGA TUSHMADI.** PF ≥ 1.0 uchala kesishmaydigan
+oynada, 100+ savdo bilan.
+
+### 🟡 YANGI KUZATUV — ustunlik torayyapti
+
+Bitta savdodagi natija PF dan TEZROQ pasayadi:
+
+    stop 0.5%:   +2.14% → +1.81% → +1.05%
+    stop 1.5%:   +3.25% → +2.49% → +1.29%
+
+Bu "moslashgan" degani emas (uchala oyna ham foydali), lekin
+yo'nalish bitta tomonga. Jonli kuzatuvda BIRINCHI shu qator
+tekshiriladi.
+
+### 🔴 HALI O'LCHANMAGAN — ro'yxat qisqarmadi
+
+Yuqoridagi jadvaldagi 19 ta raqam hamon 🔴. Ablatsiya BIRINCHI
+yugurishda ma'nosiz chiqdi (35 savdo), va u YANGI chegarada
+QAYTA yuritilishi kerak. Aynan u qaysi tekshiruvlar bo'sh
+ekanini aytadi.
+
+Shuningacha: zanjirning 16 ta ichki tekshiruvidan **qaysi biri
+ishlayotgani noma'lum**. PF 3.17 — zanjirning UMUMIY natijasi,
+uning qismlariniki emas.

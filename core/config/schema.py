@@ -501,7 +501,8 @@ class DarajalarConfig:
     faqat RAD ETADI: chegaradan tashqaridagi signal berilmaydi.
     """
 
-    stop_eng_kam_pct: float = 3.0
+    #: 🟢 O'LCHANDI — `config/default.yaml` dagi izohga qarang.
+    stop_eng_kam_pct: float = 1.5
     stop_eng_kop_pct: float = 15.0
     tp1_eng_kam_nisbat: float = 1.2
     tp_eng_kop: int = 3

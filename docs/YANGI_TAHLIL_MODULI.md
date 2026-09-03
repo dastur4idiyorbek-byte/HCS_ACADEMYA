@@ -125,14 +125,37 @@ kam o'zgartirsa — **olib tashlanadi**, murakkablik saqlanmaydi.
 
 ---
 
-## Keyingi qadam
+## Birinchi o'lchov BAJARILDI (2026-09-03)
 
-1. `zanjir.yml` ni ishga tushirish (`olchov: hammasi`)
-2. Ablatsiya natijasiga qarab hissasiz tekshiruvlarni olib tashlash
-3. Walk-forward PF vaqt bilan pasaymasligini tekshirish
-4. PF ≥ 1.0 bo'lsa — admin bilan ko'rib chiqish, jonliga chiqarish rejasi
-5. PF < 1.0 bo'lsa — **TO'XTASH**, natijani hujjatlash, keyingi
-   qadamni admin bilan BIRGA hal qilish
+To'liq natija: `docs/BACKTEST_NATIJA_2026-09-03_zanjir.md`
 
-5-band — yakuniy qaror. Avtomatik "yana bitta narsa qo'shaylik"
-bo'lmaydi.
+```
+stop 1.5%, walk-forward:   PF 3.37 → 2.90 → 2.44
+                           42 / 34 / 28 savdo, uchala oyna foydali
+```
+
+To'xtash qoidasi ISHGA TUSHMADI — PF ≥ 1.0 uchala kesishmaydigan
+oynada.
+
+Qurish paytida topilgan eng katta xato o'zimniki edi:
+`stop_eng_kam_pct = 3.0` savdolarning oltidan beshini to'sib
+turardi. O'lchandi, 1.5 ga tushirildi.
+
+## Keyingi qadam — tartib bilan
+
+1. **Ablatsiyani YANGI chegarada qayta yuritish.** Birinchi
+   yugurishda u 35 savdo bilan ma'nosiz edi. Hozir 82+ savdo bor,
+   ya'ni endi javob beradi: 16 ta ichki tekshiruvdan qaysi biri
+   haqiqatan ishlayapti.
+
+       gh workflow run zanjir.yml -f olchov=ablatsiya
+
+2. **`risk_engine` bilan birga o'lchash.** Hozirgi natijada sig'im
+   va korrelyatsiya YO'Q (ataylab — zanjirning O'Z sifatini
+   o'lchash uchun). Jonli tizimda `max_open_signals = 5` savdolarning
+   bir qismini kesadi va buni bilish kerak.
+
+3. **Faqat shundan keyin** — admin bilan jonliga chiqarish rejasi,
+   KICHIK pozitsiya bilan (2-prompt, 8-qism, 7-band).
+
+Avtomatik "yana bitta narsa qo'shaylik" bo'lmaydi.
