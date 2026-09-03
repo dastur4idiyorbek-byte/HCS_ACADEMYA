@@ -33,14 +33,19 @@ def score_session_overlap(
     moment: datetime | None,
     config: SessionOverlapConfig,
     weight: float,
+    davomiylik_daqiqa: int = 60,
 ) -> ScoreComponent:
-    """ICT Kill Zone — London/Nyu-York kesishuvidagi qo'shimcha ball."""
+    """ICT Kill Zone — London/Nyu-York kesishuvidagi qo'shimcha ball.
+
+    `davomiylik_daqiqa` — qaror qamrab oladigan oyna (kirish
+    timeframei). Qarang: `in_session_overlap`.
+    """
     if not config.enabled or moment is None:
         return ScoreComponent(
             "session_overlap", 0.0, weight, "Sessiya oynasi hisobga olinmadi", bonus=True
         )
 
-    ichida = in_session_overlap(moment, config)
+    ichida = in_session_overlap(moment, config, davomiylik_daqiqa)
     oyna = f"{config.start_hour_utc:02d}:00-{config.end_hour_utc:02d}:00 UTC"
     izoh = (
         f"London-NY sessiya kesishuvi ({oyna})"
@@ -52,25 +57,73 @@ def score_session_overlap(
     )
 
 
-def in_session_overlap(moment: datetime, config: SessionOverlapConfig) -> bool:
-    """Vaqt Kill Zone oynasi ichidami.
+def in_session_overlap(
+    moment: datetime,
+    config: SessionOverlapConfig,
+    davomiylik_daqiqa: int = 60,
+) -> bool:
+    """Qaror QAMRAB OLGAN oyna Kill Zone bilan kesishadimi.
 
-    Oyna yarim tunni kesib o'tishi mumkin (masalan 22:00-02:00) —
-    shuning uchun oddiy `start <= soat < end` yetarli emas.
+    NIMA UCHUN NUQTA EMAS, ORALIQ. Ilgari bu yerda `moment.hour`
+    tekshirilardi va bonus AMALDA HECH QACHON BERILMASDI:
+
+        4 soatlik panjara:  00, 04, 08, 12, 16, 20 UTC
+        Kill Zone oynasi:   13 <= soat < 16
+        kesishma:           BO'SH
+
+    Ya'ni "yoqilgan" bonus nol marta ishlagan. Sozlama bor edi,
+    kod bor edi, natija yo'q edi.
+
+    Endi qaror bir NUQTA emas, u qamrab oladigan ORALIQ deb
+    qaraladi: `[moment, moment + davomiylik)`. 12:00 dagi 4 soatlik
+    sham 12:00-16:00 ni qamraydi va Kill Zone (13:00-16:00) to'liq
+    uning ichida — ya'ni bonus kuniga bir marta, aynan kerakli
+    shamda beriladi.
+
+    Oyna yarim tunni kesib o'tishi mumkin (22:00-02:00), shuning
+    uchun tekshiruv daqiqa o'qida, sutka bo'yicha aylantirib
+    bajariladi.
     """
-    soat = moment.hour
     boshi, oxiri = config.start_hour_utc, config.end_hour_utc
     if boshi == oxiri:
         return False
-    if boshi < oxiri:
-        return boshi <= soat < oxiri
-    return soat >= boshi or soat < oxiri
+
+    kun = 24 * 60
+    davomiylik = max(1, min(davomiylik_daqiqa, kun))
+    qaror_boshi = moment.hour * 60 + moment.minute
+    oyna_boshi, oyna_oxiri = boshi * 60, oxiri * 60
+
+    # Yarim tundan o'tuvchi oyna ikkiga bo'linadi.
+    oynalar = (
+        [(oyna_boshi, oyna_oxiri)]
+        if oyna_boshi < oyna_oxiri
+        else [(oyna_boshi, kun), (0, oyna_oxiri)]
+    )
+    # Qaror oralig'i ham sutkadan chiqib ketishi mumkin.
+    qarorlar = [(qaror_boshi, qaror_boshi + davomiylik)]
+    if qaror_boshi + davomiylik > kun:
+        qarorlar = [(qaror_boshi, kun), (0, qaror_boshi + davomiylik - kun)]
+
+    return any(
+        q_boshi < o_oxiri and o_boshi < q_oxiri
+        for q_boshi, q_oxiri in qarorlar
+        for o_boshi, o_oxiri in oynalar
+    )
 
 
 def build_bonus_components(
     moment: datetime | None,
     bonuses: ScoreBonuses,
     session: SessionOverlapConfig,
+    davomiylik_daqiqa: int = 60,
 ) -> list[ScoreComponent]:
-    """Bonus omillari — hozircha bittasi."""
-    return [score_session_overlap(moment, session, bonuses.session_overlap)]
+    """Bonus omillari — hozircha bittasi.
+
+    `davomiylik_daqiqa` — kirish timeframei. Ansiz Kill Zone tekshiruvi
+    nuqta bo'lib qolardi va 4 soatlik panjarada hech qachon ishlamasdi.
+    """
+    return [
+        score_session_overlap(
+            moment, session, bonuses.session_overlap, davomiylik_daqiqa
+        )
+    ]

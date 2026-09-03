@@ -16,7 +16,7 @@ to'ldiradi.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from core.analysis.indicators import atr_pct
 from core.analysis.market_health import (
@@ -32,7 +32,7 @@ from core.domain.enums import HalalStatus, SignalStatus
 from core.domain.models import Candle, HalalVerdict, Signal
 from core.pipeline import CycleInput, SignalCycle, SymbolData
 from core.risk_engine.btc_filter import btc_ozgarishi_24h
-from core.signals import SignalEventKind, SignalTracker
+from core.signals import SignalEventKind, SignalTracker, kuzatuvchi_qur
 from core.utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -395,10 +395,9 @@ class Backtester:
             baholanadigan = baholanadigan[:max_steps]
 
         qarorlar = verdicts or {}
-        soat = self._config.trade_rules.max_holding_hours
-        tracker = SignalTracker(
-            max_holding=timedelta(hours=soat) if soat > 0 else None
-        )
+        # Kuzatuvchi JONLI TIZIM BILAN bir xil fabrikadan quriladi:
+        # muddat ham, "yolg'on signal" oynasi ham bitta manbadan.
+        tracker = kuzatuvchi_qur(self._config)
         natija = BacktestResult(
             label=self._label,
             buy_and_hold_pct=self._buy_and_hold(dataset, baholanadigan, entry_tf),
@@ -678,6 +677,7 @@ class Backtester:
         indicators = self._config.analysis.indicators
         coinlar = []
         atr_qiymatlari = {}
+        narxlar: dict[str, float] = {}
         oynalar: dict[str, dict[str, list[Candle]]] = {}
 
         for symbol in dataset.symbols:
@@ -700,6 +700,7 @@ class Backtester:
             atr = atr_pct(seriya, indicators.atr_period)
             if atr is not None:
                 atr_qiymatlari[symbol] = atr
+            narxlar[symbol] = seriya[-1].close
 
         # Kenglik va ADX — JONLI TIZIM BILAN BIR XIL funksiyadan.
         # Ilgari bu hisob shu yerda takrorlangan edi va jonli tizim
@@ -751,5 +752,8 @@ class Backtester:
             ),
             adx_values=adx_qiymatlari,
             atr_values=atr_qiymatlari,
+            # `ZoneIntegrityRule` jonli tizim bilan BIR XIL ma'lumot
+            # ko'rsin — aks holda qoida faqat jonlida ishlardi.
+            prices=narxlar,
             price_ages=dict.fromkeys(adx_qiymatlari, 0.0),
         )

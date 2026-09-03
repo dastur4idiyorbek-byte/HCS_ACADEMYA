@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
+from core.config.schema import AppConfig
 from core.domain.enums import SignalStatus
 from core.domain.models import Signal
 from core.signals.events import SignalEvent, SignalEventKind
@@ -403,3 +404,24 @@ class SignalTracker:
         if signal.activated_at is None:
             return False
         return at - signal.activated_at <= self._false_signal_window
+
+
+def kuzatuvchi_qur(config: AppConfig) -> SignalTracker:
+    """Sozlamadan `SignalTracker` quradi — JONLI TIZIM VA BACKTEST UCHUN.
+
+    NIMA UCHUN FABRIKA. Ilgari kuzatuvchi ikki joyda alohida
+    qurilardi: `bot/services/watcher.py` va `core/backtest/engine.py`.
+    Ikkalasi ham `max_holding` ni o'zi hisoblar, `false_signal_window`
+    ni esa IKKALASI HAM uzatmasdi — `postmortem.false_signal_window_minutes`
+    sozlamasi butunlay o'lik edi va tracker qattiq yozilgan bir soatni
+    ishlatardi.
+
+    Endi manba bitta: sozlama o'zgarsa ikkala tomon ham o'zgaradi.
+    """
+    soat = config.trade_rules.max_holding_hours
+    return SignalTracker(
+        false_signal_window=timedelta(
+            minutes=config.postmortem.false_signal_window_minutes
+        ),
+        max_holding=timedelta(hours=soat) if soat > 0 else None,
+    )

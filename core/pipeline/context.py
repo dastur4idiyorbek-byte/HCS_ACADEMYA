@@ -53,6 +53,9 @@ class CycleInput:
     adx_values: dict[str, float] = field(default_factory=dict)
     #: symbol -> ATR foizi
     atr_values: dict[str, float] = field(default_factory=dict)
+    #: symbol -> joriy narx. 0.3-band fail-safe uchun: narx kirish
+    #: zonasidan pastga tushib ketgan bo'lsa savdoning asosi yo'qolgan.
+    prices: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,8 +135,8 @@ STAGE_LABELS: dict[str, str] = {
     "risk_engine:daily_loss_limit": "Kunlik zarar chegarasi (4.1)",
     "risk_engine:max_open_signals": "Ochiq signallar chegarasi (4.2)",
     "risk_engine:correlation": "Korrelyatsiya: shu guruhda signal bor (4.3)",
-    "risk_engine:sideways_market": "Bozor tekis — trend yo'q (4.4)",
     "risk_engine:btc_market_filter": "BTC tushmoqda (4.5)",
+    "risk_engine:zone_broken": "Kirish zonasi buzilgan (0.3)",
     "risk_engine:low_volatility": "Volatillik past (4.6)",
     "risk_engine:kill_switch": "Favqulodda to'xtash yoqilgan (4.7)",
     "risk_engine:friday_prayer": "Juma namozi vaqti (4.8)",

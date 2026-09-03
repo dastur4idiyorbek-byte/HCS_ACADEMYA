@@ -343,12 +343,28 @@ def test_sham_yoshi_chegarasi_timeframega_bogliq(config) -> None:  # noqa: ANN00
 
 @pytest.mark.parametrize(
     "yoq",
-    ["btc_change_24h_pct", "adx", "atr_pct", "price_age_seconds"],
+    ["btc_change_24h_pct", "atr_pct", "price_age_seconds"],
 )
 def test_malumot_yetishmasa_signal_berilmaydi(engine: RiskEngine, yoq: str) -> None:
     """0.3-band: noaniqlik — signal bermaslik uchun sabab."""
     qaror = engine.evaluate(nomzod(), sog_kontekst(**{yoq: None}))
     assert not qaror.allowed, f"{yoq} yo'q bo'lsa ham signal o'tib ketdi"
+
+
+def test_adx_yoq_bolsa_risk_engine_toxtatmaydi(engine: RiskEngine) -> None:
+    """ADX ro'yxatdan CHIQARILDI — `MarketRegimeRule` olib tashlandi.
+
+    Qoida faqat `adx is None` ni tekshirar, `adx_trend_threshold`
+    bilan taqqoslash umuman yo'q edi — ya'ni docstring va kod
+    boshqa-boshqa narsa aytardi. Sabab va o'lchov:
+    `core/risk_engine/rules.py` boshidagi izoh.
+
+    Fail-safe yo'qolmadi: nomzod bu yergacha yetib kelishi uchun
+    `classic_ta` ning "indicators" bosqichidan o'tishi shart, u esa
+    to'liq bo'lmagan indikatorlarni allaqachon rad etadi.
+    """
+    qaror = engine.evaluate(nomzod(), sog_kontekst(adx=None))
+    assert qaror.allowed, qaror.details
 
 
 # --------------------------------------------------------------------------- #

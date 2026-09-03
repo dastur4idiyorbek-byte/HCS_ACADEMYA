@@ -182,9 +182,7 @@ def test_ulushlar_sozlamadan_olinadi(qoidalar) -> None:  # noqa: ANN001
     config = load_config()
     uchta = dataclasses.replace(qoidalar, max_take_profits=3)
 
-    natija = build_levels(
-        sinov_xaritasi(), uchta, shares=config.portfolio.shares_for(3)
-    )
+    natija = build_levels(sinov_xaritasi(), uchta, portfolio=config.portfolio)
 
     assert natija.ok, natija.reason
     ulushlar = tuple(tp.close_pct for tp in natija.levels.takes)

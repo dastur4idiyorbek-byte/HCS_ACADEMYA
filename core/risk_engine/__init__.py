@@ -10,11 +10,11 @@ from core.risk_engine.rules import (
     HalalRule,
     KillSwitchRule,
     MarketHealthRule,
-    MarketRegimeRule,
     MaxOpenSignalsRule,
     RiskRule,
     TradeRulesRule,
     VolatilityRule,
+    ZoneIntegrityRule,
 )
 
 __all__ = [
@@ -23,11 +23,11 @@ __all__ = [
     "CorrelationRule",
     "DailyLossLimitRule",
     "FreshDataRule",
+    "ZoneIntegrityRule",
     "FridayPrayerRule",
     "HalalRule",
     "KillSwitchRule",
     "MarketHealthRule",
-    "MarketRegimeRule",
     "MaxOpenSignalsRule",
     "RiskContext",
     "RiskEngine",

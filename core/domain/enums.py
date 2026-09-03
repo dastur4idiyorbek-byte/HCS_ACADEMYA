@@ -249,7 +249,9 @@ class BlockReason(str, Enum):
     DAILY_LOSS_LIMIT = "daily_loss_limit"                # 4.1
     MAX_OPEN_SIGNALS = "max_open_signals"                # 4.2
     CORRELATION = "correlation"                          # 4.3
-    SIDEWAYS_MARKET = "sideways_market"                  # 4.4
+    # 4.4 (SIDEWAYS_MARKET) OLIB TASHLANDI: qoida faqat "ADX
+    # hisoblanmagan" ni tekshirardi, chegara bilan taqqoslash umuman
+    # yo'q edi. Sabab va o'lchov: `core/risk_engine/rules.py`.
     BTC_MARKET_FILTER = "btc_market_filter"              # 4.5
     LOW_VOLATILITY = "low_volatility"                    # 4.6
     KILL_SWITCH = "kill_switch"                          # 4.7
@@ -259,6 +261,7 @@ class BlockReason(str, Enum):
     SCORE_BELOW_THRESHOLD = "score_below_threshold"      # 3.5
     NOT_HALAL = "not_halal"                              # 3.4
     RISK_RULES_VIOLATED = "risk_rules_violated"          # 3.3
+    ZONE_BROKEN = "zone_broken"                          # 0.3 fail-safe
     STALE_MARKET_DATA = "stale_market_data"              # 0.3 fail-safe
     INTERNAL_ERROR = "internal_error"                    # 0.3 fail-safe
 

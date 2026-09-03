@@ -290,5 +290,5 @@ def test_zanjir_uchidan_uchiga_bir_xil_nisbat(config: AppConfig) -> None:
 
     manba = inspect.getsource(modul.ClassicTaStrategy.analyze)
     assert "qoidalar = classic_ta_rules(self._config)" in manba
-    assert "build_levels(zona_xaritasi, qoidalar)" in manba
+    assert "build_levels(\n            zona_xaritasi, qoidalar, portfolio=" in manba
     assert "rules=qoidalar" in manba, "ball hisobiga ham uzatilishi shart"

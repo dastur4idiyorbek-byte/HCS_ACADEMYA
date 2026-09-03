@@ -168,7 +168,13 @@ analysis:
     adx_period: 14
     adx_trend_threshold: 20        # bundan past — tekis (sideways) bozor
 
-    # Nechta indikator tasdiqlashi SHART (4 tadan: trend, RSI, MACD, hajm).
+    # Nechta indikator tasdiqlashi SHART.
+    #
+    # OMILLAR UCHTA: RSI, MACD, hajm (`indicators/confirmation.py`).
+    # Izoh ilgari "4 tadan: trend, RSI, MACD, hajm" derdi — TREND bu
+    # ro'yxatda YO'Q va hech qachon bo'lmagan. Ya'ni `4` qiymati
+    # erishib bo'lmaydigan edi: uni qo'ygan odam tizimni jimgina
+    # butunlay to'xtatib qo'yardi. Yuqori chegara — 3.
     #
     # DIQQAT — o'lchangan muammo: 4/4 talab qilinsa, tizim amalda hech qachon
     # signal bermaydi. Sabab: MACD kechikuvchi indikator, u faqat narx
@@ -179,7 +185,7 @@ analysis:
     # hissa qo'shadi, qarorni esa umumiy ball chegarasi qabul qiladi.
     # Zona sharti (S/R + Discount) baribir MAJBURIY bo'lib qoladi —
     # "yolg'iz indikator-asosli signal yo'q" qoidasi buzilmaydi.
-    min_confirmations: 2            # 4 = qat'iy "hammasi tasdiqlasin" varianti
+    min_confirmations: 2            # 3 = qat'iy "hammasi tasdiqlasin" varianti
     # Indikator tasdig'i signal uchun MAJBURIYmi.
     #
     # `false` — indikatorlar faqat BALLGA ta'sir qiladi, ya'ni ko'p coin

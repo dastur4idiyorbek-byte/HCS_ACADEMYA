@@ -224,7 +224,12 @@ class ClassicTaStrategy(Strategy):
 
         # 6) Darajalar (3.3-band chegaralari bilan)
         qoidalar = classic_ta_rules(self._config)
-        daraja_natijasi = build_levels(zona_xaritasi, qoidalar)
+        # Ulushlar `portfolio.tp_close_shares` dan — TP soni
+        # aniqlangach hisoblanadi. Ilgari bu argument uzatilmasdi va
+        # sozlama butunlay o'lik edi.
+        daraja_natijasi = build_levels(
+            zona_xaritasi, qoidalar, portfolio=self._config.portfolio
+        )
         if not daraja_natijasi.ok:
             return self._reject(daraja_natijasi.stage, daraja_natijasi.reason)
 
@@ -270,7 +275,10 @@ class ClassicTaStrategy(Strategy):
             structure=struktura,
             level_type=daraja_turi,
             sweep=yalash,
-            moment=shamlar[-1].open_time,
+            # QAROR VAQTI, oxirgi shamning ochilishi emas. Ikkalasi
+            # 4 soatlik panjarada bir xil, lekin `data.now` niyatni
+            # ochiq aytadi va jonli tizimda haqiqiy vaqtni beradi.
+            moment=data.now,
             setup=shartnoma,
         )
 

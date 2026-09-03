@@ -23,7 +23,12 @@ from core.domain.enums import SignalStatus, SubscriptionTier
 from core.domain.portfolio import PositionOutcome
 from core.market_data import PriceCache, PriceStream, SpikeDetector
 from core.services import compute_outcome
-from core.signals import SignalEvent, SignalEventKind, SignalTracker
+from core.signals import (
+    SignalEvent,
+    SignalEventKind,
+    SignalTracker,
+    kuzatuvchi_qur,
+)
 from core.storage import Database
 from core.storage.repositories import (
     SignalRepository,
@@ -38,17 +43,6 @@ logger = get_logger(__name__)
 
 #: Eskirgan signallarni tekshirish oralig'i
 EXPIRY_CHECK_INTERVAL = timedelta(minutes=15)
-
-
-def _ushlash_muddati(config: AppConfig) -> timedelta | None:
-    """`trade_rules.max_holding_hours` dan muddat.
-
-    0 — muddat yo'q (standart). Bu GIPOTEZA: muddat foydasiz
-    savdolarni erta yopadimi yoki kuchayishga ulgurmagan yaxshi
-    savdolarni kesib qo'yadimi — o'lchanmagan.
-    """
-    soat = config.trade_rules.max_holding_hours
-    return timedelta(hours=soat) if soat > 0 else None
 
 
 class SignalWatcher:
@@ -68,7 +62,7 @@ class SignalWatcher:
         self._stream = stream
         self._admin_ids = admin_ids
 
-        self._tracker = SignalTracker(max_holding=_ushlash_muddati(config))
+        self._tracker = kuzatuvchi_qur(config)
         self._cache = PriceCache()
         self._spikes = SpikeDetector(
             threshold_pct=config.risk_engine.kill_switch.price_spike_pct,

@@ -174,11 +174,6 @@ class SoxtaHolat:
     adx = 25.0
 
 
-class SoxtaHukm:
-    def factor(self, nom: str):  # noqa: ANN201, ARG002
-        return None
-
-
 def test_struktura_trend_omilining_TO_LIQ_qismi() -> None:
     """EMA olib tashlangach struktura "qo'shimcha dalil" bo'lishdan chiqdi.
 
@@ -198,8 +193,8 @@ def test_struktura_trend_omilining_TO_LIQ_qismi() -> None:
 
 def test_kotarilish_strukturasi_koproq_ball_beradi() -> None:
     config = IndicatorConfig()
-    pastga = score_trend(SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=pasayish())
-    yuqoriga = score_trend(SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish())
+    pastga = score_trend(SoxtaHolat(), config, 20.0, 0.5, structure=pasayish())
+    yuqoriga = score_trend(SoxtaHolat(), config, 20.0, 0.5, structure=kotarilish())
 
     assert yuqoriga.earned > pastga.earned
     assert yuqoriga.earned <= 20.0
@@ -213,7 +208,7 @@ def test_pasayish_strukturasi_qolgan_qismlarni_YO_QOTMAYDI() -> None:
     "yaxshi qaytish" holati 20 balldan 0 olardi (28-bo'lim).
     """
     omil = score_trend(
-        SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 1.0, structure=pasayish()
+        SoxtaHolat(), IndicatorConfig(), 20.0, 1.0, structure=pasayish()
     )
     assert omil.earned > 0.0
 
@@ -221,23 +216,23 @@ def test_pasayish_strukturasi_qolgan_qismlarni_YO_QOTMAYDI() -> None:
 def test_bos_tasdiqli_struktura_koproq_beradi() -> None:
     config = IndicatorConfig()
     tasdiqsiz = score_trend(
-        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(bos=False)
+        SoxtaHolat(), config, 20.0, 0.5, structure=kotarilish(bos=False)
     )
     tasdiqli = score_trend(
-        SoxtaHolat(), SoxtaHukm(), config, 20.0, 0.5, structure=kotarilish(bos=True)
+        SoxtaHolat(), config, 20.0, 0.5, structure=kotarilish(bos=True)
     )
 
     assert tasdiqli.earned > tasdiqsiz.earned
 
 
 def test_struktura_hisoblanmasa_xato_bermaydi() -> None:
-    omil = score_trend(SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 0.5)
+    omil = score_trend(SoxtaHolat(), IndicatorConfig(), 20.0, 0.5)
     assert omil.earned >= 0.0
     assert "hisoblanmadi" in omil.explanation
 
 
 def test_trend_omili_bonus_deb_belgilanmaydi() -> None:
     omil = score_trend(
-        SoxtaHolat(), SoxtaHukm(), IndicatorConfig(), 20.0, 0.5, structure=kotarilish()
+        SoxtaHolat(), IndicatorConfig(), 20.0, 0.5, structure=kotarilish()
     )
     assert omil.bonus is False

@@ -409,6 +409,7 @@ class PipelineRunner:
         adx_qiymatlari = {}
         atr_qiymatlari = {}
         narx_yoshlari = {}
+        narxlar = {}
 
         for symbol in self._universe.symbols:
             tf_shamlar = candles.get(symbol, {})
@@ -431,6 +432,9 @@ class PipelineRunner:
                 atr = atr_pct(seriya, indicators.atr_period)
                 if atr is not None:
                     atr_qiymatlari[symbol] = atr
+            narx = self._joriy_narx(candles, symbol)
+            if narx is not None:
+                narxlar[symbol] = narx
             yosh = self._narx_yoshi(symbol, seriya)
             if yosh is not None:
                 narx_yoshlari[symbol] = yosh
@@ -443,6 +447,9 @@ class PipelineRunner:
             adx_values=adx_qiymatlari,
             atr_values=atr_qiymatlari,
             price_ages=narx_yoshlari,
+            # 0.3 — `ZoneIntegrityRule` uchun. Ilgari zona buzilgani
+            # `plan_entry()` da hisoblanar, lekin hech kim o'qimasdi.
+            prices=narxlar,
             btc_change_24h_pct=self._btc_ozgarishi(candles),
             daily_loss_pct=losses[0],
             weekly_loss_pct=losses[1],

@@ -31,11 +31,11 @@ from core.risk_engine.rules import (
     HalalRule,
     KillSwitchRule,
     MarketHealthRule,
-    MarketRegimeRule,
     MaxOpenSignalsRule,
     RiskRule,
     TradeRulesRule,
     VolatilityRule,
+    ZoneIntegrityRule,
 )
 from core.utils.logging_setup import get_logger
 from core.utils.time_utils import timeframe_minutes, utc_now
@@ -68,9 +68,14 @@ def build_default_rules(config: AppConfig) -> list[RiskRule]:
         MaxOpenSignalsRule(risk),
         CorrelationRule(risk),
         BtcMarketRule(risk),
-        MarketRegimeRule(risk),
         VolatilityRule(risk, min_atr_pct=min_atr_pct),
         FreshDataRule(risk, max_age_seconds=_max_candle_age_seconds(config)),
+        # 0.3 — zona buzilgan bo'lsa savdoning asosi yo'q.
+        # `entry_order.zone_broken_threshold_pct` ilgari hisoblanar,
+        # lekin hech kim o'qimasdi (`rules.py` izohiga qarang).
+        ZoneIntegrityRule(
+            risk, config.analysis.entry_order.zone_broken_threshold_pct
+        ),
         HalalRule(),
         TradeRulesRule(
             # YAGONA MANBA: `build_levels` ham shu bayroqqa qaraydi.

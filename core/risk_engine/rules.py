@@ -244,18 +244,34 @@ class CorrelationRule(_BaseRule):
 # --------------------------------------------------------------------------- #
 
 
-class MarketRegimeRule(_BaseRule):
-    """Tekis (sideways) bozorda signal berilmaydi."""
-
-    name = "market_regime"
-
-    def check(self, candidate: SignalCandidate, context: RiskContext) -> RiskDecision:
-        if context.adx is None:
-            return RiskDecision.block(
-                BlockReason.SIDEWAYS_MARKET,
-                "ADX hisoblanmagan — bozor rejimi noaniq, signal berilmaydi.",
-            )
-        return RiskDecision.allow()
+# 4.4 — BOZOR REJIMI QOIDASI OLIB TASHLANDI.
+#
+# `MarketRegimeRule` mavjud edi, lekin u FAQAT `adx is None` ni
+# tekshirardi: `adx_trend_threshold` (20) bilan taqqoslash umuman
+# yo'q edi. Ya'ni docstring "tekis bozorda signal berilmaydi"
+# derdi, kod esa boshqa narsa qilardi — yarim holat.
+#
+# Ikki yo'ldan BIRI tanlandi: chegarani ulash yoki qoidani
+# o'chirish.
+#
+# CHEGARA ULANMADI, sababi ikkita va ikkalasi ham o'lchovga
+# tayanadi:
+#
+#   1. Ablation (2026-09-03): trend omili — uning ichida ADX ham
+#      bor — ballga hech narsa qo'shmadi. PF 0.84 -> 0.83. ADX
+#      keyingi harakat haqida ma'lumot bermayapti, shuning uchun
+#      unga tayanib SIGNALNI TO'XTATISH asossiz.
+#   2. Loyihaning o'z tarixi: qat'iy filtr ko'paytirish signal
+#      voronkasini allaqachon nolga tushirgan (40 va 44-bo'lim).
+#
+# ADX YO'QOLMADI: u ball omilining bir qismi bo'lib qoladi
+# (`factors.py`, `adx_trend_threshold` o'sha yerda o'qiladi).
+# O'zgargan narsa — u endi TO'SIQ emas, faqat baho.
+#
+# `adx is None` fail-safe'i ham yo'qolmadi: nomzod bu yergacha
+# yetib kelishi uchun `classic_ta` ning "indicators" bosqichidan
+# o'tishi shart, u esa to'liq bo'lmagan indikatorlarni allaqachon
+# rad etadi.
 
 
 class VolatilityRule(_BaseRule):
@@ -374,6 +390,60 @@ class FreshDataRule(_BaseRule):
                 "WebSocket uzilgan bo'lishi mumkin.",
             )
         return RiskDecision.allow()
+
+
+# --------------------------------------------------------------------------- #
+#  0.3 — Kirish zonasi buzilganmi (fail-safe)
+# --------------------------------------------------------------------------- #
+
+
+class ZoneIntegrityRule(_BaseRule):
+    """Narx kirish zonasidan PASTGA tushib ketgan bo'lsa signal berilmaydi.
+
+    NIMA UCHUN QOIDA, NEGA `entry_order.py` DA EMAS.
+    `plan_entry()` bu holatni allaqachon aniqlar va `is_valid=False`
+    qaytarardi — lekin bu maydonni HECH KIM O'QIMASDI. Runner baribir
+    signalni bazaga yozib tarqatardi, backtest esa `plan_entry()` ni
+    umuman chaqirmaydi. Ya'ni `zone_broken_threshold_pct` sozlamasi
+    yozilgan, hisoblangan va e'tiborsiz qoldirilgan edi.
+
+    Endi tekshiruv Risk Engine'da: jonli tizim ham, backtest ham
+    ayni bir qarordan o'tadi va voronkada ko'rinadi.
+
+    MANTIQ. Signal "narx shu support zonasiga qaytdi" degan taxminga
+    quriladi. Narx zonadan sezilarli pastga tushgan bo'lsa, taxmin
+    allaqachon buzilgan: Stop yaqin, zona esa endi tayanch emas.
+    Bu bashorat emas, ASOSNING yo'qolgani.
+
+    `current_price` yo'q bo'lsa tekshiruv o'tkazib yuboriladi —
+    narxning umuman yo'qligini `FreshDataRule` ushlaydi.
+    """
+
+    name = "zone_integrity"
+
+    def __init__(self, config: RiskEngineConfig, threshold_pct: float) -> None:
+        super().__init__(config)
+        self._threshold_pct = threshold_pct
+
+    def check(self, candidate: SignalCandidate, context: RiskContext) -> RiskDecision:
+        narx = context.current_price
+        if narx is None or narx <= 0:
+            return RiskDecision.allow()
+
+        entry = candidate.levels.entry
+        if entry <= 0:
+            return RiskDecision.allow()
+
+        masofa_pct = (narx - entry) / entry * 100
+        if masofa_pct >= -self._threshold_pct:
+            return RiskDecision.allow()
+
+        return RiskDecision.block(
+            BlockReason.ZONE_BROKEN,
+            f"Narx kirish nuqtasidan {abs(masofa_pct):.2f}% pastda "
+            f"(ruxsat {self._threshold_pct:.2f}%) — zona buzilgan, "
+            "savdoning asosi yo'qolgan.",
+        )
 
 
 # --------------------------------------------------------------------------- #

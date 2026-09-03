@@ -126,7 +126,11 @@ class NarxHarakatiStrategy(Strategy):
         stop = naqsh.eng_past - atr * STOP_ZAXIRA_ATR
 
         daraja_natijasi = build_levels_with_stop(
-            zona_xaritasi, classic_ta_rules(self._config), kirish, stop
+            zona_xaritasi,
+            classic_ta_rules(self._config),
+            kirish,
+            stop,
+            portfolio=self._config.portfolio,
         )
         if not daraja_natijasi.ok:
             return self._reject(daraja_natijasi.stage, daraja_natijasi.reason)

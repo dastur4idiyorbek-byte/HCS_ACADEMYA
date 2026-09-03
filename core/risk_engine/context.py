@@ -48,6 +48,11 @@ class RiskContext:
     # 6.2 — narx oqimi yangiligi (sekundlarda). Eskirgan bo'lsa signal yo'q.
     price_age_seconds: float | None = None
 
+    # 0.3 — nomzod coinning joriy narxi. `None` bo'lsa zona
+    # yaxlitligi tekshirilmaydi (fail-safe emas: narx yo'qligi
+    # boshqa qoidada `price_age_seconds` orqali ushlanadi).
+    current_price: float | None = None
+
     @property
     def health_band(self) -> HealthBand | None:
         return self.market_health.band if self.market_health else None

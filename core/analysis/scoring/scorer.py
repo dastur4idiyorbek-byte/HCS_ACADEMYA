@@ -34,6 +34,7 @@ from core.domain.models import (
     SRZone,
 )
 from core.utils.logging_setup import get_logger
+from core.utils.time_utils import timeframe_minutes
 
 logger = get_logger(__name__)
 
@@ -138,6 +139,12 @@ class Scorer:
             moment=moment,
             bonuses=self._config.scoring.bonuses,
             session=self._config.analysis.session_overlap,
+            # Qaror bir nuqta emas — u kirish shamini qamrab oladi.
+            # Ansiz Kill Zone 4 soatlik panjarada hech qachon
+            # ishlamasdi (00/04/08/12/16/20 va 13-16 kesishmaydi).
+            davomiylik_daqiqa=timeframe_minutes(
+                self._config.analysis.entry_timeframe
+            ),
         )
         return ScoreBreakdown(
             symbol=symbol,

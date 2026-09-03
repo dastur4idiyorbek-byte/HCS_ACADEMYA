@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from core.analysis.support_resistance import ZoneMap
-from core.config.schema import TradeRulesConfig
+from core.config.schema import PortfolioConfig, TradeRulesConfig
 from core.domain.models import SignalLevels, signal_levels
 
 #: Stop support zonasining pastidan shu ulushdagi ATR masofasida qo'yiladi.
@@ -63,7 +63,7 @@ def build_levels(
     zone_map: ZoneMap,
     rules: TradeRulesConfig,
     entry_price: float | None = None,
-    shares: tuple[float, ...] | None = None,
+    portfolio: PortfolioConfig | None = None,
 ) -> LevelResult:
     """S/R zonalari va ATR asosida Entry/Stop va TP ro'yxatini quradi.
 
@@ -78,9 +78,15 @@ def build_levels(
         zone_map: aniqlangan zonalar (6-bosqich).
         rules: 3.3-banddagi universal chegaralar.
         entry_price: kirish narxi. Berilmasa joriy narx ishlatiladi.
-        shares: har bir TP da yopiladigan ulush
-            (`portfolio.tp_close_shares`). Berilmasa domendagi
-            standart jadval ishlatiladi.
+        portfolio: `portfolio.tp_close_shares` jadvali. Berilmasa
+            domendagi standart ulushlar ishlatiladi.
+
+            NIMA UCHUN JADVAL EMAS, SOZLAMA. Ulushlar TP SONIGA
+            bog'liq, son esa shu funksiya ichida aniqlanadi —
+            chaqiruvchi uni oldindan bila olmaydi. Ilgari bu yerda
+            tayyor `tuple` kutilardi va shuning uchun uni HECH KIM
+            uzatmasdi: `tp_close_shares` butunlay o'lik sozlama
+            edi.
     """
     entry = entry_price if entry_price is not None else zone_map.price
     if entry <= 0:
@@ -103,7 +109,7 @@ def build_levels(
             stage="levels:stop_too_close" if yaqinmi else "levels:stop_too_far",
         )
     return build_levels_with_stop(
-        zone_map, rules, entry, stop_natija, shares=shares
+        zone_map, rules, entry, stop_natija, portfolio=portfolio
     )
 
 
@@ -112,7 +118,7 @@ def build_levels_with_stop(
     rules: TradeRulesConfig,
     entry: float,
     stop: float,
-    shares: tuple[float, ...] | None = None,
+    portfolio: PortfolioConfig | None = None,
 ) -> LevelResult:
     """Stop TASHQARIDAN berilganda TP larni quradi.
 
@@ -186,7 +192,7 @@ def build_levels_with_stop(
         # bo'ladi.
         kerakli_nishon = entry * (1 + stop_masofa_pct * rules.min_risk_reward / 100)
         if kerakli_nishon <= tp1:
-            return _bitta_nishon(entry, stop, tp1, tuzilmaviy_tp, rules)
+            return _bitta_nishon(entry, stop, tp1, tuzilmaviy_tp, rules, portfolio)
 
         yakuniy = _build_tp2(entry, tp1, stop_masofa_pct, rules)
         if yakuniy is None:
@@ -208,7 +214,7 @@ def build_levels_with_stop(
             entry,
             stop,
             *narxlar,
-            shares=tuple(shares) if shares else None,
+            shares=_ulushlar(portfolio, len(narxlar)),
             from_structure=manbalar,
         )
     except ValueError as exc:
@@ -437,12 +443,23 @@ def _build_tp2_tuzilmadan(
     return None
 
 
+def _ulushlar(
+    portfolio: PortfolioConfig | None, soni: int
+) -> tuple[float, ...] | None:
+    """TP soniga mos ulushlar jadvali (`portfolio.tp_close_shares`).
+
+    `None` — sozlama berilmagan, domendagi standart ishlatiladi.
+    """
+    return None if portfolio is None else portfolio.shares_for(soni)
+
+
 def _bitta_nishon(
     entry: float,
     stop: float,
     tp1: float,
     tuzilmaviy: bool,
     rules: TradeRulesConfig,
+    portfolio: PortfolioConfig | None = None,
 ) -> LevelResult:
     """Yagona TP li signal — qismli sotish yo'q.
 
@@ -451,7 +468,13 @@ def _bitta_nishon(
     yerda yopiladi.
     """
     try:
-        levels = signal_levels(entry, stop, tp1, from_structure=(tuzilmaviy,))
+        levels = signal_levels(
+            entry,
+            stop,
+            tp1,
+            shares=_ulushlar(portfolio, 1),
+            from_structure=(tuzilmaviy,),
+        )
     except ValueError as exc:
         return LevelResult(
             None,

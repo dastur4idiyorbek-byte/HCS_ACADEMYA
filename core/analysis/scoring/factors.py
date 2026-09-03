@@ -151,7 +151,6 @@ TREND_ULUSHLARI = {"struktura": 0.35, "adx": 0.25, "htf": 0.40}
 
 def score_trend(
     snapshot: IndicatorSnapshot,
-    confirmation: Confirmation,
     config: IndicatorConfig,
     weight: float,
     htf_alignment: float | None = None,
@@ -168,6 +167,12 @@ def score_trend(
     Uch qism alohida baholanadi va qo'shiladi. Yuqori timeframe
     ko'tarilishda bo'lsa, kirish timeframedagi vaqtinchalik pasayish
     ballni butunlay yo'q qilmaydi.
+
+    DIQQAT: bu omil `Confirmation` ga QARAMAYDI. Ilgari u parametr
+    sifatida qabul qilinar, lekin tanada umuman ishlatilmasdi —
+    o'quvchi trend balli tasdiqlarga bog'liq deb o'ylardi. Tasdiq
+    omillari uchtadan iborat (RSI, MACD, hajm) va trend ular
+    orasida YO'Q.
     """
     if structure is None:
         struktura_kuchi = 0.0
@@ -292,7 +297,6 @@ def build_components(
         ),
         score_trend(
             snapshot,
-            confirmation,
             indicators,
             weights.trend,
             htf_alignment,

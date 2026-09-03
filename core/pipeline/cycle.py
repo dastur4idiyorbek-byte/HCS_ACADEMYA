@@ -278,6 +278,7 @@ class SignalCycle:
             consecutive_stops=data.consecutive_stops,
             consecutive_stop_until=data.consecutive_stop_until,
             price_age_seconds=data.price_ages.get(symbol),
+            current_price=data.prices.get(symbol),
         )
 
     def _as_open_signal(self, candidate, data: CycleInput):  # noqa: ANN001, ANN202
