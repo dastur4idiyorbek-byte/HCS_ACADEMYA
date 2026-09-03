@@ -6,7 +6,6 @@ import { Grafik } from "@/components/Grafik";
 import { Himoya } from "@/components/Himoya";
 import { Kalkulyator } from "@/components/Kalkulyator";
 import { SignalKartochka } from "@/components/SignalKartochka";
-import { tpUlushlari } from "@/lib/config";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 
 /** Signallar RO'YXATIDA grafik va kalkulyatorni ochadigan tugma.
@@ -29,6 +28,7 @@ export function SignalOchish({
   belgi,
   kotirovka,
   tp1Ulush,
+  ulushlar,
   buyurtmaMatni,
   berilgan,
   boshlangichSumma,
@@ -41,6 +41,19 @@ export function SignalOchish({
   belgi: string;
   /** TP1 da sotiladigan ulush — konfiguratsiyadan, serverdan keladi */
   tp1Ulush: number;
+  /** Har bir TP da sotiladigan ulush — SERVERDAN keladi.
+   *
+   * Ilgari bu yerda `tpUlushlari()` to'g'ridan-to'g'ri chaqirilardi.
+   * U esa `@/lib/config` dan, `config.ts` esa `node:fs` dan. Bu fayl
+   * "use client" — ya'ni `node:fs` BROWSER to'plamiga tortilardi va
+   * `next build` Turbopack panikasi bilan yiqilardi:
+   *
+   *     the chunking context does not support external modules
+   *     (request: node:fs)
+   *
+   * Server kutubxonasi mijoz komponentiga import qilinmaydi — qiymat
+   * PROPS bo'lib o'tadi. `tp1Ulush` allaqachon shunday edi. */
+  ulushlar: number[];
   buyurtmaMatni: string;
   berilgan: Date | null;
   /** Kalkulyatorning boshlang'ich summasi — tizim taklifi */
@@ -79,7 +92,7 @@ export function SignalOchish({
               entry={entry}
               stop={stop}
               tplar={tpNarxlari}
-              ulushlar={tpUlushlari(tpNarxlari.length)}
+              ulushlar={ulushlar}
               buyurtmaMatni={buyurtmaMatni}
               berilgan={berilgan}
               matnlar={matnlar}

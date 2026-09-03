@@ -8,7 +8,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kechKirishChegarasi, kotirovka, tp1Ulushi } from "@/lib/config";
+import {
+  kechKirishChegarasi,
+  kotirovka,
+  tp1Ulushi,
+  tpUlushlari,
+} from "@/lib/config";
 import { hajmTaklifi } from "@/lib/hajm";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 import { env } from "@/lib/env";
@@ -119,6 +124,7 @@ export default async function Signallar() {
                 belgi={suvBelgisi}
                 kotirovka={kotirovka()}
                 tp1Ulush={tp1Ulushi()}
+                ulushlar={tpUlushlari(s.tplar.length)}
                 buyurtmaMatni={`${s.entryOrderType === "market" ? "⚡" : "📌"} ${t(
                   s.entryOrderType === "market" ? "signal.market" : "signal.limit",
                 )}`}
