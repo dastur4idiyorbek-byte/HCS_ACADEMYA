@@ -170,7 +170,7 @@ class ZanjirBacktest:
                         symbol=symbol,
                         shamlar=shamlar,
                         pastki_shamlar=_shamlar(
-                            dataset, symbol, z.timeframelar.tasdiq, hozir
+                            dataset, symbol, z.timeframelar.tasdiq, hozir, PASTKI_OYNA
                         ),
                         btc_shamlar=btc,
                         fundamental=FundamentalKirish(),
@@ -316,9 +316,33 @@ class ZanjirBacktest:
         savdo.ushlash_soat = (vaqt - savdo.kirish_vaqti).total_seconds() / 3600
 
 
-def _shamlar(dataset: Dataset, symbol: str, timeframe: str, hozir: datetime) -> list[Candle]:
-    """Lookaheadsiz kesim. `Dataset.window()` dict qaytaradi, bizga bitta TF kerak."""
+#: Asosiy timeframeda necha sham ko'riladi.
+#:
+#: Jonli tizim ham cheklangan oyna bilan ishlaydi — birjadan butun
+#: tarix so'ralmaydi. Chegarasiz qoldirilsa ikki narsa buziladi:
+#: (1) backtest jonlidan BOSHQA oynani ko'radi, (2) har qadamda ish
+#: hajmi o'sib boradi, ya'ni O(n²).
+ASOSIY_OYNA = 500
+
+#: Pastki timeframeda necha sham ko'riladi.
+#:
+#: 500 × 15 daqiqa ≈ 5 kun. 4.2 tasdig'iga shuncha yetadi: u zona
+#: ICHIDAGI mini-BOS ni qidiradi, ya'ni yaqin o'tmish.
+#:
+#: Chegarasiz qoldirilganda 730 kunlik sinovda bu qator har qadamda
+#: ~89 000 shamgacha o'sardi va o'lchov soatlab yurardi.
+PASTKI_OYNA = 500
+
+
+def _shamlar(
+    dataset: Dataset,
+    symbol: str,
+    timeframe: str,
+    hozir: datetime,
+    oyna: int = ASOSIY_OYNA,
+) -> list[Candle]:
+    """Lookaheadsiz kesim, CHEGARALANGAN oyna bilan."""
     seriya = dataset.series.get(symbol)
     if seriya is None:
         return []
-    return seriya.up_to(timeframe, hozir)
+    return seriya.up_to(timeframe, hozir, limit=oyna)

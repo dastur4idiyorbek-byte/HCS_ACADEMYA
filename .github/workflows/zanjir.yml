@@ -49,8 +49,13 @@ jobs:
           toza="${SYMBOLS//,/-}"
           echo "kalit=zanjir-${toza}-${{ inputs.days }}-${{ inputs.end_date }}" >> "$GITHUB_OUTPUT"
 
-      - name: Sham keshi
-        uses: actions/cache@v4
+      # `cache/restore` + `cache/save` ATAYLAB ajratilgan: oddiy
+      # `cache` faqat MUVAFFAQIYATLI yugurishda saqlaydi. Yuklash esa
+      # eng uzun qadam (15 daqiqalik qatorda 730 kun = coin boshiga
+      # ~90 sahifa) va uni har safar qaytadan qilish — bekorga.
+      - name: Sham keshini tiklash
+        uses: actions/cache/restore@v4
+        id: tiklash
         with:
           path: data/candles
           key: ${{ steps.kesh.outputs.kalit }}
@@ -82,6 +87,13 @@ jobs:
             --symbols "${{ inputs.symbols }}" \
             --offline \
             | tee natija_walk_forward.txt
+
+      - name: Sham keshini saqlash
+        uses: actions/cache/save@v4
+        if: always() && steps.tiklash.outputs.cache-hit != 'true'
+        with:
+          path: data/candles
+          key: ${{ steps.kesh.outputs.kalit }}
 
       - name: Natijalarni saqlash
         uses: actions/upload-artifact@v4

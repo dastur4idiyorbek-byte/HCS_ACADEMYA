@@ -189,3 +189,37 @@ def test_pasayish_choqqidan_olchanadi(config) -> None:  # noqa: ANN001
         Savdo("C", BOSH, 100, 90, (), natija_pct=5.0),
     ]
     assert n.eng_chuqur_pasayish == pytest.approx(30.0)
+
+
+# --------------------------------------------------------------------------- #
+#  Oyna chegarasi — tezlik VA jonli bilan moslik
+# --------------------------------------------------------------------------- #
+
+
+def test_oyna_chegaralangan() -> None:
+    """Chegarasiz qoldirilsa ikki narsa buziladi.
+
+    (1) backtest jonlidan BOSHQA oynani ko'radi — jonli tizim
+        birjadan butun tarixni so'ramaydi
+    (2) har qadamda ish hajmi o'sadi (O(n²)) — 730 kunlik sinovda
+        15 daqiqalik qator 89 000 shamgacha yetardi
+    """
+    from core.backtest.zanjir_engine import ASOSIY_OYNA, PASTKI_OYNA, _shamlar
+
+    ds = Dataset()
+    ds.add("BTC", "1d", seriya(1200))
+
+    hammasi = ds.series["BTC"].up_to("1d", BOSH + timedelta(days=1500))
+    kesilgan = _shamlar(ds, "BTC", "1d", BOSH + timedelta(days=1500))
+
+    assert len(hammasi) == 1200
+    assert len(kesilgan) == ASOSIY_OYNA
+    # Eng SO'NGGI shamlar olinadi, eng eskilari emas
+    assert kesilgan[-1].open_time == hammasi[-1].open_time
+    assert PASTKI_OYNA > 0
+
+
+def test_nomalum_coin_bosh_royxat() -> None:
+    from core.backtest.zanjir_engine import _shamlar
+
+    assert _shamlar(Dataset(), "YOQ", "1d", BOSH) == []
