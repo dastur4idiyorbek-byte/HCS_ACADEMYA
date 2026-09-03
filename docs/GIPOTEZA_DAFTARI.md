@@ -770,5 +770,41 @@ xarajati 0.3% — harakatning o'zi xarajatdan kichik.
 
 Backtestda "skalp yoqilgan" NAZORAT varianti bor: o'chirish
 to'g'ri qaror edimi degan savolga o'sha javob beradi.
+
+---
+
+## Natija #11 — REJIM RAD ETILDI, skalp qarori TASDIQLANDI
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🟢 | `opening_range_scalp.enabled` | false | nazorat tasdiqladi: skalpsiz PF 0.84 vs 0.83 |
+| ⚫ | `regime_rules.enabled` | false | PF 0.84 → 0.75, o'rtacha −0.46% → −0.75% |
+| ⚫ | `diapazon_max_range_pct` | 35.0 | 25% ham yordam bermadi (PF bir xil 0.75) |
+| 🟡 | `zone_lookback` | 0 | 200 sham: bitta savdoda farq 0.01 punkt — ta'sirsiz |
+
+**Rejim 193 ta signalni (32%) kesdi va qolganlari YOMONROQ
+chiqdi** — ya'ni u o'rtachadan yaxshi savdolarni olib tashladi.
+Tashxis mantiqan to'g'ri ko'rinardi, ma'lumot tasdiqlamadi.
+
+### Yangi 🔴 — haftalik struktura juda tez-tez "pasayish"
+
+Rejim 21 000 nomzoddan **10 463 tasini** (yarmini) "haftalik
+yoki kunlik pasayishda" deb rad etdi. Ayni davrda bozor **+31.5%
+ko'tarilgan**.
+
+| Holat | Savol |
+|---|---|
+| 🔴 | Struktura aniqlovchisi haftalik qatorda pasayishni ORTIQCHA ko'radimi |
+
+Poydevor testi uni QO'LDA qurilgan toza zinapoyada tekshirdi va
+u to'g'ri ishladi. Haqiqiy haftalik qator toza zinapoya emas —
+bu tekshirilmagan.
+
+### Win-rate yettinchi marta qimirlamadi
+
+Oltita variant, signal soni 389 dan 653 gacha, win-rate esa
+**27-29%**. Etti xil filtr sinaldi, hech biri "yaxshi" savdoni
+"yomon"idan ajrata olmadi. Faqat TP1 nisbat poli natijani
+o'zgartirdi, va u ham CHIQISH tomonida.
 | 🔴 | Ball shifti 55.0 — ikkinchi oynada ham aynan shu ko'rindi |
 | 🔴 | PF 1.0 dan yuqoriga nima ko'taradi |

@@ -5309,6 +5309,32 @@ marta sinalgan — "kunlik trend majburiy" filtri (natija #3), va
 u ishlamagan. Farqi shundaki, u FILTR edi va faqat kesardi; bu
 yerda har rejim uchun BOSHQA qoida bor.
 
+### O'LCHANDI: REJIM RAD ETILDI (natija #11)
+
+Ogohlantirish o'rinli chiqdi.
+
+```
+                signal    win     PF    o'rtacha
+hozirgi holat     603    28.9%   0.84    −0.46%
+rejim yoqilgan    410    27.4%   0.75    −0.75%
+```
+
+Rejim 193 ta signalni (32%) kesdi va qolganlari YOMONROQ
+chiqdi — ya'ni u o'rtachadan yaxshi savdolarni olib tashladi.
+Bayroq o'chiq qoladi.
+
+Skalp qarori esa nazorat bilan TASDIQLANDI (PF 0.84 vs 0.83),
+zona oynasi ta'sirsiz (bitta savdoda 0.01 punkt).
+
+Yettita to'plamdan keyin win-rate hali ham 27-29% da qotib
+turibdi. Kod tozalandi, tuzilma tushunarli bo'ldi — lekin
+kirish tanlovi tasodifdan yaxshi emasligi o'zgarmadi.
+
+Yangi 🔴: rejim 21 000 nomzoddan 10 463 tasini "haftalik yoki
+kunlik pasayishda" deb rad etdi, ayni davrda bozor +31.5%
+ko'tarilgan. Struktura aniqlovchisi haftalik qatorda pasayishni
+ortiqcha ko'rayotgan bo'lishi mumkin — bu tekshirilmagan.
+
 ---
 
 ## 87. Bosqichlar holati
