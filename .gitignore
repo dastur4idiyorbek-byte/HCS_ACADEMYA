@@ -25,6 +25,9 @@ htmlcov/
 *.sqlite3
 data/
 logs/
+# O'lchov hisobotlari — har yugurishda qaytadan hosil bo'ladi.
+# Ular natija sifatida `docs/` ga QO'LDA ko'chiriladi, avtomatik emas.
+reports/
 *.log
 
 # Muhit

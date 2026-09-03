@@ -5433,6 +5433,60 @@ emas" deb belgilanadi — test buni ham tekshiradi.
 
 ---
 
+## 90. Ablation va walk-forward — o'lchovning o'zini o'lchash
+
+Ikkita yangi skript qo'shildi. Ikkalasi ham FAQAT o'lchaydi: ball
+mantig'iga, vaznlarga, chegaralarga va strategiya kodiga tegmaydi va
+`config/default.yaml` ga hech narsa yozmaydi.
+
+    python -m scripts.ablation_test --days 730
+    python -m scripts.walk_forward --days 730 --bolaklar 3
+
+Tarmoq yopiq mashinada `--offline`, brauzerda esa
+`.github/workflows/tekshiruv.yml` (Actions -> "Tekshiruv"). Natija
+`reports/` ga CSV va matn bo'lib tushadi; papka `.gitignore` da —
+xulosa qilingan natija `docs/` ga QO'LDA ko'chiriladi.
+
+### Ablation — omilning haqiqiy hissasi
+
+Vaznlar (25/20/15/15/10/15) o'ylab qo'yilgan, o'lchab emas. Skript har
+bir omilni navbat bilan chiqarib to'liq backtestni qaytadan yuritadi.
+IKKI xil chiqarish bor va ular boshqa-boshqa savolga javob beradi:
+
+    nol            vazn 0, qolganlari o'zgarmaydi. Shkala 100 dan
+                   pasayadi, ya'ni chegaradan o'tish qiyinlashadi —
+                   bu "omil YO'Q bo'lsa" holati.
+
+    qayta taqsim   vazn 0, uning ulushi qolganlarga NISBATIGA qarab
+                   bo'linadi. Shkala 100 bo'lib qoladi, chegara
+                   ham o'sha — bu "omil MA'LUMOTI yo'q bo'lsa"
+                   holati, ya'ni sof ablation.
+
+Ikkinchisisiz ablation omilni emas, chegarani o'lchagan bo'lardi.
+
+### Walk-forward — tanlov keyingi davrda saqlanadimi
+
+Tarix teng bo'laklarga bo'linadi. Har bo'lakda parametr to'ri
+sinaladi va PF bo'yicha eng yaxshisi tanlanadi; o'sha tanlov KEYINGI
+bo'lakda hech narsa o'zgartirmasdan qo'llanadi. Yonma-yon TAYANCH
+ham yuritiladi — hozirgi sozlama aynan shu tekshiruv bo'lagida.
+
+Uchinchi qator eng muhimi: tanlangan sozlama tayanchdan yomon chiqsa,
+qidiruv foyda emas, ZARAR keltirgan degani.
+
+Qidiriladigan uchta parametr allaqachon mavjud
+(`tp1_min_risk_reward`, `classic_ta.min_risk_reward`,
+`entry_max_range_pct`) — walk-forward yangi g'oya sinash uchun emas,
+tanlovning barqarorligini tekshirish uchun.
+
+ISINISH. Har bo'lak o'zidan oldingi tarixni isinish sifatida oladi,
+lekin savdolarini QO'SHMAYDI. Kesim chegarasi shunday tanlanadiki,
+dvigatel o'zining `warmup_steps` qadamini o'tkazib bo'lgach aynan
+bo'lak boshida turadi — buni `tests/test_olchov_skriptlari.py`
+qulflaydi. Kam bo'lsa bo'lakning boshi yeb ketilardi, ko'p bo'lsa
+oldingi bo'lakning savdolari shu bo'lakka qo'shilib, "out-of-sample"
+degan so'z ma'nosini yo'qotardi.
+
 ## 89. Bosqichlar holati
 
 | # | Bosqich | Holat |
