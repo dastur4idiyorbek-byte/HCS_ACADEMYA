@@ -147,3 +147,71 @@ bir xil natija bergan edi.
 3. `entry_max_range_pct` 45% ikkala o'rgatish bo'lagida ham
    tanlandi, lekin ustunlik 0.01 punkt. Bu sozlamani o'zgartirish
    uchun asos EMAS.
+
+---
+
+## 5. Audit 2-bosqichidan keyingi o'lchov (Actions #16)
+
+Ulanmagan bayroqlar ulangach o'lchov takrorlandi. Tayanch — o'sha
+oyna, o'sha coinlar, o'sha 4 412 tahlil qadami.
+
+| | signal | foydali | PF | o'rtacha | jami | pasayish |
+|---|---|---|---|---|---|---|
+| oldin (natija #12) | 603 | 28.9% | 0.84 | −0.46% | −277.7 | 451.3% |
+| **keyin (2-bosqich)** | **593** | **28.8%** | **0.84** | **−0.45%** | **−269.5** | **445.1%** |
+
+**Farq deyarli yo'q.** 10 ta signal kamaydi, qolgan hamma raqam
+o'z joyida. Ya'ni beshta ulanmagan bayroq natijaga ta'sir
+qilmaydigan joylarda yotgan ekan.
+
+Bu YOMON XABAR EMAS: bayroqlar endi haqiqatan ishlaydi va voronka
+haqiqatni ko'rsatadi. Lekin ular tizimni foydali qilmadi.
+
+### Voronka birinchi marta to'liq ko'rinmoqda
+
+    Bosqich          Kirdi     Rad   O'tdi   O'tish
+    market_health    21240     205   21035    99.0%
+    zone_position    21035   10439   10596    50.4%
+    threshold        10596    5928    4668    44.1%
+    risk_engine       4668    4075     593    12.7%
+    -> SIGNAL                          593
+
+Ilgari bu jadval faqat to'rtta kalitni bilardi va `market_health`
+qatori umuman ko'rinmasdi.
+
+**Eng katta yo'qotish `risk_engine` da: 4 668 nomzoddan 593 tasi
+o'tdi (12.7%).** Sababi esa strategiya emas — sig'im:
+
+    3540 x risk_engine:max_open_signals
+     317 x risk_engine:correlation
+
+Ya'ni nomzodlarning ko'pi "yomon" bo'lgani uchun emas, **o'rin
+qolmagani uchun** rad etilyapti (bir vaqtda 5 ta ochiq signal).
+
+### YANGI 🔴 — `ZoneIntegrityRule` backtestda deyarli ishlamaydi
+
+Qoida ulandi, lekin u eng ko'p rad etish sabablari ro'yxatiga
+umuman kirmadi. Sababi tuzilmada:
+
+    build_levels():  entry = zone_map.price   (JORIY narx)
+    ZoneIntegrityRule: narx entry dan pastdami?
+
+Kirish narxi signal qurilgan paytdagi JORIY narxga teng qilib
+qo'yiladi, ya'ni masofa har doim nol. Qoida hech qachon ishlamaydi.
+
+Bu yakka topilma emas — o'sha ildizdan yana bittasi chiqadi:
+
+    entry_order.market_threshold_pct = 0.15%
+    masofa har doim ~0  ->  har doim MARKET
+
+Ya'ni LIMIT buyurtma tarmog'i ham amalda hech qachon
+tanlanmaydi. "Narx zonaga qaytganda avtomatik bajariladi" degan
+xatti-harakat mavjud emas.
+
+| Holat | Savol |
+|---|---|
+| 🔴 | Kirish narxi joriy narx bo'lishi kerakmi yoki ZONANING o'zi bo'lishi kerakmi |
+
+Bu 3-bosqichning 3.1 va 3.3 bandlariga bevosita tegishli: agar
+kirish zona narxiga qo'yilsa, TP1 masofasi ham, Stop masofasi ham,
+qoidalarning ishlashi ham o'zgaradi.
