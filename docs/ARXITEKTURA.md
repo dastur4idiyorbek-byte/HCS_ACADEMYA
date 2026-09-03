@@ -5487,6 +5487,49 @@ qulflaydi. Kam bo'lsa bo'lakning boshi yeb ketilardi, ko'p bo'lsa
 oldingi bo'lakning savdolari shu bo'lakka qo'shilib, "out-of-sample"
 degan so'z ma'nosini yo'qotardi.
 
+## 91. Ablation va walk-forward natijasi — tanlash qatlami ishlamayapti
+
+To'liq raqamlar: `docs/BACKTEST_NATIJA_2026-09-03_3.md`.
+
+Birinchi marta ball VAZNLARI o'lchandi. Sof ablationda (shkala 100
+bo'lib qoladi, faqat omilning ma'lumoti olinadi):
+
+    S/R zonasi   25 ball   PF 0.84 -> 0.80    ma'lumot beradi
+    Risk/Reward  15 ball   PF 0.84 -> 0.77    eng katta hissa
+    MACD         10 ball   PF 0.84 -> 0.81
+    RSI          15 ball   PF 0.84 -> 0.83    ta'sirsiz
+    Hajm         15 ball   PF 0.84 -> 0.83    ta'sirsiz
+    Trend        20 ball   PF 0.84 -> 0.83    ta'sirsiz
+
+Ballning 60 punkti nomzodlarni tartiblashga deyarli hech narsa
+qo'shmayapti. Hech biri zarar ham keltirmayapti — birortasi olib
+tashlanganda natija yaxshilanmadi.
+
+VAZNLAR O'ZGARTIRILMADI. Alohida-alohida ta'sirsiz bo'lish birga
+ham ta'sirsiz degani emas: to'rttasi bir vaqtda olib tashlanganda
+nima bo'lishi hali o'lchanmagan (daftarda 🔴).
+
+Walk-forwardda uch bo'lakning har birida 12 sozlama sinaldi va
+g'olib keyingi bo'lakda qo'llandi. Tanlov tayanchdan +0.01 va
+−0.00 punkt farq qildi — ya'ni backtestda "eng yaxshi" deb
+topilgan sozlama keyingi davrda hech narsani yaxshilamaydi. Ijobiy
+tomoni: hozirgi sozlama tarixga moslashib qolmagan.
+
+Yangi 🔴 — natija uch davrda ketma-ket pasaydi:
+
+    2024-08 -> 2025-04   PF 1.00   foydali 33.5%
+    2025-04 -> 2025-12   PF 0.84   foydali 29.7%
+    2025-12 -> 2026-09   PF 0.69   foydali 27.6%
+
+Bitta davr tasodif bo'lishi mumkin, uchtasi ketma-ket esa
+yo'nalish. 85-bo'limdagi oyna B (2022-09 -> 2024-09, PF 1.01) ham
+shu chiziqqa tushadi.
+
+XULOSA. Natija #12 ikkita boshqa KIRISH mexanizmi bir xil natija
+berganini ko'rsatgan edi. Bu ikki o'lchov esa TANLASH qatlami
+haqida bir xil narsani aytdi: nomzodlar orasidan "eng yaxshisi" ni
+tanlash mexanizmi haqiqiy ustunlik bermayapti.
+
 ## 89. Bosqichlar holati
 
 | # | Bosqich | Holat |

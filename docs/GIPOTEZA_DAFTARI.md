@@ -32,8 +32,8 @@ yoziladi. O'lchangandan keyingina holati o'zgaradi.
 
 ## Hisob
 
-    o'lchanmagan  (🔴)   130
-    aniq emas     (🟡)     2
+    o'lchanmagan  (🔴)   124
+    aniq emas     (🟡)     8
     gipoteza emas (🟢)     9
     rad etilgan   (⚫)     6
     -------------------------
@@ -244,12 +244,12 @@ tekshirmagan degani.
 
 | Holat | Sozlama | Qiymat | Izoh |
 |---|---|---|---|
-| 🔴 | `weights.support_resistance` | 25 |  |
-| 🔴 | `weights.trend` | 20 |  |
-| 🔴 | `weights.rsi` | 15 |  |
-| 🔴 | `weights.volume` | 15 |  |
-| 🔴 | `weights.macd` | 10 |  |
-| 🔴 | `weights.risk_reward` | 15 |  |
+| 🟡 | `weights.support_resistance` | 25 | ablation: olib tashlansa PF 0.84 → 0.80 |
+| 🟡 | `weights.trend` | 20 | ablation: PF 0.84 → 0.83 — ta'sirsiz, lekin o'zgartirilmadi |
+| 🟡 | `weights.rsi` | 15 | ablation: PF 0.84 → 0.83 — ta'sirsiz, lekin o'zgartirilmadi |
+| 🟡 | `weights.volume` | 15 | ablation: PF 0.84 → 0.83 — ta'sirsiz, lekin o'zgartirilmadi |
+| 🟡 | `weights.macd` | 10 | ablation: PF 0.84 → 0.81 — deyarli ta'sirsiz |
+| 🟡 | `weights.risk_reward` | 15 | ablation: olib tashlansa PF 0.84 → 0.77 — eng katta hissa |
 | 🔴 | `thresholds.health_high_min` | 65 |  |
 | 🔴 | `thresholds.health_mid_min` | 40 |  |
 | 🟡 | `thresholds.threshold_high_health` | 50 | kalibrlash taqsimotidan olingan |
@@ -886,3 +886,48 @@ Oltita variant, signal soni 389 dan 653 gacha, win-rate esa
 o'zgartirdi, va u ham CHIQISH tomonida.
 | 🔴 | Ball shifti 55.0 — ikkinchi oynada ham aynan shu ko'rindi |
 | 🔴 | PF 1.0 dan yuqoriga nima ko'taradi |
+
+---
+
+## 2026-09-03 — ablation va walk-forward (natija #13)
+
+`docs/BACKTEST_NATIJA_2026-09-03_3.md`
+
+Birinchi marta ball VAZNLARI o'lchandi. Ular loyiha boshidan
+"o'ylab qo'yilgan" edi va daftarda 🔴 turardi.
+
+Sof ablation (shkala 100 qoladi, faqat omil ma'lumoti olinadi):
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🟡 | `weights.support_resistance` | 25 | olib tashlansa PF 0.84 → 0.80 — ma'lumot beradi |
+| 🟡 | `weights.risk_reward` | 15 | olib tashlansa PF 0.84 → 0.77 — eng katta hissa |
+| 🟡 | `weights.trend` | 20 | olib tashlansa PF 0.84 → 0.83 — ta'sirsiz |
+| 🟡 | `weights.rsi` | 15 | olib tashlansa PF 0.84 → 0.83 — ta'sirsiz |
+| 🟡 | `weights.volume` | 15 | olib tashlansa PF 0.84 → 0.83 — ta'sirsiz |
+| 🟡 | `weights.macd` | 10 | olib tashlansa PF 0.84 → 0.81 — deyarli ta'sirsiz |
+
+**Ballning 60 punkti (trend + RSI + hajm + MACD) tartiblashga
+hissa qo'shmayapti.** Ular zarar ham keltirmayapti — birortasi
+olib tashlanganda natija yaxshilanmadi.
+
+Vaznlar O'ZGARTIRILMADI: alohida-alohida ta'sirsiz bo'lish
+birga ham ta'sirsiz degani emas, va bu hali o'lchanmagan.
+
+Walk-forward (uch bo'lak, 12 nomzod, tanlov keyingi bo'lakda):
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| ⚫ | parametr qidiruvi | — | tanlov tayanchdan +0.01 va −0.00 punkt farq qildi |
+| 🟡 | `entry_max_range_pct` | 55.0 | ikkala o'rgatish bo'lagida 45% tanlandi, ustunlik 0.01 punkt — o'zgartirish uchun asos emas |
+
+### Yangi 🔴 — natija vaqt bo'yicha pasaymoqda
+
+    1-davr (2024-08 → 2025-04)   PF 1.00   foydali 33.5%
+    2-davr (2025-04 → 2025-12)   PF 0.84   foydali 29.7%
+    3-davr (2025-12 → 2026-09)   PF 0.69   foydali 27.6%
+
+| Holat | Savol |
+|---|---|
+| 🔴 | Uch davrdagi pasayish bozor o'zgarishimi yoki strategiya eskirishimi |
+| 🔴 | To'rt ta'sirsiz omil BIR VAQTDA olib tashlansa nima bo'ladi |
