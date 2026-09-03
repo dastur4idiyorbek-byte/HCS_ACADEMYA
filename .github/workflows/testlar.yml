@@ -1,0 +1,42 @@
+name: Testlar
+
+# Har push va PR da: ruff + pytest + sayt testlari.
+# Ilgari bu ish oqimi yo'q edi va buzilgan kod faqat Railway
+# build'ida ma'lum bo'lardi — ya'ni kech.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Ruff
+        run: ruff check .
+      - name: Pytest
+        run: pytest -q
+
+  sayt:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Testlar
+        run: npm test
+      - name: Build
+        run: npm run build

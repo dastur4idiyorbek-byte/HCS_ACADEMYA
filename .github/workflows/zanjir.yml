@@ -1,0 +1,89 @@
+name: Zanjir o'lchovi
+
+# Yangi tahlil modulining uchta o'lchovi (2-prompt, 8-qism):
+#   backtest      — bosqichma-bosqich (1-2 blok, +3, to'liq)
+#   ablatsiya     — 16 ta ichki tekshiruv birma-bir
+#   walk-forward  — kesishmaydigan oynalarda takrorlanish
+#
+# Nima uchun Actions'da: bu muhitdan Binance'ga chiqish yopiq, va
+# 730 kunlik yuklash mahalliy mashinada ham uzoq davom etadi.
+
+on:
+  workflow_dispatch:
+    inputs:
+      olchov:
+        description: "backtest | ablatsiya | walk-forward | hammasi"
+        default: "hammasi"
+      days:
+        description: "Necha kun tahlil qilinsin"
+        default: "730"
+      symbols:
+        description: "Coinlar, vergul bilan"
+        default: "BTC,ETH,SOL,BNB,XRP"
+      end_date:
+        description: "Sinov oynasining oxiri (YYYY-MM-DD), bo'sh — eng so'nggi"
+        default: ""
+      base_url:
+        description: "Binance REST manzili"
+        default: "https://data-api.binance.vision"
+
+jobs:
+  olchov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Kutubxonalar
+        run: pip install -r requirements.txt
+
+      - name: Kesh kaliti
+        id: kesh
+        run: |
+          echo "kalit=zanjir-${{ inputs.symbols }}-${{ inputs.days }}-${{ inputs.end_date }}" >> "$GITHUB_OUTPUT"
+
+      - name: Sham keshi
+        uses: actions/cache@v4
+        with:
+          path: data/candles
+          key: ${{ steps.kesh.outputs.kalit }}
+
+      - name: Backtest
+        if: inputs.olchov == 'backtest' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_backtest \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --base-url "${{ inputs.base_url }}" \
+            ${{ inputs.end_date != '' && format('--end-date {0}', inputs.end_date) || '' }} \
+            | tee natija_backtest.txt
+
+      - name: Ablatsiya
+        if: inputs.olchov == 'ablatsiya' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_ablatsiya \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --offline \
+            | tee natija_ablatsiya.txt
+
+      - name: Walk-forward
+        if: inputs.olchov == 'walk-forward' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_walk_forward \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --offline \
+            | tee natija_walk_forward.txt
+
+      - name: Natijalarni saqlash
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zanjir-natija
+          path: |
+            natija_*.txt
+            reports/
+          if-no-files-found: warn

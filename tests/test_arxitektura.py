@@ -129,8 +129,10 @@ QAVATLAR = {
     "analysis": 3,
     "position_sizing": 4,
     "risk_engine": 4,
-    "signals": 4,
-    "pipeline": 5,
+    # Pozitsiya qurish (Entry/Stop/TP) tahlildan KEYIN turadi: u
+    # zona blokining natijasidan darajalar yasaydi. Teskarisi
+    # bo'lsa tahlil "qanday kirish"ni bilishi kerak bo'lardi.
+    "position": 4,
     "services": 5,
     "backtest": 6,
 }

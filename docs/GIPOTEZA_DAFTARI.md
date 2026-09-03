@@ -1105,3 +1105,90 @@ Nima qoladi:
 
 Bu uchtasi endi gipoteza emas — yopiq savol. Qayta ochish uchun
 yangi dalil kerak, "bir marta yana sinab ko'ramiz" emas.
+
+
+---
+
+## 2026-09-03 — YANGI MODUL: to'rt blokli zanjir
+
+Eski modul o'chirildi va o'rniga butunlay boshqa arxitektura
+qurildi. Daftarning bu qismi NOLDAN boshlanadi: eski gipotezalar
+yuqorida, tarix sifatida qoladi, lekin yangi modulga tegishli emas.
+
+### Nima o'zgardi — bitta jumlada
+
+    ESKI:  6 omil QO'SHILADI -> yig'indi chegara bilan solishtiriladi
+    YANGI: 4 blok KETMA-KET -> biri bo'sh bo'lsa zanjir uziladi
+
+Farqi: yig'indida bitta kuchli omil qolgan beshtasining yo'qligini
+yopib ketardi. Zanjirda bunday almashtirish mumkin emas.
+
+### 🔴 O'LCHANMAGAN — hammasi
+
+2-promptning 3-tamoyili: "hech bir vazn taxmin qilinmaydi". Quyidagi
+raqamlar KODDA bor, lekin ularning HECH BIRI o'lchanmagan. Ular —
+boshlang'ich nuqta, javob emas.
+
+| Holat | Sozlama | Qiymat | Savol |
+|---|---|---|---|
+| 🔴 | `zanjir.eng_kam_ishonch` | 0.0 | Qaysi ishonchdan yuqorisi signal beradi |
+| 🔴 | `bloklar.funding_sovugan` | −0.0001 | Funding qachon "sovuq" |
+| 🔴 | `bloklar.fng_yuqori_chegara` | 55 | F&G qaysi qiymatdan past bo'lsa xaridga qulay |
+| 🔴 | `bloklar.unlock_yaqin_kun` | 7 | Unlock qachon "yaqin" |
+| 🔴 | `bloklar.unlock_katta_pct` | 5.0 | Unlock qachon "katta" |
+| 🔴 | `bloklar.fraktal_qanot` | 2 | 5 shamli fraktal to'g'rimi (3 yoki 7 emas) |
+| 🔴 | `bloklar.nisbiy_kuch_oyna` | 20 | Coin/BTC nisbati qancha oynada o'lchansin |
+| 🔴 | `bloklar.fib_yuqori/past` | 0.382/0.618 | Zona chegaralari shu bo'lsinmi |
+| 🔴 | `bloklar.ob_tarifi` | last_opposite | `sweep_candle` yaxshiroqmi |
+| 🔴 | `bloklar.poc_savatlar` | 50 | Volume profile aniqligi |
+| 🔴 | `bloklar.poc_yaqinlik_pct` | 2.0 | Zona POC ga qanchalik yaqin bo'lsin |
+| 🔴 | `bloklar.sweep_eng_kam_pct` | 0.1 | Yalash chuqurligi |
+| 🔴 | `bloklar.sweep_qaytish_sham` | 3 | Necha sham ichida qaytsin |
+| 🔴 | `bloklar.rsi_past_zona` | 35.0 | RSI "sotilgan" chegarasi |
+| 🔴 | `bloklar.wick_farq_chegara_pct` | 1.0 | Ikki birja wicki qancha ajralsa shubhali |
+| 🔴 | `darajalar.stop_eng_kam_pct` | 3.0 | Stop qanchalik yaqin bo'lishi mumkin |
+| 🔴 | `darajalar.stop_eng_kop_pct` | 15.0 | Stop qanchalik uzoq bo'lishi mumkin |
+| 🔴 | `darajalar.tp1_eng_kam_nisbat` | 1.2 | TP1/Stop poli |
+| 🔴 | `chiqish.qoldiq_muddat_kun` | 14 | Qoldiq qancha kutsin |
+| 🔴 | `chiqish.umumiy_muddat_kun` | 28 | Umumiy muddat |
+| 🔴 | `nomzod.eng_kam_hajm_usd` | 50M | Likvidlik chegarasi |
+
+### ⚫ ESKI O'LCHOVDAN KO'CHIRILGAN QARORLAR
+
+Bular yangi tizimda QAYTA o'lchanmaydi — eski o'lchov ular haqida
+aniq javob bergan va sabab yangi tizimda ham amal qiladi.
+
+| Holat | Sozlama | Qiymat | Dalil |
+|---|---|---|---|
+| ⚫ | `chiqish.trailing_yoqilgan` | false | PF 0.84 → 0.36 (9-to'plam) |
+| 🟢 | TP1/Stop poli mavjudligi | bor | PF 0.30 → 0.84 (natija #8, #9) |
+| ⚫ | Correction Entry | qaytarilmaydi | RAD ETILGAN (natija #1) |
+
+**Trailing haqida aniqlik.** Eski o'lchov "trailing yomon" demaydi —
+u "TP1 dan OLDIN trailing yomon" deydi. Yangi tizimda u faqat TP2
+dan keyingi 20% qoldiqqa tegadi va kunlik timeframeda ishlaydi.
+Shuning uchun bayroq bor, lekin O'CHIQ: backtest ruxsat bermaguncha
+yoqilmaydi.
+
+### 🔴 MA'LUMOT MUAMMOSI — 1-blokning yarmi o'lchanmaydi
+
+To'liq jadval: `docs/FUNDAMENTAL_MALUMOT_MANBALARI.md`.
+
+    o'lchanadi     Funding Rate, Fear & Greed
+    o'lchanmaydi   Open Interest (30 kun), Netflow (pullik),
+                   Sektor (tarix yo'q), Yangiliklar (tarix yo'q)
+    jonli-only     Token Unlock / Delisting qattiq to'sig'i
+
+Kod bu holatni YASHIRMAYDI: manba yo'q bo'lsa tekshiruv
+`MALUMOT_YOQ` qaytaradi va blok MAXRAJIDAN chiqadi. Ya'ni "2/4"
+o'rniga halol "1/2" yoziladi.
+
+### TO'XTASH QOIDASI — o'zgarmasdan saqlanadi
+
+> Agar hech bir konfiguratsiya PF ≥ 1.0 bermasa, foyda ortidan
+> quvish TO'XTAYDI, natija admin bilan muhokama qilinadi, keyingi
+> qadam BIRGA hal qilinadi.
+
+Qo'shimcha shart (eski daftardan): PF 1.0 dan o'tgan variant
+kamida 100 ta savdo bilan o'tsin va IKKINCHI, kesishmaydigan
+oynada takrorlansin.

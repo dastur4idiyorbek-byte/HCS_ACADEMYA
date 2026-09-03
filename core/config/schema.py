@@ -417,6 +417,133 @@ class BacktestConfig:
         return 2 * (self.fee_pct + self.slippage_pct)
 
 
+# --------------------------------------------------------------------------- #
+#  Yangi tahlil moduli — TO'RT BLOKLI ZANJIR (2026-09-03)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True, slots=True)
+class ZanjirTimeframeConfig:
+    """3-qism: to'rt qavatli timeframe tizimi.
+
+    Qiymatlar backtest orqali o'zgartiriladi (masalan 4h o'rniga 6h).
+    """
+
+    #: Faqat yo'nalish filtri
+    yonalish: str = "1w"
+    #: ASOSIY struktura va zona — o'rta muddat gorizontiga mos
+    asosiy: str = "1d"
+    #: Asosiy zona ichida aniqroq OB/FVG
+    aniqlik: str = "4h"
+    #: Pastki TF tasdig'i (aniq Entry narxi)
+    tasdiq: str = "15m"
+
+
+@dataclass(frozen=True, slots=True)
+class NomzodFiltrConfig:
+    """1-qism: zanjirdan OLDINGI oddiy ha/yo'q filtrlar.
+
+    QAT'IY COIN SONI YO'Q (2-prompt, 0-qism, 1-tamoyil). "Top 30"
+    kabi cheklov qo'yilmaydi — barcha halol, likvidlik shartidan
+    o'tgan coinlar nomzod.
+    """
+
+    #: Minimal kunlik savdo hajmi (USD)
+    eng_kam_hajm_usd: float = 50_000_000.0
+    #: Coin yetukligi chegaralari (kunda)
+    yangi_coin_kun: int = 90
+    yarim_yetuk_kun: int = 365
+
+
+@dataclass(frozen=True, slots=True)
+class BloklarConfig:
+    """Ichki tekshiruvlarning chegaralari.
+
+    HAMMASI 🔴 O'LCHANMAGAN. Ular ablatsiya va backtest orqali
+    topiladi (2-prompt, 0-qism, 3-tamoyil). Bu yerdagi qiymatlar —
+    BOSHLANG'ICH nuqta, yakuniy javob emas.
+    """
+
+    #: 1.1 — funding shu qiymatdan manfiy bo'lsa ijobiy
+    funding_sovugan: float = -0.0001
+    #: 1.4 — Fear & Greed shundan past bo'lsa xaridga qulay
+    fng_yuqori_chegara: int = 55
+    #: 1.3 — unlock qattiq to'sig'i
+    unlock_yaqin_kun: int = 7
+    unlock_katta_pct: float = 5.0
+    #: 2.1 — fraktal yarim kengligi
+    fraktal_qanot: int = 2
+    #: 2.4 — nisbiy kuch oynasi (sham)
+    nisbiy_kuch_oyna: int = 20
+    #: 3.1 — Fibonacci zona chegaralari
+    fib_yuqori: float = 0.382
+    fib_past: float = 0.618
+    #: 3.2 — Order Block ta'rifi: "last_opposite" yoki "sweep_candle"
+    ob_tarifi: str = "last_opposite"
+    #: 3.4 — Volume Profile
+    poc_savatlar: int = 50
+    poc_yaqinlik_pct: float = 2.0
+    #: 4.1 — Liquidity Sweep
+    sweep_eng_kam_pct: float = 0.1
+    sweep_qaytish_sham: int = 3
+    #: 4.3 — RSI
+    rsi_davr: int = 14
+    rsi_past_zona: float = 35.0
+    #: Ikki birja wick farqi shundan oshsa — sham shubhali
+    wick_farq_chegara_pct: float = 1.0
+
+
+@dataclass(frozen=True, slots=True)
+class DarajalarConfig:
+    """5-qism: Entry/Stop/TP xavfsizlik chegaralari.
+
+    Bular Stop ni BELGILAMAYDI — u zona chetidan olinadi. Bular
+    faqat RAD ETADI: chegaradan tashqaridagi signal berilmaydi.
+    """
+
+    stop_eng_kam_pct: float = 3.0
+    stop_eng_kop_pct: float = 15.0
+    tp1_eng_kam_nisbat: float = 1.2
+    tp_eng_kop: int = 3
+
+
+@dataclass(frozen=True, slots=True)
+class ChiqishConfig:
+    """5-qism: masshtablab sotish va vaqt chegaralari.
+
+    `trailing_yoqilgan` STANDART HOLATDA FALSE. Bu — o'lchangan
+    qaror: eski tizimda surilgan Stop PF ni 0.84 dan 0.36 ga
+    tushirgan (`GIPOTEZA_DAFTARI.md`, 9-to'plam natijasi). Yangi
+    tizimda u faqat TP2 dan keyingi qoldiqqa tegadi, lekin baribir
+    backtest ruxsat bermaguncha yoqilmaydi.
+    """
+
+    ulushlar: list[float] = field(default_factory=lambda: [50.0, 30.0])
+    tp1_breakeven: bool = True
+    trailing_yoqilgan: bool = False
+    trailing_r: float = 1.0
+    qoldiq_muddat_kun: int = 14
+    umumiy_muddat_kun: int = 28
+
+
+@dataclass(frozen=True, slots=True)
+class ZanjirConfig:
+    """Yangi tahlil modulining butun sozlamasi."""
+
+    timeframelar: ZanjirTimeframeConfig = field(default_factory=ZanjirTimeframeConfig)
+    nomzod: NomzodFiltrConfig = field(default_factory=NomzodFiltrConfig)
+    bloklar: BloklarConfig = field(default_factory=BloklarConfig)
+    darajalar: DarajalarConfig = field(default_factory=DarajalarConfig)
+    chiqish: ChiqishConfig = field(default_factory=ChiqishConfig)
+    #: Signal chiqishi uchun minimal ishonch (0..1).
+    #:
+    #: 🔴 O'LCHANMAGAN va ATAYLAB 0.0. Zanjirning O'ZI darvoza:
+    #: to'rtala blok ham o'tishi kerak. Ishonch chegarasi — QO'SHIMCHA
+    #: filtr, va uni taxminan qo'yish aynan eski tizimning xatosi
+    #: bo'lardi. Backtest topguncha 0.0 turadi.
+    eng_kam_ishonch: float = 0.0
+
+
 @dataclass(frozen=True, slots=True)
 class AppConfig:
     """Butun tizimning yagona konfiguratsiya obyekti."""
@@ -426,6 +553,7 @@ class AppConfig:
     sinov: SinovDavriConfig = field(default_factory=SinovDavriConfig)
     halal_screening: HalalScreeningConfig = field(default_factory=HalalScreeningConfig)
     risk_engine: RiskEngineConfig = field(default_factory=RiskEngineConfig)
+    zanjir: ZanjirConfig = field(default_factory=ZanjirConfig)
     portfolio: PortfolioConfig = field(default_factory=PortfolioConfig)
     position_sizing: PositionSizingConfig = field(default_factory=PositionSizingConfig)
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)
