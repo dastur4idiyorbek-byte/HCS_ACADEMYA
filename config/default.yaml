@@ -653,6 +653,39 @@ strategies:
     min_risk_reward: 2.0
     rsi_reversal_max: 45.0
 
+  # NARX HARAKATI — kitobning takrorlanuvchi yadrosi.
+  #
+  # MANBA: "PRICE ACTION STRATEGIES — TOP 15" (o'zbek tilida).
+  # To'liq tasnif: docs/NARX_HARAKATI_STRATEGIYALARI.md
+  #
+  # Kitobdagi to'qqizta XARID strategiyasidan oltitasi aynan bir
+  # xil uch qadamni takrorlaydi:
+  #
+  #     1. daraja YORIB o'tiladi
+  #     2. narx unga QAYTA SINOVGA keladi
+  #     3. o'sha yerda BUQASIMON sham  ->  kirish
+  #
+  # BIZDA BU YO'Q EDI. classic_ta narx arzon zonada bo'lsa kiradi —
+  # qaytishni kutmaydi, tasdiq so'ramaydi. Kitob esa aynan shu
+  # xatoni ogohlantiradi: "narx kritik zonaga yaqin bo'lganda
+  # savdoga kiramiz va stoploss tezda uriladi".
+  #
+  # Yettita gipoteza to'plamidan keyin ham win-rate 27-29% da
+  # qotib turibdi — bu farq eng yaqin izoh.
+  #
+  # FAQAT XARID. Kitobdagi sotish naqshlari qurilmagan (loyiha
+  # egasining sharti va kitobning o'z qoidasi: "nojoiz savdo").
+  #
+  # STANDART HOLATDA O'CHIQ — gipoteza, o'lchanmagan.
+  narx_harakati:
+    enabled: false
+    qayta_sinov_oynasi: 12       # yorishdan keyin qayta sinov shuncha sham ichida
+    yorish_oynasi: 12            # yorish qayta sinovdan shuncha sham oldin
+    qayta_sinov_tolerans_atr: 0.5  # darajaga "tegdi" hisoblanadigan masofa (ATR)
+    tasdiq_shami_shart: true     # kirish uchun buqasimon sham talab qilinadi
+    figura_oynasi: 60            # ikkita pastlik qidiriladigan oyna
+    tub_tolerans_atr: 1.0        # ikki tub "bir xil daraja" hisoblanadi
+
   opening_range_scalp:
     # O'CHIRILDI (loyiha egasining qarori, 2026-09-03).
     #

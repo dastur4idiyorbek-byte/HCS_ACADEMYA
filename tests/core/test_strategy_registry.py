@@ -72,9 +72,17 @@ def test_ochirilgan_strategiya_royxatga_kirmaydi(config) -> None:  # noqa: ANN00
     )
 
     assert {s.name for s in build_strategies(yangi)} == {"classic_ta"}
-    # Ro'yxatda `correction_entry` ham bor — u registrga qo'shilgan,
-    # lekin backtest tugamaguncha konfiguratsiyada o'chirilgan.
-    assert len(build_strategies(yangi, enabled_only=False)) == 3
+    # Registrda o'chirilganlari ham turadi: `correction_entry`,
+    # `opening_range_scalp` va `narx_harakati`. Kod o'chirilmaydi —
+    # bayroq o'chiriladi, chunki qaror O'LCHOVGA tayanadi va o'lchov
+    # qaytarilishi mumkin.
+    hammasi = {s.name for s in build_strategies(yangi, enabled_only=False)}
+    assert hammasi == {
+        "classic_ta",
+        "opening_range_scalp",
+        "correction_entry",
+        "narx_harakati",
+    }
 
 
 def test_timeframelar_birlashtiriladi(config) -> None:  # noqa: ANN001

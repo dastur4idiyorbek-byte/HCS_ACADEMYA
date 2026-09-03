@@ -66,7 +66,15 @@ def _risk_bosqichlari() -> set[str]:
 
 
 def _daraja_bosqichlari() -> set[str]:
-    """`levels:*` — `build_levels()` qaytaradigan aniqlashtirilgan bosqichlar."""
+    """`levels:*` — `build_levels()` qaytaradigan aniqlashtirilgan bosqichlar.
+
+    QAYSI STRATEGIYAGA TEGISHLI — kod o'zi aytadi. Ilgari bu yerda
+    `classic_ta` qattiq yozilgan edi va darajalarni ishlatadigan
+    ikkinchi strategiya qo'shilganda ro'yxat jimgina eskirardi.
+    Endi skaner `_reject(<narsa>.stage)` yozuvini qidiradi: kim
+    `LevelResult.stage` ni uzatsa, o'shanga barcha `levels:*`
+    bosqichlari tegishli.
+    """
     import re as _re
 
     matn = (ILDIZ / "core" / "analysis" / "scoring" / "levels.py").read_text(encoding="utf-8")
@@ -76,7 +84,15 @@ def _daraja_bosqichlari() -> set[str]:
     # `LevelResult.stage` ning standart qiymati ham ishlatiladi: support
     # topilmagan yoki TP qurilmagan holatlar uni o'zgartirmaydi.
     topilgan.add("levels")
-    return {f"classic_ta:{b}" for b in topilgan}
+
+    natija: set[str] = set()
+    for fayl in (ILDIZ / "core" / "analysis" / "strategies").glob("*.py"):
+        matn_s = fayl.read_text(encoding="utf-8")
+        if not _re.search(r"_reject\(\s*[a-z_]+\.stage", matn_s):
+            continue
+        for nom in _re.findall(r'^\s*name = "([a-z_]+)"', matn_s, _re.MULTILINE):
+            natija.update(f"{nom}:{b}" for b in topilgan)
+    return natija
 
 
 def _kirish_bosqichlari() -> set[str]:

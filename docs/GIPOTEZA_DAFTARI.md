@@ -773,6 +773,35 @@ to'g'ri qaror edimi degan savolga o'sha javob beradi.
 
 ---
 
+## NARX HARAKATI strategiyasi — 8-to'plam (2026-09-03)
+
+Manba: loyiha egasi bergan kitob, `docs/NARX_HARAKATI_STRATEGIYALARI.md`.
+To'qqizta XARID strategiyasidan oltitasi aynan bir xil uch
+qadamni takrorlaydi: **daraja yoriladi → qayta sinov →
+buqasimon sham**.
+
+Bizda bu YO'Q edi. `classic_ta` narx arzon zonada bo'lsa kiradi
+— qaytishni kutmaydi, tasdiq so'ramaydi.
+
+| Holat | Sozlama | Qiymat | Savol |
+|---|---|---|---|
+| 🔴 | `narx_harakati` (`enabled`) | false | Tasdiqni kutish win-rate ni ko'taradimi |
+| 🔴 | `qayta_sinov_oynasi` | 12 | Qaytish shuncha sham ichida bo'lsinmi |
+| 🔴 | `yorish_oynasi` | 12 | Yorish shuncha sham oldin bo'lishi mumkinmi |
+| 🔴 | `qayta_sinov_tolerans_atr` | 0.5 | "Darajaga tegdi" shu masofadami |
+| 🔴 | `figura_oynasi` | 60 | Ikkita pastlik shu oynada qidirilsinmi |
+| 🔴 | `tub_tolerans_atr` | 1.0 | Ikki tub shu masofada "bir xil daraja"mi |
+| ⚪ | `tasdiq_shami_shart` | true | Bayroq — kitobning sharti |
+
+**NIMA UCHUN FILTR EMAS, ALOHIDA STRATEGIYA.** Yettita to'plam
+`classic_ta` ga filtr qo'shdi va win-rate 27-29% da qoldi. Bu
+esa BOSHQA kirish mexanizmi — ikkalasi yonma-yon o'lchanadi.
+
+**Nima rad etardi:** win-rate yana 27-29% da qolsa. U holda
+tasdiqni kutish ham yordam bermaydi va muammo boshqa joyda.
+
+---
+
 ## Natija #11 — REJIM RAD ETILDI, skalp qarori TASDIQLANDI
 
 | Holat | Sozlama | Qiymat | Izoh |

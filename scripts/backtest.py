@@ -38,7 +38,7 @@ from pathlib import Path
 from core.backtest import Backtester, Dataset, compare, render
 from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
-from core.config.schema import RegimeRulesConfig
+from core.config.schema import NarxHarakatiConfig
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
 from core.utils.logging_setup import get_logger, setup_logging
@@ -276,7 +276,7 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "yangi tuzilma (skalp, rejim, zona oynasi)"
+OLCHOV_OQI = "narx_harakati (kitobning yadrosi)"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
@@ -287,22 +287,24 @@ def _oqsiz(config: AppConfig) -> AppConfig:
     ikkita narsani o'lchayotgan bo'ladi va qaysi biri ta'sir
     qilganini hech kim ayta olmaydi.
     """
-    skalp = dataclasses.replace(
-        config.strategies.opening_range_scalp, enabled=False
-    )
-    sr = dataclasses.replace(
-        config.analysis.support_resistance, zone_lookback=0
-    )
+    classic = dataclasses.replace(config.strategies.classic_ta, enabled=True)
     return dataclasses.replace(
         config,
         strategies=dataclasses.replace(
-            config.strategies, opening_range_scalp=skalp
+            config.strategies,
+            classic_ta=classic,
+            narx_harakati=NarxHarakatiConfig(),
         ),
-        analysis=dataclasses.replace(
-            config.analysis,
-            support_resistance=sr,
-            regime_rules=RegimeRulesConfig(),
-        ),
+    )
+
+
+def _narx_harakati_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`strategies.narx_harakati` o'zgartirilgan nusxa."""
+    nh = dataclasses.replace(asos.strategies.narx_harakati, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, strategies=dataclasses.replace(asos.strategies, narx_harakati=nh)
     )
 
 
@@ -361,9 +363,9 @@ def _darvoza_bilan(
 
 
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Yettinchi to'plam: TAHLIL TUZILMASI.
+    """Sakkizinchi to'plam: KITOBNING YADROSI.
 
-    OLTITA TO'PLAM JAVOB BERDI:
+    YETTITA TO'PLAM JAVOB BERDI:
 
     1. Correction Entry (natija #1)            -> rad etildi
     2. Tuzilmaviy TP2 (natija #2)              -> rad etildi
@@ -371,58 +373,71 @@ def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
     4. Qaror mexanizmi (natija #7)             -> uchtasi rad etildi
     5. TP1 nisbat poli (natija #8 va #9)       -> ISHLADI, yoqildi
     6. Yakuniy nishon nisbati (natija #10)     -> rad etildi
+    7. Rejim va zona oynasi (natija #11)       -> rad etildi
 
-    BULARNING HAMMASI CHIQISH VA BALL HAQIDA EDI. Kirish
-    tanlovining o'zi hech qachon o'zgarmadi va aynan u zaif:
-    o'nta signaldan uchtasi nishonga yetadi, kerakli miqdor
-    to'rt-beshta.
+    Oltitasi CHIQISH yoki BALL haqida edi, yettinchisi
+    timeframelar haqida. KIRISHNING O'ZI hech qachon
+    o'zgarmadi — va win-rate har safar 27-29% da qoldi.
 
-    LOYIHA EGASINING TASHXISI (2026-09-03) boshqa joyni
-    ko'rsatdi — TUZILMANI:
+    LOYIHA EGASI KITOB BERDI: "PRICE ACTION STRATEGIES — TOP 15"
+    (`docs/NARX_HARAKATI_STRATEGIYALARI.md`). To'qqizta XARID
+    strategiyasidan oltitasi aynan bir xil uch qadamni
+    takrorlaydi:
 
-      • bir nechta timeframe bitta ballga qo'shiladi, ya'ni bitta
-        dalil bir necha marta sanaladi;
-      • ballda hech kim "YO'Q" deya olmaydi — haftalik tushayotgan
-        bo'lsa ham boshqa omillar uni qoplab ketadi;
-      • 15 daqiqalik shamda narx chorak foiz yuradi, xarajat esa
-        0.3% — harakatning o'zi xarajatdan kichik;
-      • zona qidiruvi 500 sham (≈83 kun) ichida, ya'ni uch oy
-        oldingi daraja bugungisi bilan TENG hisoblanadi.
+        1. daraja YORIB o'tiladi
+        2. narx unga QAYTA SINOVGA keladi
+        3. o'sha yerda BUQASIMON sham  ->  kirish
 
-    YANGI TUZILMA: har timeframe BITTA ish qiladi.
+    BIZDA BU YO'Q. `classic_ta` narx arzon zonada bo'lsa kiradi
+    — qaytishni KUTMAYDI, tasdiq SO'RAMAYDI. Kitob esa aynan shu
+    xatoni ogohlantiradi:
 
-        haftalik   ->  yo'nalish   (bu hafta nima kutamiz)
-        kunlik     ->  rejim       (bugun qay holatda)
-        4 soatlik  ->  kirish      (tahlil shu yerda)
+        "Ba'zan biz ham xato qilamizki, biz narx kritik zonaga
+         yaqin bo'lganda savdoga kiramiz va stoploss tezda
+         uriladi."
 
-    Rejim BALL emas, SHART. Pasayishda spot xaridi umuman
-    ko'rilmaydi; diapazonda faqat tubdan olinadi.
+    BU FILTR EMAS — BOSHQA KIRISH MEXANIZMI. Shuning uchun u
+    alohida strategiya, va bu yugurish ikkalasini YONMA-YON
+    qo'yadi:
 
-    OGOHLANTIRISH: "hozirgi holat" bu yugurishda SKALPSIZ —
-    ya'ni u natija #10 dagi bazadan farq qiladi. Shuning uchun
-    skalp alohida NAZORAT varianti sifatida qoldirildi: uni
-    o'chirish to'g'ri qaror edimi degan savolga shu javob
-    beradi.
+        hozirgi holat          faqat classic_ta
+        narx harakati (yolg'iz) faqat kitob usuli
+        ikkalasi birga         qo'shilib nima bo'ladi
+
+    Faqat XARID: kitobdagi sotish naqshlari umuman qurilmagan.
     """
+    faqat_kitob = dataclasses.replace(
+        asos,
+        strategies=dataclasses.replace(
+            asos.strategies,
+            classic_ta=dataclasses.replace(
+                asos.strategies.classic_ta, enabled=False
+            ),
+            narx_harakati=dataclasses.replace(
+                asos.strategies.narx_harakati, enabled=True
+            ),
+        ),
+    )
     return [
         ("hozirgi holat", asos),
-        # NAZORAT: skalpni o'chirish to'g'ri edimi. Agar u bilan
-        # natija yaxshiroq bo'lsa, qaror qaytariladi.
-        _skalp_bilan(asos, "skalp yoqilgan (nazorat)", enabled=True),
-        # ASOSIY GIPOTEZA: rejim — haftalik yo'nalish, kunlik holat.
-        _rejim_bilan(asos, "rejim yoqilgan", enabled=True),
-        # Diapazonda yanada qattiqroq: faqat eng tubdan.
-        _rejim_bilan(
+        # ASOSIY TAQQOSLASH: kitob usuli YOLG'IZ.
+        ("narx harakati (yolg'iz)", faqat_kitob),
+        # Ikkalasi birga — signal soni oshadi, sifat nima bo'ladi?
+        _narx_harakati_bilan(asos, "ikkalasi birga", enabled=True),
+        # Tasdiq shami SHART emas: kitobning eng ko'p takrorlangan
+        # qoidasi shu, uni o'chirib ko'rish uning qiymatini
+        # o'lchaydi.
+        _narx_harakati_bilan(
             asos,
-            "rejim + diapazon 25%",
+            "kitob, tasdiqsiz",
             enabled=True,
-            diapazon_max_range_pct=25.0,
+            tasdiq_shami_shart=False,
         ),
-        # IKKINCHI GIPOTEZA: zona oynasi qisqaradi (≈33 kun).
-        # Rejimsiz — alohida o'lchanishi kerak.
-        _zona_oynasi_bilan(asos, "zona oynasi 200", 200),
-        # Ikkalasi birga.
-        _zona_oynasi_bilan(asos, "rejim + zona oynasi 200", 200, enabled=True),
+        # Qayta sinov oynasi torroq: "tez qaytgan" naqsh
+        # kuchliroqmi?
+        _narx_harakati_bilan(
+            asos, "kitob, qayta sinov 5", enabled=True, qayta_sinov_oynasi=5
+        ),
     ]
 
 

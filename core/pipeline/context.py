@@ -173,6 +173,18 @@ STAGE_LABELS: dict[str, str] = {
     "opening_range_scalp:levels": "Darajalar risk qoidasiga sig'madi",
     "opening_range_scalp:no_setup": "Shart bajarilmadi",
     "opening_range_scalp:error": "Strategiya ichki xatosi",
+    # Narx harakati — yorish -> qayta sinov -> tasdiq
+    # (docs/NARX_HARAKATI_STRATEGIYALARI.md)
+    "narx_harakati:halal": "Halol ro'yxatda emas",
+    "narx_harakati:data": "Sham ma'lumoti yetarli emas",
+    "narx_harakati:zones": "S/R zonalari aniqlanmadi",
+    "narx_harakati:naqsh": "Yorish → qayta sinov → tasdiq naqshi yo'q",
+    "narx_harakati:levels": "Darajalar risk qoidasiga sig'madi",
+    "narx_harakati:levels:stop_too_close": "Naqsh Stopi juda YAQIN",
+    "narx_harakati:levels:stop_too_far": "Naqsh Stopi juda UZOQ",
+    "narx_harakati:levels:tp2_no_structure": "TP1 dan yuqorida zona yo'q",
+    "narx_harakati:no_setup": "Shart bajarilmadi",
+    "narx_harakati:error": "Strategiya ichki xatosi",
     # 3.10 — Correction Entry (pasayishdagi tuzilmaviy kirish)
     "correction_entry:halal": "Halol ro'yxatda emas",
     "correction_entry:data": "Sham ma'lumoti yetarli emas",

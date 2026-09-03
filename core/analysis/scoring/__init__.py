@@ -25,7 +25,11 @@ chegaraga TA'SIR QILADI, chunki ular o'sha ball ichida.
 
 from core.analysis.scoring.bonuses import build_bonus_components, in_session_overlap
 from core.analysis.scoring.factors import build_components
-from core.analysis.scoring.levels import LevelResult, build_levels
+from core.analysis.scoring.levels import (
+    LevelResult,
+    build_levels,
+    build_levels_with_stop,
+)
 from core.analysis.scoring.scorer import (
     RankedCandidate,
     Scorer,
@@ -44,5 +48,6 @@ __all__ = [
     "build_bonus_components",
     "build_components",
     "build_levels",
+    "build_levels_with_stop",
     "in_session_overlap",
 ]

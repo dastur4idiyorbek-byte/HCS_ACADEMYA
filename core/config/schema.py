@@ -189,6 +189,43 @@ class SessionOverlapConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class NarxHarakatiConfig:
+    """Narx harakati strategiyasi — kitobning takrorlanuvchi yadrosi.
+
+    MANBA: `docs/NARX_HARAKATI_STRATEGIYALARI.md`. Faqat XARID:
+    kitobdagi sotish naqshlari umuman qurilmaydi (loyiha
+    egasining sharti va kitobning o'z qoidasi).
+
+    YADRO: daraja yoriladi -> narx qayta sinovga qaytadi ->
+    buqasimon sham -> kirish. Stop naqshning eng past nuqtasidan
+    pastda ("oldingi pastki nuqtadan pastroqda" — kitob).
+
+    STANDART HOLATDA O'CHIQ — gipoteza, o'lchanmagan.
+    """
+
+    enabled: bool = False
+    #: Yorishdan keyin qayta sinov shuncha sham ichida bo'lishi kerak.
+    #: Uzoq kutish "qayta sinov" degan tushunchani ma'nosiz qiladi.
+    #: GIPOTEZA — o'lchanmagan.
+    qayta_sinov_oynasi: int = 12
+    #: Yorish qayta sinovdan shuncha sham oldin bo'lishi mumkin.
+    yorish_oynasi: int = 12
+    #: Qayta sinov darajaga qanchalik yaqin bo'lsa "tegdi"
+    #: hisoblanadi — ATR birligida. Foizda emas: loyiha
+    #: egasining qoidasi bo'yicha foizlar majburiy emas.
+    #: GIPOTEZA — o'lchanmagan.
+    qayta_sinov_tolerans_atr: float = 0.5
+    #: Kirish uchun BUQASIMON (yashil) sham talab qilinadimi.
+    #: Kitobning takroriy shartlaridan biri.
+    tasdiq_shami_shart: bool = True
+    #: Ikkita pastlik figurasi qidiriladigan oyna.
+    figura_oynasi: int = 60
+    #: Ikki tub bir-biriga qanchalik yaqin bo'lsa "bir xil daraja".
+    #: GIPOTEZA — o'lchanmagan.
+    tub_tolerans_atr: float = 1.0
+
+
+@dataclass(frozen=True, slots=True)
 class RegimeRulesConfig:
     """Bozor rejimi qoidalari — har timeframe bitta ish qiladi.
 
@@ -977,6 +1014,7 @@ class StrategiesConfig:
         default_factory=CorrectionEntryConfig
     )
     opening_range_scalp: OpeningRangeScalpConfig = field(default_factory=OpeningRangeScalpConfig)
+    narx_harakati: NarxHarakatiConfig = field(default_factory=NarxHarakatiConfig)
 
 
 # --------------------------------------------------------------------------- #

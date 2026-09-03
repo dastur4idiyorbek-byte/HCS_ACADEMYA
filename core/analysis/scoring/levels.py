@@ -102,7 +102,33 @@ def build_levels(
             f"ruxsat {rules.min_stop_distance_pct}–{rules.max_stop_distance_pct}%",
             stage="levels:stop_too_close" if yaqinmi else "levels:stop_too_far",
         )
-    stop = stop_natija
+    return build_levels_with_stop(
+        zone_map, rules, entry, stop_natija, shares=shares
+    )
+
+
+def build_levels_with_stop(
+    zone_map: ZoneMap,
+    rules: TradeRulesConfig,
+    entry: float,
+    stop: float,
+    shares: tuple[float, ...] | None = None,
+) -> LevelResult:
+    """Stop TASHQARIDAN berilganda TP larni quradi.
+
+    NIMA UCHUN AJRATILDI. `build_levels` Stop'ni support zonasidan
+    hisoblaydi — bu `classic_ta` ning usuli. Narx harakati
+    strategiyasida esa Stop NAQSHDAN keladi: "oldingi pastki
+    nuqtadan pastroqda" (kitobning qoidasi).
+
+    Ikki joyda alohida TP qurilsa ular ajralib ketardi — loyihada
+    bu xato besh marta uchragan (`docs/ARXITEKTURA.md`, 68-bo'lim).
+    Shuning uchun TP mantig'i BITTA joyda qoladi, faqat Stop
+    manbai boshqacha.
+    """
+    if entry <= 0 or stop <= 0 or stop >= entry:
+        return LevelResult(None, "Stop kirish narxidan past bo'lishi kerak")
+
     stop_masofa_pct = (entry - stop) / entry * 100
 
     tp1_natija = _build_tp1(entry, zone_map, rules, stop_masofa_pct)
