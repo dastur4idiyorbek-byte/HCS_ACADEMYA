@@ -72,11 +72,15 @@ def test_blok_tekshiruvlari_ablatsiya_bilan_mos() -> None:
     ["zanjir_backtest.py", "zanjir_ablatsiya.py", "zanjir_walk_forward.py"],
 )
 def test_skript_config_qiymatlarini_ozgartirmaydi(skript: str) -> None:
-    """O'lchov skripti sozlamani QO'LDA o'zgartirmasligi kerak.
+    """Bu uch skript sozlamani QO'LDA o'zgartirmasligi kerak.
 
-    Yagona ruxsat etilgan o'zgarish — `ochirilgan_tekshiruvlar`
-    orqali ablatsiya. Boshqasi "o'lchov o'z natijasini yasadi"
-    degani bo'lardi.
+    Ular STRATEGIYANI o'lchaydi, ya'ni strategiya o'zgarmas bo'lishi
+    shart. Yagona ruxsat etilgan o'zgarish — `ochirilgan_tekshiruvlar`
+    orqali ablatsiya.
+
+    `zanjir_chegara.py` bu ro'yxatda YO'Q va bu ataylab: uning
+    butun vazifasi — chegarani surib o'lchash. Uning o'zi
+    `test_chegara_faqat_darajalarni_suradi` bilan qulflangan.
     """
     manba = (ILDIZ / "scripts" / skript).read_text(encoding="utf-8")
     daraxt = ast.parse(manba)
@@ -87,6 +91,41 @@ def test_skript_config_qiymatlarini_ozgartirmaydi(skript: str) -> None:
                 f"{skript} `dataclasses.replace` ishlatmoqda — "
                 "o'lchov sozlamani o'zgartirmasligi kerak"
             )
+
+
+def test_chegara_faqat_darajalarni_suradi() -> None:
+    """Chegara skripti FAQAT `zanjir.darajalar` ni o'zgartirsin.
+
+    U bloklarga yoki chiqish rejasiga tegsa, o'lchov "qaysi
+    o'zgarish ta'sir qildi" savolini javobsiz qoldirardi.
+    """
+    from core.config.loader import load_config
+    from scripts.zanjir_chegara import _variantlar
+
+    asos = load_config()
+    for nom, variant in _variantlar(asos):
+        assert variant.zanjir.bloklar == asos.zanjir.bloklar, nom
+        assert variant.zanjir.chiqish == asos.zanjir.chiqish, nom
+        assert variant.zanjir.timeframelar == asos.zanjir.timeframelar, nom
+        assert variant.risk_engine == asos.risk_engine, nom
+        assert variant.backtest == asos.backtest, nom
+
+
+def test_chegara_variantlari_bittadan_ozgaradi() -> None:
+    """Ikkala raqam BIRGA surilmaydi — aks holda sabab noma'lum qolardi."""
+    from core.config.loader import load_config
+    from scripts.zanjir_chegara import _variantlar
+
+    asos = load_config().zanjir.darajalar
+    for nom, variant in _variantlar(load_config())[1:]:
+        d = variant.zanjir.darajalar
+        farqlar = sum([
+            d.stop_eng_kam_pct != asos.stop_eng_kam_pct,
+            d.tp1_eng_kam_nisbat != asos.tp1_eng_kam_nisbat,
+            d.stop_eng_kop_pct != asos.stop_eng_kop_pct,
+            d.tp_eng_kop != asos.tp_eng_kop,
+        ])
+        assert farqlar == 1, f"{nom}: {farqlar} ta raqam o'zgardi"
 
 
 # --------------------------------------------------------------------------- #

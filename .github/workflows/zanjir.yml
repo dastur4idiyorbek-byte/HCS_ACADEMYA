@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       olchov:
-        description: "backtest | ablatsiya | walk-forward | hammasi"
+        description: "backtest | ablatsiya | walk-forward | chegara | hammasi"
         default: "hammasi"
       days:
         description: "Necha kun tahlil qilinsin"
@@ -78,6 +78,15 @@ jobs:
             --symbols "${{ inputs.symbols }}" \
             --offline \
             | tee natija_ablatsiya.txt
+
+      - name: Chegara o'lchovi
+        if: inputs.olchov == 'chegara' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_chegara \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --offline \
+            | tee natija_chegara.txt
 
       - name: Walk-forward
         if: inputs.olchov == 'walk-forward' || inputs.olchov == 'hammasi'
