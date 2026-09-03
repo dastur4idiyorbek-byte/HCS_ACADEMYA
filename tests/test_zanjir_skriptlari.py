@@ -151,3 +151,55 @@ def test_kam_malumotda_bolak_yoq() -> None:
     from datetime import UTC, datetime
 
     assert bolaklar([datetime(2024, 1, 1, tzinfo=UTC)], 3) == []
+
+
+# --------------------------------------------------------------------------- #
+#  Xulosa YASHIRMASLIGI kerak
+# --------------------------------------------------------------------------- #
+
+
+def test_walk_forward_chetlatilgan_oynani_aytadi(capsys) -> None:  # noqa: ANN001
+    """Kam savdoli oyna xulosadan chiqariladi, lekin YASHIRILMAYDI.
+
+    Bir marta bu funksiya uchinchi oynani (7 savdo, PF 0.59) jimgina
+    tashlab, "barcha oynada PF ≥ 1.0" deb yozgan edi — o'z jadvaliga
+    zid gap.
+    """
+    from scripts.zanjir_walk_forward import _xulosa
+
+    _xulosa([
+        Olchov("oyna 1", 21, 47.6, 1.72, 1.98, 41.5, 17.3),
+        Olchov("oyna 2", 16, 56.2, 2.35, 3.00, 48.0, 21.4),
+        Olchov("oyna 3", 7, 42.9, 0.59, -1.00, -7.0, 9.8),
+    ])
+    chiqish = capsys.readouterr().out
+
+    assert "oyna 3" in chiqish
+    assert "0.59" in chiqish
+    # Eski, YOLG'ON da'vo qaytmasin
+    assert "🟢 Barcha oynada" not in chiqish
+    # Va o'quvchi chetlatish bo'lganini bilsin
+    assert "DIQQAT" in chiqish
+
+
+def test_ablatsiya_kam_savdoda_xulosa_chiqarmaydi(capsys) -> None:  # noqa: ANN001
+    """35 savdoda "hissa qo'shmaydi" degan gap tasodifdan farq qilmaydi."""
+    from scripts.zanjir_ablatsiya import ISHONCHLI_SAVDO, _xulosa
+
+    _xulosa(
+        Olchov("TAYANCH", 35, 48.6, 1.83, 2.10, 73.5, 30.7),
+        [Olchov("— 1.1", 35, 48.6, 1.83, 2.10, 73.5, 30.7)],
+    )
+    chiqish = capsys.readouterr().out
+
+    assert str(ISHONCHLI_SAVDO) in chiqish
+    assert "HISSA QO'SHMAYDI" not in chiqish
+
+
+def test_rad_sababi_raqamsiz_guruhlanadi() -> None:
+    """Ansiz voronka o'nlab "1 × ..." qatoriga aylanardi."""
+    from core.backtest.zanjir_engine import _sabab_turi
+
+    assert _sabab_turi("stop juda yaqin (2.60%)") == "stop juda yaqin"
+    assert _sabab_turi("TP1/Stop nisbati past (0.71)") == "TP1/Stop nisbati past"
+    assert _sabab_turi(None) == "nomalum"

@@ -58,6 +58,13 @@ TEKSHIRUVLAR = [
 #: Promptdagi "0.00-0.03" chegarasi.
 SEZILARSIZ = 0.03
 
+#: Ablatsiya xulosasi uchun tayanchda kamida shuncha savdo kerak.
+#:
+#: 100 — eski daftardagi to'xtash qoidasidan olingan raqam. 30-40
+#: savdoda bitta savdoning natijasi PF ni 0.1 dan ko'p qimirlatadi,
+#: ya'ni "hissa qo'shmaydi" degan xulosa TASODIFDAN farq qilmaydi.
+ISHONCHLI_SAVDO = 100
+
 
 async def main() -> None:
     argumentlar = umumiy_argumentlar(__doc__ or "").parse_args()
@@ -84,8 +91,18 @@ async def main() -> None:
 
 def _xulosa(tayanch, variantlar) -> None:  # noqa: ANN001
     """Qaysi tekshiruvlar hissa qo'shmaydi — ular OLIB TASHLANADI."""
-    if tayanch.signal < 30:
-        print("\n⚠️ Tayanchda 30 ta savdo ham yo'q — ablatsiya xulosasi ishonchsiz.")
+    if tayanch.signal < ISHONCHLI_SAVDO:
+        print(
+            f"\n🔴 Tayanchda {tayanch.signal} savdo — ablatsiya uchun "
+            f"kamida {ISHONCHLI_SAVDO} kerak."
+        )
+        print("   Quyidagi jadval CHIQARILADI, lekin undan XULOSA CHIQARILMAYDI:")
+        print("   bunday sonda bitta savdoning natijasi PF ni 0.1 dan ko'p")
+        print("   qimirlatadi, ya'ni 'hissa qo'shmaydi' degan gap tasodifdan")
+        print("   farq qilmaydi.")
+        print()
+        print("   KEYINGI QADAM: signal sonini oshirish — voronkadan qaysi")
+        print("   qadam to'sayotganini toping (zanjir_backtest chiqishi).")
         return
 
     hissasiz = []

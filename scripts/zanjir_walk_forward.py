@@ -114,19 +114,39 @@ def _kesim(dataset, bolak: Bolak, asosiy_tf: str):  # noqa: ANN001, ANN202
 
 
 def _xulosa(olchovlar) -> None:  # noqa: ANN001
+    """Xulosa CHETLATILGAN oynalarni ham AYTADI.
+
+    Ilgari bu funksiya kam savdoli oynani jimgina tashlab, keyin
+    "barcha oynada PF ≥ 1.0" deb yozardi. Amalda uchinchi oynada
+    PF 0.59 edi va u ekranda ko'rinib turardi — ya'ni xulosa
+    o'z jadvaliga zid gapirardi. Bu — loyihaning eng qattiq
+    qoidasiga ("raqam yo'q joyda qaror yo'q") to'g'ridan-to'g'ri zid.
+    """
+    chetlatilgan = [o for o in olchovlar if o.signal < ENG_KAM_SAVDO]
     ishonchli = [o for o in olchovlar if o.signal >= ENG_KAM_SAVDO]
+
+    if chetlatilgan:
+        print(f"\n⚠️ {len(chetlatilgan)} ta oyna {ENG_KAM_SAVDO} savdodan kam:")
+        for o in chetlatilgan:
+            print(f"   {o.nom} — {o.signal} savdo, PF {o.profit_factor:.2f}")
+        print("   Ular xulosaga KIRMAYDI, lekin yashirilmaydi ham.")
+
     if len(ishonchli) < 2:
-        print(f"\n⚠️ Kamida 2 ta oynada {ENG_KAM_SAVDO} savdo kerak — xulosa yo'q.")
+        print(f"\n⚫ Kamida 2 ta oynada {ENG_KAM_SAVDO} savdo kerak — XULOSA YO'Q.")
+        print("   Bu 'natija yaxshi' degani EMAS: o'lchov hali qilinmagan.")
         return
 
     pflar = [o.profit_factor for o in ishonchli]
-    print(f"\nPF vaqt bo'yicha: {' → '.join(f'{p:.2f}' for p in pflar)}")
+    print(f"\nPF vaqt bo'yicha ({len(ishonchli)} oyna): "
+          f"{' → '.join(f'{p:.2f}' for p in pflar)}")
 
     if pflar[-1] < pflar[0] - 0.1:
         print("🔴 PF VAQT BILAN PASAYADI — sozlama o'tmishga moslashgan.")
         print("   Bu eski tizimni o'ldirgan naqsh (1.00 → 0.84 → 0.69).")
     elif all(p >= 1.0 for p in pflar):
-        print("🟢 Barcha oynada PF ≥ 1.0 — natija VAQT BO'YICHA SAQLANDI.")
+        print(f"🟢 O'lchangan {len(ishonchli)} oynada PF ≥ 1.0.")
+        if chetlatilgan:
+            print("   DIQQAT: bu 'barcha oynada' degani emas — yuqoriga qarang.")
     else:
         print("⚫ PF barqaror, lekin 1.0 dan past — foyda yo'q.")
 

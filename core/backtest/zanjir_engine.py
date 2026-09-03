@@ -202,7 +202,7 @@ class ZanjirBacktest:
                     eng_kam_nisbat=z.darajalar.tp1_eng_kam_nisbat,
                 )
                 if not darajalar.yaroqli:
-                    sabab = darajalar.rad_sababi or "nomalum"
+                    sabab = _sabab_turi(darajalar.rad_sababi)
                     natija.daraja_radlari[sabab] = natija.daraja_radlari.get(sabab, 0) + 1
                     continue
 
@@ -332,6 +332,19 @@ ASOSIY_OYNA = 500
 #: Chegarasiz qoldirilganda 730 kunlik sinovda bu qator har qadamda
 #: ~89 000 shamgacha o'sardi va o'lchov soatlab yurardi.
 PASTKI_OYNA = 500
+
+
+def _sabab_turi(sabab: str | None) -> str:
+    """Rad sababidan RAQAMNI olib tashlaydi — guruhlash uchun.
+
+    Ansiz har bir rad alohida kalit bo'lardi: "stop juda yaqin
+    (2.60%)", "stop juda yaqin (1.29%)" va hokazo. Natijada voronka
+    o'nlab "1 × ..." qatoriga aylanib, hech narsa ko'rsatmasdi —
+    aynan tashxis qo'yish kerak bo'lgan joyda.
+    """
+    if not sabab:
+        return "nomalum"
+    return sabab.split(" (")[0]
 
 
 def _shamlar(
