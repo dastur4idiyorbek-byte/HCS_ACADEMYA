@@ -41,8 +41,13 @@ jobs:
 
       - name: Kesh kaliti
         id: kesh
+        env:
+          SYMBOLS: ${{ inputs.symbols }}
         run: |
-          echo "kalit=zanjir-${{ inputs.symbols }}-${{ inputs.days }}-${{ inputs.end_date }}" >> "$GITHUB_OUTPUT"
+          # Actions kesh kaliti VERGULNI qabul qilmaydi — chiziqchaga
+          # almashtiriladi. Ansiz butun ish oqimi 6-qadamda yiqilardi.
+          toza="${SYMBOLS//,/-}"
+          echo "kalit=zanjir-${toza}-${{ inputs.days }}-${{ inputs.end_date }}" >> "$GITHUB_OUTPUT"
 
       - name: Sham keshi
         uses: actions/cache@v4
