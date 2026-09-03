@@ -48,11 +48,20 @@ def test_standart_holatda_oraliqlar_ochiq(config) -> None:  # noqa: ANN001
 
 
 def test_juda_yaqin_resistance_endi_TP_bola_oladi(config) -> None:  # noqa: ANN001
-    """Qarshilik 3% dan yaqin bo'lsa ham u HAQIQIY nishon.
+    """Qarshilik 3% dan yaqin bo'lsa ham u FOIZ sababli rad etilmaydi.
 
     Ilgari `min_tp_distance_pct` uni rad etardi va TP o'lchangan
     masofa bo'yicha, ya'ni bozorda hech narsa yo'q joyga qo'yilardi.
+
+    IKKITA BOSHQA SAVOL. Bu test FOIZ oralig'i haqida, shuning
+    uchun NISBAT poli bu yerda o'chiriladi. Pol yoqilganda +1.5%
+    dagi zona baribir o'tkazib yuboriladi — lekin foiz jadvaliga
+    ko'ra emas, Stop masofasiga nisbatan. Ikkalasini aralashtirsak
+    test qaysi qoida ishlaganini ayta olmasdi.
     """
+    qoidalar = dataclasses.replace(
+        config.trade_rules, enforce_tp1_ratio=False
+    )
     xarita = ZoneMap(
         price=100.0,
         atr=1.0,
@@ -63,7 +72,7 @@ def test_juda_yaqin_resistance_endi_TP_bola_oladi(config) -> None:  # noqa: ANN0
         ],
     )
 
-    natija = build_levels(xarita, config.trade_rules)
+    natija = build_levels(xarita, qoidalar)
 
     assert natija.ok, natija.reason
     assert natija.levels.tp1 == 101.5

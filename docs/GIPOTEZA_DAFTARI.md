@@ -623,3 +623,58 @@ ishlatardi va "ikkita mustaqil o'lchov" aslida bitta bo'lardi.
 bir yo'nalishda natija bergandagina yoqiladi. Bitta oynada
 ishlab ikkinchisida ishlamasa — gipoteza rad etiladi va shu
 yerga ⚫ bilan yoziladi.
+
+---
+
+## Natija #9 — SHART BAJARILDI, BAYROQ YOQILDI
+
+Oyna B (2022-09 → 2024-09) o'lchandi. Oltita variantning
+TARTIBI ikkala oynada ham saqlandi:
+
+| variant | PF, oyna A | PF, oyna B |
+|---|---|---|
+| hozirgi holat | 0.30 | 0.34 |
+| foiz oraliqlari (nazorat) | 0.64 | 0.75 |
+| bitta TP (nazorat) | 0.74 | 0.87 |
+| oraliq + nisbat poli | 0.76 | 0.83 |
+| TP1 nisbat poli 1.5 | 0.79 | 0.93 |
+| TP1 nisbat poli 2.0 | 0.82 | 1.01 |
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🟢 | `enforce_tp1_ratio` | **true** | ikki oynada tasdiqlandi — YOQILDI |
+| 🟡 | `tp1_min_risk_reward` | **2.0** | ikkala oynada 1.5 dan yaxshi, lekin oyna A da faqat savdo kamayganidan |
+
+**Tizim shunda ham tayanchdan yomon** (oyna B: +15.7% vs
++150.3%). Bayroq bitta teshikni yopdi, tizimni foydali
+qilmadi.
+
+---
+
+## Yoqishda topilgan YASHIRIN BOG'LIQLIK — yangi 🔴
+
+Ikkita nisbat bir-biriga bog'liq ekan:
+
+```
+trade_rules.tp1_min_risk_reward         2.0   TP1 uchun POL
+strategies.classic_ta.min_risk_reward   1.5   YAKUNIY nishon
+```
+
+Pol yakuniy nishondan yuqori, ya'ni polga bo'ysungan TP1 doim
+yakuniy nishondan ham uzoqda. Kod buni jimgina
+`tp2 = tp1 * 1.001` bilan "hal qilardi" — kartochkada TP1
+130.00 va TP2 130.13.
+
+Ya'ni **o'lchangan mexanizm aslida "yagona nishonni uzoqqa
+qo'yish" edi**, "TP1 ni yaxshilash" emas. Buning izi
+raqamlarda ham bor: win-rate va "TP2 gacha" deyarli teng
+(34.6% va 34.3%).
+
+Yasama nishon olib tashlandi — endi bunday holatda signal
+BITTA TP bilan quriladi.
+
+| Holat | Savol |
+|---|---|
+| 🔴 | Yakuniy nishon nisbati polidan yuqori bo'lsa (2.2 / 2.5 / 3.0 / 4.0) natija saqlanadimi |
+| 🔴 | Ball shifti 55.0 — ikkinchi oynada ham aynan shu ko'rindi |
+| 🔴 | PF 1.0 dan yuqoriga nima ko'taradi |

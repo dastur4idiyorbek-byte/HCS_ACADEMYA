@@ -191,7 +191,13 @@ def test_qulay_sharoitda_nomzod_chiqadi(config) -> None:  # noqa: ANN001
     )
     assert natija.symbol == "BTC"
     assert natija.score > 0
-    assert natija.levels.stop < natija.levels.entry < natija.levels.tp1 < natija.levels.final_tp
+    darajalar = natija.levels
+    assert darajalar.stop < darajalar.entry < darajalar.tp1 <= darajalar.final_tp
+    # `<=` — TP BITTA bo'lishi mumkin. TP1 nisbat poli yoqilgach
+    # classic_ta uchun bu odatiy holat: pol (2.0) strategiyaning
+    # yakuniy nishon nisbatidan (1.5) yuqori, ya'ni polga
+    # bo'ysungan TP1 allaqachon yakuniy nishondan uzoqda
+    # (`test_tp_soni_moslashuvchan.py`).
     # Shkala: bazaviy 100 + CryptoSpot3% bonuslari
     assert natija.breakdown.base_total <= 100
     assert natija.breakdown.maximum == pytest.approx(

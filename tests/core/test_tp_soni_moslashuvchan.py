@@ -38,9 +38,20 @@ def xarita(zonalar: list[SRZone], price: float = 100.0, atr: float = 1.0) -> Zon
     return ZoneMap(price=price, atr=atr, zones=zonalar)
 
 
+#: TP SONI mexanizmi o'lchanadigan qoidalar.
+#:
+#: TP1 nisbat poli bu yerda ATAYLAB o'chiq. Sabab shu faylning
+#: mavzusiga tegishli va u pastdagi
+#: `test_pol_yoqilganda_classic_ta_bitta_TP_beradi` da alohida
+#: yozilgan: pol yoqilganda TP1 yakuniy nishondan pastda qola
+#: olmaydi va TP soni MAJBURAN bittaga tushadi. Ikkalasini bitta
+#: fixturada aralashtirish "uchta TP quriladimi" degan savolga
+#: javob berishni imkonsiz qilardi.
 @pytest.fixture
 def qoidalar():  # noqa: ANN201
-    return load_config().trade_rules
+    return dataclasses.replace(
+        load_config().trade_rules, enforce_tp1_ratio=False
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -179,3 +190,53 @@ def test_ulushlar_sozlamadan_olinadi(qoidalar) -> None:  # noqa: ANN001
     ulushlar = tuple(tp.close_pct for tp in natija.levels.takes)
     assert ulushlar == config.portfolio.shares_for(3)
     assert sum(ulushlar) == pytest.approx(100.0)
+
+
+# --------------------------------------------------------------------------- #
+#  Pol yoqilgandagi OQIBAT — bu yerda ochiq yozilsin
+# --------------------------------------------------------------------------- #
+
+
+def test_pol_yoqilganda_classic_ta_bitta_TP_beradi() -> None:
+    """TP1 poli yakuniy nishondan past bo'lmasa — TP bitta bo'ladi.
+
+    TOPILGAN OQIBAT (natija #9 ni yoqishda). Ikkita nisbat bor va
+    ular BIR-BIRIGA BOG'LIQ:
+
+        tp1_min_risk_reward           2.0   (TP1 uchun pol)
+        strategies.classic_ta
+            .min_risk_reward          1.5   (YAKUNIY nishon)
+
+    Pol yakuniy nishondan yuqori bo'lsa, polga bo'ysungan har
+    qanday TP1 avtomatik ravishda yakuniy nishondan ham
+    yuqorida bo'ladi — ya'ni "ikkinchi nishon" degan narsa
+    qolmaydi.
+
+    Ilgari bu JIMGINA sodir bo'lardi: kod TP2 ni `tp1 * 1.001`
+    ga qo'yardi va kartochkada ikkita deyarli bir xil narx
+    chiqardi (TP1 130.00, TP2 130.13). Backtestda ham shu
+    ko'rinadi — natija #8 va #9 da win-rate va "TP2 gacha"
+    deyarli teng (34.6% va 34.3%).
+
+    Endi bu holat OCHIQ: signal bitta TP bilan quriladi. Loyiha
+    egasining qoidasiga ("2 TP majburiy emas") mos, lekin bu
+    tanlov emas — MAJBURIYAT. Uni yechish uchun yakuniy nishon
+    nisbatini polidan yuqori qilish kerak, va bu kombinatsiya
+    hali O'LCHANMAGAN (daftarda 🔴).
+    """
+    config = load_config()
+    qoidalar = dataclasses.replace(
+        config.trade_rules,
+        min_risk_reward=config.strategies.classic_ta.min_risk_reward,
+    )
+
+    assert qoidalar.enforce_tp1_ratio, "pol standart holatda yoqilgan"
+    assert qoidalar.tp1_min_risk_reward >= qoidalar.min_risk_reward
+
+    natija = build_levels(sinov_xaritasi(), qoidalar)
+
+    assert natija.ok, natija.reason
+    assert natija.levels.tp_count == 1
+    assert natija.levels.takes[0].close_pct == 100.0
+    # Yasama ikkinchi nishon (tp1 * 1.001) endi qurilmaydi
+    assert natija.levels.tp1 == natija.levels.final_tp

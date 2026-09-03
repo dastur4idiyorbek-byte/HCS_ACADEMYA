@@ -143,6 +143,25 @@ def build_levels(
             )
         yakuniy_tuzilmaviy = True
     else:
+        # TP1 ning O'ZI 1:N shartini bajarsa, IKKINCHI nishon yo'q.
+        #
+        # Ilgari bu yerda `tp1 * 1.001` turardi — ya'ni TP2 TP1 dan
+        # 0.1% yuqoriga qo'yilardi. Bunday "ikkinchi nishon" mavjud
+        # emas: 0.1% yo'l kelib-ketish xarajatini (0.3%) ham
+        # qoplamaydi, kartochkada esa ikkita deyarli bir xil narx
+        # ko'rinardi (TP1 130.00, TP2 130.13).
+        #
+        # Loyiha egasining qoidasi shu holatga aynan mos keladi:
+        # "2 TP MAJBURIY EMAS — 1, 2 yoki 3 bo'lishi mumkin,
+        # SHAROITGA QARAB". Sharoit shu: nishon bitta.
+        #
+        # TP1 nisbat poli yoqilgach bu holat tez-tez uchraydi —
+        # tuzilmaviy TP1 ko'pincha 1:3 darajasidan ham uzoqda
+        # bo'ladi.
+        kerakli_nishon = entry * (1 + stop_masofa_pct * rules.min_risk_reward / 100)
+        if kerakli_nishon <= tp1:
+            return _bitta_nishon(entry, stop, tp1, tuzilmaviy_tp, rules)
+
         yakuniy = _build_tp2(entry, tp1, stop_masofa_pct, rules)
         if yakuniy is None:
             kerak = rules.min_risk_reward * stop_masofa_pct
@@ -384,6 +403,31 @@ def _build_tp2_tuzilmadan(
     return None
 
 
+def _bitta_nishon(
+    entry: float,
+    stop: float,
+    tp1: float,
+    tuzilmaviy: bool,
+    rules: TradeRulesConfig,
+) -> LevelResult:
+    """Yagona TP li signal — qismli sotish yo'q.
+
+    TP1 allaqachon 1:N nisbatidan uzoqda bo'lsa, undan yuqoriga
+    yasama ikkinchi nishon qo'yilmaydi. Butun pozitsiya shu
+    yerda yopiladi.
+    """
+    try:
+        levels = signal_levels(entry, stop, tp1, from_structure=(tuzilmaviy,))
+    except ValueError as exc:
+        return LevelResult(None, f"Darajalar tartibi buzildi: {exc}", tuzilmaviy)
+
+    return LevelResult(
+        levels,
+        f"Bitta TP: TP1 ning o'zi 1:{rules.min_risk_reward:g} nisbatidan uzoqda",
+        tp_from_structure=tuzilmaviy,
+    )
+
+
 def _build_tp2(
     entry: float,
     tp1: float,
@@ -407,9 +451,6 @@ def _build_tp2(
 
     if nishon > eng_baland:
         return None
-    # Yakuniy nishon TP1 dan yuqori bo'lishi shart
-    if nishon <= tp1:
-        nishon = tp1 * 1.001
-        if nishon > eng_baland:
-            return None
+    # `nishon <= tp1` holati bu yerga yetib kelmaydi — chaqiruvchi
+    # uni oldin ushlaydi va BITTA TP li signal quradi.
     return nishon

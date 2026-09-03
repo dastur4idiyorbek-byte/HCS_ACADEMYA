@@ -38,7 +38,6 @@ from pathlib import Path
 from core.backtest import Backtester, Dataset, compare, render
 from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
-from core.config.schema import QualityGateConfig
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
 from core.utils.logging_setup import get_logger, setup_logging
@@ -276,7 +275,7 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "trade_rules (TP1 poli)"
+OLCHOV_OQI = "strategies.classic_ta.min_risk_reward (yakuniy nishon)"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
@@ -287,19 +286,22 @@ def _oqsiz(config: AppConfig) -> AppConfig:
     ikkita narsani o'lchayotgan bo'ladi va qaysi biri ta'sir
     qilganini hech kim ayta olmaydi.
     """
+    classic_ta = dataclasses.replace(
+        config.strategies.classic_ta, min_risk_reward=1.5
+    )
     return dataclasses.replace(
         config,
-        scoring=dataclasses.replace(
-            config.scoring, quality_gate=QualityGateConfig()
-        ),
-        trade_rules=dataclasses.replace(
-            config.trade_rules,
-            enforce_distance_bands=False,
-            enforce_tp1_ratio=False,
-            tp1_min_risk_reward=1.5,
-            max_take_profits=2,
-            max_holding_hours=0.0,
-        ),
+        strategies=dataclasses.replace(config.strategies, classic_ta=classic_ta),
+    )
+
+
+def _classic_ta_bilan(
+    asos: AppConfig, nom: str, **ozgarishlar: object
+) -> tuple[str, AppConfig]:
+    """`strategies.classic_ta` o'zgartirilgan nusxa."""
+    strategiya = dataclasses.replace(asos.strategies.classic_ta, **ozgarishlar)
+    return nom, dataclasses.replace(
+        asos, strategies=dataclasses.replace(asos.strategies, classic_ta=strategiya)
     )
 
 
@@ -314,71 +316,55 @@ def _darvoza_bilan(
 
 
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Beshinchi to'plam: TP1 POLI.
+    """Oltinchi to'plam: YAKUNIY NISHON NISBATI.
 
-    OLDINGI TO'RTTA TO'PLAM JAVOB BERDI:
+    BESHTA TO'PLAM JAVOB BERDI:
 
     1. Correction Entry (natija #1)          -> rad etildi
     2. Tuzilmaviy TP2 (natija #2)            -> rad etildi
     3. Kirish filtrlari (natija #3 va #6)    -> rad etildi
     4. Qaror mexanizmi (natija #7)           -> uchtasi rad etildi
+    5. TP1 nisbat poli (natija #8 va #9)     -> ISHLADI, YOQILDI
 
-    Lekin to'rtinchisi faqat "ishlamadi" demadi — SABABNI
-    ko'rsatdi. Uchta mustaqil dalil bitta joyga ishora qildi:
+    Beshinchisini yoqishda YASHIRIN BOG'LIQLIK ochildi. Ikkita
+    nisbat bor va ular bir-biriga bog'liq:
 
-      • foiz oraliqlari o'chirilganda PF 0.64 -> 0.30
-      • BITTA TP (qismli sotishsiz) eng yaxshi variant: PF 0.74
-      • ikkalasining mexanizmi bir xil
+        trade_rules.tp1_min_risk_reward          2.0  (TP1 poli)
+        strategies.classic_ta.min_risk_reward    1.5  (yakuniy)
 
-    Mexanizm: TP1 da pozitsiyaning bir qismi sotiladi va Stop
-    kirish narxiga ko'tariladi. TP1 juda yaqin bo'lsa o'sha qism
-    arzimas foyda beradi, qolgani nolda yopiladi, komissiyadan
-    keyin savdo manfiy chiqadi.
+    Pol yakuniy nishondan YUQORI. Ya'ni polga bo'ysungan har
+    qanday TP1 avtomatik ravishda yakuniy nishondan ham uzoqda
+    bo'ladi va ikkinchi nishon degan narsa qolmaydi.
 
-        TP1 +0.5% da   -> yarmi sotiladi   -> +0.25%
-        Stop breakeven -> qolgani nolda    ->  0.00%
-        komissiya                          -> -0.30%
-                                              -------
-                                               -0.05%
+    Ilgari bu JIMGINA sodir bo'lardi: kod TP2 ni `tp1 * 1.001`
+    ga qo'yardi. Natija #8 va #9 raqamlarida buning izi bor —
+    win-rate va "TP2 gacha" deyarli teng (34.6% va 34.3%).
 
-    `min_tp_distance_pct` TP1 uchun YAGONA pol edi va u foiz
-    oraliqlari bilan birga o'chdi.
+    YA'NI o'lchangan mexanizm aslida "TP1 ni yaxshilash" emas,
+    "yagona nishonni YETARLICHA UZOQQA qo'yish" edi.
 
-    BU TO'PLAM SHU TASHXISNI SINAYDI. Yechim foizni qaytarish
-    emas — TP1 ga NISBAT poli qo'yish (`enforce_tp1_ratio`).
+    BU TO'PLAM SHU SAVOLNI SO'RAYDI: yakuniy nishon polidan
+    yuqoriga ko'tarilsa — ya'ni HAQIQIY ikkita TP qaytsa —
+    natija saqlanadimi yoki yo'qoladimi?
 
-    NAZORAT VARIANTLARI ZARUR. Nisbat poli ikki narsani bir
-    vaqtda qiladi: TP1 ni uzoqlashtiradi VA ba'zi signallarni
-    umuman yo'q qiladi (mos zona topilmasa o'lchangan TP ga
-    o'tadi). "Bitta TP" varianti tashxisning boshqa tomonini
-    tekshiradi: qismli sotishning O'ZI muammomi?
+    Loyiha egasining qoidasi ikkalasiga ham ruxsat beradi
+    ("1 TP, 2 TP yoki 3 TP — sharoitga qarab"), shuning uchun
+    tanlovni raqam qilsin.
+
+    NAZORAT: "hozirgi holat" (1.5) — bugungi yoqilgan sozlama,
+    ya'ni amalda BITTA TP. Yangi qiymatlar undan yaxshi
+    chiqmasa, bitta TP shundayligicha qoladi.
     """
     return [
         ("hozirgi holat", asos),
-        # ASOSIY GIPOTEZA: TP1 ga nisbat poli.
-        _qoidalar_bilan(asos, "TP1 nisbat poli 1.5", enforce_tp1_ratio=True),
-        # Balandroq pol: TP1 yanada uzoqlashadi, mos zona kamayadi.
-        _qoidalar_bilan(
-            asos,
-            "TP1 nisbat poli 2.0",
-            enforce_tp1_ratio=True,
-            tp1_min_risk_reward=2.0,
-        ),
-        # NAZORAT 1: qismli sotishning O'ZI muammomi? Bitta TP da
-        # TP1 umuman yo'q — natija #7 da bu eng yaxshi variant edi.
-        _qoidalar_bilan(asos, "bitta TP (yakuniy nishon)", max_take_profits=1),
-        # NAZORAT 2: eski xatti-harakat. Foiz oralig'i TP1 ni 3%
-        # da ushlab turardi, ya'ni pol vazifasini ham bajarardi.
-        # Nisbat poli undan YAXSHIROQ ishlashi kerak — aks holda
-        # tashxis noto'g'ri.
-        _qoidalar_bilan(asos, "foiz oraliqlari yoqilgan", enforce_distance_bands=True),
-        # Ikkalasi birga: pol ham, oraliq ham.
-        _qoidalar_bilan(
-            asos,
-            "oraliq + nisbat poli",
-            enforce_distance_bands=True,
-            enforce_tp1_ratio=True,
-        ),
+        # Poldan (2.0) sal yuqori: TP1 va yakuniy orasida tor,
+        # lekin HAQIQIY joy paydo bo'ladi.
+        _classic_ta_bilan(asos, "yakuniy nishon 2.2", min_risk_reward=2.2),
+        _classic_ta_bilan(asos, "yakuniy nishon 2.5", min_risk_reward=2.5),
+        # Global qoida (1:3) — brief shuni talab qiladi.
+        _classic_ta_bilan(asos, "yakuniy nishon 3.0", min_risk_reward=3.0),
+        # Ataylab uzoq: nishon yetib bo'lmaydigan bo'lib qoladimi?
+        _classic_ta_bilan(asos, "yakuniy nishon 4.0", min_risk_reward=4.0),
     ]
 
 

@@ -26,9 +26,19 @@ from core.domain.enums import ZoneKind
 from core.domain.models import SRZone
 
 
+#: Bu fayldagi testlar TUZILMAVIY TP2 mexanizmini o'lchaydi.
+#:
+#: TP1 nisbat poli (`enforce_tp1_ratio`) endi standart holatda
+#: YOQILGAN va u TP1 ni uzoqroq zonaga suradi. Bu mexanizm shu
+#: yerdagi savolga aloqasi yo'q, lekin fixtura zonalarini
+#: siljitib, testni o'z mavzusidan chalg'itardi. Shuning uchun
+#: bu yerda pol ATAYLAB o'chiriladi — bitta test bitta narsani
+#: o'lchasin.
 @pytest.fixture
 def qoidalar():  # noqa: ANN201
-    return load_config().trade_rules
+    return dataclasses.replace(
+        load_config().trade_rules, enforce_tp1_ratio=False
+    )
 
 
 def zona(kind: ZoneKind, low: float, high: float) -> SRZone:

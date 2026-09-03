@@ -47,10 +47,11 @@ def qoidalar():  # noqa: ANN201
 
 
 def yaqin_qarshilik() -> ZoneMap:
-    """Narx 100, Stop ~5% (support 95), qarshilik atigi +0.6% da.
+    """Narx 100, Stop 93.75 (support 94 ostida), qarshilik +0.6% da.
 
-    Nisbat poli 1.5 bo'lsa TP1 kamida +7.5% da bo'lishi kerak,
-    ya'ni 100.6 zonasi O'TKAZIB YUBORILADI.
+    Stop masofasi 6.25%. Nisbat poli 2.0 bo'lsa TP1 kamida
+    +12.5% da bo'lishi kerak, ya'ni 100.6 zonasi O'TKAZIB
+    YUBORILADI va keyingisi qidiriladi.
     """
     return ZoneMap(
         price=100.0,
@@ -58,7 +59,7 @@ def yaqin_qarshilik() -> ZoneMap:
         zones=[
             zona(ZoneKind.SUPPORT, 94.0, 95.0),
             zona(ZoneKind.RESISTANCE, 100.6, 101.0),   # +0.6% — arzimas
-            zona(ZoneKind.RESISTANCE, 112.0, 113.0),   # +12% — mazmunli
+            zona(ZoneKind.RESISTANCE, 115.0, 116.0),   # +15% — mazmunli
         ],
     )
 
@@ -68,14 +69,33 @@ def yaqin_qarshilik() -> ZoneMap:
 # --------------------------------------------------------------------------- #
 
 
-def test_standart_holatda_ochiq(qoidalar) -> None:  # noqa: ANN001
-    """Gipoteza standart holatda YOQILMAYDI."""
-    assert not qoidalar.enforce_tp1_ratio
+def test_standart_holatda_yoqilgan(qoidalar) -> None:  # noqa: ANN001
+    """Gipoteza IKKI OYNADA tasdiqlangach yoqildi.
+
+    Qoida oldindan yozib qo'yilgan edi va shunday bajarildi:
+    bayroq faqat ikkita KESISHMAYDIGAN davrda bir yo'nalishda
+    natija bergandagina yoqiladi.
+
+        oyna A (2024-09..2026-09)   PF 0.30 -> 0.82
+        oyna B (2022-09..2024-09)   PF 0.34 -> 1.01
+
+    Bu test bayroqni qo'riqlaydi: kimdir uni "vaqtincha"
+    o'chirsa, sabab shu yerda yozilishi kerak bo'ladi.
+    """
+    assert qoidalar.enforce_tp1_ratio
+    assert qoidalar.tp1_min_risk_reward == 2.0
 
 
 def test_polsiz_TP1_arzimas_zonaga_tushadi(qoidalar) -> None:  # noqa: ANN001
-    """Hozirgi xatti-harakat — natija #7 dagi muammoning o'zi."""
-    natija = build_levels(yaqin_qarshilik(), qoidalar)
+    """ESKI xatti-harakat — natija #7 dagi muammoning o'zi.
+
+    Pol o'chirilganda TP1 eng yaqin qarshilikka tushadi. Bu
+    holat endi standart emas, lekin test qoladi: u polning NIMA
+    QILAYOTGANINI ko'rsatadi.
+    """
+    polsiz = dataclasses.replace(qoidalar, enforce_tp1_ratio=False)
+
+    natija = build_levels(yaqin_qarshilik(), polsiz)
 
     assert natija.ok, natija.reason
     assert natija.levels.tp1 == 100.6
@@ -100,7 +120,7 @@ def test_pol_arzimas_zonani_otkazib_yuboradi(qoidalar) -> None:  # noqa: ANN001
     natija = build_levels(yaqin_qarshilik(), polli)
 
     assert natija.ok, natija.reason
-    assert natija.levels.tp1 == 112.0, "keyingi mazmunli zona olinishi kerak"
+    assert natija.levels.tp1 == 115.0, "keyingi mazmunli zona olinishi kerak"
     assert natija.tp_from_structure
 
 
@@ -128,12 +148,12 @@ def test_mazmunli_zona_polsiz_ham_polli_ham_bir_xil(qoidalar) -> None:  # noqa: 
         atr=1.0,
         zones=[
             zona(ZoneKind.SUPPORT, 94.0, 95.0),
-            zona(ZoneKind.RESISTANCE, 112.0, 113.0),
+            zona(ZoneKind.RESISTANCE, 115.0, 116.0),
         ],
     )
 
-    assert build_levels(yaxshi, qoidalar).levels.tp1 == 112.0
-    assert build_levels(yaxshi, polli).levels.tp1 == 112.0
+    assert build_levels(yaxshi, qoidalar).levels.tp1 == 115.0
+    assert build_levels(yaxshi, polli).levels.tp1 == 115.0
 
 
 def test_mos_zona_yoq_bolsa_olchangan_TP_ga_qaytiladi(qoidalar) -> None:  # noqa: ANN001

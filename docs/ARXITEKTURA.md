@@ -5138,7 +5138,88 @@ etilgan demak, va daftarga shunday yoziladi.
 
 ---
 
-## 85. Bosqichlar holati
+## 85. Takroriy o'lchov tasdiqladi — va mexanizmni tuzatdi
+
+84-bo'lim sinov oynasini qurdi. Birinchi ishlatilishi
+83-bo'limdagi ochiq savolga javob berdi.
+
+### NATIJA TAKRORLANDI
+
+Oyna B (2022-09 → 2024-09) — oyna A bilan umuman
+kesishmaydi, alohida yuklangan. Oltita variantning TARTIBI
+ikkalasida ham bir xil:
+
+```
+                          PF, A    PF, B
+hozirgi holat              0.30     0.34
+foiz oraliqlari (nazorat)  0.64     0.75
+bitta TP (nazorat)         0.74     0.87
+oraliq + nisbat poli       0.76     0.83
+TP1 nisbat poli 1.5        0.79     0.93
+TP1 nisbat poli 2.0        0.82     1.01
+```
+
+Oldindan yozilgan qoida bajarildi, shuning uchun bayroq
+yoqildi: `enforce_tp1_ratio: true`, `tp1_min_risk_reward: 2.0`.
+
+### YOQISHDA YASHIRIN BOG'LIQLIK OCHILDI
+
+Testlar darhol yiqildi va sabab qiziq bo'lib chiqdi. Tizimda
+ikkita nisbat bor:
+
+```
+trade_rules.tp1_min_risk_reward         2.0   TP1 uchun POL
+strategies.classic_ta.min_risk_reward   1.5   YAKUNIY nishon
+```
+
+Pol yakuniy nishondan yuqori. Ya'ni polga bo'ysungan har
+qanday TP1 avtomatik ravishda yakuniy nishondan ham uzoqda —
+"ikkinchi nishon" degan narsa qolmaydi.
+
+Kod buni jimgina hal qilardi:
+
+```python
+if nishon <= tp1:
+    nishon = tp1 * 1.001      # TP2 = TP1 + 0.1%
+```
+
+Kartochkada: **TP1 130.00, TP2 130.13**. 0.1% masofa hatto
+kelib-ketish xarajatini (0.3%) ham qoplamaydi.
+
+Bu — 67 va 77-bo'limlardagi naqshning yana bir ko'rinishi:
+raqam quriladi, keyin boshqa qoida uni jimgina yo'q qiladi va
+hech qayerda xato ko'rinmaydi.
+
+### XULOSA TUZATILDI, NATIJA EMAS
+
+O'lchangan mexanizm "TP1 ni yaxshiroq joyga qo'yish" emas
+ekan:
+
+> yagona nishonni yetarlicha UZOQQA (Stop×2) va imkon bo'lsa
+> haqiqiy zonaga qo'yish.
+
+Buning izi raqamlarda ham bor edi va ilgari e'tibor
+berilmagan: win-rate va "TP2 gacha" deyarli teng (34.6% va
+34.3%) — chunki TP1 va TP2 amalda bitta narx edi.
+
+### KOD ENDI BUNI OCHIQ QILADI
+
+Yasama `tp1 * 1.001` olib tashlandi. TP1 allaqachon 1:N
+nisbatidan uzoqda bo'lsa, signal BITTA TP bilan quriladi va
+butun pozitsiya o'sha yerda yopiladi.
+
+Loyiha egasining qoidasiga mos ("2 TP majburiy emas — 1, 2
+yoki 3 bo'lishi mumkin, sharoitga qarab"), lekin hozir bu
+TANLOV emas, MAJBURIYAT. Shuning uchun oltinchi to'plam aynan
+shu haqda: yakuniy nishon nisbati polidan yuqoriga
+ko'tarilsa, haqiqiy ikkita TP qaytadi — natija saqlanadimi?
+
+`tests/core/test_tp_soni_moslashuvchan.py` da bu oqibat
+alohida test bilan yozib qo'yilgan, unutilmasin uchun.
+
+---
+
+## 86. Bosqichlar holati
 
 | # | Bosqich | Holat |
 |---|---|---|

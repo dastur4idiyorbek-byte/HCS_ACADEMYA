@@ -519,7 +519,10 @@ class TradeRulesConfig:
     #: TP1 uchun eng past nisbat. TP1 da pozitsiyaning bir qismi
     #: yopiladi — agar u 1:1 dan past bo'lsa, o'sha qism o'rtacha
     #: zarar keltiradi.
-    tp1_min_risk_reward: float = 1.5
+    #:
+    #: 2.0 IKKI OYNADA O'LCHANDI (natija #8 va #9): PF bo'yicha
+    #: 1.5 dan yaxshi, hech bir o'lchov bo'yicha yomon emas.
+    tp1_min_risk_reward: float = 2.0
     #: Shu nisbat TUZILMAVIY TP1 ga ham qo'llanilsinmi.
     #:
     #: MUAMMO (natija #7). `tp1_min_risk_reward` faqat "qarshilik
@@ -548,8 +551,16 @@ class TradeRulesConfig:
     #: Bu FOIZ emas, NISBAT poli: loyiha egasining "TP STOP FOIZLARI
     #: MAJBURIY EMAS — RISK 1/3" qoidasiga zid emas.
     #:
-    #: STANDART HOLATDA O'CHIQ — gipoteza, o'lchanmagan.
-    enforce_tp1_ratio: bool = False
+    #: YOQILGAN — ikkita kesishmaydigan oynada o'lchandi:
+    #:
+    #:                              PF, baza   PF, pol bilan
+    #:     oyna A (2024-09..2026-09)   0.30         0.82
+    #:     oyna B (2022-09..2024-09)   0.34         1.01
+    #:
+    #: Nazorat variantlari ham ikkalasida bir xil javob berdi.
+    #: Tizim shunda ham tayanchdan yomon — bu bayroq bitta
+    #: teshikni yopdi, tizimni foydali qilmadi (natija #9).
+    enforce_tp1_ratio: bool = True
     allow_measured_tp: bool = True
     #: TP2 TUZILMADAN olinsinmi (ikkinchi resistance zonasi).
     #:
