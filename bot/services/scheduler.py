@@ -1,10 +1,17 @@
 """Fon vazifalari — takrorlanuvchi ishlar.
 
-    signal sikli        — har `entry_timeframe` sham yopilganda
-    halol ro'yxat       — 12 soatda bir (3.4-band)
     obuna muddati       — soatda bir (1.2-band)
-    kunlik oldindan tahlil — UTC 00:00 atrofida (3.7-band)
-    haftalik hisobot    — dushanba ertalab (3.8-band)
+    veb signallari      — daqiqada bir, tarqatish uchun
+    veb videolari       — 5 daqiqada bir
+
+2026-09-03 — eski tahlil moduli olib tashlandi. U bilan birga signal
+sikli, haftalik postmortem hisoboti va sayt uchun bozor ko'rinishi
+vazifalari ham ketdi: uchalasi ham `core/analysis` ga tayanardi.
+
+Halol ro'yxatni yangilash vazifasi ham chiqdi — u ro'yxatni FAQAT
+o'sha sikl uchun xotirada tayyorlardi, hech qayerga yozmasdi. Halol
+skrining modulining o'zi (`core/halal_screening/`) va admin
+qarorlari (`CoinRulingRepository`) joyida qoldi.
 
 Har bir vazifa MUSTAQIL: bittasining nosozligi boshqalarni to'xtatmaydi
 (0.3-band). Shu sababli har biri o'z siklida, o'z `try/except` i bilan
@@ -22,18 +29,13 @@ from aiogram.types import FSInputFile
 
 from bot.hosting import video_dir
 from bot.i18n import DEFAULT_LANGUAGE, t
-from bot.services.bozor_korinishi import BozorKorinishiXizmati
 from bot.services.broadcast import broadcast_signal, obunachilar
-from bot.services.runner import PipelineRunner, cycle_interval
-from core.analysis.bozor_korinishi import KorinishTuri
-from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import OrderType
 from core.domain.models import EntryPlan, signal_levels
 from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.repositories import (
-    AuditReportRepository,
     ContentRepository,
     PaymentRepository,
     RiskBlockRepository,
@@ -80,13 +82,11 @@ class Scheduler:
         bot: Bot,
         database: Database,
         config: AppConfig,
-        runner: PipelineRunner,
         admin_ids: frozenset[int],
     ) -> None:
         self._bot = bot
         self._db = database
         self._config = config
-        self._runner = runner
         self._admin_ids = admin_ids
         self._video_dir = video_dir()
         self._tasks: list[asyncio.Task] = []
@@ -94,23 +94,7 @@ class Scheduler:
     def start(self) -> None:
         """Barcha vazifalarni fon rejimida ishga tushiradi."""
         vazifalar = [
-            ("signal-cycle", cycle_interval(self._config), self._run_cycle, timedelta(seconds=30)),
-            (
-                "halal-universe",
-                timedelta(hours=self._config.halal_screening.refresh_interval_hours),
-                self._refresh_universe,
-                None,
-            ),
             ("subscriptions", timedelta(hours=1), self._check_subscriptions, timedelta(minutes=2)),
-            ("weekly-report", timedelta(hours=24), self._weekly_report, timedelta(minutes=5)),
-            # SAYT UCHUN BOZOR KO'RINISHI — signalga bog'lanmaydi.
-            # Soatiga bir marta tekshiriladi, kuniga bir marta yozadi.
-            (
-                "bozor-korinishi",
-                timedelta(hours=1),
-                self._bozor_korinishi,
-                timedelta(minutes=3),
-            ),
             ("cleanup", timedelta(hours=24), self._cleanup, timedelta(minutes=10)),
             # Veb-panelda yaratilgan signallar shu vazifa orqali hayotga
             # kiradi. Oraliq qisqa: signal yozilgandan keyin obunachiga
@@ -148,16 +132,6 @@ class Scheduler:
         self._tasks.clear()
 
     # ------------------------------------------------------------------ #
-
-    async def _run_cycle(self) -> None:
-        """15-bosqich: avtomatik signal sikli."""
-        natija = await self._runner.run_once()
-        if natija is not None:
-            await self._runner.review_open_signals(natija)
-
-    async def _refresh_universe(self) -> None:
-        """3.4-band: Halol coinlar ro'yxatini yangilash."""
-        await self._runner.refresh_universe()
 
     async def _cleanup(self) -> None:
         """Eski kuzatuv yozuvlarini o'chiradi.
@@ -211,12 +185,11 @@ class Scheduler:
         takrorlash — kartochka mantig'ining ikkinchi nusxasi demak edi.
         Shuning uchun veb faqat BAZAGA YOZADI, yuborish esa shu yerda.
 
-        Ikki qadam ataylab shu tartibda: avval kuzatuv, keyin tarqatish.
-        Teskarisi bo'lsa, tarqatish yiqilganda signal kuzatuvsiz qolardi.
+        KUZATUV HOZIRCHA YO'Q: `watcher.py` eski holat mashinasi bilan
+        birga olib tashlandi. Signal tarqatiladi, lekin TP/Stop
+        avtomatik kuzatilmaydi — yangi modul kelguncha buni admin
+        qo'lda belgilaydi.
         """
-        watcher = self._runner.watcher
-        await watcher.sync_untracked()
-
         async with self._db.session() as session:
             kutayotganlar = await SignalRepository(session).pending_broadcast()
             if not kutayotganlar:
@@ -305,74 +278,3 @@ class Scheduler:
             logger.info(
                 "Dars videosi Telegramga chiqdi: id=%s sarlavha=%s", content_id, sarlavha
             )
-
-    async def _bozor_korinishi(self) -> None:
-        """Sayt uchun haftalik va kunlik qarash.
-
-        SIGNALGA BOG'LANMAYDI — loyiha egasining sharti. Bu
-        vazifa `PipelineRunner` ni chaqirmaydi va hech bir
-        strategiyaga ta'sir qilmaydi. Yagona natijasi — bazaga
-        yoziladigan post.
-        """
-        sozlama = self._config.bozor_korinishi
-        if not sozlama.enabled:
-            return
-
-        hozir = utc_now()
-        if hozir.hour != sozlama.kunlik_soat_utc:
-            return
-
-        xizmat = BozorKorinishiXizmati(
-            self._db, self._config, self._runner.candles
-        )
-        try:
-            yangilandi = await xizmat.kunlik_yozuv(hozir)
-            if not yangilandi:
-                return
-            await xizmat.post_qur(KorinishTuri.KUNLIK, hozir)
-            if (
-                hozir.weekday() == sozlama.haftalik_kun
-                and hozir.hour == sozlama.haftalik_soat_utc
-            ):
-                await xizmat.post_qur(KorinishTuri.HAFTALIK, hozir)
-        finally:
-            await xizmat.close()
-
-    async def _weekly_report(self) -> None:
-        """3.8-band: haftalik o'z-o'zini tekshirish hisoboti (faqat admin)."""
-        hozir = utc_now()
-        postmortem = self._config.postmortem
-        if hozir.weekday() != postmortem.report_weekday:
-            return
-        if hozir.hour != postmortem.report_hour_utc:
-            return
-
-        boshlanish = hozir - timedelta(days=postmortem.lookback_days)
-        async with self._db.session() as session:
-            signallar = await SignalRepository(session).closed_since(boshlanish)
-
-        hisobot = build_report(signallar, postmortem, hozir)
-        matn = render_report(hisobot)
-
-        # Qaydni SAQLAYMIZ: ilgari hisobot faqat Telegramga ketardi va
-        # o'qilmay qolsa butunlay yo'qolardi. Yozib bo'lmasa — yuborish
-        # baribir davom etadi (0.3-band: qo'shimcha ish asosiy ishni
-        # to'xtatmaydi).
-        try:
-            async with self._db.session() as session:
-                await AuditReportRepository(session).save(
-                    hisobot.generated_at,
-                    hisobot.period_days,
-                    hisobot.stats,
-                    matn,
-                    pattern_count=len(hisobot.patterns),
-                    sample_warning=hisobot.sample_warning,
-                )
-        except Exception:  # noqa: BLE001
-            logger.exception("Haftalik hisobot qaydini yozib bo'lmadi")
-
-        for admin_id in self._admin_ids:
-            try:
-                await self._bot.send_message(admin_id, matn)
-            except Exception:  # noqa: BLE001
-                logger.warning("Hisobot yetkazilmadi: admin=%s", admin_id)

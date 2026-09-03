@@ -129,10 +129,9 @@ ADMIN_SECTIONS: list[tuple[str, str]] = [
     ("halol_royxat", "admin.halol_royxat"),
     ("broadcast", "admin.broadcast"),
     ("qoidabuzarlik", "admin.qoidabuzarlik"),
-    ("salomatlik", "admin.salomatlik"),
-    ("sokinlik", "admin.sokinlik"),
-    ("hisobot", "admin.hisobot"),
-    ("smc", "admin.smc"),
+    # Salomatlik / Sokinlik / Hisobot / SMC bo'limlari 2026-09-03 da eski
+    # tahlil moduli bilan birga olib tashlandi. Ular yangi tizim uchun
+    # qayta quriladi — o'shanda shu ro'yxatga qaytadi.
     ("risk", "admin.risk_sozlamalari"),
 ]
 

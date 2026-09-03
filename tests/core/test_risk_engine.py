@@ -141,52 +141,6 @@ def test_juma_filtri_ochirilishi_mumkin(config: AppConfig) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_past_salomatlikda_signal_berilmaydi(engine: RiskEngine) -> None:
-    qaror = engine.evaluate(nomzod(), sog_kontekst(market_health=salomatlik(25)))
-    assert not qaror.allowed
-    assert BlockReason.MARKET_HEALTH_LOW in qaror.reasons
-
-
-def test_salomatlik_hisoblanmagan_bolsa_signal_berilmaydi(engine: RiskEngine) -> None:
-    """Fail-safe: noaniqlikda signal BERMASLIKKA moyillik."""
-    qaror = engine.evaluate(nomzod(), sog_kontekst(market_health=None))
-    assert not qaror.allowed
-    assert BlockReason.MARKET_HEALTH_LOW in qaror.reasons
-
-
-def test_ball_chegarasi_salomatlikka_qarab_moslashadi(
-    engine: RiskEngine, config
-) -> None:  # noqa: ANN001
-    """3.5-band: chegara statik EMAS.
-
-    Aniq raqamlar konfiguratsiyadan olinadi, testga yozib qo'yilmaydi:
-    ilgari bu yerda 70 va 80 turardi va aynan shu raqamlar erishib
-    bo'lmas darajada baland ekani hech qanday testda ko'rinmasdi
-    (`test_chegara_erishiladi.py` ga qarang).
-    """
-    chegaralar = config.scoring.thresholds
-
-    assert engine.score_threshold(90) == chegaralar.threshold_high_health
-    assert engine.score_threshold(60) == chegaralar.threshold_mid_health
-    # Past band endi TO'XTATMAYDI — rejimni almashtiradi va talabni
-    # qattiqlashtiradi. Ilgari bu yerda `None` kutilardi va aynan shu
-    # tizimni doim KECH kirishga majburlagan edi.
-    assert engine.score_threshold(20) == chegaralar.threshold_low_health
-    assert engine.score_threshold(None) is None, "0.3-band: hisoblanmasa — yo'q"
-
-    assert engine.score_threshold(60) >= engine.score_threshold(90), (
-        "bozor zaiflashsa talab oshishi kerak"
-    )
-    assert engine.score_threshold(20) >= engine.score_threshold(60), (
-        "pasayishdagi kirish eng ko'p dalil talab qiladi"
-    )
-
-
-# --------------------------------------------------------------------------- #
-#  4.7 — Kill switch
-# --------------------------------------------------------------------------- #
-
-
 def test_kill_switch_hamma_narsani_toxtatadi(engine: RiskEngine) -> None:
     kontekst = sog_kontekst(kill_switch_active=True, kill_switch_reason="1 daqiqada -7%")
     qaror = engine.evaluate(nomzod(), kontekst)
@@ -244,27 +198,6 @@ def test_ochiq_signallar_chegarasi(engine: RiskEngine, config: AppConfig) -> Non
     assert BlockReason.MAX_OPEN_SIGNALS in qaror.reasons
 
 
-def test_ortacha_salomatlikda_chegara_qattiqroq(engine: RiskEngine, config: AppConfig) -> None:
-    """Indeks pastroq bo'lsa, bir vaqtda kamroq signal ochiladi."""
-    mid_limit = config.risk_engine.max_open_signals_by_health.mid
-    ochiq = [
-        Signal(
-            symbol=f"C{i}",
-            levels=signal_levels(100, 99, 103, 105),
-            source=SignalSource.CLASSIC_TA,
-            status=SignalStatus.ACTIVE,
-        )
-        for i in range(mid_limit)
-    ]
-    kontekst = sog_kontekst(market_health=salomatlik(55), open_signals=ochiq)
-    assert BlockReason.MAX_OPEN_SIGNALS in engine.evaluate(nomzod("ARB"), kontekst).reasons
-
-
-# --------------------------------------------------------------------------- #
-#  4.1 — Zarar chegarasi
-# --------------------------------------------------------------------------- #
-
-
 def test_kunlik_zarar_chegarasi(engine: RiskEngine, config: AppConfig) -> None:
     limit = config.risk_engine.daily_loss_limit_pct
     qaror = engine.evaluate(nomzod(), sog_kontekst(daily_loss_pct=limit))
@@ -292,65 +225,6 @@ def test_sovutish_davri_hurmat_qilinadi(engine: RiskEngine) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_btc_keskin_tushganda_signal_yoq(engine: RiskEngine) -> None:
-    qaror = engine.evaluate(nomzod(), sog_kontekst(btc_change_24h_pct=-8.0))
-    assert BlockReason.BTC_MARKET_FILTER in qaror.reasons
-
-
-def test_past_volatillikda_signal_yoq(engine: RiskEngine) -> None:
-    qaror = engine.evaluate(nomzod(), sog_kontekst(atr_pct=0.2))
-    assert BlockReason.LOW_VOLATILITY in qaror.reasons
-
-
-def test_eskirgan_narx_malumoti_signalni_toxtatadi(engine: RiskEngine, config) -> None:  # noqa: ANN001
-    """Chegara KONFIGURATSIYADAN hisoblanadi, testga yozib qo'yilmaydi.
-
-    Ilgari bu yerda `600` turardi — 90 soniyalik tik chegarasiga
-    mos edi. Chegara sham timeframeiga bog'lanishi bilan (1 soatlik
-    shamda 2 soat) bu qiymat "eskirgan" bo'lishdan to'xtadi va test
-    jimgina ma'nosini yo'qotardi.
-    """
-    from core.risk_engine.engine import _max_candle_age_seconds
-
-    chegara = _max_candle_age_seconds(config)
-    qaror = engine.evaluate(nomzod(), sog_kontekst(price_age_seconds=chegara + 1))
-    assert BlockReason.STALE_MARKET_DATA in qaror.reasons
-
-    yangi_qaror = engine.evaluate(nomzod(), sog_kontekst(price_age_seconds=chegara - 1))
-    assert BlockReason.STALE_MARKET_DATA not in yangi_qaror.reasons
-
-
-def test_sham_yoshi_chegarasi_timeframega_bogliq(config) -> None:  # noqa: ANN001
-    """1 soatlik sham tabiatan 1 soatgacha "eski" bo'ladi.
-
-    Unga 90 soniyalik tik chegarasini qo'llash — har doim "eskirgan"
-    degani, ya'ni birorta signal chiqmasligi.
-    """
-    import dataclasses
-
-    from core.risk_engine.engine import _max_candle_age_seconds
-    from core.utils.time_utils import timeframe_minutes
-
-    for tf in ("15m", "1h", "4h"):
-        yangi = dataclasses.replace(
-            config, analysis=dataclasses.replace(config.analysis, entry_timeframe=tf)
-        )
-        chegara = _max_candle_age_seconds(yangi)
-        assert chegara > timeframe_minutes(tf) * 60, (
-            f"{tf} shamiga chegara sham uzunligidan katta bo'lishi kerak"
-        )
-
-
-@pytest.mark.parametrize(
-    "yoq",
-    ["btc_change_24h_pct", "atr_pct", "price_age_seconds"],
-)
-def test_malumot_yetishmasa_signal_berilmaydi(engine: RiskEngine, yoq: str) -> None:
-    """0.3-band: noaniqlik — signal bermaslik uchun sabab."""
-    qaror = engine.evaluate(nomzod(), sog_kontekst(**{yoq: None}))
-    assert not qaror.allowed, f"{yoq} yo'q bo'lsa ham signal o'tib ketdi"
-
-
 def test_adx_yoq_bolsa_risk_engine_toxtatmaydi(engine: RiskEngine) -> None:
     """ADX ro'yxatdan CHIQARILDI — `MarketRegimeRule` olib tashlandi.
 
@@ -369,124 +243,6 @@ def test_adx_yoq_bolsa_risk_engine_toxtatmaydi(engine: RiskEngine) -> None:
 
 # --------------------------------------------------------------------------- #
 #  3.3 — Universal risk qoidalari
-# --------------------------------------------------------------------------- #
-
-
-def test_stop_juda_uzoq_bolsa_rad_etiladi(config) -> None:  # noqa: ANN001
-    """Shiftdan uzoq Stop — pozitsiya ma'nosiz kichrayadi.
-
-    Chegara KONFIGURATSIYADAN olinadi: u ATR ko'paytmasiga bog'liq
-    ravishda o'zgaradi (5% -> 8%), testga raqam yozib qo'yilsa jimgina
-    eskirardi.
-
-    Oraliq standart holatda MAJBURIY EMAS (loyiha egasining qarori),
-    shuning uchun test uni ataylab yoqadi: imkoniyat yo'qolmagani
-    tekshiriladi.
-    """
-    band_engine = RiskEngine(_bandli(config))
-    shift = config.trade_rules.max_stop_distance_pct
-    stop_pct = shift + 1.0
-    qaror = band_engine.evaluate(
-        nomzod(stop_pct=stop_pct, tp2_pct=stop_pct * 3.0), sog_kontekst()
-    )
-
-    assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
-    assert any("juda uzoq" in izoh for izoh in qaror.details), qaror.details
-
-
-def test_stop_juda_yaqin_bolsa_rad_etiladi(config: AppConfig) -> None:
-    """1% dan yaqin Stop — bozor shovqini uni bekorga yeb qo'yadi.
-
-    Oraliq yoqilgan holatda. Standart holatda shovqindan himoya
-    `stop_atr_mult` ga qoladi (ATR birligi foizdan to'g'riroq
-    o'lchov), lekin bu imkoniyat saqlanadi.
-    """
-    qaror = RiskEngine(_bandli(config)).evaluate(nomzod(stop_pct=0.4), sog_kontekst())
-
-    assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
-    assert any("juda yaqin" in izoh for izoh in qaror.details), qaror.details
-
-
-def test_stop_oraliq_ichida_bolsa_otadi(engine: RiskEngine) -> None:
-    """3.3-band tuzatilgan: Stop 1%..5% oralig'ida ERKIN joylashadi.
-
-    Avval qat'iy 1% chegara bor edi — aynan 1% masofada mos S/R zonasi
-    kam uchraydi, shu sababli signal deyarli chiqmasdi.
-    """
-    for stop_pct in (1.0, 2.0, 3.5, 5.0):
-        qaror = engine.evaluate(
-            nomzod(stop_pct=stop_pct, tp2_pct=stop_pct * 3.2), sog_kontekst()
-        )
-        assert qaror.allowed, f"Stop {stop_pct}%: {qaror.details}"
-
-
-def test_nisbat_asosiy_shart(engine: RiskEngine, config) -> None:  # noqa: ANN001
-    """Stop masofasidan QAT'I NAZAR, nisbat chegaradan past bo'lsa signal yo'q.
-
-    Bu — chegara masofa emas, NISBAT ekanining sinovi.
-
-    Kutilgan qiymat KONFIGURATSIYADAN olinadi: nisbat endi STRATEGIYA
-    darajasida sozlanadi (mean reversion 1:1.5, skalping 1:1), shuning
-    uchun testga raqam yozib qo'yish uni jimgina eskirtirardi.
-    """
-    kerak = config.strategies.classic_ta.min_risk_reward
-    # Stop kattaroq olinadi, aks holda chegaradan past TP2 TP1 dan ham
-    # past tushib, darajalar tartibi buzilardi (Stop < Entry < TP1 < TP2).
-    stop_pct = 4.0
-    past_tp2 = stop_pct * kerak * 0.7  # chegaradan aniq past
-
-    qaror = engine.evaluate(nomzod(stop_pct=stop_pct, tp2_pct=past_tp2), sog_kontekst())
-
-    assert BlockReason.RISK_RULES_VIOLATED in qaror.reasons
-    assert any("Nisbat yetarli emas" in izoh for izoh in qaror.details), qaror.details
-
-
-def test_nisbat_strategiya_darajasida(config) -> None:  # noqa: ANN001
-    """Har bir strategiya o'z tabiiy nisbatiga ega bo'lishi kerak.
-
-    Mean reversion diapazon o'rtasiga qaytganda yopiladi (1:1..1:1.5),
-    trend/breakout esa uzoqroq yuradi. Global qat'iy 1:3 mean reversion
-    uchun deyarli hech qachon bajarilmaydigan shart edi.
-    """
-    assert config.strategies.classic_ta.min_risk_reward < config.trade_rules.min_risk_reward, (
-        "mean reversion global qiymatdan pastroq nisbatga ega bo'lishi kerak"
-    )
-
-
-def test_past_risk_reward_rad_etiladi(engine: RiskEngine, config) -> None:  # noqa: ANN001
-    """TP2 strategiyaning eng kam nisbatini ta'minlashi kerak."""
-    kerak = config.strategies.classic_ta.min_risk_reward
-    entry = 100.0
-    # Stop 1%, TP2 kerakli nisbatdan yuqori
-    tp2 = entry * (1 + 1.0 * (kerak + 1.0) / 100)
-    levels = signal_levels(entry=entry, stop=99.0, tp1=103.0, tp2=max(tp2, 103.5))
-    kandidat = SignalCandidate(
-        symbol="ETH",
-        levels=levels,
-        source=SignalSource.CLASSIC_TA,
-        breakdown=ScoreBreakdown("ETH", []),
-        halal_verdict=HalalVerdict("ETH", HalalStatus.HALAL, "halol"),
-    )
-    assert engine.evaluate(kandidat, sog_kontekst()).allowed
-
-    # Nisbat chegaradan past: Stop keng, TP2 esa yaqin.
-    tor_stop_pct = 4.0
-    tor = signal_levels(
-        entry=entry, stop=entry * (1 - tor_stop_pct / 100), tp1=103.0, tp2=103.5
-    )
-    assert tor.risk_reward < kerak, "test sozlamasi noto'g'ri"
-    kandidat_tor = SignalCandidate(
-        symbol="ETH",
-        levels=tor,
-        source=SignalSource.CLASSIC_TA,
-        breakdown=ScoreBreakdown("ETH", []),
-        halal_verdict=HalalVerdict("ETH", HalalStatus.HALAL, "halol"),
-    )
-    assert BlockReason.RISK_RULES_VIOLATED in engine.evaluate(kandidat_tor, sog_kontekst()).reasons
-
-
-# --------------------------------------------------------------------------- #
-#  3.4 — Halollik oxirgi himoya chizig'i
 # --------------------------------------------------------------------------- #
 
 
@@ -511,19 +267,19 @@ def test_halol_bolmagan_coin_oxirgi_qatlamda_ham_toxtatiladi(
 
 
 def test_barcha_sabablar_yigiladi(engine: RiskEngine) -> None:
-    """Admin "nega berilmadi?" savoliga TO'LIQ javob ko'rishi kerak."""
-    kontekst = sog_kontekst(
-        now=TOSHKENT_JUMA_NAMOZ,
-        market_health=salomatlik(20),
-        btc_change_24h_pct=-9.0,
+    """Bitta sababda to'xtamaydi — admin TO'LIQ ro'yxatni ko'rishi kerak."""
+    qaror = engine.evaluate(
+        nomzod(),
+        sog_kontekst(
+            daily_loss_pct=99.0,
+            consecutive_stops=99,
+            price_age_seconds=999_999.0,
+        ),
     )
-    qaror = engine.evaluate(nomzod(), kontekst)
     assert not qaror.allowed
-    assert {
-        BlockReason.FRIDAY_PRAYER,
-        BlockReason.MARKET_HEALTH_LOW,
-        BlockReason.BTC_MARKET_FILTER,
-    } <= set(qaror.reasons)
+    assert BlockReason.DAILY_LOSS_LIMIT in qaror.reasons
+    assert BlockReason.CONSECUTIVE_LOSSES in qaror.reasons
+    assert BlockReason.STALE_MARKET_DATA in qaror.reasons
 
 
 def test_qoida_xato_bersa_tizim_toxtamaydi_lekin_signal_berilmaydi(config: AppConfig) -> None:
@@ -595,24 +351,11 @@ def test_sinov_davrida_ketma_ket_stop_ham_ushlab_turmaydi(
 def test_sinov_davrida_BOZOR_qoidalari_ishlayveradi(engine: RiskEngine) -> None:
     """Eng muhim chegara: sinov "hamma narsani o'chirish" EMAS.
 
-    Bozor yomon bo'lsa signal baribir berilmaydi — aks holda biz
-    strategiyani emas, tasodifni o'lchagan bo'lardik.
+    2026-09-03 — bozor holatiga qaraydigan qoidalar (salomatlik, BTC
+    filtri, volatillik) eski tahlil moduli bilan birga ketdi. Bu yerda
+    endi ma'lumot YANGILIGI tekshiriladi: sham eskirgan bo'lsa signal
+    baribir berilmaydi, sinov davri bo'lsa ham.
     """
-    past = engine.evaluate(
-        nomzod(), sog_kontekst(now=SINOV_VAQTI, market_health=salomatlik(20))
-    )
-    assert BlockReason.MARKET_HEALTH_LOW in past.reasons
-
-    btc = engine.evaluate(
-        nomzod(), sog_kontekst(now=SINOV_VAQTI, btc_change_24h_pct=-9.0)
-    )
-    assert not btc.allowed
-
-    past_volatillik = engine.evaluate(
-        nomzod(), sog_kontekst(now=SINOV_VAQTI, atr_pct=0.05)
-    )
-    assert BlockReason.LOW_VOLATILITY in past_volatillik.reasons
-
     eskirgan = engine.evaluate(
         nomzod(), sog_kontekst(now=SINOV_VAQTI, price_age_seconds=999_999.0)
     )

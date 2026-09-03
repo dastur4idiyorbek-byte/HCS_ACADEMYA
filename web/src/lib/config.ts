@@ -63,29 +63,20 @@ export function obunaKunlari(): { daily: number; monthly: number } {
   };
 }
 
-/** Bozor Salomatligi bandlari — shkaladagi zonalarni belgilaydi.
- *
- * DIQQAT: bu qiymatlar `scoring.thresholds` ostida, `market_health`
- * ostida EMAS. Yo'l noto'g'ri bo'lsa `yol()` jimgina zaxira qiymatni
- * qaytaradi — ya'ni xato ko'rinmaydi. Aynan shuning uchun
- * `tests/config.test.ts` yo'llarni tekshiradi. */
-export function salomatlikBandlari(): { high: number; mid: number } {
-  return {
-    high: yol(["scoring", "thresholds", "health_high_min"], 65),
-    mid: yol(["scoring", "thresholds", "health_mid_min"], 40),
-  };
-}
-
 /** Savdo qoidalari — qo'lda kiritilgan signalni TEKSHIRISH uchun.
  *
- * Bu qiymatlar botdagi `_rule_warnings` bilan bir xil manbadan
- * (`config/default.yaml`) o'qiladi. Nusxa ko'chirilsa, sayt bir chegara,
- * bot esa boshqasi bo'yicha ogohlantirardi va admin qaysi biriga
- * ishonishni bilmasdi.
+ * 2026-09-03 — ilgari bu qiymatlar `config/default.yaml` dagi
+ * `trade_rules` blokidan o'qilardi. Eski tahlil moduli olib
+ * tashlanganda o'sha blok ham ketdi: uning qolgan qismi (nisbat poli,
+ * TP2 tuzilmadan, oraliqlar) faqat avtomatik siklga tegishli edi.
  *
- * DIQQAT: bular TAQIQ emas, OGOHLANTIRISH. Botda ham shunday — admin
- * bilib turib qoidadan chetga chiqadigan signal berishi mumkin
- * (3.3-band qo'lda signalda majburiy emas).
+ * Endi to'rtta raqam SHU YERDA, ochiq turadi. YAML dan o'qishni
+ * saqlash yomonroq bo'lardi: `yol()` bloki yo'q kalitni jimgina
+ * zaxira qiymatga almashtiradi, ya'ni sayt "YAML dan o'qidim" deb
+ * turib, aslida shu yerdagi raqamni ko'rsatardi.
+ *
+ * DIQQAT: bular TAQIQ emas, OGOHLANTIRISH. Admin bilib turib
+ * qoidadan chetga chiqadigan signal berishi mumkin.
  */
 export function savdoQoidalari(): {
   maxStopPct: number;
@@ -93,12 +84,7 @@ export function savdoQoidalari(): {
   maxTpPct: number;
   minRiskReward: number;
 } {
-  return {
-    maxStopPct: yol(["trade_rules", "max_stop_distance_pct"], 8),
-    minTpPct: yol(["trade_rules", "min_tp_distance_pct"], 3),
-    maxTpPct: yol(["trade_rules", "max_tp_distance_pct"], 20),
-    minRiskReward: yol(["trade_rules", "min_risk_reward"], 3),
-  };
+  return { maxStopPct: 8, minTpPct: 3, maxTpPct: 20, minRiskReward: 3 };
 }
 
 /** Spot juftlik kotirovkasi — `DOT` dan `DOTUSDT` yasash uchun.
@@ -150,46 +136,6 @@ export function tpUlushlari(count: number): number[] {
  */
 export function engKichikPozitsiya(): number {
   return yol(["portfolio", "min_position_usd"], 1);
-}
-
-/** CryptoSpot3% (SMC/LIT/ICT) sozlamalari — admin panelida KO'RSATISH uchun.
- *
- * FAQAT O'QISH. Bu loyihada barcha strategiya parametrlari
- * `config/default.yaml` da yashaydi va joylashtirishda o'zgaradi;
- * ishga tushgan tizimda ularni tahrirlaydigan mexanizm yo'q. Panelda
- * "tahrirlash" tugmasini ko'rsatib, aslida hech narsa saqlamaslik —
- * eng yomon variant: admin o'zgartirdim deb o'ylaydi, tizim esa eski
- * qiymat bilan ishlaydi.
- *
- * Shuning uchun panel amaldagi qiymatni ko'rsatadi va ular qayerdan
- * kelishini ochiq aytadi.
- */
-export function smcSozlamalari(): {
-  strukturaMajburiy: boolean;
-  yalashYoqilgan: boolean;
-  yalashChuqurligi: number;
-  yalashOynasi: number;
-  qaytishShamlari: number;
-  sessiyaYoqilgan: boolean;
-  sessiyaBoshi: number;
-  sessiyaOxiri: number;
-  kotarishStruktura: number;
-  kotarishZona: number;
-  bonusSessiya: number;
-} {
-  return {
-    strukturaMajburiy: yol(["analysis", "require_structure_alignment"], false),
-    yalashYoqilgan: yol(["analysis", "liquidity_sweep", "enabled"], true),
-    yalashChuqurligi: yol(["analysis", "liquidity_sweep", "min_sweep_pct"], 0.3),
-    yalashOynasi: yol(["analysis", "liquidity_sweep", "lookback_bars"], 30),
-    qaytishShamlari: yol(["analysis", "liquidity_sweep", "max_reclaim_bars"], 3),
-    sessiyaYoqilgan: yol(["analysis", "session_overlap", "enabled"], true),
-    sessiyaBoshi: yol(["analysis", "session_overlap", "start_hour_utc"], 13),
-    sessiyaOxiri: yol(["analysis", "session_overlap", "end_hour_utc"], 16),
-    kotarishStruktura: yol(["scoring", "uplift", "trend"], 0.5),
-    kotarishZona: yol(["scoring", "uplift", "support_resistance"], 0.5),
-    bonusSessiya: yol(["scoring", "bonuses", "session_overlap"], 5),
-  };
 }
 
 /** Sinov davri — Bozor Salomatligidan chiqarilgan omillar (59-bo'lim).
@@ -251,5 +197,7 @@ export function sinovHolati(paytida: Date): {
  * ko'chirib yozilsa, admin YAML'ni o'zgartirganda sayt eski chegarada
  * qolib ketardi. */
 export function kechKirishChegarasi(): number {
-  return sozlama(["trade_rules", "late_entry_warn_pct"], 1.2);
+  // Ilgari `trade_rules.late_entry_warn_pct` dan o'qilardi. O'sha blok
+  // eski tahlil moduli bilan ketdi — `savdoQoidalari()` izohiga qarang.
+  return 1.2;
 }

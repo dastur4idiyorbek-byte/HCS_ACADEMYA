@@ -526,12 +526,12 @@ class SignalCandidate:
     breakdown: ScoreBreakdown
     halal_verdict: HalalVerdict
     entry_plan: EntryPlan | None = None
-    #: CryptoSpot3% MUSTAQIL kirish shartnomasi bajarildimi (B yo'li).
+    #: Tahlil modulining o'z xulosasi. Tipi ATAYLAB `object`: domen
+    #: qatlami tahlil modullariga bog'liq bo'lmasligi kerak (0.1-band:
+    #: "miya" va "tana" ajratilgan, domen esa ikkalasidan ham quyida).
     #:
-    #: `core.analysis.scoring.setup_route.SetupVerdict` — bu yerda tip
-    #: yozilmaydi, chunki `core/domain/` tahlil modullariga bog'liq
-    #: bo'lmasligi kerak (0.1-band: "miya" va "tana" ajratilgan, domen
-    #: esa ikkalasidan ham quyida turadi).
+    #: 2026-09-03 — eski modul olib tashlandi, maydon bo'sh turibdi.
+    #: Yangi modul o'z xulosa tipini shu yerga qo'yadi.
     setup: object | None = None
 
     @property

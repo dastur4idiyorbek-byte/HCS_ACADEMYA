@@ -9,7 +9,6 @@ Ishga tushirish:
 from __future__ import annotations
 
 import asyncio
-import contextlib
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -24,15 +23,12 @@ from bot.handlers import signals as signal_handlers
 from bot.handlers import user as user_handlers
 from bot.hosting import apply_platform_defaults, warn_if_data_is_temporary
 from bot.middlewares import UserContextMiddleware
-from bot.services import PipelineRunner, Scheduler, SignalWatcher
+from bot.services import Scheduler
 from bot.settings import BotSettings, SettingsError, load_env_file, load_settings
 from core.config import AppConfig, load_config
 from core.market_data import (
     BinanceCandleProvider,
-    BinancePriceStream,
-    CoinMarketCapDominance,
 )
-from core.market_data.ranking import build_ranking_provider
 from core.risk_engine import RiskEngine
 from core.storage import Database
 from core.utils.logging_setup import get_logger, setup_logging
@@ -136,33 +132,20 @@ async def run() -> None:
     )
     dispatcher = build_dispatcher(database, settings, config)
 
-    # 2-bo'lim: narx oqimi kuzatuvchisi fon vazifasi sifatida.
-    stream = BinancePriceStream(config.market_data, config.halal_screening.quote_asset)
-    watcher = SignalWatcher(bot, database, config, stream, settings.admin_ids)
-    dispatcher["watcher"] = watcher
-    watcher_task = asyncio.create_task(watcher.run(), name="signal-watcher")
-
-    # 15-bosqich: avtomatik signal sikli va takrorlanuvchi vazifalar.
+    # 2026-09-03 — eski tahlil moduli olib tashlandi. U bilan birga
+    # narx oqimi kuzatuvchisi (`watcher.py`), avtomatik signal sikli
+    # (`runner.py`), BTC dominance va reyting provayderlari ham ketdi:
+    # ularning yagona iste'molchisi o'sha sikl edi. Signal hozircha
+    # FAQAT qo'lda kiritiladi.
+    #
+    # Qo'lda signal yuborishda ham BOZORDAGI narx kerak — aks holda
+    # buyurtma turi har doim Market chiqib, holat bilan zid bo'lardi.
     candle_provider = BinanceCandleProvider(
         config.market_data, config.halal_screening.quote_asset
     )
-    ranking_provider = build_ranking_provider(config.market_data)
-    # 3.7-band, 1-omil: BTC dominance. Kalit yo'q bo'lsa omil nol ball
-    # oladi va buni admin `/panel` -> 💓 da ko'radi.
-    dominance = CoinMarketCapDominance(config.market_data)
-    if not dominance.is_configured:
-        logger.warning(
-            "CMC_API_KEY yo'q — BTC Dominance omili nol ball oladi "
-            "(indeksning 20 bali ishlatilmaydi)"
-        )
-    # Qo'lda signal yuborishda ham BOZORDAGI narx kerak — aks holda
-    # buyurtma turi har doim Market chiqib, holat bilan zid bo'lardi.
     dispatcher["candles"] = candle_provider
 
-    runner = PipelineRunner(
-        bot, database, config, candle_provider, ranking_provider, watcher, dominance
-    )
-    scheduler = Scheduler(bot, database, config, runner, settings.admin_ids)
+    scheduler = Scheduler(bot, database, config, settings.admin_ids)
     scheduler.start()
 
     await register_commands(bot, settings.admin_ids)
@@ -172,13 +155,7 @@ async def run() -> None:
         await dispatcher.start_polling(bot, allowed_updates=dispatcher.resolve_used_update_types())
     finally:
         await scheduler.stop()
-        watcher_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await watcher_task
-        await stream.close()
         await candle_provider.close()
-        await ranking_provider.close()
-        await dominance.close()
         await bot.session.close()
         await database.dispose()
         logger.info("Bot to'xtatildi")

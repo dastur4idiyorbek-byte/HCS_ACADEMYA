@@ -1,28 +1,38 @@
-"""5.1.0-band: kirish buyurtmasi turini avtomatik tanlash.
+"""Kirish buyurtmasi turini tanlash — QO'LDA kiritilgan signal uchun.
 
-| Holat                                        | Buyurtma turi |
-|----------------------------------------------|---------------|
-| Narx hali kutilgan Entry zonasiga yetmagan   | LIMIT         |
-| Narx allaqachon Entry zonasida               | MARKET        |
+| Holat                                      | Buyurtma turi |
+|--------------------------------------------|---------------|
+| Narx hali kutilgan Entry zonasiga yetmagan | LIMIT         |
+| Narx allaqachon Entry zonasida             | MARKET        |
 
 Chiqish har doim OCO (TP + Stop birgalikda) — u yerda tanlov yo'q.
 
-Uchinchi holat (spetsifikatsiyada ko'rsatilmagan, lekin amalda uchraydi):
-narx Entry'dan PASTGA tushib ketgan bo'lsa, bu — support zonasi ushlab
-tura olmadi degani. Bunday holatda signal berilmaydi (0.3-band fail-safe):
-zona buzilgan, kirish asosi yo'qolgan.
+2026-09-03 — bu funksiya `core/analysis/entry_order.py` dan KO'CHIRILDI.
+Sabab: eski tahlil moduli o'chirildi, lekin admin qo'lda signal kiritishi
+(5-bosqich) qoladi va unga kirish rejasi kerak. Funksiyaning o'zi ball
+tizimiga hech qachon bog'liq bo'lmagan — u faqat ikkita narxni
+solishtiradi. Chegaralar endi konfiguratsiyadan emas, ARGUMENTDAN keladi:
+ular uchun alohida config bloki saqlab turishning ma'nosi yo'q.
+
+O'LCHOV ESLATMASI: avtomatik siklda `entry` HAR DOIM joriy narxga teng
+bo'lardi, ya'ni LIMIT tarmog'i o'lik edi (docs/GIPOTEZA_DAFTARI.md,
+audit 3-bosqichi). Qo'lda kiritishda esa admin Entry'ni o'zi yozadi —
+shuning uchun bu yerda ikkala tarmoq ham tirik.
 """
 
 from __future__ import annotations
 
-from core.config.schema import EntryOrderConfig
 from core.domain.enums import OrderType
 from core.domain.models import EntryPlan, SignalLevels
 
-#: Suzuvchi nuqta xatosiga chidamlilik. Ansiz 100.15 narxi 0.15% chegarasiga
-#: tushmay qolardi (hisob 0.15000000000000568 beradi) va foydalanuvchi
-#: chegarani aynan belgilaganida kutilmagan natija olardi.
+#: Suzuvchi nuqta xatosiga chidamlilik. Ansiz 100.15 narxi 0.15%
+#: chegarasiga tushmay qolardi (hisob 0.15000000000000568 beradi).
 _EPSILON = 1e-9
+
+#: Joriy narx Entry'dan shu foizdan yaqin bo'lsa — MARKET.
+MARKET_CHEGARA_PCT = 0.15
+#: Narx Entry'dan shu foizdan PASTGA tushsa — zona buzilgan (fail-safe).
+ZONA_BUZILDI_PCT = 0.30
 
 MARKET_REASON = (
     "Narx allaqachon kirish zonasida ({distance:+.2f}%) — kutish shart emas, "
@@ -41,14 +51,10 @@ ZONE_BROKEN_REASON = (
 def decide_entry_plan(
     current_price: float,
     levels: SignalLevels,
-    config: EntryOrderConfig,
+    market_chegara_pct: float = MARKET_CHEGARA_PCT,
+    zona_buzildi_pct: float = ZONA_BUZILDI_PCT,
 ) -> EntryPlan:
     """Joriy narx va Entry orasidagi masofaga qarab buyurtma turini tanlaydi.
-
-    Args:
-        current_price: bozordagi hozirgi narx.
-        levels: signal darajalari (Stop < Entry < TP1 < TP2).
-        config: `analysis.entry_order` sozlamalari.
 
     Returns:
         `EntryPlan`. `is_valid=False` bo'lsa signal berilmasligi kerak.
@@ -61,7 +67,7 @@ def decide_entry_plan(
     # manfiy — narx Entry'dan pastda (zonani kesib o'tgan).
     distance_pct = (current_price - entry) / entry * 100
 
-    if abs(distance_pct) <= config.market_threshold_pct + _EPSILON:
+    if abs(distance_pct) <= market_chegara_pct + _EPSILON:
         return EntryPlan(
             order_type=OrderType.MARKET,
             entry_price=current_price,
@@ -70,7 +76,7 @@ def decide_entry_plan(
             reason=MARKET_REASON.format(distance=distance_pct),
         )
 
-    if distance_pct < -(config.zone_broken_threshold_pct + _EPSILON):
+    if distance_pct < -(zona_buzildi_pct + _EPSILON):
         return EntryPlan(
             order_type=OrderType.LIMIT,
             entry_price=entry,

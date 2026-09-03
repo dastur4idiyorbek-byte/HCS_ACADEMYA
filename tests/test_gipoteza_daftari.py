@@ -49,6 +49,7 @@ DAFTARSIZ = {
     "max_scan_depth", "refresh_interval_hours", "candles_lookback",
     "min_candles", "max_concurrent_candle_requests",
     "candle_page_pause_seconds", "stale_price_seconds",
+    "max_candle_age_seconds",
     "stale_candle_multiplier", "reconnect_backoff_seconds",
     "retention_hours", "rotate_mb", "backups", "target_count",
     # timeframe tanlovi — qaror
@@ -117,12 +118,16 @@ def test_rad_etilgan_gipotezalar_yoqilmagan() -> None:
 
     config = load_config()
 
-    assert not config.strategies.correction_entry.enabled
-    assert not config.trade_rules.tp2_from_structure
-    assert not config.analysis.require_htf_alignment
-    assert not config.analysis.indicators.require_confirmation
-    assert config.analysis.indicators.adx_trend_threshold == 20.0
-    assert config.analysis.support_resistance.entry_max_range_pct == 55.0
+    # 2026-09-03 — eski tahlil moduli o'chirildi va u bilan birga
+    # `strategies`, `trade_rules`, `analysis` bloklari ham ketdi.
+    # Ular tekshiradigan rad etilgan gipotezalar endi KODDA emas,
+    # faqat daftarda yashaydi: qayta yoqib bo'lmaydi, chunki qayta
+    # yoqadigan sozlama yo'q.
+    for eski in ("strategies", "trade_rules", "analysis", "market_health"):
+        assert not hasattr(config, eski), (
+            f"{eski} bloki qaytib kelibdi — rad etilgan gipotezalar "
+            "bilan birga tekshiruv ham tiklanishi kerak"
+        )
 
 
 # --------------------------------------------------------------------------- #

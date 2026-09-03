@@ -13,7 +13,6 @@ from __future__ import annotations
 from datetime import datetime
 
 from bot.i18n import DEFAULT_LANGUAGE, t
-from core.analysis.support_resistance import RangePosition
 from core.domain.enums import SignalStatus
 from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
 from core.utils.time_utils import utc_now
@@ -137,7 +136,6 @@ def render_signal_card(  # noqa: PLR0913
     suggestion: PositionSuggestion | None = None,
     quote_asset: str = "USDT",
     language: str = DEFAULT_LANGUAGE,
-    range_position: RangePosition | None = None,
     tp1_close_pct: float = 50.0,
     status: SignalStatus | None = None,
     created_at: datetime | None = None,
@@ -163,7 +161,6 @@ def render_signal_card(  # noqa: PLR0913
     Args:
         suggestion: pozitsiya hajmi tavsiyasi. `None` bo'lsa (foydalanuvchi
             balansini kiritmagan) "Miqdor" o'rniga taklif matni ko'rsatiladi.
-        range_position: Discount/Premium joylashuvi (3.1-band).
         status: signal holati. Berilsa, harakat qatori AYNAN SHUNDAN
             olinadi. Nima uchun muhim: avval harakat qatori ("Hozir
             oling") buyurtma turidan, holat esa ("Kutilmoqda")
@@ -215,8 +212,6 @@ def render_signal_card(  # noqa: PLR0913
     )
 
     kartochka += "\n\n" + t("signal.izoh_stop", language)
-    if range_position is not None:
-        kartochka += f"\n📍 {range_position.describe()}"
 
     vaqt = created_at or utc_now()
     kartochka += "\n" + t(

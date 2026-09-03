@@ -127,42 +127,6 @@ def validate(config: AppConfig) -> None:
     """Mantiqiy izchillikni tekshiradi — noto'g'ri sozlama bilan ishga tushmaslik uchun."""
     problems: list[str] = []
 
-    if abs(config.scoring.weights.total() - 100) > 1e-9:
-        problems.append(
-            "scoring.weights yig'indisi 100 bo'lishi kerak, hozir: "
-            f"{config.scoring.weights.total()}"
-        )
-    if abs(config.market_health.weights.total() - 100) > 1e-9:
-        problems.append(
-            "market_health.weights yig'indisi 100 bo'lishi kerak, hozir: "
-            f"{config.market_health.weights.total()}"
-        )
-
-    skalp = config.strategies.opening_range_scalp
-    if abs(skalp.weights.total() - 100) > 1e-9:
-        problems.append(
-            "strategies.opening_range_scalp.weights yig'indisi 100 bo'lishi kerak, "
-            f"hozir: {skalp.weights.total()}"
-        )
-    if skalp.min_move_pct > skalp.max_move_pct:
-        problems.append("opening_range_scalp: min_move_pct > max_move_pct")
-    if skalp.min_range_pct > skalp.max_range_pct:
-        problems.append("opening_range_scalp: min_range_pct > max_range_pct")
-    if not 0 < skalp.daily_risk_share_pct <= 100:
-        problems.append(
-            "opening_range_scalp.daily_risk_share_pct (0, 100] oralig'ida bo'lishi kerak"
-        )
-
-    thresholds = config.scoring.thresholds
-    if thresholds.health_mid_min >= thresholds.health_high_min:
-        problems.append("scoring.thresholds: health_mid_min < health_high_min bo'lishi kerak")
-
-    rules = config.trade_rules
-    if rules.min_tp_distance_pct > rules.max_tp_distance_pct:
-        problems.append("trade_rules: min_tp_distance_pct > max_tp_distance_pct")
-    if rules.max_stop_distance_pct <= 0:
-        problems.append("trade_rules: max_stop_distance_pct musbat bo'lishi kerak")
-
     tiers = config.position_sizing.risk_tiers
     if not tiers:
         problems.append("position_sizing.risk_tiers bo'sh bo'lmasligi kerak")
@@ -214,15 +178,6 @@ def validate(config: AppConfig) -> None:
         problems.append(
             f"market_data.exchange noma'lum: {config.market_data.exchange!r} "
             f"(ruxsat: {', '.join(sorted(ruxsat_etilgan_birjalar))})"
-        )
-
-    analysis = config.analysis
-    if analysis.entry_timeframe not in analysis.timeframes:
-        problems.append("analysis.entry_timeframe `timeframes` ro'yxatida bo'lishi kerak")
-    missing_htf = set(analysis.htf_confirmation) - set(analysis.timeframes)
-    if missing_htf:
-        problems.append(
-            f"analysis.htf_confirmation `timeframes` da yo'q: {', '.join(sorted(missing_htf))}"
         )
 
     if problems:

@@ -29,13 +29,12 @@ from bot.keyboards import (
 from bot.middlewares import AdminOnlyMiddleware
 from bot.services.broadcast import broadcast_signal
 from bot.states import SignalFlow
-from core.analysis import decide_entry_plan
-from core.analysis.scoring import breakdown_from_json, breakdown_to_text
 from core.config.schema import AppConfig
 from core.domain.enums import SignalSource, SignalStatus, SubscriptionTier
 from core.domain.models import PositionSuggestion, SignalLevels, signal_levels
 from core.market_data import CandleProvider
 from core.position_sizing import PositionSizer
+from core.services import decide_entry_plan
 from core.storage import Database
 from core.storage.repositories import (
     SignalRepository,
@@ -46,6 +45,11 @@ from core.utils.logging_setup import get_logger
 from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
+
+#: Joriy narxni olish uchun sham timeframei. Ilgari `analysis.entry_timeframe`
+#: dan kelardi; tahlil moduli o'chirilgach ochiq raqamga aylandi. Bu yerda u
+#: faqat "oxirgi narx nima" degan savolga xizmat qiladi.
+NARX_TIMEFRAME = "4h"
 
 admin_router = Router(name="signals_admin")
 admin_router.message.middleware(AdminOnlyMiddleware())
@@ -167,9 +171,9 @@ async def signal_preview(
         return
 
     narx = await joriy_narx(
-        candles, data["symbol"], config.analysis.entry_timeframe, levels.entry
+        candles, data["symbol"], NARX_TIMEFRAME, levels.entry
     )
-    reja = decide_entry_plan(narx, levels, config.analysis.entry_order)
+    reja = decide_entry_plan(narx, levels)
     kartochka = render_signal_card(
         data["symbol"], levels, reja,
         quote_asset=config.halal_screening.quote_asset,
@@ -258,9 +262,9 @@ async def signal_send(
         entry=data["entry"], stop=data["stop"], tp1=data["tp1"], tp2=data["tp2"]
     )
     narx = await joriy_narx(
-        candles, data["symbol"], config.analysis.entry_timeframe, levels.entry
+        candles, data["symbol"], NARX_TIMEFRAME, levels.entry
     )
-    reja = decide_entry_plan(narx, levels, config.analysis.entry_order)
+    reja = decide_entry_plan(narx, levels)
 
     async with database.session() as session:
         yozuv = await SignalRepository(session).create(
@@ -601,13 +605,13 @@ async def show_signal(
         return
 
     narx = await joriy_narx(
-        candles, symbol, config.analysis.entry_timeframe, narx_signalda
+        candles, symbol, NARX_TIMEFRAME, narx_signalda
     )
     balans = getattr(db_user, "declared_balance_usd", None)
     kartochka = render_signal_card(
         symbol,
         levels,
-        decide_entry_plan(narx, levels, config.analysis.entry_order),
+        decide_entry_plan(narx, levels),
         suggestion=suggest_size(symbol, levels, balans, config),
         quote_asset=config.halal_screening.quote_asset,
         language=language,
@@ -628,24 +632,17 @@ async def show_signal(
 async def explain_signal(
     callback: CallbackQuery, database: Database, language: str, **_: object
 ) -> None:
-    """3.6-band: "Nega bu signal?" — ball tafsiloti."""
+    """3.6-band: "Nega bu signal?" — hozircha faqat admin izohi."""
     signal_id = int(callback.data.rsplit(":", 1)[1])
     async with database.session() as session:
         yozuv = await SignalRepository(session).get(signal_id)
-        tafsilot = yozuv.score_breakdown if yozuv else None
         izoh = yozuv.note if yozuv else None
 
-    # Bazada JSON saqlanadi. Ilgari u FOYDALANUVCHIGA XUDDI SHU HOLDA
-    # ko'rsatilardi: ekranda `{"symbol": "DOT", "components": [...]}`
-    # chiqardi. `breakdown_to_text()` yozilgan edi, lekin hech qayerda
-    # chaqirilmagan — 2-naqsh, "e'lon qilingan, lekin ulanmagan".
-    yoyilgan = breakdown_from_json(tafsilot) if tafsilot else None
-    matn = (
-        breakdown_to_text(yoyilgan)
-        if yoyilgan is not None
-        else izoh
-        or "Bu signal admin tomonidan qo'lda kiritilgan — avtomatik ball tafsiloti yo'q."
-    )
+    # Eski ball tafsiloti (25-20-15-15-10-15 taqsimoti) 2026-09-03 da
+    # tahlil moduli bilan birga olib tashlandi. Qo'lda kiritilgan
+    # signalda admin izohi ko'rsatiladi; avtomatik tafsilot yangi
+    # modul kelganda qaytadi.
+    matn = izoh or "Bu signal admin tomonidan qo'lda kiritilgan — izoh berilmagan."
     await callback.message.answer(matn, reply_markup=back_button(language=language))
     await callback.answer()
 

@@ -3,7 +3,6 @@ import { test } from "node:test";
 
 import {
   obunaKunlari,
-  salomatlikBandlari,
   savdoQoidalari,
   tp1Ulushi,
   tpUlushlari,
@@ -35,18 +34,6 @@ test("obuna muddati YAML dan o'qiladi, ko'chirib yozilmagan", () => {
   assert.equal(kunlar.monthly, yaml.subscriptions.periods.monthly);
 });
 
-test("salomatlik bandlari YAML dan o'qiladi", () => {
-  const band = salomatlikBandlari();
-  assert.equal(band.high, yaml.scoring.thresholds.health_high_min);
-  assert.equal(band.mid, yaml.scoring.thresholds.health_mid_min);
-});
-
-test("bandlar mantiqan to'g'ri tartibda", () => {
-  const { high, mid } = salomatlikBandlari();
-  assert.ok(mid < high, "o'rta band yuqori banddan past bo'lishi kerak");
-  assert.ok(mid > 0 && high < 100);
-});
-
 test("nisbiy HCS_CONFIG_FILE ildizga nisbatan hisoblanadi", async () => {
   // Bot va sayt bir xil `HCS_CONFIG_FILE` ni ishlatadi, lekin turli
   // papkadan ishga tushadi. Nisbiy yo'l `web/` ga nisbatan hisoblansa,
@@ -62,12 +49,21 @@ test("nisbiy HCS_CONFIG_FILE ildizga nisbatan hisoblanadi", async () => {
   }
 });
 
-test("savdo qoidalari YAML dan o'qiladi", () => {
+test("eski tahlil bloklari YAML da qolmagan", () => {
+  // 2026-09-03 — `trade_rules`, `scoring`, `analysis` bloklari eski
+  // tahlil moduli bilan o'chirildi. Test shu holatni QULFLAYDI: bu
+  // nomlar qaytsa, ular yangi ma'noda ishlatilyapti degani va sayt
+  // ularni eski ma'noda o'qib qo'yishi mumkin.
+  for (const eski of ["analysis", "scoring", "trade_rules", "market_health", "strategies"]) {
+    assert.equal(yaml[eski], undefined, `${eski} bloki qaytib kelibdi`);
+  }
+});
+
+test("savdo qoidalari mantiqan to'g'ri", () => {
   const q = savdoQoidalari();
-  assert.equal(q.maxStopPct, yaml.trade_rules.max_stop_distance_pct);
-  assert.equal(q.minTpPct, yaml.trade_rules.min_tp_distance_pct);
-  assert.equal(q.maxTpPct, yaml.trade_rules.max_tp_distance_pct);
-  assert.equal(q.minRiskReward, yaml.trade_rules.min_risk_reward);
+  assert.ok(q.maxStopPct > 0);
+  assert.ok(q.minTpPct < q.maxTpPct);
+  assert.ok(q.minRiskReward >= 1);
 });
 
 /** Bot kartochkasida TP1 ulushi shu qiymatdan yoziladi

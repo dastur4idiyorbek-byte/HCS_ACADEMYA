@@ -1,7 +1,10 @@
-# Eski tahlil moduli — o'chirish ro'yxati (TASDIQLASH KUTILMOQDA)
+# Eski tahlil moduli — o'chirish ro'yxati (BAJARILDI 2026-09-03)
 
-Bu hujjat 1-prompt bo'yicha tuzildi. **Hech narsa hali o'chirilmadi.**
-Tasdiqlangandan keyin bajariladi.
+Bu hujjat 1-prompt bo'yicha tuzildi va **to'liq bajarildi**. Loyiha egasi
+G-bo'limdagi to'rttasini ham o'chirishga qaror qildi.
+
+Yakuniy holat: Python 505 test o'tadi, ruff toza, sayt `next build` o'tadi,
+saytda 163 test o'tadi. Bot va sayt ishga tushadi.
 
 ---
 
@@ -85,7 +88,24 @@ halol skrining, storage, market_data, position_sizing byudjeti.
 
 ---
 
-## G. PROMPTDA AYTILMAGAN — QAROR KERAK
+## G. PROMPTDA AYTILMAGAN — QAROR: TO'RTTASI HAM O'CHIRILDI
+
+Men to'rttasini saqlashni tavsiya qilgan edim; loyiha egasi hammasini
+o'chirishni tanladi. Sabab tushunarli: `core/analysis` butunlay bo'shab,
+yangi modul toza joyda quriladi.
+
+Faqat IKKI narsa ko'chirildi (o'chirilmadi), chunki ular signalni QO'LDA
+kiritishga kerak va u qoladigan xususiyat:
+
+| Nima | Qayerdan | Qayerga |
+|---|---|---|
+| `decide_entry_plan()` | `core/analysis/entry_order.py` | `core/services/kirish_rejasi.py` |
+| sham yuklash + kesh | `scripts/backtest.py` | `core/backtest/yuklash.py` |
+
+Ikkalasi ham ball tizimiga hech qachon bog'liq bo'lmagan: birinchisi
+ikkita narxni solishtiradi, ikkinchisi Binance'dan sham yuklaydi.
+
+### Quyidagilar o'chirildi (avvalgi tavsiyam)
 
 1. **`core/analysis/bozor_korinishi.py` (236 qator)** — saytdagi haftalik/
    kunlik bozor ko'rinishi (BTC.D, USDT.D, TOTAL2...). 4 soatlik signal
@@ -103,3 +123,49 @@ halol skrining, storage, market_data, position_sizing byudjeti.
 4. **`core/signals/tracker.py` (533 qator)** — TP/Stop kuzatuvi. Ballga
    bog'liq yagona joy: "ball pasaydi -> zaiflashmoqda" xabari.
    **Tavsiyam: QOLSIN**, o'sha bitta tarmoq olib tashlanadi.
+
+---
+
+## H. YAKUNIY HOLAT — nima ishlaydi, nima yo'q
+
+### Ishlaydi
+
+- Bot ishga tushadi: obuna, to'lov, admin/foydalanuvchi rollari, kontent
+- Signal QO'LDA kiritiladi va obunachilarga tarqatiladi (kirish rejasi bilan)
+- Veb-panelda yaratilgan signal botga chiqadi (`web-signals` vazifasi)
+- Halol skrining, Telegram Login, sessiya, portfel, kalkulyator, TradingView
+- Sayt to'liq quriladi va ishlaydi
+
+### Vaqtincha yo'q ("yangilanmoqda" holatida)
+
+| Joy | Sabab |
+|---|---|
+| Avtomatik signal sikli | `core/pipeline` o'chirildi |
+| TP/Stop avtomatik kuzatuvi | `core/signals/tracker.py` o'chirildi |
+| Bozor Salomatligi sahifasi | eski indeks formulasi o'chirildi |
+| "Nega signal yo'q" voronkasi | eski bosqich nomlari o'chirildi |
+| Bozor ko'rinishi sahifasi | postni quruvchi xizmat o'chirildi |
+| Haftalik postmortem hisoboti | `core/analysis/postmortem` o'chirildi |
+| Bot `/panel` da 4 ta bo'lim | yuqoridagi to'rttasiga bog'liq edi |
+| Jonli Oshxona monitori | UI qoldi, `pipeline_events` ga yozuvchi yo'q |
+
+### Risk Engine — 13 dan 8 ta qoida qoldi
+
+    QOLDI   kill_switch, friday_prayer, consecutive_loss, daily_loss_limit,
+            max_open_signals, correlation, fresh_data, halal
+    KETDI   market_health, trade_rules, zone_integrity, volatility, btc_market
+
+Ketganlarining hammasi eski tahlil natijasiga (ball, indeks, zona,
+ATR) tayanardi. Qolganlari signal QANDAY tug'ilganidan qat'i nazar
+ishlaydi — shuning uchun yangi modul kelganda ular o'zgarmaydi.
+
+### Raqamlar
+
+    Kod           −8 700 qator (core/analysis 7 538 + pipeline 941 + signals 533,
+                  minus ko'chirilgan ~300)
+    Konfiguratsiya  −693 qator (883 -> 201), 18 blokdan 11 tasi qoldi
+    Test          1 562 -> 505 (Python), 165 -> 163 (sayt)
+
+Test soni keskin kamaydi, chunki testlarning uchdan ikkisi aynan
+o'chirilgan modulni tekshirardi. Qolganlari — to'lov, obuna, halol
+skrining, storage, pozitsiya hajmi — hammasi o'tadi.

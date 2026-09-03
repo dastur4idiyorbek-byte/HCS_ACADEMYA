@@ -101,31 +101,3 @@ test("kalkulyator matnlari kartochka matnlarini BOSIB KETMAYDI", () => {
   }
 });
 
-test("salomatlik omillari 0..1 shkalasida saqlanadi va foizga aylantiriladi", () => {
-  // SHKALA MOS KELMASLIGI (1-naqsh) — bu loyihada takrorlangan xato turi.
-  //
-  // Bot `HealthFactor.score` ni o'zgartirmasdan yozadi (0..1). Sahifa
-  // esa uni to'g'ridan-to'g'ri foiz deb chizardi: haqiqiy ma'lumotda
-  // har bir omil "0" yoki "1" ko'rinardi. Demo ma'lumot 0-100 shkalada
-  // yozilgani uchun xato bir necha oy sezilmadi.
-  //
-  // Shuning uchun ikkalasi ham shu yerda qulflanadi.
-  const sahifa = readFileSync(
-    path.join(ILDIZ, "app", "(ichki)", "salomatlik", "page.tsx"),
-    "utf8",
-  );
-  assert.match(sahifa, /function omilFoizi/, "foizga aylantirish funksiyasi yo'q");
-  assert.match(sahifa, /\* 100/, "0..1 dan foizga o'tkazish yo'qolgan");
-
-  const demo = readFileSync(
-    path.join(ILDIZ, "..", "scripts", "demo_malumot.mjs"),
-    "utf8",
-  );
-  const qator = /\.run\(qiymat,[\s\S]*?oldin\(i \* 4\)\)/.exec(demo)?.[0] ?? "";
-  const sonlar = [...qator.matchAll(/0\.\d+/g)].map((m) => Number(m[0]));
-  assert.ok(sonlar.length >= 5, "demo omil ballari topilmadi");
-  assert.ok(
-    sonlar.every((x) => x >= 0 && x <= 1),
-    `demo ma'lumot 0..1 shkalasida bo'lishi kerak, hozir: ${sonlar.join(", ")}`,
-  );
-});

@@ -32,7 +32,6 @@ const SERVER_KUTUBXONALARI = new Set([
   "@/lib/config",
   "@/lib/db",
   "@/lib/queries",
-  "@/lib/bosqichlar",
   "@/lib/jonli-server",
   "@/lib/session",
 ]);
@@ -97,7 +96,7 @@ test("mijoz fayllari server kutubxonasini import qilmaydi", () => {
 
 test("ro'yxatdagi kutubxonalar haqiqatan node moduli ishlatadi", () => {
   // Ro'yxat eskirsa test soxta xotirjamlik berardi.
-  for (const kutubxona of ["@/lib/config", "@/lib/db", "@/lib/bosqichlar"]) {
+  for (const kutubxona of ["@/lib/config", "@/lib/db"]) {
     const yol = path.join(ILDIZ, "lib", `${kutubxona.split("/").pop()}.ts`);
     assert.match(
       readFileSync(yol, "utf8"),

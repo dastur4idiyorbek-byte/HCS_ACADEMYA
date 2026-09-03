@@ -8,7 +8,6 @@ Handlerlar yupqa: qarorlarni `core/services/` va repository'lar qabul qiladi.
 
 from __future__ import annotations
 
-from datetime import timedelta
 from html import escape
 
 from aiogram import F, Router
@@ -35,29 +34,21 @@ from bot.states import (
     ViolationFlow,
 )
 from bot.ui import show_screen
-from core.analysis.postmortem import build_report, render_report
 from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SubscriptionTier
-from core.pipeline import is_routine_stage, stage_label
-from core.risk_engine import RiskEngine
 from core.services import SubscriptionService
 from core.storage import Database
 from core.storage.models import User
 from core.storage.repositories import (
-    AuditReportRepository,
     CoinRulingRepository,
     ContentRepository,
-    MarketHealthRepository,
     PaymentRepository,
     PriceRepository,
-    RiskBlockRepository,
-    SignalRepository,
     SubscriptionRepository,
     UserRepository,
     ViolationRepository,
 )
 from core.utils.logging_setup import get_logger
-from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
 
@@ -573,339 +564,19 @@ async def content_save(
 
 
 # --------------------------------------------------------------------------- #
-#  3.7 — Bozor Salomatligi dashboardi
+#  Tahlilga bog'liq bo'limlar — 2026-09-03 da OLIB TASHLANDI
 # --------------------------------------------------------------------------- #
-
-
-@router.callback_query(F.data == "admin:salomatlik")
-async def market_health_dashboard(
-    callback: CallbackQuery,
-    database: Database,
-    config: AppConfig,
-    language: str,
-    **_: object,
-) -> None:
-    """3.7-band: "tizim nega sokin/faol" degan savolga bitta raqam bilan javob."""
-    async with database.session() as session:
-        repo = MarketHealthRepository(session)
-        oxirgi = await repo.latest()
-        tarix = await repo.history(limit=8)
-        qiymatlar = [f"{yozuv.value:.0f}" for yozuv in reversed(tarix)]
-
-    if oxirgi is None:
-        await callback.message.edit_text(
-            t("admin.salomatlik_yoq", language), reply_markup=back_button("home", language)
-        )
-        await callback.answer()
-        return
-
-    matn = _render_health(oxirgi)
-
-    chegara = RiskEngine(config).score_threshold(oxirgi.value)
-    matn += (
-        t("admin.salomatlik_chegara", language, threshold=f"{chegara:.0f}")
-        if chegara is not None
-        else t("admin.salomatlik_chegara_yopiq", language)
-    )
-    if len(qiymatlar) > 1:
-        matn += t("admin.salomatlik_tarix", language, values=" → ".join(qiymatlar))
-
-    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
-    await callback.answer()
-
-
-def _render_health(record) -> str:  # noqa: ANN001
-    """Bazadagi yozuvdan dashboard matnini quradi."""
-    belgilar = {"high": "🟢", "mid": "🟡", "low": "🔴"}
-    izohlar = {
-        "high": "signal chegarasi past — erkin rejim",
-        "mid": "signal beriladi, lekin ehtiyotkorroq",
-        "low": "yangi signal to'xtatilgan — faqat kuzatuv",
-    }
-    qatorlar = [
-        f"{belgilar[record.band]} Bozor Salomatligi: {record.value:.0f}/100",
-        f"   {izohlar[record.band]}",
-        "",
-    ]
-    if record.detail:
-        qatorlar.extend(f"• {_xavfsiz(qator)}" for qator in record.detail.splitlines())
-    if record.is_daily_preview:
-        qatorlar.append("\n⏱ Bu — kunlik oldindan tahlil (hali o'lchanmagan)")
-    return "\n".join(qatorlar)
-
-
-# --------------------------------------------------------------------------- #
-#  3.7 — "Nega signal yo'q" dashboardi
-# --------------------------------------------------------------------------- #
-
-#: Sokinlik hisoboti qancha vaqtni qamrab oladi
-SOKINLIK_SOATLARI = 24
-
-#: Ball chegarasida to'xtagan nomzodlar bosqichi — ular uchun ball
-#: statistikasi ko'rsatiladi (qolgan sabablarda ball bo'lmaydi).
-THRESHOLD_STAGE = "threshold"
-
-#: Vaqt birliklari — oyna kengligini matnga aylantirish uchun
-MINUTES_PER_HOUR = 60
-MINUTES_PER_DAY = 1440
-
-
-@router.callback_query(F.data == "admin:sokinlik")
-async def silence_dashboard(
-    callback: CallbackQuery,
-    database: Database,
-    config: AppConfig,
-    language: str,
-    **_: object,
-) -> None:
-    """3.7-band: signal chiqmaganda SABABI ko'rinishi kerak.
-
-    Signal bermaslik xato emas (0.2-band) — lekin sababi ko'rinmasa,
-    ishlayotgan tizimni buzuq tizimdan ajratib bo'lmaydi. Bu ekran aynan
-    shu farqni beradi.
-    """
-    boshlanish = utc_now() - timedelta(hours=SOKINLIK_SOATLARI)
-
-    async with database.session() as session:
-        repo = RiskBlockRepository(session)
-        xulosa = await repo.summary_since(boshlanish)
-        oxirgilar = await repo.latest(limit=3)
-        ball_stat = await repo.score_stats_since(boshlanish, THRESHOLD_STAGE)
-
-    if not xulosa:
-        await callback.message.edit_text(
-            t("admin.sokinlik_yoq", language, hours=SOKINLIK_SOATLARI),
-            reply_markup=back_button("home", language),
-        )
-        await callback.answer()
-        return
-
-    matn = t("admin.sokinlik_sarlavha", language, hours=SOKINLIK_SOATLARI)
-    matn += _render_silence(xulosa, language, ball_stat, config)
-
-    matn += _render_latest(oxirgilar, language)
-
-    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
-    await callback.answer()
-
-
-def _render_silence(
-    summary: list[tuple[str, int, bool]],
-    language: str,
-    score_stats: tuple[int, float, float] | None = None,
-    config: AppConfig | None = None,
-) -> str:
-    """Rad etish sabablarini UCH GURUHGA ajratib ko'rsatadi.
-
-    Nima uchun bitta ro'yxat yetarli emas edi: yozuvlar bir xil
-    o'lchovda emas.
-
-    1. Coin tahlili — har coin, har sikl uchun bitta yozuv.
-    2. Sikl darajasi — bitta yozuv BARCHA coinlarni to'xtatadi
-       (`symbol` yo'q). Bittasi 30 tasiga teng.
-    3. Vaqt shartlari — skalping oynasi kuniga 45 daqiqa ochiq, ya'ni
-       "oyna yopiq" yozuvi vaqtning 96% ida chiqadi. Bu tashxis emas,
-       soat ko'rsatkichi.
-
-    Uchalasi bitta ustunda qo'shilganda vaqt sharti birinchi o'rinni
-    egallab, haqiqiy sabablarni pastga surib yuborardi.
-    """
-    tahlil: list[tuple[str, int]] = []
-    sikl: list[tuple[str, int]] = []
-    vaqt: list[tuple[str, int]] = []
-
-    for sabab, soni, sikl_darajasi in summary:
-        if is_routine_stage(sabab):
-            vaqt.append((sabab, soni))
-        elif sikl_darajasi:
-            sikl.append((sabab, soni))
-        else:
-            tahlil.append((sabab, soni))
-
-    matn = ""
-    if tahlil:
-        jami = sum(soni for _, soni in tahlil)
-        matn += t("admin.sokinlik_tahlil", language, total=jami)
-        for sabab, soni in tahlil:
-            ulush = _xavfsiz(_ulush(soni, jami))
-            matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta ({ulush})\n"
-            if sabab == THRESHOLD_STAGE and score_stats is not None:
-                _, eng_yuqori, ortacha = score_stats
-                matn += t(
-                    "admin.sokinlik_ball",
-                    language,
-                    best=f"{eng_yuqori:.0f}",
-                    average=f"{ortacha:.0f}",
-                )
-
-    if sikl:
-        matn += t("admin.sokinlik_sikl", language)
-        for sabab, soni in sikl:
-            matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta\n"
-
-    if vaqt:
-        matn += t("admin.sokinlik_vaqt", language, window=_oyna_matni(config))
-        for sabab, soni in vaqt:
-            matn += f"• {_xavfsiz(stage_label(sabab))} — {soni} marta\n"
-
-    matn += t("admin.sokinlik_izoh", language)
-    return matn
-
-
-def _render_latest(records: list, language: str) -> str:  # noqa: ANN001
-    """Oxirgi rad etishlar — tafsiloti bilan.
-
-    Tafsilot matni TAHLILDAN keladi va unda `<` bo'lishi mumkin
-    (masalan "Ball 62 < chegara 70"). Telegram HTML rejimida bu teg
-    boshlanishi deb o'qiladi va BUTUN xabar rad etiladi — ya'ni bitta
-    qator butun ekranni ochilmas qiladi. Shuning uchun ekranga
-    chiqadigan har bir qiymat qalqondan o'tadi.
-    """
-    if not records:
-        return ""
-
-    matn = t("admin.sokinlik_oxirgi", language)
-    for yozuv in records:
-        coin = yozuv.symbol or "—"
-        tafsilot = (yozuv.detail or "")[:120]
-        matn += f"• {_xavfsiz(coin)}: {_xavfsiz(tafsilot)}\n"
-    return matn
-
-
-def _oyna_matni(config: AppConfig | None) -> str:
-    """Skalping oynasi kengligini odam o'qiydigan shaklda beradi.
-
-    Ilgari bu matn i18n faylida "45 daqiqa" deb QOTIB yozilgan edi.
-    Oyna bir kunga uzaytirilgach ekran eski raqamni ko'rsatishda davom
-    etdi va "skalping nega yana yopiq?" degan savolni tug'dirdi —
-    sozlama o'zgargan, matn esa o'zgarmagan edi.
-    """
-    if config is None:
-        return "—"
-    daqiqa = config.strategies.opening_range_scalp.signal_window_minutes
-    if daqiqa >= MINUTES_PER_DAY:
-        return "kun bo'yi"
-    if daqiqa >= MINUTES_PER_HOUR and daqiqa % MINUTES_PER_HOUR == 0:
-        return f"{daqiqa // MINUTES_PER_HOUR} soat"
-    return f"{daqiqa} daqiqa"
-
-
-def _ulush(count: int, total: int) -> str:
-    """Foiz. Nolga yaxlitlanadigan qiymat `<1%` deb yoziladi.
-
-    Avval `{:.0f}%` ishlatilardi: 5 marta sodir bo'lgan sabab "0%" deb
-    ko'rinardi — ya'ni "bo'ldi" va "bo'lmadi" bitta qatorda yozilgan
-    edi. Kichik son ham nol emas.
-    """
-    if total <= 0:
-        return "—"
-    matn = f"{count / total * 100:.0f}%"
-    return "<1%" if matn == "0%" else matn
-
-
-# --------------------------------------------------------------------------- #
-#  3.8 — O'z-o'zini tekshirish hisoboti
-# --------------------------------------------------------------------------- #
-
-
-@router.callback_query(F.data == "admin:hisobot")
-async def self_audit_report(
-    callback: CallbackQuery,
-    database: Database,
-    config: AppConfig,
-    language: str,
-    **_: object,
-) -> None:
-    """3.8-band: haftalik hisobot. Tavsiyalar AVTOMATIK qo'llanilmaydi."""
-    hozir = utc_now()
-    boshlanish = hozir - timedelta(days=config.postmortem.lookback_days)
-
-    async with database.session() as session:
-        signallar = await SignalRepository(session).closed_since(boshlanish)
-
-    hisobot = build_report(signallar, config.postmortem, hozir)
-    matn = render_report(hisobot)
-
-    # Qayd veb-panel uchun ham kerak. Bir kunda bitta yozuv bo'ladi, ya'ni
-    # tugmani qayta-qayta bosish jadvalni to'ldirmaydi. Yozib bo'lmasa —
-    # ekran baribir ko'rsatiladi (0.3-band).
-    try:
-        async with database.session() as session:
-            await AuditReportRepository(session).save(
-                    hisobot.generated_at,
-                    hisobot.period_days,
-                    hisobot.stats,
-                    matn,
-                    pattern_count=len(hisobot.patterns),
-                    sample_warning=hisobot.sample_warning,
-                )
-    except Exception:  # noqa: BLE001
-        logger.exception("Hisobot qaydini yozib bo'lmadi")
-
-    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
-    await callback.answer()
-
-
-# --------------------------------------------------------------------------- #
-#  CryptoSpot3% (SMC / LIT / ICT) sozlamalari — FAQAT KO'RSATISH
-# --------------------------------------------------------------------------- #
-
-
-@router.callback_query(F.data == "admin:smc")
-async def smc_settings(
-    callback: CallbackQuery, config: AppConfig, language: str, **_: object
-) -> None:
-    """SMC/LIT/ICT qatlamining amaldagi sozlamalari.
-
-    NIMA UCHUN TAHRIRLASH YO'Q. Bu loyihada barcha strategiya
-    parametrlari `config/default.yaml` da yashaydi va joylashtirishda
-    o'zgaradi; ishga tushgan tizimda ularni saqlaydigan mexanizm yo'q.
-    Tugma qo'yib, aslida hech narsa yozmaslik — eng yomon variant:
-    admin o'zgartirdim deb o'ylaydi, tizim esa eski qiymat bilan
-    ishlashda davom etadi. Shuning uchun ekran amaldagi holatni
-    ko'rsatadi va qiymatlar qayerdan kelishini ochiq aytadi.
-    """
-    await callback.message.edit_text(
-        _smc_matni(config, language), reply_markup=back_button("home", language)
-    )
-    await callback.answer()
-
-
-def _smc_matni(config: AppConfig, language: str) -> str:
-    analysis = config.analysis
-    yalash = analysis.liquidity_sweep
-    sessiya = analysis.session_overlap
-    bonuslar = config.scoring.bonuses
-    kotarish = config.scoring.uplift
-
-    def holat(yoqilgan: bool) -> str:
-        return "yoqilgan" if yoqilgan else "o'chirilgan"
-
-    oyna = (
-        f"{sessiya.start_hour_utc:02d}:00-{sessiya.end_hour_utc:02d}:00 UTC"
-        if sessiya.enabled
-        else "o'chirilgan"
-    )
-
-    qatorlar = [
-        t("admin.smc_sarlavha", language),
-        "",
-        f"<code>Struktura majburiy   {holat(analysis.require_structure_alignment)}</code>",
-        f"<code>Liquidity Sweep      {holat(yalash.enabled)}</code>",
-        f"<code>Yalash chuqurligi    {yalash.min_sweep_pct}%</code>",
-        f"<code>Qidiruv oynasi       {yalash.lookback_bars} sham</code>",
-        f"<code>Qaytish muddati      {yalash.max_reclaim_bars} sham</code>",
-        f"<code>Kill Zone            {oyna}</code>",
-        "",
-        f"<code>🔵 Struktura -> trend     x{kotarish.trend:.2f}</code>",
-        f"<code>🧲 Sweep+daraja -> S/R    x{kotarish.support_resistance:.2f}</code>",
-        f"<code>⏰ Kill Zone bonusi       +{bonuslar.session_overlap:.0f}</code>",
-        "",
-        t("admin.smc_bonus_izoh", language),
-        "",
-        t("admin.smc_izoh", language),
-    ]
-    return "\n".join(qatorlar)
+#
+# Eski tahlil moduli o'chirilganda quyidagi to'rtta bo'lim ham ketdi:
+#
+#   admin:salomatlik  — eski Bozor Salomatligi formulasi (BTC Dominance
+#                       vazni, ON/OFF kalit mantig'i)
+#   admin:sokinlik    — "Nega signal yo'q" voronkasi, eski bosqich nomlari
+#   admin:hisobot     — haftalik postmortem (`core/analysis/postmortem`)
+#   admin:smc         — SMC/LIT sozlamalari paneli
+#
+# Ular yangi tizim uchun QAYTA quriladi. Tugmalari `keyboards.py` da
+# "hozircha mavjud emas" javobiga ulangan — panel yiqilmasin.
 
 
 # --------------------------------------------------------------------------- #
