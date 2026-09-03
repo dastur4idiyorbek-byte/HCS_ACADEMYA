@@ -931,3 +931,45 @@ Walk-forward (uch bo'lak, 12 nomzod, tanlov keyingi bo'lakda):
 |---|---|
 | 🔴 | Uch davrdagi pasayish bozor o'zgarishimi yoki strategiya eskirishimi |
 | 🔴 | To'rt ta'sirsiz omil BIR VAQTDA olib tashlansa nima bo'ladi |
+
+---
+
+## 2026-09-03 — audit 3-bosqichi: uchta yarim holat
+
+Uchtasi ham gipoteza sifatida emas, NOMUVOFIQLIK sifatida topilgan:
+kod bir narsa qiladi, izoh boshqasini aytadi. Har biri bayroq ostida,
+standart holatda hozirgi xatti-harakat.
+
+| Holat | Sozlama | Qiymat | Izoh |
+|---|---|---|---|
+| 🔴 | `tp1_ratio_tuzilmaviy_zonaga` | true | pol (2.0) yakuniy nishondan (1.5) yuqori -> TP DOIM bitta (189/189 o'lchandi) |
+| 🔴 | `chuqurlik_darvozadan` | false | darvoza 55%, chuqurlik 50% dan -> 50-55% bandidagi nomzod S/R omilining 35% ulushini yo'qotadi |
+| 🔴 | `zona_yagona_manba` | false | ball bir zonadan, Stop boshqasidan hisoblanadi |
+
+### Yangi 🔴 — kirish narxi joriy narxga teng
+
+`build_levels()` da `entry = zone_map.price`. Oqibatlari ikkita va
+ikkalasi ham o'lik tarmoq qoldiradi:
+
+    ZoneIntegrityRule       masofa har doim 0  ->  hech qachon ishlamaydi
+    market_threshold_pct    masofa har doim 0  ->  buyurtma HAR DOIM MARKET
+
+Ya'ni "narx zonaga qaytganda LIMIT bajariladi" degan xatti-harakat
+mavjud emas.
+
+| Holat | Savol |
+|---|---|
+| 🔴 | Kirish narxi joriy narxmi yoki ZONANING o'zi bo'lishi kerakmi |
+| 🔴 | Past bandda `classic_ta` 60 chegarasi bilan ishlashi kerakmi |
+
+### Voronkadan chiqqan 🔴 — yo'qotish sig'imda
+
+`risk_engine` 4 668 nomzoddan 593 tasini o'tkazdi (12.7%), sababi
+strategiya emas:
+
+    3540 x max_open_signals
+     317 x correlation
+
+| Holat | Savol |
+|---|---|
+| 🔴 | `max_open_signals` (5) chegarasi eng yaxshi nomzodni tanlaydimi yoki BIRINCHI kelganini |

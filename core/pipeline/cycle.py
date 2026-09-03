@@ -41,13 +41,6 @@ class SignalCycle:
         self._risk_engine = risk_engine or RiskEngine(config)
         self._scorer = scorer or Scorer(config)
 
-    #: Korreksiya rejimida FAQAT shu manba ishlaydi.
-    #:
-    #: Qolgan strategiyalar pasayish uchun mo'ljallanmagan: ular
-    #: S/R zonasi yoki ochilish diapazoniga tayanadi va past indeksda
-    #: ularning taxminlari ishlamaydi.
-    KORREKSIYA_MANBALARI = frozenset({SignalSource.CORRECTION_ENTRY})
-
     def _for_regime(self, regime: MarketRegime | None) -> list[Strategy]:
         """Rejimga mos strategiyalar.
 
@@ -55,6 +48,16 @@ class SignalCycle:
         chunki korreksiya kirishi o'rta bandda ham to'g'ri bo'lishi
         mumkin. Korreksiya rejimida esa faqat o'sha bitta strategiya:
         boshqalarning taxminlari past indeksda ishlamaydi.
+
+        DIQQAT — HOZIRGI SOZLAMADAGI OQIBAT. `correction_entry`
+        o'chiq, ya'ni korreksiya rejimida bu ro'yxat BO'SH qaytadi va
+        sikl to'xtaydi. Natijada `scoring.thresholds.threshold_low_health`
+        (60) amalda HECH QACHON o'qilmaydi.
+
+        Bu o'lik kod emas, O'CHIQ STRATEGIYA ostidagi kod: qiymat
+        `correction_entry` yoqilganda tirilib ketadi. Past bandda
+        `classic_ta` ni 60 chegarasi bilan ishlatish AYRIM masala va
+        u o'lchanmagan (daftarda 🔴).
         """
         if regime is not MarketRegime.CORRECTION:
             return list(self._strategies)

@@ -24,7 +24,7 @@ from dataclasses import dataclass
 
 from core.analysis.support_resistance import ZoneMap
 from core.config.schema import PortfolioConfig, TradeRulesConfig
-from core.domain.models import SignalLevels, signal_levels
+from core.domain.models import SignalLevels, SRZone, signal_levels
 
 #: Stop support zonasining pastidan shu ulushdagi ATR masofasida qo'yiladi.
 #: Aynan chegaraga qo'yilsa, zonaga tegib qaytish ham Stop'ni ishga tushirardi.
@@ -64,6 +64,7 @@ def build_levels(
     rules: TradeRulesConfig,
     entry_price: float | None = None,
     portfolio: PortfolioConfig | None = None,
+    support: SRZone | None = None,
 ) -> LevelResult:
     """S/R zonalari va ATR asosida Entry/Stop va TP ro'yxatini quradi.
 
@@ -87,12 +88,22 @@ def build_levels(
             tayyor `tuple` kutilardi va shuning uchun uni HECH KIM
             uzatmasdi: `tp_close_shares` butunlay o'lik sozlama
             edi.
+        support: Stop hisoblanadigan zona. Berilmasa eng yaqini
+            o'zi topiladi.
+
+            NIMA UCHUN ARGUMENT. Strategiya zonani ALLAQACHON
+            topgan va ball, daraja turi, sweep — hammasi o'sha
+            zona haqida. Bu yerda qaytadan qidirilsa boshqa zona
+            chiqishi mumkin (saralash kalitlari boshqa) va Stop
+            signal gapirayotgan zonadan emas, boshqasidan
+            quriladi (audit 3.3).
     """
     entry = entry_price if entry_price is not None else zone_map.price
     if entry <= 0:
         return LevelResult(None, "Kirish narxi musbat bo'lishi kerak")
 
-    support = zone_map.nearest_support()
+    if support is None:
+        support = zone_map.nearest_support()
     if support is None:
         return LevelResult(None, "Narxdan pastda support zonasi topilmadi")
 
@@ -377,9 +388,13 @@ def _build_tp1(
     chaqiruvchi o'lchangan TP ga o'tadi — u allaqachon shu
     nisbatga bo'ysunadi.
     """
+    # Pol TUZILMAVIY zonaga qo'llanadimi — `tp1_ratio_tuzilmaviy_zonaga`.
+    # O'chirilganda pol faqat o'lchangan tarmoqda ishlaydi va
+    # tuzilmaviy TP1 yaqinroq bo'lishi mumkin: shunda haqiqiy
+    # ikkita TP qaytadi (audit 3.1).
     eng_past_nisbat = (
         stop_distance_pct * rules.tp1_min_risk_reward
-        if rules.enforce_tp1_ratio
+        if rules.enforce_tp1_ratio and rules.tp1_ratio_tuzilmaviy_zonaga
         else 0.0
     )
 

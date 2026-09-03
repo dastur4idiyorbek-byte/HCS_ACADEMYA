@@ -65,6 +65,38 @@ class SupportResistanceConfig:
     #: yuqoriroq o'ringa chiqadi. Qat'iy jar esa shunchaki chetdagi
     #: nomzodlarni butunlay yo'q qilardi.
     entry_max_range_pct: float = 55.0
+    #: Discount chuqurligi DARVOZADAN hisoblansinmi.
+    #:
+    #: MUAMMO (audit 3.2). Darvoza 55% da, `RangePosition.depth` esa
+    #: hamon 50% muvozanat chizig'idan o'lchanadi. Natijada 50-55%
+    #: oralig'idagi nomzod darvozadan o'tadi, keyin chuqurlik 0 oladi
+    #: va S/R omilidan 8.75 ball yo'qotadi. Ball shifti ~60, chegara
+    #: esa 55 — ya'ni darvoza kiritgan nomzodni ball darhol o'ldiradi.
+    #: 55% ga kengaytirish shu sababdan amalda bekor.
+    #:
+    #: `true` — chuqurlik `entry_max_range_pct` dan o'lchanadi, ya'ni
+    #: darvoza va ball BITTA manbadan.
+    #:
+    #: GIPOTEZA — standart holatda `false` (hozirgi xatti-harakat).
+    chuqurlik_darvozadan: bool = False
+    #: Stop va ball BIR XIL support zonasidan hisoblansinmi.
+    #:
+    #: MUAMMO (audit 3.3). Bitta "support zona" ikki xil topiladi:
+    #:
+    #:     classic_ta   -> ZoneMap.active_zone(SUPPORT)   ball, daraja
+    #:                     turi, sweep shu zonadan
+    #:     build_levels -> ZoneMap.nearest_support()      STOP shu
+    #:                     zonadan
+    #:
+    #: Saralash kalitlari boshqa: birinchisi eng YAQININI (masofa
+    #: bo'yicha), ikkinchisi narxdan pastdagi eng yuqorisini oladi.
+    #: Narx ikki zona orasida bo'lsa ular AJRALADI — ya'ni signal
+    #: bitta zona haqida gapiradi, Stop esa boshqasidan quriladi.
+    #:
+    #: `true` — strategiya topgan zona `build_levels` ga uzatiladi.
+    #:
+    #: GIPOTEZA — standart holatda `false` (hozirgi xatti-harakat).
+    zona_yagona_manba: bool = False
     fibonacci_levels: list[float] = field(default_factory=lambda: [0.382, 0.5, 0.618])
     #: Zona qidiriladigan oyna — nechta ENG SO'NGGI sham.
     #:
@@ -642,6 +674,27 @@ class TradeRulesConfig:
     #: Tizim shunda ham tayanchdan yomon — bu bayroq bitta
     #: teshikni yopdi, tizimni foydali qilmadi (natija #9).
     enforce_tp1_ratio: bool = True
+    #: TP1 nisbat poli TUZILMAVIY zonaga ham qo'llanadimi.
+    #:
+    #: MUAMMO (audit 3.1). Ikkita nisbat bir-biriga bog'liq:
+    #:
+    #:     tp1_min_risk_reward                    2.0   TP1 uchun POL
+    #:     strategies.classic_ta.min_risk_reward  1.5   YAKUNIY nishon
+    #:
+    #: Pol yakuniy nishondan YUQORI. Shuning uchun polga bo'ysungan
+    #: TP1 doim yakuniy nishondan uzoqroq chiqadi va kod BITTA TP li
+    #: signal quradi. O'lchandi: 189 xil zona joylashuvining
+    #: 189 tasida ham TP soni 1.
+    #:
+    #: Oqibati — qismli sotish amalda ishlamaydi va uning izidan
+    #: bir necha tarmoq o'lik qoladi (breakeven, TP1_HIT, TP2).
+    #:
+    #: `false` — pol FAQAT o'lchangan tarmoqda ishlaydi, tuzilmaviy
+    #: zona esa yaqinroq bo'lishi mumkin. Shunda haqiqiy ikkita TP
+    #: qaytadi.
+    #:
+    #: GIPOTEZA — standart holatda `true` (hozirgi xatti-harakat).
+    tp1_ratio_tuzilmaviy_zonaga: bool = True
     allow_measured_tp: bool = True
     #: TP2 TUZILMADAN olinsinmi (ikkinchi resistance zonasi).
     #:

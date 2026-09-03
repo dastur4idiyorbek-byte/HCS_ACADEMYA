@@ -38,7 +38,6 @@ from pathlib import Path
 from core.backtest import Backtester, Dataset, compare, render
 from core.backtest.warmup import warmup_days, warmup_steps
 from core.config import AppConfig, load_config
-from core.config.schema import NarxHarakatiConfig
 from core.domain.models import Candle
 from core.market_data import BinanceCandleProvider
 from core.utils.logging_setup import get_logger, setup_logging
@@ -276,25 +275,29 @@ def _sr_bilan(asos: AppConfig, nom: str, **ozgarishlar: object) -> tuple[str, Ap
 #: safar qo'lda tekshirish o'rniga o'q shu yerda nomlanadi va test
 #: shu nomni o'qiydi: variant asosdan FAQAT shu qismi bilan farq
 #: qilishi mumkin.
-OLCHOV_OQI = "narx_harakati (kitobning yadrosi)"
+OLCHOV_OQI = "audit 3-bosqich (uchta yarim holat)"
 
 
 def _oqsiz(config: AppConfig) -> AppConfig:
     """Sozlamaning o'lchov o'qi NEYTRALLANGAN nusxasi.
 
-    Ikki variantni solishtirganda o'q chiqarib tashlanadi — qolgani
+    Ikkita variantni solishtirganda o'q chiqarib tashlanadi — qolgani
     aynan teng bo'lishi kerak. Aks holda taqqoslash bir vaqtda
     ikkita narsani o'lchayotgan bo'ladi va qaysi biri ta'sir
     qilganini hech kim ayta olmaydi.
     """
-    classic = dataclasses.replace(config.strategies.classic_ta, enabled=True)
+    qoidalar = dataclasses.replace(
+        config.trade_rules, tp1_ratio_tuzilmaviy_zonaga=True
+    )
+    sr = dataclasses.replace(
+        config.analysis.support_resistance,
+        chuqurlik_darvozadan=False,
+        zona_yagona_manba=False,
+    )
     return dataclasses.replace(
         config,
-        strategies=dataclasses.replace(
-            config.strategies,
-            classic_ta=classic,
-            narx_harakati=NarxHarakatiConfig(),
-        ),
+        trade_rules=qoidalar,
+        analysis=dataclasses.replace(config.analysis, support_resistance=sr),
     )
 
 
@@ -363,82 +366,59 @@ def _darvoza_bilan(
 
 
 def _variantlar(asos: AppConfig) -> list[tuple[str, AppConfig]]:
-    """Sakkizinchi to'plam: KITOBNING YADROSI.
+    """To'qqizinchi to'plam: AUDITNING UCHTA YARIM HOLATI.
 
-    YETTITA TO'PLAM JAVOB BERDI:
+    Har biri "kod bir narsa qiladi, izoh boshqa narsa aytadi"
+    turkumidan. Ular gipoteza sifatida emas, NOMUVOFIQLIK sifatida
+    topilgan — shuning uchun savol "yaxshimi" emas, "tuzatilsa
+    natija qanday o'zgaradi".
 
-    1. Correction Entry (natija #1)            -> rad etildi
-    2. Tuzilmaviy TP2 (natija #2)              -> rad etildi
-    3. Kirish filtrlari (natija #3 va #6)      -> rad etildi
-    4. Qaror mexanizmi (natija #7)             -> uchtasi rad etildi
-    5. TP1 nisbat poli (natija #8 va #9)       -> ISHLADI, yoqildi
-    6. Yakuniy nishon nisbati (natija #10)     -> rad etildi
-    7. Rejim va zona oynasi (natija #11)       -> rad etildi
+    3.1  TP1 POLI TUZILMAVIY ZONAGA
+         Pol (2.0) yakuniy nishondan (1.5) yuqori, shuning uchun
+         signal DOIM bitta TP bilan chiqadi — 189/189 o'lchandi.
+         Qismli sotish amalda ishlamaydi. O'chirilganda tuzilmaviy
+         TP1 yaqinroq bo'ladi va haqiqiy ikkita TP qaytadi.
 
-    Oltitasi CHIQISH yoki BALL haqida edi, yettinchisi
-    timeframelar haqida. KIRISHNING O'ZI hech qachon
-    o'zgarmadi — va win-rate har safar 27-29% da qoldi.
+    3.2  CHUQURLIK DARVOZADAN
+         Darvoza 55%, chuqurlik esa 50% dan o'lchanadi. 50-55%
+         oralig'idagi nomzod darvozadan o'tadi-yu, S/R omilidan
+         8.75 ball yo'qotadi. Shift ~60, chegara 55 — ya'ni
+         darvoza kiritgan nomzodni ball darhol o'ldiradi.
 
-    LOYIHA EGASI KITOB BERDI: "PRICE ACTION STRATEGIES — TOP 15"
-    (`docs/NARX_HARAKATI_STRATEGIYALARI.md`). To'qqizta XARID
-    strategiyasidan oltitasi aynan bir xil uch qadamni
-    takrorlaydi:
+    3.3  ZONA YAGONA MANBA
+         Ball bir zonadan, Stop boshqasidan hisoblanadi (saralash
+         kalitlari boshqa). Narx ikki zona orasida bo'lsa ular
+         ajraladi.
 
-        1. daraja YORIB o'tiladi
-        2. narx unga QAYTA SINOVGA keladi
-        3. o'sha yerda BUQASIMON sham  ->  kirish
-
-    BIZDA BU YO'Q. `classic_ta` narx arzon zonada bo'lsa kiradi
-    — qaytishni KUTMAYDI, tasdiq SO'RAMAYDI. Kitob esa aynan shu
-    xatoni ogohlantiradi:
-
-        "Ba'zan biz ham xato qilamizki, biz narx kritik zonaga
-         yaqin bo'lganda savdoga kiramiz va stoploss tezda
-         uriladi."
-
-    BU FILTR EMAS — BOSHQA KIRISH MEXANIZMI. Shuning uchun u
-    alohida strategiya, va bu yugurish ikkalasini YONMA-YON
-    qo'yadi:
-
-        hozirgi holat          faqat classic_ta
-        narx harakati (yolg'iz) faqat kitob usuli
-        ikkalasi birga         qo'shilib nima bo'ladi
-
-    Faqat XARID: kitobdagi sotish naqshlari umuman qurilmagan.
+    Oxirgi variant uchalasini birga yoqadi: alohida ta'sirsiz
+    bo'lgan narsa birga ta'sir qilishi mumkin (ablation darsi).
     """
-    faqat_kitob = dataclasses.replace(
-        asos,
-        strategies=dataclasses.replace(
-            asos.strategies,
-            classic_ta=dataclasses.replace(
-                asos.strategies.classic_ta, enabled=False
-            ),
-            narx_harakati=dataclasses.replace(
-                asos.strategies.narx_harakati, enabled=True
-            ),
-        ),
-    )
     return [
         ("hozirgi holat", asos),
-        # ASOSIY TAQQOSLASH: kitob usuli YOLG'IZ.
-        ("narx harakati (yolg'iz)", faqat_kitob),
-        # Ikkalasi birga — signal soni oshadi, sifat nima bo'ladi?
-        _narx_harakati_bilan(asos, "ikkalasi birga", enabled=True),
-        # Tasdiq shami SHART emas: kitobning eng ko'p takrorlangan
-        # qoidasi shu, uni o'chirib ko'rish uning qiymatini
-        # o'lchaydi.
-        _narx_harakati_bilan(
-            asos,
-            "kitob, tasdiqsiz",
-            enabled=True,
-            tasdiq_shami_shart=False,
+        _qoidalar_bilan(
+            asos, "3.1 pol faqat o'lchanganda", tp1_ratio_tuzilmaviy_zonaga=False
         ),
-        # Qayta sinov oynasi torroq: "tez qaytgan" naqsh
-        # kuchliroqmi?
-        _narx_harakati_bilan(
-            asos, "kitob, qayta sinov 5", enabled=True, qayta_sinov_oynasi=5
-        ),
+        _sr_bilan(asos, "3.2 chuqurlik darvozadan", chuqurlik_darvozadan=True),
+        _sr_bilan(asos, "3.3 zona yagona manba", zona_yagona_manba=True),
+        _uchalasi(asos),
     ]
+
+
+def _uchalasi(asos: AppConfig) -> tuple[str, AppConfig]:
+    """Uchala tuzatish birga."""
+    qoidalar = dataclasses.replace(
+        asos.trade_rules, tp1_ratio_tuzilmaviy_zonaga=False
+    )
+    sr = dataclasses.replace(
+        asos.analysis.support_resistance,
+        chuqurlik_darvozadan=True,
+        zona_yagona_manba=True,
+    )
+    return "3.1+3.2+3.3 birga", dataclasses.replace(
+        asos,
+        trade_rules=qoidalar,
+        analysis=dataclasses.replace(asos.analysis, support_resistance=sr),
+    )
 
 
 class Chiqish:

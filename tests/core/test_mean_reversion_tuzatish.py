@@ -284,11 +284,30 @@ def test_zanjir_uchidan_uchiga_bir_xil_nisbat(config: AppConfig) -> None:
     Ular ajralib qolsa signal hech qachon chiqmaydi va sabab
     dashboardda ko'rinmaydi.
     """
+    import ast
     import inspect
+    import textwrap
 
     from core.analysis.strategies import classic_ta as modul
 
     manba = inspect.getsource(modul.ClassicTaStrategy.analyze)
     assert "qoidalar = classic_ta_rules(self._config)" in manba
-    assert "build_levels(\n            zona_xaritasi, qoidalar, portfolio=" in manba
     assert "rules=qoidalar" in manba, "ball hisobiga ham uzatilishi shart"
+
+    # Matn qidiruvi emas, TUZILMA: qator uzunligi yoki yangi argument
+    # qo'shilishi testni buzmasin — muhimi `qoidalar` uzatilgani.
+    daraxt = ast.parse(textwrap.dedent(manba))
+    chaqiruvlar = [
+        tugun
+        for tugun in ast.walk(daraxt)
+        if isinstance(tugun, ast.Call)
+        and isinstance(tugun.func, ast.Name)
+        and tugun.func.id == "build_levels"
+    ]
+    assert len(chaqiruvlar) == 1, "build_levels aynan bir marta chaqirilsin"
+    argumentlar = [
+        a.id for a in chaqiruvlar[0].args if isinstance(a, ast.Name)
+    ]
+    assert "qoidalar" in argumentlar, (
+        "darajalar `classic_ta_rules()` qaytargan qoidalardan qurilsin"
+    )

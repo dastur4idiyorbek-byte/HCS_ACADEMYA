@@ -228,7 +228,13 @@ class ClassicTaStrategy(Strategy):
         # aniqlangach hisoblanadi. Ilgari bu argument uzatilmasdi va
         # sozlama butunlay o'lik edi.
         daraja_natijasi = build_levels(
-            zona_xaritasi, qoidalar, portfolio=self._config.portfolio
+            zona_xaritasi,
+            qoidalar,
+            portfolio=self._config.portfolio,
+            # Ball, daraja turi va sweep AYNAN shu zona haqida.
+            # Bayroq o'chiq bo'lsa `build_levels` zonani qaytadan
+            # qidiradi va boshqasini topishi mumkin (audit 3.3).
+            support=zona if analysis.support_resistance.zona_yagona_manba else None,
         )
         if not daraja_natijasi.ok:
             return self._reject(daraja_natijasi.stage, daraja_natijasi.reason)

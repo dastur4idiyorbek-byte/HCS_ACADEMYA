@@ -26,6 +26,7 @@ from core.analysis.support_resistance.fibonacci import (
 )
 from core.analysis.support_resistance.pivots import Pivot, count_touches, find_pivots
 from core.analysis.support_resistance.range_position import (
+    EQUILIBRIUM_PCT,
     RangePosition,
     compute_range_position,
 )
@@ -53,6 +54,11 @@ class ZoneMap:
     #: degani aynan shu), lekin joriy harakatning cho'qqisi baribir mavjud.
     swing_low: float | None = None
     swing_high: float | None = None
+    #: Discount/Premium chegarasi. Standart 50% (muvozanat chizig'i).
+    #: `chuqurlik_darvozadan` yoqilganda detektor bu yerga
+    #: `entry_max_range_pct` ni qo'yadi — darvoza va ball bitta
+    #: manbadan o'qisin (audit 3.2).
+    equilibrium_pct: float = EQUILIBRIUM_PCT
 
     @property
     def supports(self) -> list[SRZone]:
@@ -120,7 +126,9 @@ class ZoneMap:
         )
         if support is None or resistance is None:
             return None
-        return compute_range_position(self.price, support, resistance)
+        return compute_range_position(
+            self.price, support, resistance, self.equilibrium_pct
+        )
 
     def _synthetic_zone(self, level: float | None, kind: ZoneKind) -> SRZone | None:
         """Swing darajasidan tor zaxira zona quradi (diapazon tayanchi uchun)."""
@@ -193,6 +201,12 @@ class SupportResistanceDetector:
             proximity_atr=self._config.proximity_atr_mult,
             swing_low=harakat.low if harakat else None,
             swing_high=harakat.high if harakat else None,
+            # Darvoza va ball BITTA manbadan o'qisinmi (audit 3.2).
+            equilibrium_pct=(
+                self._config.entry_max_range_pct
+                if self._config.chuqurlik_darvozadan
+                else EQUILIBRIUM_PCT
+            ),
         )
 
     # ------------------------------------------------------------------ #

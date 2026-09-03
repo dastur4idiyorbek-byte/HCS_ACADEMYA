@@ -60,10 +60,18 @@ class RangePosition:
     support: SRZone
     resistance: SRZone
     price: float
+    #: Discount/Premium chegarasi. Standart 50% — muvozanat chizig'i.
+    #: `chuqurlik_darvozadan` yoqilganda bu yerga `entry_max_range_pct`
+    #: tushadi va darvoza bilan ball BITTA manbadan o'qiydi (audit 3.2).
+    equilibrium_pct: float = EQUILIBRIUM_PCT
 
     @property
     def band(self) -> RangeBand:
-        return RangeBand.DISCOUNT if self.percent < EQUILIBRIUM_PCT else RangeBand.PREMIUM
+        return (
+            RangeBand.DISCOUNT
+            if self.percent < self.equilibrium_pct
+            else RangeBand.PREMIUM
+        )
 
     @property
     def is_discount(self) -> bool:
@@ -80,9 +88,11 @@ class RangePosition:
         Discount — yuqoriroq ball.
         """
         cheklangan = max(0.0, min(100.0, self.percent))
+        chegara = self.equilibrium_pct
         if self.is_discount:
-            return (EQUILIBRIUM_PCT - cheklangan) / EQUILIBRIUM_PCT
-        return (cheklangan - EQUILIBRIUM_PCT) / EQUILIBRIUM_PCT
+            return (chegara - cheklangan) / chegara if chegara > 0 else 0.0
+        qolgan = 100.0 - chegara
+        return (cheklangan - chegara) / qolgan if qolgan > 0 else 0.0
 
     @property
     def is_outside_range(self) -> bool:
@@ -139,6 +149,7 @@ def compute_range_position(
     price: float,
     support: SRZone,
     resistance: SRZone,
+    equilibrium_pct: float = EQUILIBRIUM_PCT,
 ) -> RangePosition | None:
     """Narxning diapazon ichidagi joylashuvini foizda hisoblaydi.
 
@@ -163,4 +174,5 @@ def compute_range_position(
         support=support,
         resistance=resistance,
         price=price,
+        equilibrium_pct=equilibrium_pct,
     )
