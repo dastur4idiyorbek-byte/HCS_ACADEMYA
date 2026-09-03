@@ -215,3 +215,78 @@ xatti-harakat mavjud emas.
 Bu 3-bosqichning 3.1 va 3.3 bandlariga bevosita tegishli: agar
 kirish zona narxiga qo'yilsa, TP1 masofasi ham, Stop masofasi ham,
 qoidalarning ishlashi ham o'zgaradi.
+
+---
+
+## 6. Audit 3-bosqichi o'lchandi (Actions #17)
+
+Uch "yarim holat" bayroq ostida qo'yilib, bir xil oynada o'lchandi.
+
+| variant | signal | foydali | PF | o'rtacha | jami | pasayish |
+|---|---|---|---|---|---|---|
+| **hozirgi holat** | 593 | 28.8% | **0.84** | −0.45% | −269.5 | 445.1% |
+| 3.1 pol faqat o'lchanganda | 1092 | 17.6% | **0.32** | −1.36% | −1482.3 | 1504.3% |
+| 3.2 chuqurlik darvozadan | 594 | 28.6% | 0.83 | −0.48% | −284.1 | 456.4% |
+| 3.3 zona yagona manba | 593 | 28.8% | 0.84 | −0.45% | −269.5 | 445.1% |
+| 3.1+3.2+3.3 birga | 1113 | 17.8% | 0.33 | −1.36% | −1507.1 | 1529.1% |
+
+### 3.1 — RAD ETILDI, va bu auditning xulosasini AGDARADI
+
+Audit "TP doim bitta chiqishi" ni nuqson deb belgilagan edi va u
+mantiqan shunday ko'rinardi: qismli sotish ishlamayapti, uning izidan
+bir necha tarmoq o'lik qolgan.
+
+O'lchov teskarisini aytdi:
+
+    PF          0.84  ->  0.32
+    foydali     28.8% ->  17.6%
+    bitta savdo −0.45% -> −1.36%   (uch barobar yomon)
+    signal       593  ->  1092     (ikki barobar ko'p)
+
+Ya'ni polni tuzilmaviy zonadan olib tashlash ikki barobar ko'p, lekin
+ikki barobar yomon signal beradi. **"Doim bitta TP" — nuqson emas,
+HIMOYA.** U tizimni PF 0.32 dan 0.84 ga ko'taradigan yagona
+mexanizmlardan biri.
+
+Bu natija #9 bilan ham mos: o'sha yerda pol yoqilganda PF 0.30 dan
+0.82 ga ko'tarilgan edi. Endi ma'lum bo'ldiki, ko'tarishning KATTA
+QISMI aynan tuzilmaviy filtrdan kelgan.
+
+`tp1_ratio_tuzilmaviy_zonaga` **true bo'lib qoladi**. Uning izidagi
+"o'lik tarmoqlar" (TP1_HIT, breakeven, TP2) o'chirilmaydi ham: ular
+`max_take_profits` yoki nisbatlar o'zgarsa tiriladi.
+
+### 3.2 — RAD ETILDI (zaif, lekin bir tomonlama)
+
+    PF          0.84 -> 0.83
+    bitta savdo −0.45% -> −0.48%
+    signal       593 -> 594
+
+50-55% bandini ballga kiritish 96 ta qo'shimcha nomzodni chegaradan
+o'tkazdi, lekin signal atigi BITTAGA ko'paydi. Qolgani sig'imda
+to'xtadi: `max_open_signals` 3540 dan 3636 ga chiqdi.
+
+Ya'ni darvozani 55% ga kengaytirish amalda bekor — lekin sababi
+ball emas, O'RIN yo'qligi. Bayroq o'chiq qoladi.
+
+### 3.3 — HECH QANDAY FARQ YO'Q
+
+Natija tayanch bilan bit-ma-bit bir xil: 593 signal, PF 0.84,
+−0.45%, voronka ham aynan bir xil.
+
+Demak `active_zone()` va `nearest_support()` 21 240 ta baholashning
+BIRORTASIDA ham boshqa zona qaytarmagan. Ikki manba kodda bor, lekin
+amalda hech qachon ajralmaydi.
+
+Bu "muammo yo'q" degani emas — bu "muammo hali yuz bermagan" degani.
+Zona qidiruv qoidalari o'zgargan kuni ular ajralishi mumkin.
+
+### Xulosa
+
+Auditning uchta topilmasidan **bittasi ham yaxshilanish bermadi**.
+Bittasi (3.1) esa tuzatilganda tizimni deyarli uch barobar
+yomonlashtirdi.
+
+Bu qimmatli natija: "mantiqan to'g'riroq ko'rinadi" degan dalil yana
+bir marta noto'g'ri chiqdi. Loyihaning qoidasi — har o'zgarish
+o'lchansin — aynan shu sababdan bor.

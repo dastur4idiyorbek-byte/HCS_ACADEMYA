@@ -33,7 +33,7 @@ yoziladi. O'lchangandan keyingina holati o'zgaradi.
 ## Hisob
 
     o'lchanmagan  (🔴)   124
-    aniq emas     (🟡)     8
+    aniq emas     (🟡)     9
     gipoteza emas (🟢)     9
     rad etilgan   (⚫)     6
     -------------------------
@@ -942,9 +942,15 @@ standart holatda hozirgi xatti-harakat.
 
 | Holat | Sozlama | Qiymat | Izoh |
 |---|---|---|---|
-| 🔴 | `tp1_ratio_tuzilmaviy_zonaga` | true | pol (2.0) yakuniy nishondan (1.5) yuqori -> TP DOIM bitta (189/189 o'lchandi) |
-| 🔴 | `chuqurlik_darvozadan` | false | darvoza 55%, chuqurlik 50% dan -> 50-55% bandidagi nomzod S/R omilining 35% ulushini yo'qotadi |
-| 🔴 | `zona_yagona_manba` | false | ball bir zonadan, Stop boshqasidan hisoblanadi |
+| 🟢 | `tp1_ratio_tuzilmaviy_zonaga` | true | O'LCHANDI: o'chirilsa PF 0.84 -> 0.32. "Doim bitta TP" nuqson emas, HIMOYA |
+| ⚫ | `chuqurlik_darvozadan` | false | O'LCHANDI: PF 0.84 -> 0.83, signal +1. 96 nomzod chegaradan o'tdi, lekin sig'im to'sdi |
+| 🟡 | `zona_yagona_manba` | false | O'LCHANDI: farq YO'Q (bit-ma-bit bir xil). Ikki manba 21 240 baholashda hech qachon ajralmadi |
+
+**3.1 AUDIT XULOSASINI AGDARDI.** Audit "TP doim bitta" ni nuqson
+deb belgilagan edi. O'lchov teskarisini aytdi: polni tuzilmaviy
+zonadan olib tashlash signalni ikki barobar ko'paytiradi (593 ->
+1092) va natijani uch barobar yomonlashtiradi (−0.45% -> −1.36%).
+To'liq: `docs/BACKTEST_NATIJA_2026-09-03_3.md`, 6-bo'lim.
 
 ### Yangi 🔴 — kirish narxi joriy narxga teng
 
