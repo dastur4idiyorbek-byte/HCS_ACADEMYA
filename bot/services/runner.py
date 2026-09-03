@@ -38,6 +38,7 @@ from core.market_data.ranking import RankingUnavailableError
 from core.pipeline import CycleInput, CycleResult, SignalCycle, SignalMonitor, SymbolData
 from core.pipeline.events import derive_events
 from core.position_sizing import PositionSizer, compute_aggregate_capacity
+from core.risk_engine.btc_filter import btc_ozgarishi_24h
 from core.storage import Database
 from core.storage.repositories import (
     CoinRulingRepository,
@@ -49,13 +50,9 @@ from core.storage.repositories import (
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
-from core.utils.time_utils import timeframe_minutes, utc_now
+from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
-
-#: Bir kundagi daqiqalar — 24 soatlik o'zgarishni hisoblash uchun
-MINUTES_PER_DAY = 1440
-
 
 @dataclass(slots=True)
 class UniverseCache:
@@ -509,41 +506,18 @@ class PipelineRunner:
         return max(0.0, -kunlik), max(0.0, -haftalik)
 
     def _btc_ozgarishi(self, candles: dict) -> float | None:  # noqa: ANN001
-        """BTC ning 24 soatlik o'zgarishi, foizda (4.5-band filtri uchun).
+        """BTC ning 24 soatlik o'zgarishi (4.5-band filtri uchun).
 
-        E'LON QILINGAN, LEKIN ULANMAGAN edi. `BtcMarketRule` bor,
-        `BtcFilterConfig` bor, `CycleInput.btc_change_24h_pct` maydoni
-        ham bor — lekin uni HECH KIM to'ldirmasdi. Qiymat doim `None`
-        bo'lib qolardi va qoida fail-safe tarmog'iga tushardi:
-
-            "BTC holati noma'lum — umumiy bozor filtri tekshirilmadi."
-
-        Ya'ni ball chegarasidan o'tgan HAR BIR nomzod shu yerda
-        to'xtardi. Jonli o'lchovda: 119 tadan 119 tasi.
-
-        Timeframe konfiguratsiyadan olinadi, lekin u yuklanmagan bo'lsa
-        kirish timeframeiga tushiladi — aks holda sozlama o'zgarganda
-        filtr yana jimgina "noma'lum" holatiga qaytardi.
+        Hisob `core/risk_engine/btc_filter.py` da — BACKTEST HAM aynan
+        shuni chaqiradi. Ilgari u faqat shu yerda edi va sinov
+        `btc_change_24h_pct=0.0` uzatardi: qoida jonlida to'xtatib,
+        sinovda hech qachon to'xtatmasdi.
         """
-        filtr = self._config.risk_engine.btc_filter
-        tf_shamlar = candles.get(filtr.reference_symbol.upper(), {})
-        if not tf_shamlar:
-            return None
-
-        timeframe = (
-            filtr.timeframe
-            if filtr.timeframe in tf_shamlar
-            else self._config.analysis.entry_timeframe
+        return btc_ozgarishi_24h(
+            candles,
+            self._config.risk_engine.btc_filter,
+            self._config.analysis.entry_timeframe,
         )
-        seriya = tf_shamlar.get(timeframe, [])
-        kerak = max(1, MINUTES_PER_DAY // timeframe_minutes(timeframe))
-        if len(seriya) <= kerak:
-            return None
-
-        avvalgi = seriya[-1 - kerak].close
-        if avvalgi <= 0:
-            return None
-        return (seriya[-1].close - avvalgi) / avvalgi * 100
 
     def _joriy_narx(self, candles: dict, symbol: str) -> float | None:  # noqa: ANN001
         """Kirish timeframedagi oxirgi yopilish narxi."""

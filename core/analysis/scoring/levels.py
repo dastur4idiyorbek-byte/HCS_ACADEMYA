@@ -212,7 +212,15 @@ def build_levels_with_stop(
             from_structure=manbalar,
         )
     except ValueError as exc:
-        return LevelResult(None, f"Darajalar tartibi buzildi: {exc}", tuzilmaviy_tp)
+        # NOMLI argument SHART: uchinchi pozitsion argument `stage`,
+        # unga bool uzatilsa bosqich "classic_ta:True" bo'lib chiqadi
+        # va voronkada umuman sanalmaydi.
+        return LevelResult(
+            None,
+            f"Darajalar tartibi buzildi: {exc}",
+            stage="levels:tartib_buzildi",
+            tp_from_structure=tuzilmaviy_tp,
+        )
 
     izoh = (
         f"Darajalar S/R va ATR asosida qurildi ({len(narxlar)} ta TP)"
@@ -445,7 +453,12 @@ def _bitta_nishon(
     try:
         levels = signal_levels(entry, stop, tp1, from_structure=(tuzilmaviy,))
     except ValueError as exc:
-        return LevelResult(None, f"Darajalar tartibi buzildi: {exc}", tuzilmaviy)
+        return LevelResult(
+            None,
+            f"Darajalar tartibi buzildi: {exc}",
+            stage="levels:tartib_buzildi",
+            tp_from_structure=tuzilmaviy,
+        )
 
     return LevelResult(
         levels,

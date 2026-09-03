@@ -31,6 +31,7 @@ from core.config.schema import AppConfig
 from core.domain.enums import HalalStatus, SignalStatus
 from core.domain.models import Candle, HalalVerdict, Signal
 from core.pipeline import CycleInput, SignalCycle, SymbolData
+from core.risk_engine.btc_filter import btc_ozgarishi_24h
 from core.signals import SignalEventKind, SignalTracker
 from core.utils.logging_setup import get_logger
 
@@ -85,6 +86,78 @@ class BacktestTrade:
 #: R/R ni foizdan nisbatga aylantirish uchun shartli birlik — 1% harakat
 #: bir "R" deb olinadi, chunki backtest har savdoga teng miqdor qo'yadi.
 _RR_BIRLIGI = 1.0
+
+
+#: Voronka bosqichlari — qaror zanjiri tartibida.
+#:
+#: Bu ro'yxat `core/pipeline/context.py` dagi STAGE_LABELS bilan bir
+#: xil bosqichlarni nomlaydi, lekin STRATEGIYA PREFIKSISIZ: voronka
+#: "qaysi strategiya" emas, "qaysi qadam" degan savolga javob beradi.
+VORONKA_TARTIBI: tuple[str, ...] = (
+    # Sikl darajasi — bitta yozuv barcha coinlarni to'xtatadi
+    "market_health",
+    # Barcha strategiyalar uchun umumiy boshlanish
+    "halal",
+    "data",
+    "regime",
+    # `opening_range_scalp` ning o'z zanjiri
+    "session",
+    "window",
+    # `correction_entry` ning yo'nalish darvozasi
+    "trend",
+    "impulse",
+    # Zona qatlami — `classic_ta` ning yadrosi
+    "zones",
+    "zone_position",
+    # `narx_harakati`: yorish -> qayta sinov -> tasdiq
+    "naqsh",
+    # `correction_entry` ning zona qatlami
+    "retracement",
+    "confluence",
+    # `opening_range_scalp` ning kirish sharti
+    "range",
+    "breakout",
+    "volume",
+    # Umumiy tasdiq va daraja qatlami
+    "structure",
+    "timeframes",
+    "indicators",
+    "confirmation",
+    "confirm",
+    "levels",
+    # Ball va ruxsat
+    "setup_contract",
+    "score_floor",
+    "threshold",
+    "risk_engine",
+    # Terminal holatlar: strategiya nomzod ham qurmadi, yoki yiqildi
+    "no_setup",
+    "error",
+)
+
+#: Tanilmagan bosqichlar shu qatorga yig'iladi — yig'indi buzilmasin.
+BOSHQA_BOSQICH = "boshqa"
+
+
+def voronka_kaliti(bosqich: str) -> str:
+    """Rad etish kodidan voronka bosqichini ajratadi.
+
+    Kodlar uch shaklda keladi:
+
+        "market_health"                       sikl darajasi
+        "classic_ta:zone_position"            strategiya bosqichi
+        "classic_ta:levels:stop_too_close"    bosqichning tafsiloti
+        "risk_engine:btc_market_filter"       qoida nomi
+
+    `risk_engine` ALOHIDA tekshiriladi: uning ostida
+    "score_below_threshold" degan qoida bor va u oddiy qidiruvda
+    "threshold" bosqichiga tushib ketardi.
+    """
+    if bosqich.startswith("risk_engine"):
+        return "risk_engine"
+    qismlar = bosqich.split(":")
+    nom = qismlar[1] if len(qismlar) > 1 else qismlar[0]
+    return nom if nom in VORONKA_TARTIBI else BOSHQA_BOSQICH
 
 
 @dataclass(slots=True)
@@ -203,27 +276,52 @@ class BacktestResult:
     def funnel(self) -> list[tuple[str, int, int, int, float]]:
         """Voronka: `(bosqich, kirdi, rad etildi, o'tdi, o'tish %)`.
 
-        Rad etishlar bosqichma-bosqich yig'ilgani uchun har bosqichga
-        kirganlar soni — undan keyingi barcha rad etishlar va chiqqan
-        signallar yig'indisi.
+        HECH BIR RAD ETISH YO'QOLMAYDI. Ilgari bu yerda to'rtta kalit
+        turardi ("zone_position", "levels", "threshold", "risk_engine")
+        va qolgan o'n uchta bosqich — halal, data, zones, regime,
+        structure, timeframes, indicators, confirmation,
+        setup_contract, score_floor, market_health va boshqalar —
+        jimgina tashlab yuborilardi. Voronka "hammasi shu yerda
+        to'xtadi" deb ko'rsatar, aslida esa nomzodlarning katta qismi
+        undan oldin yo'qolgan bo'lardi.
+
+        Tanilmagan bosqich `BOSHQA_BOSQICH` qatoriga tushadi — ya'ni
+        yangi bosqich qo'shilganda ham yig'indi to'g'ri qoladi.
+        Buni `voronka_yigindisi` tekshiradi.
+
+        Rad etishsiz bosqich qatori chiqarilmaydi (jadval uzayib
+        ketmasin), lekin zanjir hisobi undan o'tadi.
         """
-        tartib = ["zone_position", "levels", "threshold", "risk_engine"]
-        yigilgan: dict[str, int] = {}
-        for bosqich, soni in self.rejections.items():
-            kalit = next((t for t in tartib if t in bosqich), None)
-            if kalit is not None:
-                yigilgan[kalit] = yigilgan.get(kalit, 0) + soni
+        yigilgan = self._voronka_yigindisi()
 
         qolgan = sum(yigilgan.values()) + self.signals_emitted
         qatorlar = []
-        for bosqich in tartib:
+        for bosqich in (*VORONKA_TARTIBI, BOSHQA_BOSQICH):
             rad = yigilgan.get(bosqich, 0)
             if qolgan <= 0:
                 break
             otdi = qolgan - rad
-            qatorlar.append((bosqich, qolgan, rad, otdi, otdi / qolgan * 100))
+            if rad > 0:
+                qatorlar.append((bosqich, qolgan, rad, otdi, otdi / qolgan * 100))
             qolgan = otdi
         return qatorlar
+
+    def _voronka_yigindisi(self) -> dict[str, int]:
+        """Rad etishlarni voronka bosqichlariga guruhlaydi."""
+        yigilgan: dict[str, int] = {}
+        for bosqich, soni in self.rejections.items():
+            kalit = voronka_kaliti(bosqich)
+            yigilgan[kalit] = yigilgan.get(kalit, 0) + soni
+        return yigilgan
+
+    @property
+    def voronka_yigindisi(self) -> int:
+        """Voronkaga tushgan rad etishlar soni.
+
+        `sum(rejections.values())` ga TENG bo'lishi shart: aks holda
+        biror bosqich hisobdan tushib qolgan. Test shuni qulflaydi.
+        """
+        return sum(self._voronka_yigindisi().values())
 
     def top_rejections(self, limit: int = 5) -> list[tuple[str, int]]:
         return sorted(self.rejections.items(), key=lambda kv: kv[1], reverse=True)[:limit]
@@ -642,7 +740,15 @@ class Backtester:
             symbols=coinlar,
             market_health=salomatlik,
             open_signals=ochiqlar,
-            btc_change_24h_pct=0.0,
+            # JONLI TIZIM BILAN BIR XIL funksiyadan. Ilgari bu yerda
+            # qattiq `0.0` turardi: `BtcMarketRule` sinovda hech
+            # qachon to'xtatmasdi, jonlida esa to'xtatardi. Dataset'da
+            # BTC bo'lmasa `None` qaytadi — "noma'lum", nol emas.
+            btc_change_24h_pct=btc_ozgarishi_24h(
+                oynalar,
+                self._config.risk_engine.btc_filter,
+                entry_tf,
+            ),
             adx_values=adx_qiymatlari,
             atr_values=atr_qiymatlari,
             price_ages=dict.fromkeys(adx_qiymatlari, 0.0),

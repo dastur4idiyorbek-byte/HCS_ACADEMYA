@@ -157,6 +157,9 @@ STAGE_LABELS: dict[str, str] = {
     "classic_ta:levels": "Darajalar risk qoidasiga sig'madi",
     "classic_ta:levels:stop_too_close": "Stop juda YAQIN — support zonasi yaqin",
     "classic_ta:levels:stop_too_far": "Stop juda UZOQ — ATR keng, shift 5% da",
+    "classic_ta:levels:tartib_buzildi": (
+        "Darajalar tartibi buzildi — Stop/TP mos kelmadi"
+    ),
     "classic_ta:levels:tp2_no_structure": (
         "TP1 dan yuqorida qarshilik zonasi yo'q — TP2 o'ylab topilmaydi"
     ),
@@ -180,6 +183,7 @@ STAGE_LABELS: dict[str, str] = {
     "narx_harakati:zones": "S/R zonalari aniqlanmadi",
     "narx_harakati:naqsh": "Yorish → qayta sinov → tasdiq naqshi yo'q",
     "narx_harakati:levels": "Darajalar risk qoidasiga sig'madi",
+    "narx_harakati:levels:tartib_buzildi": "Naqsh darajalari tartibi buzildi",
     "narx_harakati:levels:stop_too_close": "Naqsh Stopi juda YAQIN",
     "narx_harakati:levels:stop_too_far": "Naqsh Stopi juda UZOQ",
     "narx_harakati:levels:tp2_no_structure": "TP1 dan yuqorida zona yo'q",
