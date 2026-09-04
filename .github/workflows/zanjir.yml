@@ -7,6 +7,7 @@ name: Zanjir o'lchovi
 #   sigim         — portfel chegarasi nechtasini kesadi
 #   blok          — blok qoidasi 1/4 mi, 2/4 mi
 #   zaiflik       — qaysi ichki tekshiruv doim YO'Q chiqadi
+#   hisob         — 1000$ bilan nima bo'lardi (pozitsiya hajmi bilan)
 #
 # Nima uchun Actions'da: bu muhitdan Binance'ga chiqish yopiq, va
 # 730 kunlik yuklash mahalliy mashinada ham uzoq davom etadi.
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       olchov:
-        description: "backtest | ablatsiya | walk-forward | chegara | sigim | blok | zaiflik | hammasi"
+        description: "backtest | ablatsiya | walk-forward | chegara | sigim | blok | zaiflik | hisob | hammasi"
         default: "hammasi"
       days:
         description: "Necha kun tahlil qilinsin"
@@ -160,6 +161,15 @@ jobs:
             --symbols "${{ inputs.symbols }}" \
             --offline \
             | tee natija_zaiflik.txt
+
+      - name: Hisob simulyatsiyasi
+        if: inputs.olchov == 'hisob' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_hisob \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --offline \
+            | tee natija_hisob.txt
 
       - name: Sham keshini saqlash
         uses: actions/cache/save@v4
