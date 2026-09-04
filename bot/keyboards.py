@@ -210,7 +210,14 @@ def signal_actions(
         [
             InlineKeyboardButton(
                 text=t("signal.men_kirdim", language), callback_data=f"sig:enter:{signal_id}"
-            )
+            ),
+            # Grafik rasmlari ALOHIDA tugmada: ular odatda signal
+            # tarqatilgandan KEYIN yuklanadi (admin avval TradingView'da
+            # chizadi), natija rasmi esa signal YOPILGANDA. Kartochkaga
+            # bog'lansa, ikkalasi ham deyarli hech qachon ko'rinmasdi.
+            InlineKeyboardButton(
+                text=t("signal.rasmlar", language), callback_data=f"sig:rasm:{signal_id}"
+            ),
         ],
     ]
     if balans_yoq:

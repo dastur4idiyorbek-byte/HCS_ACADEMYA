@@ -135,6 +135,26 @@ def video_dir(database_url: str | None = None) -> Path:
     BIR XIL jildni ko'rsatishi shart, aks holda sayt yozgan faylni bot
     topa olmaydi. Qoida bitta: "baza fayli yonidagi `video` jildi".
     """
+    return _media_jildi("video", database_url)
+
+
+def signal_media_dir(database_url: str | None = None) -> Path:
+    """Signal grafiklari — admin qo'lda yuklaydigan rasmlar (4-prompt, 4-qism).
+
+    NUSXASI SAYTDA: `web/src/lib/media.ts` -> `signalJildi()`. Ikkalasi
+    BIR XIL jildni ko'rsatishi shart, aks holda sayt yozgan rasmni bot
+    topa olmaydi. `tests/bot/test_hosting.py` buni tekshiradi.
+    """
+    return _media_jildi("signal-media", database_url)
+
+
+def _media_jildi(nom: str, database_url: str | None = None) -> Path:
+    """Baza fayli YONIDAGI jild.
+
+    Alohida sozlama talab qilmaydi: doimiy disk boshqa joyga ulansa,
+    baza bilan birga ko'chadi. Konteyner diskida saqlash mumkin emas —
+    u har yangilanishda tozalanadi.
+    """
     baza = sqlite_file(database_url)
     asos = baza.resolve().parent if baza is not None else Path("data").resolve()
-    return asos / "video"
+    return asos / nom

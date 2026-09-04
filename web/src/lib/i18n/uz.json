@@ -146,7 +146,10 @@
     "kalk_qolganiga": "qolgan qismga",
     "kalk_qolda": "Qo'lda (olingan foyda)",
     "kalk_kutilmoqda": "Kutilmoqda (qolgan TP)",
-    "kalk_eng_yomon": "Eng yomon holat (Stop bo'lsa)"
+    "kalk_eng_yomon": "Eng yomon holat (Stop bo'lsa)",
+    "rasmlar": "Grafik rasmlari",
+    "rasm_kirish": "Signal berilgan payt",
+    "rasm_natija": "Yakuniy natija"
   },
   "statistika": {
     "sarlavha": "Statistika",
@@ -364,7 +367,14 @@
     "post_nashr": "Nashr etish",
     "post_royxat": "Postlar",
     "post_yoq": "Hali post yozilmagan.",
-    "zanjir": "Zanjir"
+    "zanjir": "Zanjir",
+    "rasm_kirish": "Kirish grafigi",
+    "rasm_natija": "Natija grafigi",
+    "rasm_yukla": "Rasmni yuklash",
+    "rasm_yuklandi": "✅ Rasm biriktirildi",
+    "rasm_yuklanmadi": "⚠️ Rasm yuklanmadi",
+    "rasm_ochir": "Rasmni olib tashlash",
+    "rasmlar_izoh": "TradingView'da chizib, skrinshot qilib yuklang. Rasm signal kartochkasida, kalkulyator bilan birga ko'rinadi."
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",

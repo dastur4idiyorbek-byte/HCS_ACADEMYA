@@ -13,6 +13,8 @@ import { kirim } from "@/lib/session";
 
 import { signalBer, signalOchirish } from "../amallar";
 
+import { SignalRasmlari } from "./rasmlar";
+
 export const dynamic = "force-dynamic";
 
 const MAYDONLAR = [
@@ -209,6 +211,19 @@ export default async function YangiSignal({
                       {t("admin.ochirish")}
                     </button>
                   </form>
+
+                  {/* Grafik rasmlari (4-prompt, 4-qism). Ochiq
+                      turadi, yig'ilmaydi: admin signal yopilganda
+                      natija rasmini qo'shishi kerak va yashirin
+                      bo'lsa buni unutish oson bo'lardi. */}
+                  <div className="w-full">
+                    <SignalRasmlari
+                      signalId={s.id}
+                      til={til}
+                      kirishRasmi={s.entryChartImage}
+                      natijaRasmi={s.resultChartImage}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

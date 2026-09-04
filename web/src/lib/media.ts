@@ -203,3 +203,69 @@ export function postYangiNom(
   }
   return `${tasodif}${kengaytma}`;
 }
+
+// --------------------------------------------------------------------------- //
+//  Signal grafiklari (4-prompt, 4-qism)
+// --------------------------------------------------------------------------- //
+
+/** Signal grafigi — FAQAT RASM. Audio bu yerda ma'nosiz. */
+const SIGNAL_TURLARI: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+};
+
+/** Signal grafiklari — post media bilan BIR DISKDA, alohida jildda.
+ *
+ * Aralashtirmaslik sababi: post o'chirilganda uning fayli ham
+ * o'chiriladi. Ikkalasi bitta jildda tursa, bir xil nomli fayl
+ * tasodifan boshqasini o'chirib yuborishi mumkin bo'lardi. */
+export function signalJildi(): string {
+  return resolve(dirname(resolve(bazaYoli())), "signal-media");
+}
+
+export function signalMimeTuri(nom: string): string {
+  return (
+    SIGNAL_TURLARI[extname(nom).toLowerCase()] ?? "application/octet-stream"
+  );
+}
+
+/** Signal rasmi uchun xavfsiz to'liq yo'l — `postYoli` bilan bir xil
+ *  ikki qavatli tekshiruv, sabab ham o'sha. */
+export function signalRasmYoli(nom: string): string {
+  if (!nom || nom.includes("/") || nom.includes("\\") || nom.includes("\0")) {
+    throw new MediaXatosi(`Fayl nomi noto'g'ri: ${nom}`);
+  }
+  const jild = signalJildi();
+  const toliq = resolve(jild, nom);
+  if (toliq !== resolve(jild, "./" + nom) || !toliq.startsWith(jild + "/")) {
+    throw new MediaXatosi(`Fayl jilddan tashqarida: ${nom}`);
+  }
+  return toliq;
+}
+
+export function signalYangiNom(
+  aslNom: string,
+  tasodif = crypto.randomUUID(),
+): string {
+  const kengaytma = extname(aslNom).toLowerCase();
+  if (!(kengaytma in SIGNAL_TURLARI)) {
+    throw new MediaXatosi(
+      `Grafik rasm bo'lishi kerak: ${kengaytma || aslNom}. ` +
+        `Ruxsat etilgan: ${Object.keys(SIGNAL_TURLARI).join(", ")}`,
+    );
+  }
+  return `${tasodif}${kengaytma}`;
+}
+
+/** Grafik rasmining eng katta hajmi (bayt). Skrinshot uchun 10 MB
+ *  yetarlidan ham ko'p. */
+export function signalEngKattaHajm(): number {
+  const xom = process.env.SIGNAL_MEDIA_MAX_MB?.trim();
+  const mb = xom ? Number(xom) : 10;
+  if (!Number.isFinite(mb) || mb <= 0) {
+    throw new MediaXatosi(`SIGNAL_MEDIA_MAX_MB noto'g'ri qiymat: ${xom}`);
+  }
+  return mb * 1024 * 1024;
+}

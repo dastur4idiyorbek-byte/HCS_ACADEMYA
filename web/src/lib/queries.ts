@@ -92,6 +92,10 @@ export type Signal = {
   resultPct: number | null;
   /** TP1 ga bir marta yetganmi — Stop kirish narxiga ko'tarilgan bo'ladi */
   tp1Reached: boolean;
+  /** Admin qo'lda yuklagan grafiklar (4-prompt, 4-qism). Yo'q bo'lsa
+   *  `null` — kartochkada shunchaki ko'rinmaydi. */
+  entryChartImage: string | null;
+  resultChartImage: string | null;
 };
 
 /** Botdagi `SignalStatus.is_enterable` — TP1 olgan yoki zaiflashgan
@@ -323,12 +327,15 @@ function signalgaAylantir(q: Qator): Signal {
     closedAt: vaqt(q.closed_at as string),
     resultPct: son(q.result_pct),
     tp1Reached: Boolean(q.tp1_reached),
+    entryChartImage: (q.entry_chart_image as string | null) ?? null,
+    resultChartImage: (q.result_chart_image as string | null) ?? null,
   };
 }
 
 const SIGNAL_USTUNLARI = `id, symbol, source, status, entry, stop, tp1, tp2, tp3,
   entry_order_type, score, halal_reason, score_breakdown,
-  market_health_at_entry, created_at, closed_at, result_pct, tp1_reached`;
+  market_health_at_entry, created_at, closed_at, result_pct, tp1_reached,
+  entry_chart_image, result_chart_image`;
 
 export function signallar(limit = 50): Signal[] {
   const qatorlar = db()
@@ -1170,10 +1177,13 @@ export function adminSignallar(limit = 100): {
   resultPct: number | null;
   createdAt: Date | null;
   broadcast: boolean;
+  entryChartImage: string | null;
+  resultChartImage: string | null;
 }[] {
   const qatorlar = db()
     .prepare(
-      `select id, symbol, status, entry, result_pct, created_at, broadcast_at
+      `select id, symbol, status, entry, result_pct, created_at, broadcast_at,
+              entry_chart_image, result_chart_image
          from signals order by created_at desc, id desc limit ?`,
     )
     .all(limit) as Qator[];
@@ -1185,6 +1195,8 @@ export function adminSignallar(limit = 100): {
     resultPct: q.result_pct === null ? null : Number(q.result_pct),
     createdAt: vaqt(q.created_at as string),
     broadcast: q.broadcast_at !== null,
+    entryChartImage: (q.entry_chart_image as string | null) ?? null,
+    resultChartImage: (q.result_chart_image as string | null) ?? null,
   }));
 }
 
@@ -1467,6 +1479,37 @@ export function videoBiriktir(
     ok: true,
     eskiNom: oldingi.videoPath === nom ? null : oldingi.videoPath,
   };
+}
+
+/** Signalga grafik rasmini biriktiradi (4-prompt, 4-qism).
+ *
+ * `maydon` — `entry` (signal berilgan payt) yoki `natija` (yopilgan
+ * paytdagi yakuniy grafik). Ikkalasi ALOHIDA saqlanadi: ular boshqa
+ * paytga tegishli va biri ikkinchisining o'rnini bosmaydi.
+ *
+ * Eski rasm nomi QAYTARILADI — chaqiruvchi uni diskdan o'chirishi
+ * uchun. Ansiz almashtirilgan rasm diskda abadiy qolardi.
+ */
+export function signalGrafigiBiriktir(
+  id: number,
+  maydon: "entry" | "natija",
+  nom: string | null,
+  hozir = new Date(),
+): { ok: boolean; eskiNom: string | null } {
+  const ustun = maydon === "entry" ? "entry_chart_image" : "result_chart_image";
+  const oldingi = db()
+    .prepare(`select ${ustun} as rasm from signals where id = ?`)
+    .get(id) as Qator | undefined;
+  if (!oldingi) return { ok: false, eskiNom: null };
+
+  db()
+    .prepare(`update signals set ${ustun} = ?, updated_at = ? where id = ?`)
+    .run(nom, vaqtSatri(hozir), id);
+
+  const eskiNom = (oldingi.rasm as string | null) ?? null;
+  // Bir xil nom qayta yozilsa, uni O'CHIRMASLIK kerak — aks holda
+  // endigina biriktirilgan fayl yo'q qilinardi.
+  return { ok: true, eskiNom: eskiNom === nom ? null : eskiNom };
 }
 
 // --------------------------------------------------------------------------- //

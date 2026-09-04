@@ -10,12 +10,15 @@ tekshiriladi — noto'g'ri tartib bazaga umuman yetib bormaydi.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, FSInputFile, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.formatting import render_signal_card
+from bot.hosting import signal_media_dir
 from bot.i18n import t
 from bot.keyboards import (
     admin_panel,
@@ -662,4 +665,68 @@ async def explain_halal(
         "kirmaydi (foizli qarz, qimor, an'anaviy moliya derivativlari)."
     )
     await callback.message.answer(matn, reply_markup=back_button(language=language))
+    await callback.answer()
+
+
+# --------------------------------------------------------------------------- #
+#  Signal grafiklari (4-prompt, 4-qism)
+# --------------------------------------------------------------------------- #
+
+
+def _grafik_yoli(nom: str | None) -> Path | None:
+    """Rasm nomidan xavfsiz to'liq yo'l.
+
+    Nom bazadan keladi, lekin u bir vaqtlar SO'ROVDAN kelgan. Shuning
+    uchun ikki qavat tekshiruv (saytdagi `signalRasmYoli` bilan bir
+    xil qoida): avval nomning o'zi, keyin natija jild ichida ekani.
+    Birinchisi o'tkazib yuborsa, ikkinchisi tutadi.
+    """
+    if not nom or "/" in nom or "\\" in nom or "\0" in nom:
+        return None
+    jild = signal_media_dir().resolve()
+    toliq = (jild / nom).resolve()
+    if toliq.parent != jild or not toliq.is_file():
+        return None
+    return toliq
+
+
+@user_router.callback_query(F.data.startswith("sig:rasm:"))
+async def show_charts(
+    callback: CallbackQuery, database: Database, language: str, **_: object
+) -> None:
+    """Admin qo'lda yuklagan grafik rasmlarini ko'rsatadi.
+
+    NIMA UCHUN ALOHIDA TUGMA, kartochkaga qo'shib yuborilmaydi:
+    rasm odatda signal TARQATILGANDAN KEYIN yuklanadi (admin avval
+    TradingView'da chizadi), natija rasmi esa signal YOPILGANDA.
+    Kartochkaga bog'lansa, ikkalasi ham deyarli hech qachon
+    ko'rinmasdi.
+
+    `protect_content=True` — rasm signalning bir qismi: unda kirish,
+    Stop va TP darajalari chizilgan bo'lishi mumkin.
+    """
+    signal_id = int(callback.data.rsplit(":", 1)[1])
+    async with database.session() as session:
+        yozuv = await SignalRepository(session).get(signal_id)
+        kirish = yozuv.entry_chart_image if yozuv else None
+        natija = yozuv.result_chart_image if yozuv else None
+
+    rasmlar = [
+        (_grafik_yoli(kirish), "🖼 Signal berilgan payt"),
+        (_grafik_yoli(natija), "🏁 Yakuniy natija"),
+    ]
+    mavjud = [(yol, izoh) for yol, izoh in rasmlar if yol is not None]
+
+    if not mavjud:
+        await callback.answer(t("signal.rasm_yoq", language), show_alert=True)
+        return
+
+    for yol, izoh in mavjud:
+        try:
+            await callback.message.answer_photo(
+                FSInputFile(yol), caption=izoh, protect_content=True
+            )
+        except Exception:  # noqa: BLE001 — bitta rasm qolganini to'xtatmasin
+            logger.warning("Signal grafigi yuborilmadi: %s", yol)
+
     await callback.answer()

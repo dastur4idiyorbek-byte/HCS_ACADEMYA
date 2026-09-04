@@ -16,7 +16,13 @@ import { hajmTaklifi } from "@/lib/hajm";
 import { kalkulyatorMatnlari, kartochkaMatnlari, tarjimon } from "@/lib/i18n";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 import { amaldagiStop } from "@/lib/kirish-holati";
-import { davomEtmoqda, kirishMumkin, pozitsiyaOl, signalOl, tarifQamraydi } from "@/lib/queries";
+import {
+  davomEtmoqda,
+  kirishMumkin,
+  pozitsiyaOl,
+  signalOl,
+  tarifQamraydi,
+} from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { kirdim } from "../amallar";
@@ -48,7 +54,9 @@ export default async function SignalSahifasi({
 
   // Suv belgisida ID turadi: skrinshot tarqalsa, u kimdan chiqqani ko'rinadi
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
-  const pozitsiya = foydalanuvchi ? pozitsiyaOl(foydalanuvchi.id, signal.id) : null;
+  const pozitsiya = foydalanuvchi
+    ? pozitsiyaOl(foydalanuvchi.id, signal.id)
+    : null;
   // Taklif — BOTDAGI hisobning aynan o'zi (`web/src/lib/hajm.ts`).
   // Kalkulyator ham, "Men sotib oldim" ham SHU raqamdan boshlanadi,
   // ya'ni foydalanuvchi bir sahifada ikki xil son ko'rmaydi.
@@ -64,8 +72,11 @@ export default async function SignalSahifasi({
   // Stop kirish narxiga teng, ya'ni "xavf puli / Stop masofasi"
   // formulasi ma'nosini yo'qotadi — va bu signalga endi kirilmaydi ham.
   const taklif =
-    balans === null || !yangiKirish ? null : hajmTaklifi(balans, signal.entry, stop);
-  const buyurtma = signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
+    balans === null || !yangiKirish
+      ? null
+      : hajmTaklifi(balans, signal.entry, stop);
+  const buyurtma =
+    signal.entryOrderType === "market" ? "signal.market" : "signal.limit";
 
   return (
     <>
@@ -110,17 +121,23 @@ export default async function SignalSahifasi({
         {signal.tp1Reached && (
           <Card variant="urgu">
             <CardTitle>🛡 {t("signal.breakeven_sarlavha")}</CardTitle>
-            <p className="mt-2 text-sm leading-relaxed">{t("signal.breakeven_izoh")}</p>
+            <p className="mt-2 text-sm leading-relaxed">
+              {t("signal.breakeven_izoh")}
+            </p>
             <p className="text-matn-past mt-3 text-xs uppercase">
               {t("signal.yangi_stop")}
             </p>
-            <p className="raqam text-sarlavha text-lg font-bold">{narx(signal.entry)}</p>
+            <p className="raqam text-sarlavha text-lg font-bold">
+              {narx(signal.entry)}
+            </p>
           </Card>
         )}
 
         {!yangiKirish && !pozitsiya && (
           <div className="border-past/60 bg-past/10 rounded-kartochka border p-4">
-            <p className="text-past text-sm font-semibold">⛔ {t("signal.faol_emas")}</p>
+            <p className="text-past text-sm font-semibold">
+              ⛔ {t("signal.faol_emas")}
+            </p>
             <p className="text-matn-past mt-1 text-sm leading-relaxed">
               {t("signal.faol_emas_izoh")}
             </p>
@@ -165,10 +182,15 @@ export default async function SignalSahifasi({
               📉 {t("signal.taklif_xavf")}: −${pul(taklif.xavf)}
             </p>
             <CardHint className="mt-2">
-              {t("signal.taklif_izoh").replace("{foiz}", taklif.kunlikXavfFoiz.toFixed(1))}
+              {t("signal.taklif_izoh").replace(
+                "{foiz}",
+                taklif.kunlikXavfFoiz.toFixed(1),
+              )}
             </CardHint>
             {taklif.kesilgan && (
-              <CardHint className="mt-1">ℹ️ {t("signal.taklif_kesilgan")}</CardHint>
+              <CardHint className="mt-1">
+                ℹ️ {t("signal.taklif_kesilgan")}
+              </CardHint>
             )}
           </Card>
         )}
@@ -191,6 +213,53 @@ export default async function SignalSahifasi({
             />
           </div>
         </Card>
+
+        {/* Admin QO'LDA yuklagan grafiklar (4-prompt, 4-qism).
+            Tizimning o'z grafigi (yuqorida, TradingView) darajalarni
+            ko'rsatadi; bu rasmlar esa STRUKTURANI — nega aynan shu joy
+            tanlangani va oxirida nima bo'lgani. Ikkalasi boshqa
+            savolga javob beradi, shuning uchun biri ikkinchisining
+            o'rnini bosmaydi.
+
+            HIMOYA ICHIDA: rasmda kirish va TP darajalari chizilgan
+            bo'lishi mumkin — ya'ni bu signalning o'zi. */}
+        {(signal.entryChartImage || signal.resultChartImage) && (
+          <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
+            <Card>
+              <CardTitle>🖼 {t("signal.rasmlar")}</CardTitle>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {signal.entryChartImage && (
+                  <figure>
+                    <figcaption className="text-matn-past mb-1.5 text-xs uppercase">
+                      {t("signal.rasm_kirish")}
+                    </figcaption>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/signal-media/${signal.entryChartImage}`}
+                      alt={t("signal.rasm_kirish")}
+                      loading="lazy"
+                      className="rounded-tugma border-ramka-yumshoq w-full border"
+                    />
+                  </figure>
+                )}
+                {signal.resultChartImage && (
+                  <figure>
+                    <figcaption className="text-matn-past mb-1.5 text-xs uppercase">
+                      {t("signal.rasm_natija")}
+                    </figcaption>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/signal-media/${signal.resultChartImage}`}
+                      alt={t("signal.rasm_natija")}
+                      loading="lazy"
+                      className="rounded-tugma border-ramka-yumshoq w-full border"
+                    />
+                  </figure>
+                )}
+              </div>
+            </Card>
+          </Himoya>
+        )}
 
         {/* Kalkulyator HIMOYA ICHIDA: unda kirish, Stop va TP narxlari
             turadi — ya'ni signalning o'zi. Grafik esa tashqarida, chunki
@@ -234,9 +303,14 @@ export default async function SignalSahifasi({
                 <p className="text-matn-past mt-3 text-xs uppercase">
                   {t("signal.kirdim_narx")}
                 </p>
-                <p className="raqam text-sarlavha font-semibold">{narx(signal.entry)}</p>
+                <p className="raqam text-sarlavha font-semibold">
+                  {narx(signal.entry)}
+                </p>
 
-                <form action={kirdim} className="mt-3 flex flex-wrap items-end gap-2">
+                <form
+                  action={kirdim}
+                  className="mt-3 flex flex-wrap items-end gap-2"
+                >
                   <input type="hidden" name="signal_id" value={signal.id} />
                   <label className="min-w-0 flex-1">
                     <span className="text-matn-past mb-1 block text-xs uppercase">
@@ -259,7 +333,9 @@ export default async function SignalSahifasi({
               </>
             )}
             {kirdiMi && !pozitsiya && (
-              <p className="text-yaxshi mt-2 text-sm">✅ {t("signal.kirdim_ok")}</p>
+              <p className="text-yaxshi mt-2 text-sm">
+                ✅ {t("signal.kirdim_ok")}
+              </p>
             )}
             {xato && (
               <p className="border-past/60 text-past rounded-kichik mt-2 border px-3 py-2 text-sm">
@@ -280,7 +356,10 @@ export default async function SignalSahifasi({
         <Card>
           <CardHint>{t("kontent.botda_izoh")}</CardHint>
           <div className="mt-3 flex flex-wrap gap-3">
-            <Button href={botHavolasi(env().botUsername, "start")} variant="ikkilamchi">
+            <Button
+              href={botHavolasi(env().botUsername, "start")}
+              variant="ikkilamchi"
+            >
               Telegram
             </Button>
             <Button href="/signallar" variant="shaffof">
@@ -314,14 +393,19 @@ function BallTafsiloti({ xom, bosh }: { xom: string | null; bosh: string }) {
 
   if (!tahlil) {
     return (
-      <pre className="text-matn-past mt-2 overflow-x-auto text-xs whitespace-pre-wrap">{xom}</pre>
+      <pre className="text-matn-past mt-2 overflow-x-auto text-xs whitespace-pre-wrap">
+        {xom}
+      </pre>
     );
   }
 
   return (
     <dl className="mt-3 space-y-1.5">
       {Object.entries(tahlil).map(([kalit, qiymat]) => (
-        <div key={kalit} className="flex items-baseline justify-between gap-3 text-sm">
+        <div
+          key={kalit}
+          className="flex items-baseline justify-between gap-3 text-sm"
+        >
           <dt className="text-matn-past">{kalit}</dt>
           <dd className="raqam font-medium">
             {typeof qiymat === "number" ? qiymat.toFixed(2) : String(qiymat)}

@@ -11,7 +11,7 @@ Saytdagi nusxasi: `web/src/lib/media.ts` -> `videoJildi()`,
 
 from pathlib import Path
 
-from bot.hosting import sqlite_file, video_dir
+from bot.hosting import signal_media_dir, sqlite_file, video_dir
 
 
 def test_uch_qiyshiq_chiziq_nisbiy_yol() -> None:
@@ -34,3 +34,30 @@ def test_video_jildi_baza_yonida() -> None:
 def test_manzil_yoq_bolsa_data_jildi() -> None:
     assert video_dir("").name == "video"
     assert video_dir("").parent.name == "data"
+
+
+# --------------------------------------------------------------------- #
+#  Signal grafiklari jildi (4-prompt, 4-qism)
+# --------------------------------------------------------------------- #
+
+
+def test_signal_media_jildi_baza_yonida() -> None:
+    """Sayt rasmni yozadi, bot uni Telegramga chiqaradi.
+
+    Ikkalasi jildni o'zi hisoblaydi (biri Pythonda, biri
+    TypeScriptda). Qoida ayrilib ketsa, admin yuklagan grafik botda
+    JIMGINA ko'rinmay qolardi — hech qanday xato xabarisiz.
+
+    Saytdagi nusxasi: `web/src/lib/media.ts` -> `signalJildi()`.
+    """
+    assert signal_media_dir("sqlite+aiosqlite:////data/hcs.db") == Path("/data/signal-media")
+
+
+def test_signal_media_video_bilan_ARALASHMAYDI() -> None:
+    """Ikkisi alohida jild.
+
+    Bir jildda tursa, post yoki video o'chirilganda bir xil nomli
+    signal rasmini tasodifan o'chirib yuborish mumkin bo'lardi.
+    """
+    manzil = "sqlite+aiosqlite:////data/hcs.db"
+    assert signal_media_dir(manzil) != video_dir(manzil)

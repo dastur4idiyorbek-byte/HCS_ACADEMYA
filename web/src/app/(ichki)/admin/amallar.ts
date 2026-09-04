@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { env } from "@/lib/env";
-import { postYoli } from "@/lib/media";
+import { postYoli, signalRasmYoli } from "@/lib/media";
 import {
   boshPostOchirish,
   boshPostQoshish,
@@ -17,6 +17,7 @@ import {
   havolaOchir,
   havolaSaqla,
   narxniYangila,
+  signalGrafigiBiriktir,
   signalOchir,
   signalYarat,
   tolovniRadEt,
@@ -263,4 +264,35 @@ export async function boshPostOchir(forma: FormData): Promise<void> {
   }
   revalidatePath("/admin/postlar");
   revalidatePath("/bosh");
+}
+
+// --------------------------------------------------------------------------- //
+//  Signal grafiklari (4-prompt, 4-qism)
+// --------------------------------------------------------------------------- //
+
+export async function signalRasmiBiriktir(forma: FormData): Promise<void> {
+  await adminTekshir();
+
+  const id = Number(forma.get("id"));
+  const xomMaydon = String(forma.get("maydon") ?? "");
+  const maydon = xomMaydon === "natija" ? "natija" : "entry";
+  // Bo'sh nom — "rasmni olib tashlash" degani.
+  const nom = String(forma.get("nom") ?? "").trim() || null;
+
+  const natija = signalGrafigiBiriktir(id, maydon, nom);
+  if (!natija.ok) return;
+
+  // Almashtirilgan rasm diskda abadiy qolmasin. Fayl o'chmasa ham
+  // yozuv yangilangan, shuning uchun xato YUTILADI.
+  if (natija.eskiNom) {
+    try {
+      await unlink(signalRasmYoli(natija.eskiNom));
+    } catch {
+      // fayl allaqachon yo'q yoki nomi noto'g'ri
+    }
+  }
+
+  revalidatePath("/admin/signal");
+  revalidatePath(`/signallar/${id}`);
+  revalidatePath("/signallar");
 }
