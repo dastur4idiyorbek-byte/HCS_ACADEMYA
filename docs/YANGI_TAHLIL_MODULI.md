@@ -92,7 +92,7 @@ core/backtest/
 
 ---
 
-## Uchta o'lchov skripti
+## Besh o'lchov skripti
 
 ```bash
 # 1. Bosqichma-bosqich: 2 blok -> 3 blok -> to'liq zanjir
@@ -103,10 +103,18 @@ python -m scripts.zanjir_ablatsiya --days 730 --offline
 
 # 3. WALK-FORWARD: kesishmaydigan oynalarda takrorlanadimi
 python -m scripts.zanjir_walk_forward --days 730 --bolaklar 3 --offline
+
+# 4. CHEGARA: stop va TP1 nisbati chegaralari BITTALAB surib ko'riladi
+python -m scripts.zanjir_chegara --days 730 --offline
+
+# 5. SIG'IM: portfel chegarasi (max_open_signals, korrelyatsiya)
+#    zanjirdan nechtasini kesadi
+python -m scripts.zanjir_sigim --days 730 --offline
 ```
 
-GitHub Actions: `.github/workflows/zanjir.yml` (uchalasini birga
-yuritadi va `reports/` ni artifact qilib saqlaydi).
+GitHub Actions: `.github/workflows/zanjir.yml` (`olchov: hammasi`
+beshalasini birga yuritadi va `reports/` ni artifact qilib
+saqlaydi).
 
 **Bu muhitdan Binance'ga chiqish yopiq** — shuning uchun birinchi
 yugurish Actions'da bo'lishi kerak (`--offline` siz), keyin kesh
@@ -141,21 +149,44 @@ Qurish paytida topilgan eng katta xato o'zimniki edi:
 `stop_eng_kam_pct = 3.0` savdolarning oltidan beshini to'sib
 turardi. O'lchandi, 1.5 ga tushirildi.
 
+## Ikkinchi o'lchov BAJARILDI (2026-09-04) — 12 coin
+
+To'liq natija: `docs/BACKTEST_NATIJA_2026-09-04_zanjir2.md`
+
+```
+277 savdo, PF 3.50, 68.2% foydali
+walk-forward:  PF 3.48 → 4.10 → 2.91   (121 / 87 / 96 savdo)
+```
+
+Ablatsiya nihoyat javob berdi va javob KUTILMAGAN chiqdi:
+**16 ta ichki tekshiruvdan birortasi ham PF ni oshirmadi.**
+11 tasi natijani umuman o'zgartirmadi, 5 tasi o'chirilganda PF
+oshdi.
+
+Sabab tuzilmaviy: blok `kuch >= 1` da o'tadi, ya'ni blok ichida
+tekshiruvlar **YOKI** bilan bog'langan. YOKI zanjiridan bitta
+halqani olib tashlash natijani o'zgartirmaydi.
+
 ## Keyingi qadam — tartib bilan
 
-1. **Ablatsiyani YANGI chegarada qayta yuritish.** Birinchi
-   yugurishda u 35 savdo bilan ma'nosiz edi. Hozir 82+ savdo bor,
-   ya'ni endi javob beradi: 16 ta ichki tekshiruvdan qaysi biri
-   haqiqatan ishlayapti.
+1. **11 ta bo'sh tekshiruvni BIRGA o'chirib o'lchash.** Birma-bir
+   va birga o'chirish — boshqa narsa. `zanjir_backtest.py` dagi
+   "11 bo'sh tekshiruvsiz" varianti aynan shu.
 
-       gh workflow run zanjir.yml -f olchov=ablatsiya
+2. **Zanjirsiz o'lchash.** Agar hech bir tekshiruv hissa
+   qo'shmasa, PF 3.50 ni nima keltiryapti? Eng kuchli gumon —
+   **darajalar**: zona ichida kirish, zona tagida stop,
+   strukturaviy TP. "zanjirsiz — faqat darajalar" varianti buni
+   tekshiradi. Agar natija yaqin chiqsa, modulning haqiqiy
+   qiymati zanjirda emas.
 
-2. **`risk_engine` bilan birga o'lchash.** Hozirgi natijada sig'im
-   va korrelyatsiya YO'Q (ataylab — zanjirning O'Z sifatini
-   o'lchash uchun). Jonli tizimda `max_open_signals = 5` savdolarning
-   bir qismini kesadi va buni bilish kerak.
+3. **Sig'im bilan o'lchash** (`olchov: sigim`). Jonli tizimda
+   `max_open_signals = 5` va guruhdan bitta signal — 12 coinning
+   hammasiga bir vaqtda kirib bo'lmaydi.
 
-3. **Faqat shundan keyin** — admin bilan jonliga chiqarish rejasi,
+4. **Faqat shundan keyin** — admin bilan jonliga chiqarish rejasi,
    KICHIK pozitsiya bilan (2-prompt, 8-qism, 7-band).
 
-Avtomatik "yana bitta narsa qo'shaylik" bo'lmaydi.
+Avtomatik "yana bitta narsa qo'shaylik" bo'lmaydi. 2-3 bandlarning
+natijasi "zanjirni soddalashtirish kerak" degan xulosaga olib
+kelishi mumkin — bu ham QO'SHISH emas, OLIB TASHLASH bo'ladi.
