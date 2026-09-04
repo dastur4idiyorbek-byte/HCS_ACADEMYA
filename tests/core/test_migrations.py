@@ -217,3 +217,48 @@ def test_bir_dona_bosh_migratsiya() -> None:
     boshlar = barcha_id - ota_id
     assert len(boshlar) == 1, f"bitta `head` bo'lishi kerak, topildi: {sorted(boshlar)}"
 
+
+
+def test_yetishmagan_ustun_ishga_tushishda_qoshiladi(tmp_path: Path) -> None:
+    """Yangi USTUN serverga yetib borsin.
+
+    `create_all` faqat yetishmaydigan JADVALNI yaratadi — mavjud
+    jadvalga ustun qo'shmaydi. Ishga tushishda esa `alembic upgrade`
+    chaqirilmaydi. Ya'ni yangi ustun serverga umuman yetib bormasdi
+    va xato faqat o'sha maydonga birinchi murojaatda, butunlay
+    boshqa joyda chiqardi.
+    """
+    import asyncio
+
+    from core.storage.database import create_engine, init_models
+
+    yol = tmp_path / "sinov.db"
+    url = f"sqlite+aiosqlite:///{yol}"
+
+    async def qur() -> None:
+        motor = create_engine(url)
+        await init_models(motor)
+        await motor.dispose()
+
+    asyncio.run(qur())
+
+    # Ustunni QO'LDA olib tashlaymiz — "eski baza" holatini yasaymiz.
+    ulanish = sqlite3.connect(yol)
+    try:
+        ulanish.execute("ALTER TABLE signals DROP COLUMN entry_chart_image")
+        ulanish.commit()
+        ustunlar = {q[1] for q in ulanish.execute("pragma table_info(signals)")}
+        assert "entry_chart_image" not in ustunlar
+    finally:
+        ulanish.close()
+
+    asyncio.run(qur())
+
+    ulanish = sqlite3.connect(yol)
+    try:
+        ustunlar = {q[1] for q in ulanish.execute("pragma table_info(signals)")}
+    finally:
+        ulanish.close()
+    assert "entry_chart_image" in ustunlar, (
+        "Ishga tushish yetishmagan ustunni qaytarmadi — server jimgina buzuq qolardi"
+    )

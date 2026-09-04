@@ -17,7 +17,11 @@ import { AdminYonMenyu } from "./menyu";
  * emas — ular alohida so'rov bo'lib keladi. Shuning uchun `amallar.ts`
  * da ham qayta tekshiriladi.
  */
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { admin, til } = await kirim();
   const t = tarjimon(til);
 
@@ -37,6 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <AdminYonMenyu
         bandlar={[
           { yol: "/admin", nom: t("admin.asosiy"), belgi: "💳" },
+          { yol: "/admin/postlar", nom: t("admin.postlar"), belgi: "📢" },
           { yol: "/admin/signal", nom: t("admin.signal"), belgi: "📈" },
           { yol: "/admin/darslar", nom: t("admin.darslar"), belgi: "🎬" },
           { yol: "/admin/havolalar", nom: t("admin.havolalar"), belgi: "🔗" },

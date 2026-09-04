@@ -6,6 +6,7 @@ import {
   savdoQoidalari,
 } from "./config.ts";
 import { asosiyAktiv } from "./kalkulyator.ts";
+import { postMediaTuri } from "./media.ts";
 import type { Bolak, OchiqPozitsiya, YopilganQism } from "./portfel.ts";
 
 /** Botning bazasidan o'qish/yozish.
@@ -1465,6 +1466,129 @@ export function videoBiriktir(
     ok: true,
     eskiNom: oldingi.videoPath === nom ? null : oldingi.videoPath,
   };
+}
+
+// --------------------------------------------------------------------------- //
+//  Bosh sahifa oqimi (4-prompt, 1-qism)
+// --------------------------------------------------------------------------- //
+
+export type BoshPost = {
+  id: number;
+  turi: "text" | "image" | "audio" | "mixed";
+  matn: string | null;
+  media: string | null;
+  /** Rasmmi yoki audiomi — sahifa qaysi elementni chizishini shu hal qiladi */
+  mediaTuri: "image" | "audio" | null;
+  yaratilgan: Date | null;
+};
+
+/** Tarkibdan turni HISOBLAYDI, admindan so'ramaydi.
+ *
+ * Admin tanlaydigan bo'lsa, tur bilan tarkib bir-biriga zid bo'lib
+ * qolardi: "audio" deb belgilangan, lekin fayl yo'q. */
+export function postTuriniAniqla(
+  matn: string | null,
+  mediaTuri: "image" | "audio" | null,
+): BoshPost["turi"] {
+  if (!mediaTuri) return "text";
+  if (matn && matn.trim()) return "mixed";
+  return mediaTuri;
+}
+
+function boshPostgaAylantir(q: Qator): BoshPost {
+  const media = (q.media_url as string | null) ?? null;
+  return {
+    id: songaAylantir(q.id),
+    turi: (q.content_type as BoshPost["turi"]) ?? "text",
+    matn: (q.text_content as string | null) ?? null,
+    media,
+    mediaTuri: media ? postMediaTuri(media) : null,
+    yaratilgan: vaqt(q.created_at as string),
+  };
+}
+
+/** Oqimning bir sahifasi — eng yangisi tepada.
+ *
+ * `oxirgiId` — "Ko'proq yuklash" uchun: shu id dan ESKIROQ postlar
+ * qaytadi. Nima uchun id, offset emas: sahifa ochilgandan keyin yangi
+ * post qo'shilsa, offset bilan bitta post ikki marta ko'rinardi yoki
+ * bittasi tushib qolardi. */
+export function boshPostlar(nechta = 20, oxirgiId?: number): BoshPost[] {
+  const chegara = Math.min(Math.max(1, Math.trunc(nechta)), 50);
+  const qatorlar = (
+    oxirgiId && oxirgiId > 0
+      ? db()
+          .prepare(
+            `select id, content_type, text_content, media_url, created_at
+               from homepage_posts where id < ?
+              order by id desc limit ?`,
+          )
+          .all(oxirgiId, chegara)
+      : db()
+          .prepare(
+            `select id, content_type, text_content, media_url, created_at
+               from homepage_posts order by id desc limit ?`,
+          )
+          .all(chegara)
+  ) as Qator[];
+  return qatorlar.map(boshPostgaAylantir);
+}
+
+export function boshPostlarSoni(): number {
+  const q = db()
+    .prepare(`select count(*) as soni from homepage_posts`)
+    .get() as Qator;
+  return songaAylantir(q.soni);
+}
+
+/** Yangi post. Bo'sh post YOZILMAYDI — na matn, na fayl bo'lsa,
+ *  oqimda sababsiz bo'sh kartochka paydo bo'lardi. */
+export function boshPostQoshish(
+  matn: string | null,
+  media: string | null,
+  adminId: number | null,
+  hozir = new Date(),
+): { ok: boolean; xato?: string; id?: number } {
+  const toza = matn?.trim() || null;
+  const mediaTuri = media ? postMediaTuri(media) : null;
+  if (media && !mediaTuri) {
+    return { ok: false, xato: "Fayl turi qo'llab-quvvatlanmaydi" };
+  }
+  if (!toza && !media) {
+    return { ok: false, xato: "Post bo'sh — matn yoki fayl kerak" };
+  }
+
+  const vaqtSat = vaqtSatri(hozir);
+  const natija = db()
+    .prepare(
+      `insert into homepage_posts
+         (content_type, text_content, media_url, admin_id, created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      postTuriniAniqla(toza, mediaTuri),
+      toza,
+      media,
+      adminId,
+      vaqtSat,
+      vaqtSat,
+    );
+  return { ok: true, id: Number(natija.lastInsertRowid) };
+}
+
+/** Postni o'chiradi va media fayl nomini qaytaradi — chaqiruvchi uni
+ *  diskdan ham o'chirishi uchun. Ansiz disk asta-sekin to'lardi. */
+export function boshPostOchirish(id: number): {
+  ok: boolean;
+  media: string | null;
+} {
+  const mavjud = db()
+    .prepare(`select media_url from homepage_posts where id = ?`)
+    .get(id) as Qator | undefined;
+  if (!mavjud) return { ok: false, media: null };
+
+  db().prepare(`delete from homepage_posts where id = ?`).run(id);
+  return { ok: true, media: (mavjud.media_url as string | null) ?? null };
 }
 
 // --------------------------------------------------------------------------- //

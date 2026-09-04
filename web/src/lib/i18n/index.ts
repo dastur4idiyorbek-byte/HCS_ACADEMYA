@@ -40,7 +40,9 @@ export function tarjima(til: Til, kalit: string): string {
     }
     return typeof joriy === "string" ? joriy : null;
   };
-  return yur(TILLAR[til] as Lugat) ?? yur(TILLAR[STANDART_TIL] as Lugat) ?? kalit;
+  return (
+    yur(TILLAR[til] as Lugat) ?? yur(TILLAR[STANDART_TIL] as Lugat) ?? kalit
+  );
 }
 
 /** Sahifada qulay ishlatish uchun: `const t = tarjimon(til)` */

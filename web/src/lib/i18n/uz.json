@@ -15,7 +15,8 @@
     "dona": "ta",
     "saqlash": "Saqlash",
     "kun_qoldi": "kun qoldi",
-    "yangilanmoqda": "Bu bo'lim yangilanmoqda — tahlil moduli qayta qurilmoqda."
+    "yangilanmoqda": "Bu bo'lim yangilanmoqda — tahlil moduli qayta qurilmoqda.",
+    "ochirish": "O'chirish"
   },
   "menyu": {
     "bosh": "Bosh sahifa",
@@ -349,7 +350,20 @@
     "kerakli_winrate": "Kerakli win-rate",
     "jami_foiz": "Jami natija",
     "ball": "Ball",
-    "ushlash_qisqa": "Vaqt"
+    "ushlash_qisqa": "Vaqt",
+    "postlar": "Bosh sahifa",
+    "post_yangi": "📢 Yangi post",
+    "post_izoh": "Post bosh sahifa oqimida, eng tepada paydo bo'ladi. Matn, rasm yoki ovozli xabar — yoki ularning birgalikda.",
+    "post_matn": "Matn",
+    "post_matn_joy": "Nima yozmoqchisiz?",
+    "post_fayl": "Rasm yoki audio (ixtiyoriy)",
+    "post_yukla": "Faylni yuklash",
+    "post_yuklanmoqda": "Yuklanmoqda…",
+    "post_yuklandi": "✅ Fayl yuklandi — endi «Nashr etish» ni bosing",
+    "post_yuklanmadi": "⚠️ Fayl yuklanmadi",
+    "post_nashr": "Nashr etish",
+    "post_royxat": "Postlar",
+    "post_yoq": "Hali post yozilmagan."
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",
@@ -364,7 +378,10 @@
     "diniy_placeholder": "Bu yerda savdo ahkomlarini bilish zarurligi haqidagi diniy asos joylashtiriladi — hozircha tasdiqlanish jarayonida.",
     "diniy_izoh": "Matn bilimdon kishi (muftiy yoki olim) tasdiqlagandan keyin kiritiladi. Diniy da'volar bu loyihada hech qachon tekshirilmasdan nashr etilmaydi — bu halollik tekshiruvi tamoyilining o'zi.",
     "tarmoqlar": "Biz bilan aloqada",
-    "tarmoqlar_yoq": "Havolalar hali qo'shilmagan."
+    "tarmoqlar_yoq": "Havolalar hali qo'shilmagan.",
+    "oqim_yoq": "Hali post yo'q. Yangiliklar shu yerda paydo bo'ladi.",
+    "koproq": "Ko'proq yuklash",
+    "oqim_oxiri": "Oqimning boshiga yetdingiz."
   },
   "oshxona": {
     "sarlavha": "Jonli oshxona",

@@ -294,6 +294,21 @@ class SignalRecord(Base, TimestampMixin):
     #: ikki ma'noda ishlatish — bu loyihada allaqachon uchragan xato.
     broadcast_at: Mapped[datetime | None] = mapped_column(UtcDateTime, index=True)
 
+    # 4-prompt, 4-qism: admin QO'LDA yuklaydigan ikkita grafik rasmi.
+    #
+    # NIMA UCHUN QO'LDA. Tizim o'zi ham grafik chizadi (Pillow), lekin
+    # u faqat darajalarni ko'rsatadi. Admin TradingView'da chizgan
+    # rasm esa STRUKTURANI ko'rsatadi — nega aynan shu joy tanlangani.
+    # Ikkalasi boshqa savolga javob beradi, shuning uchun biri
+    # ikkinchisining o'rnini bosmaydi.
+    #
+    # FAQAT FAYL NOMI saqlanadi (to'liq yo'l emas) — video va bosh
+    # sahifa postlari bilan bir xil sabab.
+    #: Signal berilgan paytdagi grafik
+    entry_chart_image: Mapped[str | None] = mapped_column(String(256))
+    #: Signal YOPILGANDA — yakuniy natija grafigi
+    result_chart_image: Mapped[str | None] = mapped_column(String(256))
+
     events: Mapped[list[SignalEvent]] = relationship(
         back_populates="signal", cascade="all, delete-orphan"
     )
@@ -531,3 +546,41 @@ class PositionExit(Base, TimestampMixin):
         UniqueConstraint("position_id", "bosqich", name="pozitsiya_bosqich"),
         Index("ix_position_exits_vaqt", "position_id", "yopilgan_vaqt"),
     )
+
+
+# --------------------------------------------------------------------------- #
+#  Bosh sahifa oqimi (4-prompt, 1-qism)
+# --------------------------------------------------------------------------- #
+
+
+class HomepagePost(Base, TimestampMixin):
+    """Bosh sahifadagi bitta post — Telegram kanali uslubida.
+
+    NIMA UCHUN KERAK. Bosh sahifa statik matn edi: bir marta yozilgan,
+    yangilanmaydigan, "tugaydigan" sahifa. Endi u XRONOLOGIK OQIM —
+    eng yangi post tepada, pastga scroll qilib eskilariga o'tiladi.
+
+    NIMA BU JADVALDA YO'Q. Tanishtiruv, diniy asos va ijtimoiy
+    tarmoqlar bu yerga TUSHMAYDI — ular oqimning tepasida, KODDA
+    turadi. Sabab: diniy iqtibos joyi olim tasdiqlaguncha placeholder
+    bo'lib turishi shart. Uni oddiy postga aylantirsak, admin uni
+    tasodifan o'chirib yoki tahrirlab yuborishi mumkin edi va o'sha
+    qoida jimgina yo'qolardi.
+    """
+
+    __tablename__ = "homepage_posts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: `text`, `image`, `audio` yoki `mixed` — SAQLASHDA hisoblanadi,
+    #: admin tanlamaydi. Aks holda tur bilan tarkib bir-biriga zid
+    #: bo'lib qolardi ("audio" deb belgilangan, lekin fayl yo'q).
+    content_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    text_content: Mapped[str | None] = mapped_column(Text)
+    #: FAQAT FAYL NOMI (to'liq yo'l emas) — video bilan bir xil sabab:
+    #: Railway diski ko'chganda yo'l o'zgaradi, nom o'zgarmaydi.
+    media_url: Mapped[str | None] = mapped_column(String(256))
+    admin_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+
+    __table_args__ = (Index("ix_homepage_posts_created", "created_at"),)

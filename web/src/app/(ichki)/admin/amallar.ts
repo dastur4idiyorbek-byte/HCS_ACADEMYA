@@ -1,10 +1,15 @@
 "use server";
 
+import { unlink } from "node:fs/promises";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { env } from "@/lib/env";
+import { postYoli } from "@/lib/media";
 import {
+  boshPostOchirish,
+  boshPostQoshish,
   coinQaroriniBelgila,
   coinQaroriniOchir,
   darsOchir,
@@ -55,7 +60,8 @@ export async function tasdiqla(forma: FormData): Promise<void> {
 export async function radEt(forma: FormData): Promise<void> {
   const adminId = await adminTekshir();
   const id = Number(forma.get("id"));
-  const sabab = String(forma.get("sabab") ?? "").trim() || "Sabab ko'rsatilmadi";
+  const sabab =
+    String(forma.get("sabab") ?? "").trim() || "Sabab ko'rsatilmadi";
   const natija = tolovniRadEt(id, adminId, sabab);
 
   if (natija.ok) {
@@ -67,7 +73,6 @@ export async function radEt(forma: FormData): Promise<void> {
   }
   revalidatePath("/admin");
 }
-
 
 // --------------------------------------------------------------------------- //
 //  Narxlar (1.2-band)
@@ -113,14 +118,17 @@ export async function qarorOchir(forma: FormData): Promise<void> {
   revalidatePath("/admin/halol");
 }
 
-
 // --------------------------------------------------------------------------- //
 //  Qo'lda signal kiritish (2-bo'lim)
 // --------------------------------------------------------------------------- //
 
 /** Foydalanuvchi "1 234,56" yoki "1 234.56" deb yozishi mumkin. */
 function narxOqi(xom: FormDataEntryValue | null): number {
-  return Number(String(xom ?? "").replace(/\s/g, "").replace(",", "."));
+  return Number(
+    String(xom ?? "")
+      .replace(/\s/g, "")
+      .replace(",", "."),
+  );
 }
 
 export async function signalBer(forma: FormData): Promise<void> {
@@ -189,7 +197,6 @@ export async function darsOchirish(forma: FormData): Promise<void> {
   revalidatePath("/video");
 }
 
-
 // --------------------------------------------------------------------------- //
 //  Ijtimoiy tarmoqlar
 // --------------------------------------------------------------------------- //
@@ -213,5 +220,47 @@ export async function havolaOchirish(forma: FormData): Promise<void> {
   await adminTekshir();
   havolaOchir(Number(forma.get("id")));
   revalidatePath("/admin/havolalar");
+  revalidatePath("/bosh");
+}
+
+// --------------------------------------------------------------------------- //
+//  Bosh sahifa oqimi (4-prompt, 1-qism)
+// --------------------------------------------------------------------------- //
+
+export async function boshPostNashr(forma: FormData): Promise<void> {
+  // `adminTekshir` Telegram ID qaytaradi, bu yerda esa BAZA id kerak
+  // (`admin_id` — `users.id` ga havola), shuning uchun kirim bir marta
+  // o'qiladi va ikkalasi undan olinadi.
+  const { admin, foydalanuvchi } = await kirim();
+  if (!admin) throw new Error("Ruxsat yo'q");
+
+  const matn = String(forma.get("matn") ?? "");
+  const media = String(forma.get("media") ?? "").trim() || null;
+
+  const natija = boshPostQoshish(matn, media, foydalanuvchi?.id ?? null);
+  if (!natija.ok) {
+    redirect(
+      `/admin/postlar?xato=${encodeURIComponent(natija.xato ?? "Xato")}`,
+    );
+  }
+  revalidatePath("/admin/postlar");
+  revalidatePath("/bosh");
+}
+
+export async function boshPostOchir(forma: FormData): Promise<void> {
+  await adminTekshir();
+  const natija = boshPostOchirish(Number(forma.get("id")));
+
+  // Yozuv ketdi — fayl ham ketsin, aks holda disk asta-sekin to'lardi.
+  // Fayl o'chmasa ham post yo'q: shuning uchun xato YUTILADI, lekin
+  // amal to'xtamaydi.
+  if (natija.media) {
+    try {
+      await unlink(postYoli(natija.media));
+    } catch {
+      // fayl allaqachon yo'q yoki nomi noto'g'ri — post baribir o'chdi
+    }
+  }
+  revalidatePath("/admin/postlar");
   revalidatePath("/bosh");
 }

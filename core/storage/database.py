@@ -166,6 +166,54 @@ def _eski_jadvallarni_olib_tashla(connection) -> list[str]:  # noqa: ANN001
     return natija
 
 
+def _yetishmagan_ustunlarni_qosh(connection) -> list[str]:  # noqa: ANN001
+    """Modelda bor, bazada yo'q ustunlarni qo'shadi.
+
+    NIMA UCHUN KERAK. `create_all` faqat YETISHMAYDIGAN JADVALNI
+    yaratadi — mavjud jadvalga yangi USTUN qo'shmaydi. Ishga tushishda
+    esa `alembic upgrade` chaqirilmaydi (`bot/main.py`), ya'ni yangi
+    ustun serverga umuman yetib bormasdi.
+
+    Bu jimgina buziladigan holat edi: kod ustunni so'raydi, baza uni
+    bilmaydi — va xato faqat o'sha maydonga birinchi murojaatda,
+    butunlay boshqa joyda chiqadi.
+
+    FAQAT XAVFSIZ USTUN qo'shiladi: `NULL` qabul qiladigan yoki
+    server qiymati bor. `NOT NULL` va qiymatsiz ustunni SQLite
+    qo'sha olmaydi — bunday holatda ogohlantirish yoziladi va
+    migratsiyani qo'lda yugurtirish kerak bo'ladi.
+    """
+    tekshiruvchi = inspect(connection)
+    mavjud_jadvallar = set(tekshiruvchi.get_table_names())
+    qoshildi: list[str] = []
+
+    for jadval in Base.metadata.sorted_tables:
+        if jadval.name not in mavjud_jadvallar:
+            continue  # `create_all` uni endigina yaratdi
+        bazadagi = {u["name"] for u in tekshiruvchi.get_columns(jadval.name)}
+
+        for ustun in jadval.columns:
+            if ustun.name in bazadagi:
+                continue
+            if not ustun.nullable and ustun.server_default is None:
+                logger.error(
+                    "%s.%s ustuni bazada yo'q va u NOT NULL — "
+                    "`alembic upgrade head` ni qo'lda yugurting",
+                    jadval.name,
+                    ustun.name,
+                )
+                continue
+
+            turi = ustun.type.compile(connection.dialect)
+            buyruq = f'ALTER TABLE "{jadval.name}" ADD COLUMN "{ustun.name}" {turi}'
+            if ustun.server_default is not None:
+                buyruq += f" DEFAULT {ustun.server_default.arg}"  # type: ignore[union-attr]
+            connection.exec_driver_sql(buyruq)
+            qoshildi.append(f"{jadval.name}.{ustun.name}")
+
+    return qoshildi
+
+
 async def init_models(engine: AsyncEngine) -> None:
     """Jadvallarni yaratadi (dastlabki ishga tushirish uchun).
 
@@ -178,9 +226,12 @@ async def init_models(engine: AsyncEngine) -> None:
     async with engine.begin() as connection:
         olib_tashlandi = await connection.run_sync(_eski_jadvallarni_olib_tashla)
         await connection.run_sync(Base.metadata.create_all)
+        qoshilgan_ustunlar = await connection.run_sync(_yetishmagan_ustunlarni_qosh)
         if head is not None:
             await connection.run_sync(_stamp_if_fresh, head)
 
+    if qoshilgan_ustunlar:
+        logger.warning("Yangi ustunlar qo'shildi: %s", ", ".join(qoshilgan_ustunlar))
     if olib_tashlandi:
         logger.warning(
             "Eski tahlil moduli jadvallari bazadan chiqarildi: %s",

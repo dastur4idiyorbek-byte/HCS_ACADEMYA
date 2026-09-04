@@ -71,7 +71,10 @@ export function engKattaHajm(): number {
  * belgilar bo'lishi mumkin. Kengaytma esa saqlanadi — brauzerga
  * qaysi turdaligini shu aytadi.
  */
-export function yangiNom(aslNom: string, tasodif = crypto.randomUUID()): string {
+export function yangiNom(
+  aslNom: string,
+  tasodif = crypto.randomUUID(),
+): string {
   const kengaytma = extname(aslNom).toLowerCase();
   if (!(kengaytma in TURLAR)) {
     throw new MediaXatosi(
@@ -111,7 +114,92 @@ export function oraliqniOqi(
 
   const boshi = Number(boshMatn);
   if (boshi >= hajm) return "yaroqsiz";
-  const oxiri = oxirMatn === "" ? hajm - 1 : Math.min(Number(oxirMatn), hajm - 1);
+  const oxiri =
+    oxirMatn === "" ? hajm - 1 : Math.min(Number(oxirMatn), hajm - 1);
   if (oxiri < boshi) return "yaroqsiz";
   return { boshi, oxiri };
+}
+
+// --------------------------------------------------------------------------- //
+//  Bosh sahifa postlarining media fayllari (4-prompt, 1-qism)
+// --------------------------------------------------------------------------- //
+
+/** Postga biriktiriladigan turlar. Video BU YERDA YO'Q — u alohida
+ *  "Video darslar" bo'limida va boshqa hajm chegarasiga ega. */
+const POST_TURLARI: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".mp3": "audio/mpeg",
+  ".m4a": "audio/mp4",
+  ".ogg": "audio/ogg",
+  ".oga": "audio/ogg",
+  ".wav": "audio/wav",
+};
+
+/** Post fayllari — video bilan bir xil diskda, alohida jildda.
+ *  Aralashtirmaslik sababi: video oqim bilan (Range) beriladi, post
+ *  media esa oddiy fayl. Bir jildda tursa, video yo'li tekshiruvi
+ *  post rasmini ham "video" deb o'ylab qolardi. */
+export function postJildi(): string {
+  return resolve(dirname(resolve(bazaYoli())), "post-media");
+}
+
+export function postTuriMaqbulmi(nom: string): boolean {
+  return extname(nom).toLowerCase() in POST_TURLARI;
+}
+
+export function postMimeTuri(nom: string): string {
+  return POST_TURLARI[extname(nom).toLowerCase()] ?? "application/octet-stream";
+}
+
+/** Rasmmi yoki audiomi — sahifa qaysi elementni chizishini shu hal qiladi. */
+export function postMediaTuri(nom: string): "image" | "audio" | null {
+  const mime = POST_TURLARI[extname(nom).toLowerCase()];
+  if (!mime) return null;
+  return mime.startsWith("image/") ? "image" : "audio";
+}
+
+/** Post media fayli uchun xavfsiz to'liq yo'l. `videoYoli` bilan bir
+ *  xil ikki qavatli tekshiruv — sabab ham o'sha. */
+export function postYoli(nom: string): string {
+  if (!nom || nom.includes("/") || nom.includes("\\") || nom.includes("\0")) {
+    throw new MediaXatosi(`Fayl nomi noto'g'ri: ${nom}`);
+  }
+  const jild = postJildi();
+  const toliq = resolve(jild, nom);
+  if (toliq !== resolve(jild, "./" + nom) || !toliq.startsWith(jild + "/")) {
+    throw new MediaXatosi(`Fayl jilddan tashqarida: ${nom}`);
+  }
+  return toliq;
+}
+
+/** Yuklanadigan post faylining eng katta hajmi (bayt).
+ *
+ * Videodan ANCHA kichik: rasm va ovozli xabar uchun 25 MB yetarli.
+ * Katta chegara qo'ysak, tasodifan yuklangan katta fayl bosh
+ * sahifani sekinlashtirardi. */
+export function postEngKattaHajm(): number {
+  const xom = process.env.POST_MEDIA_MAX_MB?.trim();
+  const mb = xom ? Number(xom) : 25;
+  if (!Number.isFinite(mb) || mb <= 0) {
+    throw new MediaXatosi(`POST_MEDIA_MAX_MB noto'g'ri qiymat: ${xom}`);
+  }
+  return mb * 1024 * 1024;
+}
+
+export function postYangiNom(
+  aslNom: string,
+  tasodif = crypto.randomUUID(),
+): string {
+  const kengaytma = extname(aslNom).toLowerCase();
+  if (!(kengaytma in POST_TURLARI)) {
+    throw new MediaXatosi(
+      `Bu turdagi fayl qo'llab-quvvatlanmaydi: ${kengaytma || aslNom}. ` +
+        `Ruxsat etilgan: ${Object.keys(POST_TURLARI).join(", ")}`,
+    );
+  }
+  return `${tasodif}${kengaytma}`;
 }
