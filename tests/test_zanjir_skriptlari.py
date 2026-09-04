@@ -373,3 +373,18 @@ def test_zanjirsiz_variant_barcha_tekshiruvni_ochiradi() -> None:
 
     nomlar = dict(_variantlar())
     assert nomlar["zanjirsiz — faqat darajalar"] == BARCHA_TEKSHIRUVLAR
+
+
+def test_ablatsiya_xulosasi_ochirishga_chaqirmaydi() -> None:
+    """Skript "olib tashlanadi" deb BUYURMASIN.
+
+    2026-09-04 o'lchovi ko'rsatdiki, birma-bir "hissa qo'shmagan"
+    11 ta tekshiruvni BIRGA o'chirish PF ni 3.50 dan 2.80 ga
+    tushiradi. Skriptning eski matni ("OLIB TASHLANADI") kelajakda
+    xato qarorga olib kelardi.
+    """
+    matn = (Path(__file__).resolve().parents[1] / "scripts/zanjir_ablatsiya.py").read_text(
+        encoding="utf-8"
+    )
+    assert "OLIB TASHLANADI:" not in matn
+    assert "XULOSASI CHIQARILMAYDI" in matn

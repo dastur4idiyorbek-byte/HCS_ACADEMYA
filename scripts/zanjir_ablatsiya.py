@@ -122,10 +122,21 @@ def _xulosa(tayanch, variantlar) -> None:  # noqa: ANN001
             print(f"   {nom:<28} PF {farq:+.2f}")
 
     if hissasiz:
-        print(f"\n⚫ HISSA QO'SHMAYDI (|ΔPF| < {SEZILARSIZ}) — OLIB TASHLANADI:")
+        print(f"\n⚫ ALOHIDA HISSA QO'SHMAYDI (|ΔPF| < {SEZILARSIZ}):")
         for nom, farq in hissasiz:
             print(f"   {nom:<28} PF {farq:+.2f}")
-        print("\n   2-prompt, 8-qism, 3-band: murakkablik saqlanmaydi.")
+        print()
+        print("   ⚠️ BU RO'YXATDAN 'O'CHIRILSIN' XULOSASI CHIQARILMAYDI.")
+        print("   2026-09-04 da shu ro'yxatdagi 11 tasi BIRGA o'chirildi:")
+        print("      to'liq zanjir  277 savdo  PF 3.50")
+        print("      11 tasiz       194 savdo  PF 2.80   ← yomonroq")
+        print("   Sabab: blok 4 tadan bittasi bilan o'tadi, ya'ni bu")
+        print("   tekshiruvlar blokni OCHIQ ushlab turadi. Alohida qaror")
+        print("   qilmaydi, birgalikda yumshatadi.")
+        print()
+        print("   Qoida (2-prompt, 8-qism, 3-band) o'z kuchida, lekin u")
+        print("   BIRMA-BIR o'lchovga emas, GURUH o'lchoviga qo'llanadi:")
+        print("      python -m scripts.zanjir_backtest   ('11 bo'sh tekshiruvsiz')")
 
 
 if __name__ == "__main__":
