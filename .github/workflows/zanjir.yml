@@ -37,6 +37,14 @@ on:
 jobs:
   olchov:
     runs-on: ubuntu-latest
+    # `| tee` quvuri Python xatosini YASHIRADI: quvurning chiqish
+    # kodi `tee` niki bo'ladi, ya'ni 0. 2026-09-04 da aynan shu
+    # sodir bo'ldi — skript traceback bilan yiqildi, Actions esa
+    # ✅ ko'rsatdi. `pipefail` ansiz o'lchov "bajarildi" deb
+    # ko'rinardi-yu, natija bo'lmasdi.
+    defaults:
+      run:
+        shell: bash -eo pipefail {0}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -54,7 +62,13 @@ jobs:
           # Actions kesh kaliti VERGULNI qabul qilmaydi — chiziqchaga
           # almashtiriladi. Ansiz butun ish oqimi 6-qadamda yiqilardi.
           toza="${SYMBOLS//,/-}"
-          echo "kalit=zanjir-${toza}-${{ inputs.days }}-${{ inputs.end_date }}" >> "$GITHUB_OUTPUT"
+          asos="zanjir-${toza}-${{ inputs.days }}-${{ inputs.end_date }}"
+          echo "asos=${asos}" >> "$GITHUB_OUTPUT"
+          # Kalitga yugurish raqami QO'SHILADI. Ansiz: qisqa yugurish
+          # yarim keshni saqlab qo'ysa, keyingi yugurish "cache hit"
+          # olardi va yetishmagan coin HECH QACHON yuklanmasdi —
+          # 2026-09-04 da `kesh yo'q: ADA 15m` aynan shundan chiqdi.
+          echo "kalit=${asos}-${{ github.run_id }}" >> "$GITHUB_OUTPUT"
 
       # `cache/restore` + `cache/save` ATAYLAB ajratilgan: oddiy
       # `cache` faqat MUVAFFAQIYATLI yugurishda saqlaydi. Yuklash esa
@@ -66,6 +80,15 @@ jobs:
         with:
           path: data/candles
           key: ${{ steps.kesh.outputs.kalit }}
+          restore-keys: ${{ steps.kesh.outputs.asos }}-
+
+      - name: Shamlarni yuklash
+        run: |
+          python -m scripts.zanjir_yuklash \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --base-url "${{ inputs.base_url }}" \
+            ${{ inputs.end_date != '' && format('--end-date {0}', inputs.end_date) || '' }}
 
       - name: Backtest
         if: inputs.olchov == 'backtest' || inputs.olchov == 'hammasi'
@@ -73,8 +96,8 @@ jobs:
           python -m scripts.zanjir_backtest \
             --days "${{ inputs.days }}" \
             --symbols "${{ inputs.symbols }}" \
-            --base-url "${{ inputs.base_url }}" \
             ${{ inputs.end_date != '' && format('--end-date {0}', inputs.end_date) || '' }} \
+            --offline \
             | tee natija_backtest.txt
 
       - name: Ablatsiya
@@ -115,9 +138,12 @@ jobs:
             --offline \
             | tee natija_sigim.txt
 
+      # Kalit unikal (run_id) — shuning uchun HAR SAFAR saqlanadi.
+      # Ilgari `cache-hit != 'true'` sharti bor edi va u yarim
+      # keshni abadiy muzlatib qo'yardi.
       - name: Sham keshini saqlash
         uses: actions/cache/save@v4
-        if: always() && steps.tiklash.outputs.cache-hit != 'true'
+        if: always()
         with:
           path: data/candles
           key: ${{ steps.kesh.outputs.kalit }}
