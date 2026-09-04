@@ -5641,3 +5641,46 @@ hisoblamaydi. Tartib QAT'IY:
 Teskarisi bo'lsa: 4-blok tasdiqlanadi, signal chiqadi, va faqat
 keyin 2-blokning buzilgani ma'lum bo'lardi — signal ALLAQACHON
 yuborilgan bo'lardi.
+
+---
+
+## 93. Sig'im o'lchovi — portfel chegarasi alohida o'lchanadi (2026-09-04)
+
+`ZanjirBacktest` sukut bo'yicha portfel chegaralarini
+QO'LLAMAYDI. Bu — ataylab qilingan tanlov va 92-bo'limda
+yozilgan: zanjirning O'Z sifati o'lchanayotganda `max_open_signals`
+aralashmasligi kerak.
+
+Lekin "aralashmasin" degani "unutilsin" degani emas. Eski
+tizimning eng katta yo'qotishi aynan shu yerda edi:
+`risk_engine` 4 668 nomzoddan 593 tasini o'tkazgan va sababning
+87% i `max_open_signals` bo'lgan. Ya'ni bir necha hafta davomida
+strategiya emas, portfel chegarasi o'lchangan.
+
+Shuning uchun `sigim=True` bayrog'i qo'shildi va u ALOHIDA
+skriptda (`scripts/zanjir_sigim.py`) ikkita bir xil yugurishni
+solishtiradi. Bayroqsiz hech narsa o'zgarmaydi — test bilan
+qulflangan.
+
+### O'rin cheklanganda kim kiradi
+
+Sig'im yoqilganda savol tug'iladi: beshta o'rin bor, sakkizta
+nomzod bor — kim kiradi?
+
+Javob: **ishonchi eng yuqori nomzod**. Nomzodlar shu qadam ichida
+yig'iladi va `ishonch()` bo'yicha tartiblangandan keyin
+joylashtiriladi.
+
+Ansiz o'rinni har doim `symbols` ro'yxatida oldinroq turgan coin
+egallardi. Natijada o'lchov coinlar ro'yxatining TARTIBIGA
+bog'lanib qolardi — ya'ni o'lchov o'zi haqida yolg'on gapirardi.
+Bu qatorlarni tekshiradigan test:
+`test_sigimda_kuchli_nomzod_orinni_oladi`.
+
+### Nima o'lchanmaydi
+
+Kunlik/haftalik zarar chegaralari, kill switch, juma filtri —
+BULAR QO'SHILMADI. Ular vaqtga bog'liq va tarixiy simulyatsiyada
+qanday qo'llanishini ALOHIDA hal qilish kerak. Taxmin qilib
+qo'shilsa, natija "o'lchandi" deb ko'rinardi-yu, aslida taxmin
+bo'lardi.
