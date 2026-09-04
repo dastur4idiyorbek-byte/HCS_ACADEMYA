@@ -31,7 +31,7 @@ from bot.hosting import video_dir
 from bot.i18n import DEFAULT_LANGUAGE, t
 from bot.services.broadcast import broadcast_signal, obunachilar
 from core.config.schema import AppConfig
-from core.domain.enums import OrderType
+from core.domain.enums import OrderType, SignalSource
 from core.domain.models import EntryPlan, signal_levels
 from core.market_data.binance import BinanceCandleProvider
 from core.services import SubscriptionService
@@ -74,6 +74,21 @@ async def _repeat(
         except Exception:  # noqa: BLE001
             logger.exception("Fon vazifasi xato berdi: %s", name)
         await asyncio.sleep(interval.total_seconds())
+
+
+def _manba(qiymat: str | None) -> SignalSource | None:
+    """Bazadagi matnni `SignalSource` ga aylantiradi.
+
+    Notanish qiymat `None` qaytaradi va kartochkada "eski modul"
+    yorlig'i chiqadi. Bu ATAYLAB eng ehtiyotkor talqin: manbasi
+    noma'lum signal ishonchli deb ko'rsatilmaydi.
+    """
+    if not qiymat:
+        return None
+    try:
+        return SignalSource(qiymat)
+    except ValueError:
+        return None
 
 
 class Scheduler:
@@ -127,6 +142,13 @@ class Scheduler:
         ]
 
         if self._sikl is not None:
+            # Sikl YOQILGANINI admin BILISHI kerak. 2026-09-04 da
+            # admin signal olib, uni qaysi modul berganini ajrata
+            # olmadi. Endi modul ishga tushganda ham xabar boradi,
+            # signalda ham yorliq turadi.
+            self._tasks.append(
+                asyncio.create_task(self._sikl_yoqildi_xabari(), name="zanjir-xabar")
+            )
             # ZANJIR SIKLI — yangi tahlil moduli.
             #
             # Kechikish 3 daqiqa: bot endi ko'tarilganda birjaga
@@ -203,6 +225,29 @@ class Scheduler:
             except Exception:  # noqa: BLE001
                 logger.warning("Eslatma yetkazilmadi: telegram_id=%s", telegram_id)
 
+    async def _sikl_yoqildi_xabari(self) -> None:
+        """Bot ko'tarilganda adminga "modul yoqildi" deb aytadi."""
+        z = self._config.zanjir
+        matn = (
+            "🤖 <b>Zanjir moduli ishga tushdi</b>\n\n"
+            f"Har <b>{z.sikl_soat} soatda</b> tekshiradi\n"
+            f"Kuzatilayotgan coinlar: <b>{len(z.kuzatiladigan_coinlar)}</b> ta\n"
+            f"{', '.join(z.kuzatiladigan_coinlar)}\n\n"
+            "Bundan keyingi avtomatik signallarda "
+            "«🤖 Zanjir moduli» yorlig'i bo'ladi.\n"
+            "Yorliqsiz yoki «🕰 Eski modul» yozuvli signal — "
+            "ESKI ma'lumot, unga ishonmang."
+        )
+        await self._adminlarga(matn)
+
+    async def _adminlarga(self, matn: str) -> None:
+        """Xabar yetmasa sikl to'xtamaydi — sabab logga yoziladi."""
+        for admin_id in self._admin_ids:
+            try:
+                await self._bot.send_message(admin_id, matn)
+            except Exception:  # noqa: BLE001 — bitta admin yetmasligi jiddiy emas
+                logger.warning("Adminga xabar yetmadi: %s", admin_id)
+
     async def _zanjir_sikli(self) -> None:
         """Yangi tahlil modulini yuritadi va topilgan signalni yozadi.
 
@@ -214,12 +259,19 @@ class Scheduler:
         if self._sikl is None:
             return
         natija = await self._sikl.yur()
-        if natija.yangi_signallar:
-            logger.info(
-                "Zanjir sikli %d ta yangi signal yozdi: %s",
-                len(natija.yangi_signallar),
-                ", ".join(symbol for symbol, _ in natija.yangi_signallar),
-            )
+        if not natija.yangi_signallar:
+            return
+
+        nomlar = ", ".join(symbol for symbol, _ in natija.yangi_signallar)
+        logger.info(
+            "Zanjir sikli %d ta yangi signal yozdi: %s",
+            len(natija.yangi_signallar), nomlar,
+        )
+        await self._adminlarga(
+            f"🤖 <b>Zanjir moduli {len(natija.yangi_signallar)} ta signal topdi</b>\n"
+            f"{nomlar}\n\n"
+            "Obunachilarga bir daqiqa ichida yuboriladi."
+        )
 
     async def _pickup_web_signals(self) -> None:
         """Veb-panelda yaratilgan signallarni kuzatuvga oladi va tarqatadi.
@@ -245,16 +297,17 @@ class Scheduler:
                     y.symbol,
                     signal_levels(entry=y.entry, stop=y.stop, tp1=y.tp1, tp2=y.tp2),
                     OrderType(y.entry_order_type),
+                    _manba(y.source),
                 )
                 for y in kutayotganlar
             ]
             qabul_qiluvchilar = await obunachilar(session)
 
-        for signal_id, symbol, levels, buyurtma in tayyor:
+        for signal_id, symbol, levels, buyurtma, manba in tayyor:
             reja = EntryPlan(order_type=buyurtma, reference_price=levels.entry)
             yuborildi = await broadcast_signal(
                 self._bot, qabul_qiluvchilar, symbol, levels, reja,
-                signal_id, self._config,
+                signal_id, self._config, manba=manba,
             )
             async with self._db.session() as session:
                 await SignalRepository(session).mark_broadcast(signal_id)

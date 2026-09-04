@@ -87,3 +87,62 @@ def test_oylik_foiz_qoshilib_hisoblanadi(config) -> None:  # noqa: ANN001
     natija = hisobni_yurit([savdo(k * 30, +4.0) for k in range(12)], config, 1000.0)
     kutilgan = ((natija.yakuniy / 1000.0) ** (1 / natija.oylar) - 1) * 100
     assert abs(natija.oylik_pct - kutilgan) < 1e-6
+
+
+# --- Signal manbasi kartochkada ko'rinishi ----------------------- #
+#
+# 2026-09-04: admin signal olib, uni yangi modul berganmi yoki eski
+# moduldan qolganmi ajrata olmadi. Kartochkada bu ma'lumot yo'q edi.
+
+
+def _kartochka(manba=None):  # noqa: ANN001, ANN202
+    from bot.formatting import render_signal_card
+    from core.domain.models import signal_levels
+    from core.services.kirish_rejasi import decide_entry_plan
+
+    lv = signal_levels(entry=100.0, stop=97.0, tp1=106.0)
+    return render_signal_card("BTC", lv, decide_entry_plan(100.0, lv), manba=manba)
+
+
+def test_zanjir_signalida_yorliq_bor() -> None:
+    from core.domain.enums import SignalSource
+
+    assert "Zanjir moduli" in _kartochka(SignalSource.ZANJIR)
+
+
+def test_qolda_kiritilgan_signal_boshqa_yorliq() -> None:
+    from core.domain.enums import SignalSource
+
+    matn = _kartochka(SignalSource.MANUAL)
+    assert "Qo'lda kiritilgan" in matn
+    assert "Zanjir moduli" not in matn
+
+
+def test_notanish_manba_ISHONCHLI_deb_korsatilmaydi() -> None:
+    """Eng muhim test: noma'lum manba "yangi modul" bo'lib chiqmasin.
+
+    Eski modul qoldirgan signalning manbasi ro'yxatda yo'q. Agar u
+    jimgina "Zanjir moduli" yorlig'ini olsa, admin eski signalga
+    yangisidek ishonardi.
+    """
+    from core.domain.enums import SignalSource
+
+    matn = _kartochka(SignalSource.CLASSIC_TA)
+    assert "Zanjir moduli" not in matn
+    assert "Eski modul" in matn
+
+
+def test_manba_berilmasa_yorliq_umuman_yoq() -> None:
+    matn = _kartochka(None)
+    assert "Zanjir moduli" not in matn
+    assert "Eski modul" not in matn
+
+
+def test_bazadagi_notanish_qiymat_yiqilmaydi() -> None:
+    """Bazada eski/notanish `source` bo'lsa, bot yiqilmasin."""
+    from bot.services.scheduler import _manba
+
+    assert _manba("zanjir") is not None
+    assert _manba("allaqachon_yoq_manba") is None
+    assert _manba(None) is None
+    assert _manba("") is None

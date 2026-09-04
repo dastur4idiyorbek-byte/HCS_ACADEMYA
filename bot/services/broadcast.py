@@ -15,7 +15,7 @@ from bot.formatting import render_signal_card
 from bot.i18n import DEFAULT_LANGUAGE
 from bot.keyboards import signal_actions
 from core.config.schema import AppConfig
-from core.domain.enums import SubscriptionTier
+from core.domain.enums import SignalSource, SubscriptionTier
 from core.domain.models import EntryPlan, SignalLevels
 from core.position_sizing import PositionSizer
 from core.storage.repositories import SubscriptionRepository, UserRepository
@@ -58,6 +58,7 @@ async def broadcast_signal(  # noqa: PLR0913
     signal_id: int,
     config: AppConfig,
     language: str = DEFAULT_LANGUAGE,
+    manba: SignalSource | None = None,
 ) -> int:
     """1.3-band: `protect_content=True` — forward/saqlash bloklanadi.
 
@@ -80,6 +81,7 @@ async def broadcast_signal(  # noqa: PLR0913
             quote_asset=config.halal_screening.quote_asset,
             language=language,
             tp1_close_pct=config.portfolio.tp1_close_pct,
+            manba=manba,
         )
         # Balanssiz foydalanuvchiga ENG AVVAL balans tugmasi ko'rinadi.
         tugmalar = signal_actions(

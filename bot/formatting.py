@@ -13,7 +13,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from bot.i18n import DEFAULT_LANGUAGE, t
-from core.domain.enums import SignalStatus
+from core.domain.enums import SignalSource, SignalStatus
 from core.domain.models import EntryPlan, PositionSuggestion, SignalLevels
 from core.utils.time_utils import utc_now
 
@@ -129,6 +129,17 @@ def render_summary(  # noqa: PLR0913
     )
 
 
+#: Signal manbasi -> kartochkadagi yorliq.
+#:
+#: Ro'yxatda YO'Q manba "eski modul" deb belgilanadi — ya'ni
+#: ATAYLAB eng ehtiyotkor talqin. Yangi manba qo'shilib bu
+#: yerga yozilmasa, u "ishonchli" deb ko'rsatilmaydi.
+_MANBA_KALITI = {
+    SignalSource.ZANJIR: "signal.manba_zanjir",
+    SignalSource.MANUAL: "signal.manba_qolda",
+}
+
+
 def render_signal_card(  # noqa: PLR0913
     symbol: str,
     levels: SignalLevels,
@@ -139,6 +150,7 @@ def render_signal_card(  # noqa: PLR0913
     tp1_close_pct: float = 50.0,
     status: SignalStatus | None = None,
     created_at: datetime | None = None,
+    manba: SignalSource | None = None,
 ) -> str:
     """5.1.0-banddagi signal-kartochka.
 
@@ -168,6 +180,16 @@ def render_signal_card(  # noqa: PLR0913
             xabarda ikkita qarama-qarshi gap chiqardi. Endi holat
             ma'lum bo'lsa u YAGONA manba.
         created_at: signal berilgan vaqt. Berilmasa — hozir.
+        manba: signalni QAYSI modul bergani.
+
+            2026-09-04 da admin yangi signal olib, uni yangi
+            modul berganmi yoki eski moduldan qolganmi ajrata
+            olmadi. Kartochkada bu ma'lumot umuman yo'q edi.
+
+            Ikki modul BOSHQA mantiq bilan ishlaydi va ularning
+            signaliga bir xil ishonch bo'lolmaydi — shuning
+            uchun manba kartochkaning O'ZIDA ko'rinadi, admin
+            panelida emas: signalni obunachi ham oladi.
     """
     if suggestion is not None and suggestion.position_size_usd > 0:
         amount = f"${format_price(suggestion.position_size_usd)}"
@@ -210,6 +232,9 @@ def render_signal_card(  # noqa: PLR0913
             language=language,
         ),
     )
+
+    if manba is not None:
+        kartochka += "\n\n" + t(_MANBA_KALITI.get(manba, "signal.manba_eski"), language)
 
     kartochka += "\n\n" + t("signal.izoh_stop", language)
 
