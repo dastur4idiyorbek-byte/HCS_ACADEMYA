@@ -1375,3 +1375,67 @@ hisoblanadi. Test bilan qulflandi:
 | 🟢 | Tayanch: 277 savdo, PF 3.50 | O'Z KUCHIDA (ablatsiyasiz yurgan) |
 | 🟢 | Chegara jadvallari | O'Z KUCHIDA |
 | 🟢 | Walk-forward 3.48/4.10/2.91 | O'Z KUCHIDA |
+
+---
+
+## 2026-09-04 (yakuniy) — TUZATILGAN ASBOB BILAN QAYTA O'LCHOV
+
+To'liq natija: `docs/BACKTEST_NATIJA_2026-09-04_zanjir3.md`
+
+### 🟢 TASDIQLANGAN: hech bir tekshiruv PF ni oshirmaydi
+
+Natija #2 dagi xulosa tuzatilgan mexanizm bilan TAKRORLANDI.
+16 ta tekshiruvdan birortasi ham PF ni oshirmadi. Bu endi
+o'lchov xatosi emas — fakt.
+
+### 🔴 RAD ETILGAN GIPOTEZA: "bo'sh tekshiruvlar keraksiz"
+
+Promptning qoidasi (|ΔPF| < 0.03 → olib tashla) shu tizimda
+NOTO'G'RI natija beradi:
+
+    to'liq zanjir   277 savdo   PF 3.50
+    11 tasiz        194 savdo   PF 2.80
+
+Sabab topildi va u tuzilmaviy: blok `kuch >= 1` da o'tadi. Bitta
+tekshiruvni o'chirish blokni o'zgartirmaydi, lekin uchtasini
+birga o'chirish blokni QATTIQROQ qiladi (Struktura to'sig'i
+4074 → 5477).
+
+**"Bo'sh" tekshiruvlar bo'sh emas — ular blokni OCHIQ ushlab
+turadi.** Ular alohida qaror qilmaydi, birgalikda yumshatadi.
+
+Bu — daftarning eng qimmatli yozuvlaridan biri: **ablatsiyaning
+birma-bir natijasidan guruh xulosasi CHIQARILMAYDI.**
+
+### 🔴 RAD ETILGAN GIPOTEZA: "ko'proq blok = yaxshiroq"
+
+    4 blok:  277 savdo, PF 3.50, pasayish 28.2%
+    3 blok:  374 savdo, PF 3.95, pasayish 35.2%
+
+Tasdiqlash bloki PF ni PASAYTIRADI. Lekin pasayishni ham
+kamaytiradi — ya'ni u foyda emas, XAVF qatlami.
+
+### 🟡 QISMAN TASDIQLANGAN: "ustunlik darajalarda"
+
+    zanjirsiz (faqat darajalar):  474 savdo, PF 3.05, pasayish 54.8%
+    to'liq zanjir:                277 savdo, PF 3.50, pasayish 28.2%
+
+Darajalar o'zi PF 3.05 beradi — ustunlikning katta qismi shu
+yerda. Lekin zanjir pasayishni deyarli IKKI BAROBAR kamaytiradi.
+
+**Yangi tushuncha: zanjir foydani emas, xavfni boshqaradi.**
+Bu modulning maqsadini qayta ta'riflaydi va jonli kuzatuvda
+birinchi tekshiriladigan narsa — pasayish, PF emas.
+
+### 🔴 HALI O'LCHANMAGAN
+
+| 🔴 | Nima | Nega hali qaror yo'q |
+|---|---|---|
+| 🔴 | Blok qoidasi 2/4 bo'lsinmi | Yangi qoida — yangi o'lchov kerak |
+| 🔴 | 4-blok olib tashlansinmi | 0.45 PF farqi uch oynada takrorlanmagan |
+| 🔴 | Kunlik/haftalik zarar chegarasi | Vaqtga bog'liq, alohida hal qilinadi |
+| 🔴 | Fundamental blokning yarmi | Tarixiy manba yo'q (FUNDAMENTAL_MALUMOT_MANBALARI.md) |
+
+Uchta qaror ADMIN uchun qoldirildi. Men ularni o'zim qabul
+qilmadim — prompt shuni talab qiladi va o'lchov qoidaga qarshi
+chiqqan joyda bu ayniqsa muhim.
