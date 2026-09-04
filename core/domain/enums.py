@@ -124,6 +124,7 @@ class SignalSource(str, Enum):
     OPENING_RANGE_SCALP = "opening_range_scalp"  # 3.9 — kunlik sham ochilishi
     CORRECTION_ENTRY = "correction_entry"  # 3.10 — pasayishdagi tuzilmaviy kirish
     NARX_HARAKATI = "narx_harakati"        # yorish -> qayta sinov -> tasdiq
+    ZANJIR = "zanjir"                      # 2026-09: to'rt blokli zanjir moduli
 
 
 class MarketRegime(str, Enum):

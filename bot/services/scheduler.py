@@ -33,7 +33,9 @@ from bot.services.broadcast import broadcast_signal, obunachilar
 from core.config.schema import AppConfig
 from core.domain.enums import OrderType
 from core.domain.models import EntryPlan, signal_levels
+from core.market_data.binance import BinanceCandleProvider
 from core.services import SubscriptionService
+from core.services.zanjir_sikl import ZanjirSikl
 from core.storage import Database
 from core.storage.repositories import (
     ContentRepository,
@@ -83,11 +85,18 @@ class Scheduler:
         database: Database,
         config: AppConfig,
         admin_ids: frozenset[int],
+        candles: BinanceCandleProvider | None = None,
     ) -> None:
         self._bot = bot
         self._db = database
         self._config = config
         self._admin_ids = admin_ids
+        # Provayder berilmasa zanjir sikli ISHGA TUSHMAYDI. Bu holat
+        # `start()` da logga YOZILADI — aks holda bot ishlab turadi-yu
+        # signal bermaydi, sababi esa noma'lum bo'lib qolardi.
+        self._sikl = (
+            ZanjirSikl(config, candles, database) if candles is not None else None
+        )
         self._video_dir = video_dir()
         self._tasks: list[asyncio.Task] = []
 
@@ -116,6 +125,24 @@ class Scheduler:
                 timedelta(minutes=1),
             ),
         ]
+
+        if self._sikl is not None:
+            # ZANJIR SIKLI — yangi tahlil moduli.
+            #
+            # Kechikish 3 daqiqa: bot endi ko'tarilganda birjaga
+            # o'nlab so'rov yuborish eng yomon payt. Avval obuna va
+            # veb vazifalari o'tsin.
+            vazifalar.append((
+                "zanjir",
+                timedelta(hours=self._config.zanjir.sikl_soat),
+                self._zanjir_sikli,
+                timedelta(minutes=3),
+            ))
+        else:
+            logger.warning(
+                "Zanjir sikli O'CHIQ: sham provayderi berilmagan. "
+                "Bot ishlaydi, lekin AVTOMATIK signal bermaydi."
+            )
 
         for nom, oraliq, harakat, kechikish in vazifalar:
             vazifa = asyncio.create_task(
@@ -175,6 +202,24 @@ class Scheduler:
                 )
             except Exception:  # noqa: BLE001
                 logger.warning("Eslatma yetkazilmadi: telegram_id=%s", telegram_id)
+
+    async def _zanjir_sikli(self) -> None:
+        """Yangi tahlil modulini yuritadi va topilgan signalni yozadi.
+
+        Yozilgan signal shu yerda TARQATILMAYDI — uni bir daqiqadan
+        keyin `_pickup_web_signals` oladi. Sabab: kartochka har bir
+        obunachi uchun alohida yasaladi va o'sha mantiq bitta joyda
+        turishi kerak.
+        """
+        if self._sikl is None:
+            return
+        natija = await self._sikl.yur()
+        if natija.yangi_signallar:
+            logger.info(
+                "Zanjir sikli %d ta yangi signal yozdi: %s",
+                len(natija.yangi_signallar),
+                ", ".join(symbol for symbol, _ in natija.yangi_signallar),
+            )
 
     async def _pickup_web_signals(self) -> None:
         """Veb-panelda yaratilgan signallarni kuzatuvga oladi va tarqatadi.

@@ -145,7 +145,7 @@ async def run() -> None:
     )
     dispatcher["candles"] = candle_provider
 
-    scheduler = Scheduler(bot, database, config, settings.admin_ids)
+    scheduler = Scheduler(bot, database, config, settings.admin_ids, candle_provider)
     scheduler.start()
 
     await register_commands(bot, settings.admin_ids)

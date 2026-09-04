@@ -21,6 +21,9 @@ TOPLAMLAR = {
     "STANDART_COINLAR": STANDART_COINLAR,
     "OLCHOV_12": OLCHOV_12,
     "OLCHOV_24": OLCHOV_24,
+    # JONLI ro'yxat — eng muhimi. Bu yerga harom coin tushsa,
+    # bot obunachiga harom signal yuborardi.
+    "zanjir.kuzatiladigan_coinlar": load_config().zanjir.kuzatiladigan_coinlar,
 }
 
 

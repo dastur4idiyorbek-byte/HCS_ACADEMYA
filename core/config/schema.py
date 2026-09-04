@@ -536,6 +536,30 @@ class ZanjirConfig:
     bloklar: BloklarConfig = field(default_factory=BloklarConfig)
     darajalar: DarajalarConfig = field(default_factory=DarajalarConfig)
     chiqish: ChiqishConfig = field(default_factory=ChiqishConfig)
+    #: JONLI tizim kuzatadigan coinlar.
+    #:
+    #: Ro'yxat ANIQ — "Top 30" kabi o'zgaruvchan son emas
+    #: (2-promptning taqiqi). Aynan shu 12 coinda modul
+    #: o'lchangan: 4 yil, 498 savdo, PF 3.49. Boshqa coin
+    #: qo'shish — O'LCHANMAGAN o'zgarish.
+    #:
+    #: Hammasi halol skriningdan o'tgan: harom yoki mashbooh
+    #: ro'yxatidagi coin bu yerga tusholmaydi (test bilan
+    #: qulflangan).
+    kuzatiladigan_coinlar: list[str] = field(
+        default_factory=lambda: [
+            "BTC", "ETH", "SOL", "ADA", "AVAX", "LINK",
+            "DOT", "ATOM", "LTC", "NEAR", "ETC", "FIL",
+        ]
+    )
+    #: Sikl necha soatda bir marta yuradi.
+    #:
+    #: Zanjirning asosiy timeframei — 1 kun. Kunlik sham
+    #: yopilishini kutib o'tirish signalni 24 soatgacha
+    #: kechiktirardi; 4 soat — oraliq yechim: struktura
+    #: kunlik shamdan o'qiladi, lekin zona ichiga narx
+    #: kirganda 4 soat ichida ushlanadi.
+    sikl_soat: int = 4
     #: Signal chiqishi uchun minimal ishonch (0..1).
     #:
     #: 🔴 O'LCHANMAGAN va ATAYLAB 0.0. Zanjirning O'ZI darvoza:
