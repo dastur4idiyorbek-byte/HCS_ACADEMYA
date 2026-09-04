@@ -67,6 +67,9 @@ class ZanjirNatijasi:
     uzilishlar: dict[str, int] = field(default_factory=dict)
     #: Zanjir to'liq bog'langan, lekin daraja rad etilgan holatlar
     daraja_radlari: dict[str, int] = field(default_factory=dict)
+    #: Daraja ham tayyor bo'lgan, lekin PORTFEL chegarasi to'sgan
+    #: holatlar (faqat `sigim=True` da to'ldiriladi)
+    sigim_radlari: dict[str, int] = field(default_factory=dict)
 
     @property
     def signal_soni(self) -> int:
@@ -119,9 +122,16 @@ class ZanjirBacktest:
         *,
         ochirilgan_tekshiruvlar: frozenset[str] = frozenset(),
         reja: ChiqishRejasi | None = None,
+        sigim: bool = False,
     ) -> None:
         self._config = config
         self._nom = nom
+        # SIG'IM: jonli tizimning portfel chegaralari (max_open_signals
+        # va korrelyatsiya guruhi). Sukut bo'yicha O'CHIQ — zanjirning
+        # O'Z sifati o'lchanayotganda ular aralashmasligi kerak
+        # (fayl boshidagi izoh). Yoqilganda esa savol boshqa bo'ladi:
+        # "shu strategiyadan REAL hisobda nechtasini olish mumkin?"
+        self._sigim = sigim
         # ABLATSIYA uchun: nomi shu to'plamda bo'lgan ichki tekshiruv
         # `MALUMOT_YOQ` ga aylantiriladi, ya'ni maxrajdan chiqadi.
         self._ochirilgan = ochirilgan_tekshiruvlar
@@ -148,6 +158,7 @@ class ZanjirBacktest:
         for hozir in vaqtlar:
             natija.qadamlar += 1
             btc = _shamlar(dataset, "BTC", z.timeframelar.asosiy, hozir)
+            nomzodlar: list[tuple[float, Savdo]] = []
 
             for symbol in symbols:
                 shamlar = _shamlar(dataset, symbol, z.timeframelar.asosiy, hozir)
@@ -206,13 +217,18 @@ class ZanjirBacktest:
                     natija.daraja_radlari[sabab] = natija.daraja_radlari.get(sabab, 0) + 1
                     continue
 
-                ochiq[symbol] = Savdo(
-                    symbol=symbol,
-                    kirish_vaqti=hozir,
-                    entry=darajalar.entry,
-                    stop=darajalar.stop,
-                    tplar=darajalar.tplar,
-                )
+                nomzodlar.append((
+                    zanjir.ishonch(),
+                    Savdo(
+                        symbol=symbol,
+                        kirish_vaqti=hozir,
+                        entry=darajalar.entry,
+                        stop=darajalar.stop,
+                        tplar=darajalar.tplar,
+                    ),
+                ))
+
+            self._joylashtir(nomzodlar, ochiq, natija)
 
         # Oyna oxirida ochiq qolganlar joriy narxda yopiladi — aks
         # holda ular natijaga umuman kirmasdi va statistika faqat
@@ -225,6 +241,52 @@ class ZanjirBacktest:
                 natija.savdolar.append(savdo)
 
         return natija
+
+    def _joylashtir(
+        self,
+        nomzodlar: list[tuple[float, Savdo]],
+        ochiq: dict[str, Savdo],
+        natija: ZanjirNatijasi,
+    ) -> None:
+        """Nomzodlarni ochiq savdolarga aylantiradi.
+
+        `sigim` o'chiq bo'lsa — hammasi ochiladi (zanjirning O'Z
+        sifati o'lchanadi).
+
+        Yoqilganda jonli tizimning ikkita portfel qoidasi qo'llanadi:
+        `max_open_signals` va korrelyatsiya guruhi. Bunda TARTIB
+        muhim bo'lib qoladi: o'rin cheklangan bo'lsa, kim oldin
+        kirishi kerak? Bu yerda ishonch bo'yicha eng kuchli nomzod
+        oldin kiradi — jonli tizimdagi kabi. Alifbo tartibida
+        olinsa, o'rinni doim "A" bilan boshlanadigan coin egallardi
+        va natija coinlar ro'yxatining TARTIBIGA bog'liq bo'lib
+        qolardi.
+        """
+        if not self._sigim:
+            for _, savdo in nomzodlar:
+                ochiq[savdo.symbol] = savdo
+            return
+
+        risk = self._config.risk_engine
+        for _, savdo in sorted(nomzodlar, key=lambda n: n[0], reverse=True):
+            if len(ochiq) >= risk.max_open_signals:
+                natija.sigim_radlari["max_open_signals"] = (
+                    natija.sigim_radlari.get("max_open_signals", 0) + 1
+                )
+                continue
+            guruh = risk.correlation_group_of(savdo.symbol)
+            if guruh is not None:
+                band = sum(
+                    1
+                    for s in ochiq.values()
+                    if risk.correlation_group_of(s.symbol) == guruh
+                )
+                if band >= risk.max_signals_per_correlation_group:
+                    natija.sigim_radlari["korrelyatsiya"] = (
+                        natija.sigim_radlari.get("korrelyatsiya", 0) + 1
+                    )
+                    continue
+            ochiq[savdo.symbol] = savdo
 
     def _ablatsiya(self, zanjir):  # noqa: ANN001, ANN202
         """O'chirilgan tekshiruvlarni `MALUMOT_YOQ` ga aylantiradi.

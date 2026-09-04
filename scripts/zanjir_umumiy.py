@@ -178,4 +178,8 @@ def voronka_matni(natija: ZanjirNatijasi) -> str:
         qatorlar.append("   Zanjir to'liq, lekin daraja rad etildi:")
         for sabab, soni in sorted(natija.daraja_radlari.items(), key=lambda x: -x[1]):
             qatorlar.append(f"      {soni:>6} × {sabab}")
+    if natija.sigim_radlari:
+        qatorlar.append("   Signal tayyor, lekin PORTFEL chegarasi to'sdi:")
+        for sabab, soni in sorted(natija.sigim_radlari.items(), key=lambda x: -x[1]):
+            qatorlar.append(f"      {soni:>6} × {sabab}")
     return "\n".join(qatorlar)

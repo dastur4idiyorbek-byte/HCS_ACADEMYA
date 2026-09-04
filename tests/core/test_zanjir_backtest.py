@@ -223,3 +223,84 @@ def test_nomalum_coin_bosh_royxat() -> None:
     from core.backtest.zanjir_engine import _shamlar
 
     assert _shamlar(Dataset(), "YOQ", "1d", BOSH) == []
+
+
+def test_sigim_ochiq_savdolar_sonini_cheklaydi(config) -> None:  # noqa: ANN001
+    """`max_open_signals` dan ortiq savdo ochilmasin."""
+    from core.backtest.zanjir_engine import ZanjirNatijasi
+
+    dvigatel = ZanjirBacktest(config, "sinov", sigim=True)
+    natija = ZanjirNatijasi(nom="sinov")
+    ochiq: dict[str, Savdo] = {}
+    nomzodlar = [
+        (0.5 + i / 100, Savdo(f"C{i}", BOSH, 100.0, 95.0, (110.0,)))
+        for i in range(config.risk_engine.max_open_signals + 3)
+    ]
+
+    dvigatel._joylashtir(nomzodlar, ochiq, natija)
+
+    assert len(ochiq) == config.risk_engine.max_open_signals
+    assert natija.sigim_radlari["max_open_signals"] == 3
+
+
+def test_sigimsiz_hech_narsa_toslmaydi(config) -> None:  # noqa: ANN001
+    """Sukut holat — sig'im O'CHIQ, zanjirning o'z sifati o'lchanadi."""
+    from core.backtest.zanjir_engine import ZanjirNatijasi
+
+    dvigatel = ZanjirBacktest(config, "sinov")
+    natija = ZanjirNatijasi(nom="sinov")
+    ochiq: dict[str, Savdo] = {}
+    nomzodlar = [
+        (0.5, Savdo(f"C{i}", BOSH, 100.0, 95.0, (110.0,)))
+        for i in range(config.risk_engine.max_open_signals + 5)
+    ]
+
+    dvigatel._joylashtir(nomzodlar, ochiq, natija)
+
+    assert len(ochiq) == len(nomzodlar)
+    assert not natija.sigim_radlari
+
+
+def test_sigim_korrelyatsiya_guruhini_hisobga_oladi(config) -> None:  # noqa: ANN001
+    """Bitta guruhdan bitta signal — SOL va ADA birga ochilmasin."""
+    from core.backtest.zanjir_engine import ZanjirNatijasi
+
+    risk = config.risk_engine
+    assert risk.correlation_group_of("SOL") == risk.correlation_group_of("ADA")
+
+    dvigatel = ZanjirBacktest(config, "sinov", sigim=True)
+    natija = ZanjirNatijasi(nom="sinov")
+    ochiq: dict[str, Savdo] = {}
+    nomzodlar = [
+        (0.9, Savdo("SOL", BOSH, 100.0, 95.0, (110.0,))),
+        (0.8, Savdo("ADA", BOSH, 100.0, 95.0, (110.0,))),
+    ]
+
+    dvigatel._joylashtir(nomzodlar, ochiq, natija)
+
+    assert set(ochiq) == {"SOL"}
+    assert natija.sigim_radlari["korrelyatsiya"] == 1
+
+
+def test_sigimda_kuchli_nomzod_orinni_oladi(config) -> None:  # noqa: ANN001
+    """O'rin cheklangan bo'lsa — ALIFBO emas, ISHONCH hal qilsin.
+
+    Alifbo tartibida saralansa natija coinlar ro'yxatining tartibiga
+    bog'lanib qolardi va o'lchov o'zi haqida yolg'on gapirardi.
+    """
+    from core.backtest.zanjir_engine import ZanjirNatijasi
+
+    risk = config.risk_engine
+    dvigatel = ZanjirBacktest(config, "sinov", sigim=True)
+    natija = ZanjirNatijasi(nom="sinov")
+    ochiq: dict[str, Savdo] = {}
+    # "ZZZ" eng oxirgi, lekin ishonchi eng yuqori.
+    nomzodlar = [
+        (0.10, Savdo(f"AAA{i}", BOSH, 100.0, 95.0, (110.0,)))
+        for i in range(risk.max_open_signals)
+    ]
+    nomzodlar.append((0.99, Savdo("ZZZ", BOSH, 100.0, 95.0, (110.0,))))
+
+    dvigatel._joylashtir(nomzodlar, ochiq, natija)
+
+    assert "ZZZ" in ochiq

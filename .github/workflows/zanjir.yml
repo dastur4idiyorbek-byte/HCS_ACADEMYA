@@ -4,6 +4,7 @@ name: Zanjir o'lchovi
 #   backtest      — bosqichma-bosqich (1-2 blok, +3, to'liq)
 #   ablatsiya     — 16 ta ichki tekshiruv birma-bir
 #   walk-forward  — kesishmaydigan oynalarda takrorlanish
+#   sigim         — portfel chegarasi nechtasini kesadi
 #
 # Nima uchun Actions'da: bu muhitdan Binance'ga chiqish yopiq, va
 # 730 kunlik yuklash mahalliy mashinada ham uzoq davom etadi.
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       olchov:
-        description: "backtest | ablatsiya | walk-forward | chegara | hammasi"
+        description: "backtest | ablatsiya | walk-forward | chegara | sigim | hammasi"
         default: "hammasi"
       days:
         description: "Necha kun tahlil qilinsin"
@@ -104,6 +105,15 @@ jobs:
             ${{ inputs.tp1_nisbat != '' && format('--tp1-nisbat {0}', inputs.tp1_nisbat) || '' }} \
             --offline \
             | tee natija_walk_forward.txt
+
+      - name: Sig'im o'lchovi
+        if: inputs.olchov == 'sigim' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_sigim \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --offline \
+            | tee natija_sigim.txt
 
       - name: Sham keshini saqlash
         uses: actions/cache/save@v4
