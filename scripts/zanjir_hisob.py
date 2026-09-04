@@ -53,6 +53,10 @@ class HisobNatijasi:
     bajarilgan: int
     otkazilgan: int
     eng_chuqur_pasayish_pct: float
+    #: Bajarilgan va o'tkazilgan savdolarning o'rtacha natijasi.
+    #: Ikkisi keskin farq qilsa — tanlov TASODIFIY emas.
+    bajarilgan_ortacha: float = 0.0
+    otkazilgan_ortacha: float = 0.0
 
     @property
     def oylar(self) -> float:
@@ -114,6 +118,18 @@ def hisobni_yurit(savdolar: list[Savdo], config: AppConfig, balans: float) -> Hi
 
     hajmlar: dict[int, float] = {}
     bajarilgan = otkazilgan = 0
+    # TASHXIS: bajarilgan va o'tkazilgan savdolarning natijasi.
+    #
+    # Nima uchun kerak: kapital band bo'lganda qaysi savdo
+    # bajarilishi TASODIF emas. Zararli savdo TEZ yopiladi (stop),
+    # foydali savdo UZOQ yuradi (TP2/TP3 gacha). Ya'ni kapitalni
+    # yo'qotganlar bo'shatadi, yutganlar band qiladi — va hisob
+    # zarardan keyingi signalni oladi, foyda ketayotganda esa
+    # o'tkazib yuboradi.
+    #
+    # Bu — TAXMIN. Shuning uchun o'lchanadi.
+    bajarilgan_natija: list[float] = []
+    otkazilgan_natija: list[float] = []
     byudjet = None
     byudjet_kuni = None
     choqqi = balans
@@ -146,13 +162,16 @@ def hisobni_yurit(savdolar: list[Savdo], config: AppConfig, balans: float) -> Hi
         daraja = _darajalar(savdo)
         if daraja is None:
             otkazilgan += 1
+            otkazilgan_natija.append(savdo.natija_pct)
             continue
         tavsiya = sizer.suggest(savdo.symbol, daraja, byudjet, commit=True)
         if tavsiya.position_size_usd <= 0:
             otkazilgan += 1
+            otkazilgan_natija.append(savdo.natija_pct)
             continue
         hajmlar[id(savdo)] = tavsiya.position_size_usd
         bajarilgan += 1
+        bajarilgan_natija.append(savdo.natija_pct)
 
     kunlar = (hodisalar[-1][0] - hodisalar[0][0]).total_seconds() / 86400
     return HisobNatijasi(
@@ -162,6 +181,12 @@ def hisobni_yurit(savdolar: list[Savdo], config: AppConfig, balans: float) -> Hi
         bajarilgan=bajarilgan,
         otkazilgan=otkazilgan,
         eng_chuqur_pasayish_pct=eng_pasayish,
+        bajarilgan_ortacha=(
+            sum(bajarilgan_natija) / len(bajarilgan_natija) if bajarilgan_natija else 0.0
+        ),
+        otkazilgan_ortacha=(
+            sum(otkazilgan_natija) / len(otkazilgan_natija) if otkazilgan_natija else 0.0
+        ),
     )
 
 
@@ -188,6 +213,17 @@ async def main() -> None:
     print(f"Bajarilgan savdo:         {hisob.bajarilgan}")
     print(f"O'tkazib yuborilgan:      {hisob.otkazilgan}  (byudjet/kapital yetmadi)")
     print(f"Oyiga o'rtacha savdo:     {hisob.bajarilgan / max(hisob.oylar, 1e-9):.1f}")
+    print()
+    print("TANLOV TASODIFIYMI (kapital band bo'lganda kim kiradi):")
+    print(f"   bajarilganlarning o'rtachasi:  {hisob.bajarilgan_ortacha:+.2f}%")
+    print(f"   o'tkazilganlarning o'rtachasi: {hisob.otkazilgan_ortacha:+.2f}%")
+    farq = hisob.otkazilgan_ortacha - hisob.bajarilgan_ortacha
+    if abs(farq) > 0.5:
+        print(f"   🔴 FARQ {farq:+.2f}% — tanlov tasodifiy EMAS.")
+        print("      Zararli savdo tez yopiladi (stop), foydali savdo uzoq")
+        print("      yuradi. Ya'ni kapitalni yutqazganlar bo'shatadi va hisob")
+        print("      zarardan keyingi signalni oladi, foyda ketayotganda esa")
+        print("      o'tkazib yuboradi.")
     print()
     print(f"JAMI:                     {hisob.jami_pct:+.1f}%")
     print(f"OYLIK (qo'shilib borgan): {hisob.oylik_pct:+.2f}%")
