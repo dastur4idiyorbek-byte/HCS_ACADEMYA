@@ -158,14 +158,21 @@ To'liq natija: `docs/BACKTEST_NATIJA_2026-09-04_zanjir2.md`
 walk-forward:  PF 3.48 → 4.10 → 2.91   (121 / 87 / 96 savdo)
 ```
 
-Ablatsiya nihoyat javob berdi va javob KUTILMAGAN chiqdi:
-**16 ta ichki tekshiruvdan birortasi ham PF ni oshirmadi.**
-11 tasi natijani umuman o'zgartirmadi, 5 tasi o'chirilganda PF
-oshdi.
+Ablatsiya "hech bir tekshiruv hissa qo'shmaydi" degan javob
+berdi — va o'sha kuni ma'lum bo'ldiki, **javob emas, ASBOB
+noto'g'ri edi**. Ablatsiya zanjir tugagandan keyin qo'llanardi,
+ya'ni tekshiruvni o'chirish nomzodni oldinga o'tkaza olmasdi.
 
-Sabab tuzilmaviy: blok `kuch >= 1` da o'tadi, ya'ni blok ichida
-tekshiruvlar **YOKI** bilan bog'langan. YOKI zanjiridan bitta
-halqani olib tashlash natijani o'zgartirmaydi.
+Xatoni "zanjirsiz — faqat darajalar" varianti ochdi: barcha 16
+tekshiruv o'chirilganda natija "tasdiqlashsiz" varianti bilan
+raqamma-raqam bir xil chiqdi (374 savdo). Hammasini o'chirib
+ham hech narsa o'zgarmasa — o'zgartiradigan mexanizm
+ishlamayapti.
+
+Mexanizm tuzatildi (`ZanjirKirish.ochirilgan` — ablatsiya har
+bir blok qurilgandan keyin darhol qo'llanadi) va ablatsiya
+qayta yuritilmoqda. Tayanch, chegara va walk-forward raqamlari
+o'z kuchida: ular ablatsiyasiz yurgan.
 
 ## Keyingi qadam — tartib bilan
 

@@ -1308,3 +1308,70 @@ zanjirni butunlay o'chirib, faqat darajalar bilan o'lchash.
 `stop_eng_kam_pct` farqi shovqin darajasida chiqdi — ya'ni bu
 raqam O'LCHOV bilan emas, muhandislik mulohazasi bilan tanlangani
 o'z kuchida qoladi va shundayligicha yozilgan.
+
+---
+
+## 2026-09-04 (kechqurun) — YUQORIDAGI ABLATSIYA BEKOR QILINDI
+
+Yuqoridagi "Javob: BIRORTASI HAM emas" bo'limi **ISHONCHSIZ**.
+Xato tekshiruvlarda emas, O'LCHOV ASBOBIDA edi.
+
+### Xato nima edi
+
+Ablatsiya zanjir TUGAGANDAN keyin qo'llanardi:
+
+    1) zanjir_yur() yuradi -> 2-blokda uziladi -> 3 va 4-bloklar
+       UMUMAN hisoblanmaydi, natijada 2 ta blok qaytadi
+    2) shundan KEYIN ablatsiya qo'llanadi -> 2-blok endi o'tadi
+    3) lekin bloklar soni hamon 2 ta, ya'ni `toliq` = False
+
+Ya'ni tekshiruvni o'chirish nomzodni oldinga **o'tkaza olmasdi**.
+Ablatsiya faqat bitta yo'nalishda ishlardi: savdoni yo'qota
+olardi, yangisini ocha olmasdi. Shuning uchun 11 ta tekshiruv
+"+0.00" bergan — ular umuman sinalmagan.
+
+### Xatoni nima ochdi
+
+"Zanjirsiz — faqat darajalar" varianti (barcha 16 tekshiruv
+o'chirilgan) "tasdiqlashsiz (3 blok)" varianti bilan **AYNAN
+bir xil** natija berdi:
+
+    tasdiqlashsiz (3 blok)        374 savdo
+    faqat fundamental+struktura   374 savdo
+    zanjirsiz — faqat darajalar   374 savdo
+
+Uchalasida rad sabablari ham raqamma-raqam bir xil. Hamma
+tekshiruvni o'chirib ham hech narsa o'zgarmasa — o'zgartiradigan
+mexanizm ishlamayapti degani.
+
+### Saboq (yozib qo'yiladi)
+
+**Kutilmagan natija — birinchi navbatda asbobga shubha.**
+"Hech bir tekshiruv hissa qo'shmaydi" degan xulosa juda kuchli
+edi, va men uni tuzilmaviy sabab bilan izohlab qo'ya qoldim
+(blokning 1/4 qoidasi). Izoh mantiqan to'g'ri edi — lekin
+o'lchov noto'g'ri edi. To'g'ri izoh noto'g'ri raqamni
+to'g'rilamaydi.
+
+Bunday holatda tekshiriladigan savol: **"bu o'lchov umuman
+biror narsani o'zgartira oladimi?"** Agar eng ekstremal variant
+(hammasini o'chirish) ham natijani qimirlatmasa — o'lchov emas,
+xato o'lchanayapti.
+
+### Endi nima o'zgardi
+
+`ZanjirKirish.ochirilgan` — ablatsiya har bir blok qurilgandan
+keyin DARHOL qo'llanadi, zanjir uzilishi esa ablatsiyadan KEYIN
+hisoblanadi. Test bilan qulflandi:
+`test_ablatsiya_ZANJIR_ICHIDA_qollanadi`.
+
+### 🔴 Qayta o'lchanadigan raqamlar
+
+| 🔴 | Raqam | Holati |
+|---|---|---|
+| 🔴 | 16 ta tekshiruvning ablatsiyasi | qayta yuritilmoqda |
+| 🔴 | "11 bo'sh tekshiruv" ro'yxati | asossiz — bekor |
+| 🔴 | "5 ta tekshiruv zarar keltiradi" | asossiz — bekor |
+| 🟢 | Tayanch: 277 savdo, PF 3.50 | O'Z KUCHIDA (ablatsiyasiz yurgan) |
+| 🟢 | Chegara jadvallari | O'Z KUCHIDA |
+| 🟢 | Walk-forward 3.48/4.10/2.91 | O'Z KUCHIDA |

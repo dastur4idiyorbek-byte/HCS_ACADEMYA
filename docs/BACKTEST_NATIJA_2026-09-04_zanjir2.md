@@ -5,6 +5,28 @@ Actions yugurishi: 33819901519 (12 coin, 730 kun, `data-api.binance.vision`)
 Coinlar: BTC, ETH, SOL, BNB, XRP, ADA, AVAX, LINK, DOT, ATOM, LTC, NEAR
 Xarajat: har savdoda 0.3% (komissiya + slippage, borish-kelish)
 
+> ## ⛔ 2-BO'LIM BEKOR QILINDI (o'sha kuni, keyinroq)
+>
+> Quyidagi ablatsiya jadvali (2-bo'lim) va undan chiqarilgan
+> xulosalar (3-bo'lim) **ISHONCHSIZ**. Sabab: ablatsiya
+> mexanizmining o'zi noto'g'ri ishlagan — u zanjir TUGAGANDAN
+> keyin qo'llanardi, ya'ni 2-blokda uzilgan nomzodning keyingi
+> bloklari umuman hisoblanmagan bo'lardi va tekshiruvni
+> o'chirish uni oldinga O'TKAZA OLMASDI.
+>
+> Xatoni "zanjirsiz — faqat darajalar" varianti ochdi: u
+> "tasdiqlashsiz" varianti bilan AYNAN bir xil 374 savdo berdi.
+> Barcha 16 tekshiruv o'chirilganda ham hech narsa
+> o'zgarmagani — mexanizm ishlamayotganining belgisi edi.
+>
+> **Tayanch o'lchov (1-bo'lim), chegara (4-bo'lim), walk-forward
+> (5-bo'lim) va voronka (6-bo'lim) O'Z KUCHIDA QOLADI** — ular
+> ablatsiyasiz yurgan.
+>
+> Bu bo'lim o'chirilmaydi. U — saboqning o'zi: "kutilmagan
+> natija" ko'pincha o'lchov asbobining buzilganini bildiradi,
+> tizimning yomonligini emas.
+
 Natija #1 (5 coin) ni davom ettiradi. Coin soni 5 dan 12 ga
 ko'tarildi — sabab: 5 coinda savdo soni juda kam edi va ablatsiya
 xulosasi ishonchsiz chiqardi.
