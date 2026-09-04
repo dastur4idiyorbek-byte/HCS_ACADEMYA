@@ -1439,3 +1439,49 @@ birinchi tekshiriladigan narsa — pasayish, PF emas.
 Uchta qaror ADMIN uchun qoldirildi. Men ularni o'zim qabul
 qilmadim — prompt shuni talab qiladi va o'lchov qoidaga qarshi
 chiqqan joyda bu ayniqsa muhim.
+
+---
+
+## 2026-09-04 — BLOK QOIDASI O'LCHANDI (1/4 vs 2/4)
+
+To'liq natija va qaror: `docs/QARORLAR_2026-09-04.md`, 3-qaror.
+
+| Qoida | Savdo | Foydali | PF | Pasayish |
+|---|---|---|---|---|
+| **1/4 (hozirgi)** | 277 | 68.2% | 3.50 | 28.2% |
+| 2/4 | 19 | 89.5% | 18.26 | 2.2% |
+| 3/4 | 0 | — | — | — |
+| 4/4 | 0 | — | — | — |
+
+### 🔴 2/4 — O'LCHANMADI, rad etilmadi
+
+19 savdo ikki yilda. PF 18.26 — bu raqamga ISHONILMAYDI: bunday
+sonda bitta savdo PF ni bir necha birlikka qimirlatadi.
+
+Bu holat daftardagi eski xatoning aynan takrori bo'lardi: #13 da
+biz 35 savdodan xulosa chiqarib, keyin uni bekor qilgandik.
+Shuning uchun bu safar raqam CHIROYLI bo'lsa ham olinmadi.
+
+    ISHONCHLI_SAVDO = 100 — skript o'zi rad etdi, men uning
+    xulosasini bekor qilmadim.
+
+### 🟢 TOPILGAN FAKT: Zona bloki 1/4 da darvoza EMAS
+
+    Zona Sifati to'sdi:  1/4 da 15 marta,  2/4 da 2041 marta
+
+Natija #3 da "Zona Sifati bloki hech narsa qilmaydi" deb yozilgan
+edi va sabab TAXMIN qilingan ("Fibonacci deyarli har doim
+topiladi"). Endi u o'lchov bilan tasdiqlandi: qoida 2/4 ga
+o'zgarganda blok darhol haqiqiy darvozaga aylanadi.
+
+### 3/4 va 4/4 — chekka topildi
+
+Ikkalasida ham 0 savdo. Struktura bloki 9216 marta to'sadi. Ya'ni
+zanjirning "hamma tekshiruv ijobiy bo'lsin" varianti mavjud emas
+— bu qoidaning chegarasi endi RAQAM bilan ma'lum.
+
+### Kelajakdagi o'lchov rejasi (taxmin emas)
+
+2/4 ni ma'noli o'lchash uchun savdo soni 100 dan oshishi kerak:
+coin sonini 30-40 ga ko'tarish YOKI sinov davrini 4 yilga
+uzaytirish. Buyruq tayyor: `olchov: blok`.
