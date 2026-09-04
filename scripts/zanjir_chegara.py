@@ -65,7 +65,16 @@ def _variantlar(config):  # noqa: ANN001, ANN202
     javobsiz qoldirardi — bu eski tizimda bir necha marta bo'lgan.
     """
     asos = config.zanjir.darajalar
-    variantlar = [("TAYANCH (stop 3.0, nisbat 1.2)", config)]
+    # Yorliq CONFIG DAN o'qiladi, qo'lda yozilmaydi. Ilgari u
+    # "stop 3.0" deb qotib qolgan edi va config 1.5 ga o'zgargach
+    # jadval YOLG'ON gapira boshladi — o'lchov o'zi haqida noto'g'ri
+    # ma'lumot bergani eng yomon xato turi.
+    variantlar = [
+        (
+            f"TAYANCH (stop {asos.stop_eng_kam_pct}, nisbat {asos.tp1_eng_kam_nisbat})",
+            config,
+        )
+    ]
 
     for qiymat in STOP_CHEGARALARI:
         if qiymat == asos.stop_eng_kam_pct:

@@ -46,12 +46,28 @@ BLOK_TEKSHIRUVLARI = {
 }
 
 
+#: Ablatsiya (2026-09-04, 277 savdo) PF ni 0.03 dan kam o'zgartirgan
+#: tekshiruvlar. Promptning qoidasi: ular OLIB TASHLANADI.
+#:
+#: BIRMA-BIR o'chirish va BIRGA o'chirish — BOSHQA narsa. Birinchisida
+#: blok qolgan tekshiruvlar bilan o'tadi; ikkinchisida blok butunlay
+#: bo'shab qolishi mumkin. Shuning uchun bu variant ALOHIDA o'lchanadi,
+#: taxmin qilinmaydi.
+BOSH_TEKSHIRUVLAR = frozenset({
+    "bozor_holati", "pul_oqimi", "katalizator", "kayfiyat",
+    "bos_tasdiqlangan", "qarshi_choch_yoq",
+    "order_block", "fvg", "volume_profile",
+    "liquidity_sweep", "fundamental_mos",
+})
+
+
 def _variantlar() -> list[tuple[str, frozenset[str]]]:
     """Zanjirning turli chuqurliklari."""
     zona = BLOK_TEKSHIRUVLARI["Zona Sifati"]
     tasdiq = BLOK_TEKSHIRUVLARI["Tasdiqlash"]
     return [
         ("to'liq zanjir (4 blok)", frozenset()),
+        ("11 bo'sh tekshiruvsiz", BOSH_TEKSHIRUVLAR),
         ("tasdiqlashsiz (3 blok)", tasdiq),
         ("faqat fundamental+struktura", zona | tasdiq),
     ]

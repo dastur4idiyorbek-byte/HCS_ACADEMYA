@@ -332,3 +332,27 @@ def test_ustunlik_yoqolsa_qizil(capsys) -> None:  # noqa: ANN001
 
     assert "🔴" in chiqish
     assert "o'ldirgan naqsh" in chiqish
+
+
+def test_bosh_tekshiruvlar_ablatsiya_royxatida_bor() -> None:
+    """11 ta "bo'sh" tekshiruv nomi ablatsiya kalitlariga MOS kelsin.
+
+    Nomi noto'g'ri yozilgan kalit jimgina hech narsani o'chirmasdi va
+    "birga o'chirilganda ham natija bir xil" degan YOLG'ON xulosa
+    chiqardi.
+    """
+    from scripts.zanjir_backtest import BOSH_TEKSHIRUVLAR
+
+    kalitlar = {k for _, k in TEKSHIRUVLAR}
+    assert kalitlar >= BOSH_TEKSHIRUVLAR
+    assert len(BOSH_TEKSHIRUVLAR) == 11
+
+
+def test_chegara_yorligi_configdan_oqiladi() -> None:
+    """Yorliq qotib qolmasin — config o'zgarsa jadval yolg'on gapirardi."""
+    from core.config.loader import load_config
+    from scripts.zanjir_chegara import _variantlar
+
+    config = load_config()
+    nom = _variantlar(config)[0][0]
+    assert str(config.zanjir.darajalar.stop_eng_kam_pct) in nom
