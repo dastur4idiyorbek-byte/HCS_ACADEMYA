@@ -1485,3 +1485,39 @@ zanjirning "hamma tekshiruv ijobiy bo'lsin" varianti mavjud emas
 2/4 ni ma'noli o'lchash uchun savdo soni 100 dan oshishi kerak:
 coin sonini 30-40 ga ko'tarish YOKI sinov davrini 4 yilga
 uzaytirish. Buyruq tayyor: `olchov: blok`.
+
+---
+
+## 2026-09-04 — FUNDAMENTAL BLOK: nega backtest u haqda JIM
+
+Admin xulosasi (2026-09-04), daftarga yozib qo'yiladi:
+
+> Fundamental tahlil KELAJAK uchun ishlaydi — coinning HOZIRGI
+> holatini va o'sish potensialini baholaydi. Tarixda esa bu
+> ma'lumotlarning aksariyatini topib bo'lmaydi. Ya'ni
+> fundamental blokning backtestda sekin yoki umuman
+> ishlamasligi — KUTILGAN natija, kamchilik emas.
+
+Bu xulosa o'lchov bilan MOS keladi va uni tushuntiradi:
+
+- Backtest fundamental blokka BO'SH ma'lumot beradi
+  (`FundamentalKirish()`), chunki Funding Rate, OI, Netflow,
+  yangiliklar va sektor tarixi bepul mavjud emas
+  (`FUNDAMENTAL_MALUMOT_MANBALARI.md`).
+- Shuning uchun 1.1–1.4 va 4.4 tekshiruvlari ablatsiyada
+  "+0.00" chiqqan. Bu ular foydasiz degani EMAS — ular
+  SINALMAGAN.
+
+### Amaliy oqibat
+
+Fundamental blok backtest bilan tasdiqlanmaydi va bunga
+urinilmaydi ham. U JONLI tizimda ishlaydi va faqat jonli
+kuzatuv orqali baholanadi.
+
+Shuning uchun modulning umumiy natijasi (PF 3.49) —
+fundamental bloksiz o'lchangan natija. Jonli tizimda
+fundamental blok qo'shimcha filtr bo'ladi: u signal sonini
+KAMAYTIRADI, lekin qanchaga — noma'lum.
+
+🔴 Bu — o'lchanmagan va o'lchab bo'lmaydigan raqam. Shundayligicha
+qoladi.
