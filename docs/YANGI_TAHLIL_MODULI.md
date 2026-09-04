@@ -149,51 +149,56 @@ Qurish paytida topilgan eng katta xato o'zimniki edi:
 `stop_eng_kam_pct = 3.0` savdolarning oltidan beshini to'sib
 turardi. O'lchandi, 1.5 ga tushirildi.
 
-## Ikkinchi o'lchov BAJARILDI (2026-09-04) — 12 coin
+## O'LCHOVLAR TUGADI (2026-09-04) — 12 coin
 
-To'liq natija: `docs/BACKTEST_NATIJA_2026-09-04_zanjir2.md`
+To'liq natijalar:
+- `docs/BACKTEST_NATIJA_2026-09-04_zanjir2.md` (birinchi urinish,
+  ablatsiya qismi bekor)
+- `docs/BACKTEST_NATIJA_2026-09-04_zanjir3.md` (**ishonchli**)
 
 ```
-277 savdo, PF 3.50, 68.2% foydali
-walk-forward:  PF 3.48 → 4.10 → 2.91   (121 / 87 / 96 savdo)
+to'liq zanjir (4 blok)         277 savdo   PF 3.50   pasayish 28.2%
+11 bo'sh tekshiruvsiz          194 savdo   PF 2.80   pasayish 28.2%
+tasdiqlashsiz (3 blok)         374 savdo   PF 3.95   pasayish 35.2%
+faqat fundamental+struktura    374 savdo   PF 3.95   pasayish 35.2%
+zanjirsiz — faqat darajalar    474 savdo   PF 3.05   pasayish 54.8%
+
+walk-forward:  PF 3.48 → 4.10 → 2.90   (121 / 87 / 96 savdo)
+sig'im bilan:  208 savdo   PF 3.54
 ```
 
-Ablatsiya "hech bir tekshiruv hissa qo'shmaydi" degan javob
-berdi — va o'sha kuni ma'lum bo'ldiki, **javob emas, ASBOB
-noto'g'ri edi**. Ablatsiya zanjir tugagandan keyin qo'llanardi,
-ya'ni tekshiruvni o'chirish nomzodni oldinga o'tkaza olmasdi.
+**To'xtash qoidasi ishga tushmadi.**
 
-Xatoni "zanjirsiz — faqat darajalar" varianti ochdi: barcha 16
-tekshiruv o'chirilganda natija "tasdiqlashsiz" varianti bilan
-raqamma-raqam bir xil chiqdi (374 savdo). Hammasini o'chirib
-ham hech narsa o'zgarmasa — o'zgartiradigan mexanizm
-ishlamayapti.
+### Uchta kutilmagan natija
 
-Mexanizm tuzatildi (`ZanjirKirish.ochirilgan` — ablatsiya har
-bir blok qurilgandan keyin darhol qo'llanadi) va ablatsiya
-qayta yuritilmoqda. Tayanch, chegara va walk-forward raqamlari
-o'z kuchida: ular ablatsiyasiz yurgan.
+1. **Promptning "bo'sh tekshiruvni o'chir" qoidasi bu yerda
+   ishlamadi.** 11 tasini birga o'chirish PF ni 3.50 dan 2.80 ga
+   tushirdi. Sabab: blokning 1/4 qoidasi ostida ular blokni
+   OCHIQ ushlab turadi.
 
-## Keyingi qadam — tartib bilan
+2. **4-blok (Tasdiqlash) PF ni pasaytiradi**, lekin pasayishni
+   ham kamaytiradi.
 
-1. **11 ta bo'sh tekshiruvni BIRGA o'chirib o'lchash.** Birma-bir
-   va birga o'chirish — boshqa narsa. `zanjir_backtest.py` dagi
-   "11 bo'sh tekshiruvsiz" varianti aynan shu.
+3. **Zanjir foydani emas, XAVFNI boshqaradi.** Darajalarning
+   o'zi PF 3.05 beradi, lekin 54.8% pasayish bilan. Zanjir uni
+   28.2% ga tushiradi.
 
-2. **Zanjirsiz o'lchash.** Agar hech bir tekshiruv hissa
-   qo'shmasa, PF 3.50 ni nima keltiryapti? Eng kuchli gumon —
-   **darajalar**: zona ichida kirish, zona tagida stop,
-   strukturaviy TP. "zanjirsiz — faqat darajalar" varianti buni
-   tekshiradi. Agar natija yaqin chiqsa, modulning haqiqiy
-   qiymati zanjirda emas.
+### Qurish paytida topilgan ikkita xato
 
-3. **Sig'im bilan o'lchash** (`olchov: sigim`). Jonli tizimda
-   `max_open_signals = 5` va guruhdan bitta signal — 12 coinning
-   hammasiga bir vaqtda kirib bo'lmaydi.
+- `stop_eng_kam_pct = 3.0` savdolarning oltidan beshini to'sardi
+  (o'lchandi, 1.5 ga tushirildi).
+- Ablatsiya zanjir tugagandan KEYIN qo'llanardi — o'lchov asbobi
+  buzuq edi. Tuzatildi va hamma o'lchov qayta yuritildi.
 
-4. **Faqat shundan keyin** — admin bilan jonliga chiqarish rejasi,
-   KICHIK pozitsiya bilan (2-prompt, 8-qism, 7-band).
+## Keyingi qadam — ADMIN QARORI
 
-Avtomatik "yana bitta narsa qo'shaylik" bo'lmaydi. 2-3 bandlarning
-natijasi "zanjirni soddalashtirish kerak" degan xulosaga olib
-kelishi mumkin — bu ham QO'SHISH emas, OLIB TASHLASH bo'ladi.
+Uch savol hal bo'lmaguncha modul jonli signal BERMAYDI:
+
+1. 11 ta "bo'sh" tekshiruv o'chirilsinmi? (o'lchov: yo'q)
+2. 4-blok olib tashlansinmi? (PF +0.45, pasayish +7%)
+3. Blok qoidasi 2/4 bo'lsinmi? (o'lchanmagan)
+
+Savollar raqamlari bilan `BACKTEST_NATIJA_2026-09-04_zanjir3.md`
+9-bo'limida.
+
+Avtomatik "yana bitta narsa qo'shaylik" bo'lmaydi.
