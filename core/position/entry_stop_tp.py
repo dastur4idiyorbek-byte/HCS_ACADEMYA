@@ -40,6 +40,25 @@ TP1_ENG_KAM_NISBAT = 1.2
 #: Ko'pi bilan shuncha TP quriladi.
 TP_ENG_KOP = 3
 
+#: Ikki TP orasidagi ENG KAM masofa (entry'ga nisbatan foizda).
+#:
+#: 🔴 O'LCHANMAGAN.
+#:
+#: NIMA UCHUN KERAK. Struktura ba'zan bir-biriga juda yaqin ikkita
+#: swing yuqori beradi. Ular BITTA qarshilik, lekin narxlari boshqa
+#: son bo'lgani uchun ikkita TP bo'lib chiqardi. Jonli misol
+#: (2026-09-04, LTC): TP2 = 54.70, TP3 = 54.78 — orasi 0.16%.
+#: Pozitsiyani 30/30 qilib ikkiga bo'lish shu yerda ma'nosiz:
+#:
+#:   * ikkinchi sotuv qo'shimcha komissiya va sirg'anish oladi
+#:     (0.1% + 0.05%), ya'ni farqning katta qismini yeydi;
+#:   * foydalanuvchi ekranda ikkita bir xil raqamni ko'radi va
+#:     "nega ikkita?" degan savolga javob topmaydi.
+#:
+#: Chegara xarajatdan sezilarli KATTA bo'lishi kerak, aks holda
+#: ajratishning foydasi yo'q.
+TP_ENG_KAM_ORALIQ_PCT = 1.0
+
 
 @dataclass(frozen=True, slots=True)
 class Darajalar:
@@ -67,6 +86,8 @@ def darajalar_qur(
     eng_kam_stop_pct: float = STOP_ENG_KAM_PCT,
     eng_kop_stop_pct: float = STOP_ENG_KOP_PCT,
     eng_kam_nisbat: float = TP1_ENG_KAM_NISBAT,
+    eng_kop_tp: int = TP_ENG_KOP,
+    eng_kam_oraliq_pct: float = TP_ENG_KAM_ORALIQ_PCT,
 ) -> Darajalar:
     """Zona va struktura nuqtalaridan darajalarni quradi.
 
@@ -95,7 +116,7 @@ def darajalar_qur(
     if stop_pct > eng_kop_stop_pct:
         return _rad(zona, f"stop juda uzoq ({stop_pct:.2f}%)")
 
-    tplar = _tp_nuqtalari(nuqtalar, entry)
+    tplar = _tp_nuqtalari(nuqtalar, entry, eng_kop_tp, eng_kam_oraliq_pct)
     if not tplar:
         return _rad(zona, "qarshi struktura nuqtasi topilmadi")
 
@@ -106,16 +127,49 @@ def darajalar_qur(
     return Darajalar(entry=entry, stop=stop, tplar=tuple(tplar))
 
 
-def _tp_nuqtalari(nuqtalar: list[Swing], entry: float) -> list[float]:
+def _tp_nuqtalari(
+    nuqtalar: list[Swing],
+    entry: float,
+    eng_kop: int = TP_ENG_KOP,
+    eng_kam_oraliq_pct: float = TP_ENG_KAM_ORALIQ_PCT,
+) -> list[float]:
     """Entry'dan YUQORIDAGI swing yuqorilar, yaqinidan uzog'iga.
 
-    Takrorlanuvchi darajalar tashlanadi: bir xil narxdagi ikkita
-    swing bitta qarshilik, ikkita TP emas.
+    YAQIN DARAJALAR BIRLASHTIRILADI. Ilgari bu yerda faqat AYNAN
+    TENG narxlar tashlanardi (`set`), ya'ni qoida so'zda bor edi-yu,
+    amalda deyarli hech qachon ishlamasdi: bozorda ikkita swing
+    yuqori bir xil songa tushishi juda kam uchraydi.
+
+    Natijada 54.70 va 54.78 — bitta qarshilikning ikki nuqtasi —
+    ikkita alohida TP bo'lib chiqardi va pozitsiya ular orasida
+    30/30 bo'lib bo'linardi.
+
+    Endi chegara FOIZDA: oldingi saqlangan darajadan
+    `eng_kam_oraliq_pct` dan yaqin daraja tashlanadi.
+
+    PASTKISI QOLADI, yuqorisi emas. Sabab: pastki daraja birinchi
+    bo'lib uriladi, ya'ni bajarilish ehtimoli yuqoriroq. Yuqorisini
+    tanlash — natijani optimistik tomonga surish bo'lardi.
+
+    BIRLASHTIRISH KESISHDAN OLDIN bo'ladi. Aks holda eng yaqin
+    uchta swing bir joyda to'planib qolsa, ro'yxat o'sha uchta
+    bir xil daraja bilan to'lardi va uzoqdagi HAQIQIY qarshiliklar
+    umuman ko'rinmasdi.
     """
     yuqorilar = sorted(
         {s.narx for s in nuqtalar if s.turi is SwingTuri.YUQORI and s.narx > entry}
     )
-    return yuqorilar[:TP_ENG_KOP]
+    if entry <= 0 or eng_kam_oraliq_pct <= 0:
+        return yuqorilar[:eng_kop]
+
+    tanlangan: list[float] = []
+    for narx in yuqorilar:
+        if tanlangan and (narx - tanlangan[-1]) / entry * 100 < eng_kam_oraliq_pct:
+            continue
+        tanlangan.append(narx)
+        if len(tanlangan) >= eng_kop:
+            break
+    return tanlangan
 
 
 def _rad(zona: Zona, sabab: str) -> Darajalar:

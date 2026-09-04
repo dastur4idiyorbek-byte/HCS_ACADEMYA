@@ -537,6 +537,18 @@ class DarajalarConfig:
     tp1_eng_kam_nisbat: float = 1.2
     tp_eng_kop: int = 3
 
+    #: Ikki TP orasidagi ENG KAM masofa (entry'ga nisbatan foizda).
+    #:
+    #: 🔴 O'LCHANMAGAN.
+    #:
+    #: Struktura ba'zan bir-biriga juda yaqin ikkita swing yuqori
+    #: beradi — ular BITTA qarshilik. 2026-09-04 da LTC signalida
+    #: TP2 = 54.70, TP3 = 54.78 bo'lib chiqdi: orasi 0.16%.
+    #: Pozitsiyani shu yerda 30/30 qilib bo'lish ma'nosiz — ikkinchi
+    #: sotuvning komissiyasi (0.1% + 0.05% sirg'anish) farqning katta
+    #: qismini yeydi.
+    tp_eng_kam_oraliq_pct: float = 1.0
+
 
 @dataclass(frozen=True, slots=True)
 class ChiqishConfig:

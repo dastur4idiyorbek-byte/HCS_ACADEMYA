@@ -226,6 +226,8 @@ class ZanjirBacktest:
                     eng_kam_stop_pct=z.darajalar.stop_eng_kam_pct,
                     eng_kop_stop_pct=z.darajalar.stop_eng_kop_pct,
                     eng_kam_nisbat=z.darajalar.tp1_eng_kam_nisbat,
+                    eng_kop_tp=z.darajalar.tp_eng_kop,
+                    eng_kam_oraliq_pct=z.darajalar.tp_eng_kam_oraliq_pct,
                 )
                 if not darajalar.yaroqli:
                     sabab = _sabab_turi(darajalar.rad_sababi)

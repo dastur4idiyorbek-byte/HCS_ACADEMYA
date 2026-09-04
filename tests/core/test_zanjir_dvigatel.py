@@ -199,6 +199,85 @@ def test_tp_takrorlanmaydi() -> None:
     assert d.tplar == (140.0,)
 
 
+def test_YAQIN_darajalar_BITTA_TP_ga_birlashadi() -> None:
+    """2026-09-04 da jonli signalda topilgan kamchilik.
+
+    LTC signalida TP2 = 54.70, TP3 = 54.78 chiqdi — orasi 0.16%.
+    Bu ikkita nishon emas, BITTA qarshilikning ikki nuqtasi.
+    Pozitsiyani u yerda 30/30 qilib bo'lish ma'nosiz: ikkinchi
+    sotuvning komissiyasi (0.1% + 0.05% sirg'anish) farqning katta
+    qismini yeydi, ekranda esa foydalanuvchi ikkita bir xil raqamni
+    ko'radi.
+
+    Ilgari faqat AYNAN TENG narxlar birlashardi, ya'ni qoida
+    so'zda bor edi-yu amalda deyarli hech qachon ishlamasdi:
+    bozorda ikkita swing bir xil songa tushishi juda kam uchraydi.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.YUQORI, 107.7, BOSH, 8),   # TP1
+        Swing(SwingTuri.YUQORI, 111.6, BOSH, 12),  # TP2
+        Swing(SwingTuri.YUQORI, 111.8, BOSH, 16),  # TP2 dan 0.2% — birlashadi
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+
+    assert d.yaroqli
+    assert d.tplar == (107.7, 111.6), "yaqin darajalar birlashmadi"
+
+
+def test_birlashganda_PASTKISI_qoladi() -> None:
+    """Pastki daraja birinchi uriladi — bajarilish ehtimoli yuqori.
+
+    Yuqorisini tanlash natijani optimistik tomonga surardi.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.YUQORI, 120.0, BOSH, 8),
+        Swing(SwingTuri.YUQORI, 120.5, BOSH, 12),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+    assert d.tplar == (120.0,)
+
+
+def test_UZOQ_darajalar_saqlanadi() -> None:
+    """Birlashtirish haqiqiy qarshiliklarni yo'qotmasin."""
+    nuqtalar = [
+        Swing(SwingTuri.YUQORI, 110.0, BOSH, 8),
+        Swing(SwingTuri.YUQORI, 120.0, BOSH, 12),
+        Swing(SwingTuri.YUQORI, 130.0, BOSH, 16),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+    assert d.tplar == (110.0, 120.0, 130.0)
+
+
+def test_birlashtirish_KESISHDAN_OLDIN_boladi() -> None:
+    """Yaqin swinglar to'plami uzoqdagi TP ni siqib chiqarmasin.
+
+    Eng yaqin uchtasi bir joyda to'planib qolsa, ilgari ro'yxat
+    o'sha uchta bir xil daraja bilan to'lardi va HAQIQIY uzoq
+    qarshiliklar umuman ko'rinmasdi.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.YUQORI, 110.0, BOSH, 8),
+        Swing(SwingTuri.YUQORI, 110.3, BOSH, 10),
+        Swing(SwingTuri.YUQORI, 110.6, BOSH, 12),
+        Swing(SwingTuri.YUQORI, 125.0, BOSH, 14),
+        Swing(SwingTuri.YUQORI, 140.0, BOSH, 16),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+    assert d.tplar == (110.0, 125.0, 140.0)
+
+
+def test_oraliq_nolga_qoyilsa_birlashtirish_OCHADI() -> None:
+    """Sozlama o'chirilsa eski xatti-harakat qaytadi — o'lchov uchun."""
+    nuqtalar = [
+        Swing(SwingTuri.YUQORI, 120.0, BOSH, 8),
+        Swing(SwingTuri.YUQORI, 120.5, BOSH, 12),
+    ]
+    d = darajalar_qur(
+        Zona(95.0, 105.0, "fib"), nuqtalar, 100.0, eng_kam_oraliq_pct=0.0
+    )
+    assert d.tplar == (120.0, 120.5)
+
+
 def test_qarshi_nuqta_yoq_bolsa_rad() -> None:
     d = darajalar_qur(Zona(95.0, 105.0, "fib"), [], 100.0)
     assert not d.yaroqli

@@ -32,14 +32,14 @@ yoziladi. O'lchangandan keyingina holati o'zgaradi.
 
 ## Hisob
 
-    o'lchanmagan  (🔴)   126
+    o'lchanmagan  (🔴)   127
     aniq emas     (🟡)     9
     gipoteza emas (🟢)     9
     rad etilgan   (⚫)     6
     -------------------------
-    jami                 149
+    jami                 150
 
-**132 ta raqam hech kim tomonidan tekshirilmagan.**
+**133 ta raqam hech kim tomonidan tekshirilmagan.**
 
 Bu ro'yxatning maqsadi ularni darhol o'lchash emas — bu bir necha
 yillik ish. Maqsadi: **ular taxmin ekanini ko'rinib turishi**.
@@ -1151,6 +1151,7 @@ boshlang'ich nuqta, javob emas.
 | 🟢 | `darajalar.stop_eng_kam_pct` | **1.5** | O'LCHANDI: 3.0 savdolarning 6 dan 5 ini to'sardi. 0.5→PF 3.26/195 savdo, 1.5→3.17/82, 3.0→1.83/35 |
 | 🔴 | `darajalar.stop_eng_kop_pct` | 15.0 | Stop qanchalik uzoq bo'lishi mumkin |
 | ⚫ | `darajalar.tp1_eng_kam_nisbat` | 1.2 | O'LCHANDI: 1.0→PF 1.86, **1.2→1.83**, 1.5→2.11 (31 savdo), 2.0→1.51 (9 savdo). 1.2 qoladi — yuqorisida savdo qolmaydi |
+| 🔴 | `darajalar.tp_eng_kam_oraliq_pct` | 1.0 | Ikki TP orasidagi eng kam masofa. Yaqin swinglar BITTA qarshilik — 2026-09-04 da LTC da TP2/TP3 orasi 0.16% chiqdi |
 | 🔴 | `chiqish.qoldiq_muddat_kun` | 14 | Qoldiq qancha kutsin |
 | 🔴 | `chiqish.umumiy_muddat_kun` | 28 | Umumiy muddat |
 | 🔴 | `nomzod.eng_kam_hajm_usd` | 50M | Likvidlik chegarasi |
