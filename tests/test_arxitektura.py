@@ -122,6 +122,12 @@ def test_har_bir_paket_hujjatlangan() -> None:
 QAVATLAR = {
     "utils": 0,
     "domain": 0,
+    # Portfel moduli HECH NARSAGA bog'lanmaydi — 3-promptning asosiy
+    # sharti: u tahlil modulidan MUSTAQIL bo'lishi kerak. 0-qavat shu
+    # shartni MEXANIK ravishda ushlab turadi: kimdir kelib unga
+    # `core.analysis` yoki `core.storage` importini qo'shsa, shu test
+    # darrov yiqiladi. Izohga ishonib qolinmaydi.
+    "portfolio": 0,
     "config": 1,
     "storage": 1,
     "market_data": 2,

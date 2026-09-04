@@ -454,3 +454,80 @@ class BozorKorinishi(Base, TimestampMixin):
     kutilma: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (Index("ix_bozor_korinish_turi_sana", "turi", "sana"),)
+
+
+# --------------------------------------------------------------------------- #
+#  Portfel va xavf boshqaruvi moduli (3-prompt)
+# --------------------------------------------------------------------------- #
+
+
+class CapitalBlock(Base, TimestampMixin):
+    """Foydalanuvchi balansining bitta bo'lagi va uning band qismi.
+
+    NIMA UCHUN BAZADA. `core/portfolio/capital_allocator.py` sof
+    funksiyalardan iborat: kirish — bo'laklar ro'yxati, chiqish — yangi
+    ro'yxat. U hech narsa eslab qolmaydi. Bot qayta ishga tushganda
+    "1-bo'lak band" degan bilim yo'qolsa, o'sha bo'lakka ikkinchi
+    pozitsiya ochilib, xavf ikki barobar bo'lardi.
+
+    Shu jadval — o'sha yagona eslab qolinadigan holat.
+    """
+
+    __tablename__ = "capital_blocks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Bo'lak raqami: 1, 2, 3 ... (config'dagi bo'lak soniga qadar)
+    raqam: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: Bo'lakning hajmi — balans / bo'lak soni
+    hajm_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    #: Ochiq pozitsiyalarga ketgan pul
+    band_kapital_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    #: O'sha pozitsiyalarda XAVF ostidagi pul (Stop ursa yo'qoladi)
+    band_xavf_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    __table_args__ = (UniqueConstraint("user_id", "raqam", name="user_bolak"),)
+
+
+class PositionExit(Base, TimestampMixin):
+    """Pozitsiyaning BITTA yopilgan qismi — TP bosqichi yoki Stop.
+
+    NIMA UCHUN QISM DARAJASIDA. Signal N ta TP bilan bosqichma-bosqich
+    yopiladi va bosqichlar BOSHQA kunlarga tushishi mumkin: TP1 dushanba,
+    TP2 payshanba. Agar faqat pozitsiyaning yakuniy natijasi saqlansa,
+    "bugungi natija" noto'g'ri chiqardi — payshanbadagi ekranda dushanba
+    puli ham ko'rinardi.
+
+    `pnl_records` degan ALOHIDA jadval ATAYLAB yaratilmadi: kunlik/haftalik
+    raqamlar shu yozuvlardan HAR SAFAR qayta hisoblanadi
+    (`core/portfolio/pnl_calculator.py`). Yig'ilgan raqamni ikkinchi
+    joyda saqlash — ikkinchi haqiqat manbai demakdir, va vaqt o'tib
+    ikkalasi bir-biridan farq qila boshlaydi.
+    """
+
+    __tablename__ = "position_exits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    position_id: Mapped[int] = mapped_column(
+        ForeignKey("user_positions.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: TP bosqichi raqami; Stop bilan yopilganda 0
+    bosqich: Mapped[int] = mapped_column(Integer, nullable=False)
+    #: Shu qism sotilgan narx
+    narx: Mapped[float] = mapped_column(Float, nullable=False)
+    #: Pozitsiyaning necha foizi shu bosqichda sotilgani
+    ulush_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    #: Shu qismga ketgan pul
+    miqdor_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    #: Foyda (musbat) yoki zarar (manfiy)
+    natija_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    #: `tp`, `stop`, `stop (TP1 dan keyin)`, `muddat`
+    sabab: Mapped[str] = mapped_column(String(64), default="", nullable=False)
+    yopilgan_vaqt: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("position_id", "bosqich", name="pozitsiya_bosqich"),
+        Index("ix_position_exits_vaqt", "position_id", "yopilgan_vaqt"),
+    )
