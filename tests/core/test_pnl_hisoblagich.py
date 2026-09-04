@@ -127,3 +127,22 @@ def test_unrealized_realized_bilan_ARALASHMAYDI() -> None:
     # Realized raqamiga unrealized QO'SHILMAGAN.
     assert xulosa.davr("hafta").realized_usd != pytest.approx(100.0)
     assert xulosa.ochiq_soni == 1
+
+
+def test_narxi_YOQ_pozitsiya_nol_deb_korsatilmaydi() -> None:
+    """"Narx olinmadi" va "savdo nolda" — ikki boshqa narsa.
+
+    Ilgari narx yo'q bo'lganda kirish narxi qo'yilardi va ekranda
+    "+$0.00" chiqardi — ya'ni MA'LUMOT ko'rinishida. Aslida bu
+    "biz bilmaymiz" edi.
+    """
+    baholangan = OchiqPozitsiya(1, "BTC", 100.0, 200.0, joriy_narx=110.0)
+    narxsiz = OchiqPozitsiya(2, "ETH", 100.0, 500.0)
+
+    xulosa = xulosa_qur([], [baholangan, narxsiz], balans_usd=1000.0, hozir=HOZIR)
+
+    assert baholangan.baholandimi
+    assert not narxsiz.baholandimi
+    assert xulosa.unrealized_usd == pytest.approx(20.0)  # faqat baholangani
+    assert xulosa.ochiq_soni == 2
+    assert xulosa.baholanmagan_soni == 1

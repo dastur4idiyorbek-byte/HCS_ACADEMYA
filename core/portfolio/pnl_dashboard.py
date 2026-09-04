@@ -55,6 +55,9 @@ class Dashboard:
     qatorlar: tuple[DashboardQatori, ...]
     unrealized_usd: float
     ochiq_soni: int
+    #: Joriy narxi olinmagan ochiq savdolar — `unrealized_usd` ga
+    #: kirmagan. Ekran buni YASHIRMAYDI.
+    baholanmagan_soni: int
     band_bolaklar: tuple[int, ...]
     bosh_bolaklar: tuple[int, ...]
     xavf_pct: float
@@ -80,6 +83,7 @@ def dashboard_qur(xulosa: PnlXulosasi, bolaklar: list[Bolak]) -> Dashboard:
         qatorlar=qatorlar,
         unrealized_usd=xulosa.unrealized_usd,
         ochiq_soni=xulosa.ochiq_soni,
+        baholanmagan_soni=xulosa.baholanmagan_soni,
         band_bolaklar=tuple(b.raqam for b in bolaklar if b.band),
         bosh_bolaklar=tuple(b.raqam for b in bolaklar if not b.band),
         xavf_pct=umumiy_xavf_pct(bolaklar),
@@ -103,12 +107,19 @@ def matn(dashboard: Dashboard) -> str:
     qatorlar = ["📊 <b>Mening natijam</b>", ""]
     qatorlar.extend(q.matn() for q in dashboard.qatorlar)
 
-    if dashboard.ochiq_soni:
+    baholangan = dashboard.ochiq_soni - dashboard.baholanmagan_soni
+    if baholangan > 0:
         ishora = "+" if dashboard.unrealized_usd >= 0 else "−"
         qatorlar.append("")
         qatorlar.append(
             f"📈 Ochiq savdolarda: {ishora}${abs(dashboard.unrealized_usd):,.2f} "
             "<i>(hali pul emas)</i>"
+        )
+    if dashboard.baholanmagan_soni:
+        # "Narx olinmadi" ni "+$0.00" deb ko'rsatish aldash bo'lardi.
+        qatorlar.append("")
+        qatorlar.append(
+            f"❓ {dashboard.baholanmagan_soni} ta ochiq savdoning joriy narxi olinmadi"
         )
 
     qatorlar.append("")

@@ -9,6 +9,8 @@ agregat (nechta ishtirokchi, jami hajm).
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -20,11 +22,16 @@ from bot.states import PositionFlow
 from core.config.schema import AppConfig
 from core.domain.enums import SignalStatus, SubscriptionTier
 from core.domain.models import signal_levels
+from core.portfolio.pnl_calculator import xulosa_qur
+from core.portfolio.pnl_dashboard import dashboard_qur
+from core.portfolio.pnl_dashboard import matn as dashboard_matn
 from core.services import summarize
 from core.storage import Database
+from core.storage.portfel_repository import PortfelRepository
 from core.storage.repositories import (
     SignalRepository,
     UserPositionRepository,
+    UserRepository,
 )
 from core.utils.logging_setup import get_logger
 
@@ -261,3 +268,69 @@ async def show_stats(
     Shungacha ekran ROSTINI aytadi.
     """
     await callback.answer(t("statistika.bosh", language), show_alert=True)
+
+
+# --------------------------------------------------------------------------- #
+#  "Mening natijam" — portfel moduli dashboardi (3-prompt, 4-qism)
+# --------------------------------------------------------------------------- #
+
+
+async def _joriy_narxlar(candles: object, symbollar: set[str]) -> dict[str, float]:
+    """Ochiq savdolar uchun oxirgi narx.
+
+    Narx olinmasa coin ro'yxatga TUSHMAYDI — dashboard uni
+    "narxi olinmadi" deb ko'rsatadi. Kirish narxini qo'yib
+    "+$0.00" chiqarish aldash bo'lardi.
+    """
+    if candles is None:
+        return {}
+    natija: dict[str, float] = {}
+    for symbol in symbollar:
+        try:
+            shamlar = await candles.fetch_candles(symbol, "15m", 1)
+        except Exception:  # noqa: BLE001 — narx majburiy emas
+            logger.warning("joriy narx olinmadi", extra={"symbol": symbol})
+            continue
+        if shamlar:
+            natija[symbol] = shamlar[-1].close
+    return natija
+
+
+@router.callback_query(F.data == "portfel:natija")
+async def show_dashboard(
+    callback: CallbackQuery,
+    database: Database,
+    db_user_id: int,
+    config: AppConfig,
+    language: str,
+    candles: object = None,
+    **_: object,
+) -> None:
+    """Realized/unrealized natija va bo'laklar holati.
+
+    BOTDAGI VA SAYTDAGI RAQAM BITTA JOYDAN CHIQADI
+    (`core/portfolio/pnl_dashboard.py`). Ansiz ikkita hisob-kitob
+    paydo bo'lardi va vaqt o'tib ular farq qila boshlardi.
+    """
+    async with database.session() as session:
+        user = await UserRepository(session).get_by_telegram_id(callback.from_user.id)
+        balans = (user.declared_balance_usd if user else None) or 0.0
+
+        repo = PortfelRepository(session)
+        bolaklar = (
+            await repo.bolaklarni_tayyorla(db_user_id, balans, config.portfolio.bolak_soni)
+            if balans > 0
+            else []
+        )
+        qismlar = await repo.yopilgan_qismlar(db_user_id)
+        ochiqlar_narxsiz = await repo.ochiq_pozitsiyalar(db_user_id)
+
+    narxlar = await _joriy_narxlar(candles, {p.symbol for p in ochiqlar_narxsiz})
+    ochiqlar = [replace(p, joriy_narx=narxlar.get(p.symbol)) for p in ochiqlar_narxsiz]
+
+    xulosa = xulosa_qur(qismlar, ochiqlar, balans_usd=balans)
+    await callback.message.edit_text(
+        dashboard_matn(dashboard_qur(xulosa, bolaklar)),
+        reply_markup=back_button("portfel", language),
+    )
+    await callback.answer()

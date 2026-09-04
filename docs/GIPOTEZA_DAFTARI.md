@@ -32,14 +32,14 @@ yoziladi. O'lchangandan keyingina holati o'zgaradi.
 
 ## Hisob
 
-    o'lchanmagan  (🔴)   124
+    o'lchanmagan  (🔴)   126
     aniq emas     (🟡)     9
     gipoteza emas (🟢)     9
     rad etilgan   (⚫)     6
     -------------------------
-    jami                 147
+    jami                 149
 
-**130 ta raqam hech kim tomonidan tekshirilmagan.**
+**132 ta raqam hech kim tomonidan tekshirilmagan.**
 
 Bu ro'yxatning maqsadi ularni darhol o'lchash emas — bu bir necha
 yillik ish. Maqsadi: **ular taxmin ekanini ko'rinib turishi**.
@@ -194,6 +194,8 @@ tekshirmagan degani.
 |---|---|---|---|
 | 🔴 | `tp1_close_pct` | 50 |  |
 | 🔴 | `min_position_usd` | 1 |  |
+| 🔴 | `bolak_soni` | 3 | 3-prompt "boshlang'ich qiymat" deydi — O'LCHANMAGAN |
+| 🔴 | `bolak_chegara_pct` | 10 | bo'lakning ichki zarar chegarasi — O'LCHANMAGAN |
 
 ### Pozitsiya hajmi — `position_sizing`
 

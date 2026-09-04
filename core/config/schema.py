@@ -204,6 +204,19 @@ class PortfolioConfig:
     )
     min_position_usd: float = 1.0
 
+    #: Balans nechta TENG bo'lakka bo'linadi (3-prompt, 1-qism).
+    #:
+    #: 3 — BOSHLANG'ICH qiymat, qat'iy qoida emas. Promptning o'zi
+    #: shuni ta'kidlaydi, shuning uchun raqam kodda emas, shu yerda.
+    bolak_soni: int = 3
+
+    #: Bitta bo'lakning ichki zarar chegarasi, foizda.
+    #:
+    #: BO'LAKNING O'ZIDAN hisoblanadi, umumiy balansdan emas. Stop
+    #: shu chegaradan uzoq bo'lsa, bo'lakning bir qismi ishlatiladi
+    #: va xavf baribir chegarada qoladi.
+    bolak_chegara_pct: float = 10.0
+
     def shares_for(self, count: int) -> tuple[float, ...]:
         """`count` ta TP uchun ulushlar.
 

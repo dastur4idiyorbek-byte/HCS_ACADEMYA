@@ -6,6 +6,7 @@ import {
   savdoQoidalari,
 } from "./config.ts";
 import { asosiyAktiv } from "./kalkulyator.ts";
+import type { Bolak, OchiqPozitsiya, YopilganQism } from "./portfel.ts";
 
 /** Botning bazasidan o'qish/yozish.
  *
@@ -34,7 +35,11 @@ export type Foydalanuvchi = {
 
 export type Tarif = "lite" | "pro" | "premium";
 
-export const TARIF_DARAJASI: Record<Tarif, number> = { lite: 1, pro: 2, premium: 3 };
+export const TARIF_DARAJASI: Record<Tarif, number> = {
+  lite: 1,
+  pro: 2,
+  premium: 3,
+};
 
 /** Botdagi `SubscriptionTier.covers()` bilan bir xil mantiq. */
 export function tarifQamraydi(bor: Tarif | null, kerak: Tarif): boolean {
@@ -282,7 +287,9 @@ export function oxirgiObuna(userId: number): Obuna | null {
 
 export function kutilayotganTolovBor(userId: number): boolean {
   const q = db()
-    .prepare(`select 1 from payments where user_id = ? and status = 'pending' limit 1`)
+    .prepare(
+      `select 1 from payments where user_id = ? and status = 'pending' limit 1`,
+    )
     .get(userId);
   return q !== undefined;
 }
@@ -323,7 +330,9 @@ const SIGNAL_USTUNLARI = `id, symbol, source, status, entry, stop, tp1, tp2, tp3
 
 export function signallar(limit = 50): Signal[] {
   const qatorlar = db()
-    .prepare(`select ${SIGNAL_USTUNLARI} from signals order by created_at desc limit ?`)
+    .prepare(
+      `select ${SIGNAL_USTUNLARI} from signals order by created_at desc limit ?`,
+    )
     .all(limit) as Qator[];
   return qatorlar.map(signalgaAylantir);
 }
@@ -364,7 +373,6 @@ const SALOMATLIK_USTUNLARI = `value, band, structure_breadth_score,
 /** Kunlik "oldindan ko'rish" yozuvlari chiqarib tashlanadi — ular
  *  bashorat, o'lchov emas (`is_daily_preview`). */
 
-
 // --------------------------------------------------------------------------- //
 //  Statistika
 // --------------------------------------------------------------------------- //
@@ -380,8 +388,10 @@ export function statistika(sinceISO: string | null): Statistika {
   const args = sinceISO ? [sinceISO] : [];
 
   const signallar = db()
-    .prepare(`select status, score, entry, stop, tp2, activated_at, is_false_signal
-                from signals ${shart}`)
+    .prepare(
+      `select status, score, entry, stop, tp2, activated_at, is_false_signal
+                from signals ${shart}`,
+    )
     .all(...args) as Qator[];
 
   const pozShart = sinceISO ? `where trade_date >= ?` : "";
@@ -393,12 +403,18 @@ export function statistika(sinceISO: string | null): Statistika {
     )
     .get(...args) as Qator;
 
-  const ballar = signallar.map((s) => son(s.score)).filter((x): x is number => x !== null);
+  const ballar = signallar
+    .map((s) => son(s.score))
+    .filter((x): x is number => x !== null);
   const rrLar = signallar
     .filter((s) => Number(s.entry) > Number(s.stop))
-    .map((s) => (Number(s.tp2) - Number(s.entry)) / (Number(s.entry) - Number(s.stop)));
+    .map(
+      (s) =>
+        (Number(s.tp2) - Number(s.entry)) / (Number(s.entry) - Number(s.stop)),
+    );
 
-  const sanoq = (holat: string) => signallar.filter((s) => s.status === holat).length;
+  const sanoq = (holat: string) =>
+    signallar.filter((s) => s.status === holat).length;
   const ortacha = (xs: number[]) =>
     xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 
@@ -408,7 +424,8 @@ export function statistika(sinceISO: string | null): Statistika {
     tp1Count: sanoq("tp1_hit"),
     tp2Count: sanoq("tp2_hit"),
     stopCount: sanoq("stopped"),
-    falseSignalCount: signallar.filter((s) => Boolean(s.is_false_signal)).length,
+    falseSignalCount: signallar.filter((s) => Boolean(s.is_false_signal))
+      .length,
     averageScore: ortacha(ballar),
     averageRiskReward: ortacha(rrLar),
     participants: Number(poz.ishtirokchi ?? 0),
@@ -447,10 +464,82 @@ export function pozitsiyalar(userId: number): Pozitsiya[] {
   }));
 }
 
+/** Portfel moduli uchun xom ma'lumot (3-prompt).
+ *
+ * FAQAT O'QIYDI. Hisob `web/src/lib/portfel.ts` da bo'ladi va u
+ * Python nusxasiga etalon fayl orqali bog'langan. Bu yerda SQL
+ * bo'ladi, formula emas — aks holda hisob uchinchi joyda paydo
+ * bo'lardi.
+ */
+export function portfelXomAshyosi(userId: number): {
+  qismlar: YopilganQism[];
+  ochiqlar: OchiqPozitsiya[];
+  bolaklar: Bolak[];
+} {
+  const qismlar = (
+    db()
+      .prepare(
+        `select p.signal_id, e.natija_usd, e.yopilgan_vaqt
+           from position_exits e
+           join user_positions p on p.id = e.position_id
+          where p.user_id = ?
+          order by e.yopilgan_vaqt`,
+      )
+      .all(userId) as Qator[]
+  ).map((q) => ({
+    signalId: Number(q.signal_id),
+    yopilganVaqt: vaqt(q.yopilgan_vaqt as string) ?? new Date(0),
+    natijaUsd: Number(q.natija_usd),
+  }));
+
+  // Ochiq pozitsiyaning SOTILMAGAN qismi: umumiy miqdordan
+  // bosqichlarda sotilgan ulush ayriladi. Ansiz TP1 dan keyingi
+  // pozitsiya to'liq hajmda ko'rinardi.
+  const ochiqlar = (
+    db()
+      .prepare(
+        `select p.id, p.signal_id, p.amount_usd, p.entry_price, s.symbol,
+                coalesce((select sum(e.ulush_pct) from position_exits e
+                           where e.position_id = p.id), 0) as sotilgan_pct
+           from user_positions p
+           join signals s on s.id = p.signal_id
+          where p.user_id = ? and p.closed_at is null`,
+      )
+      .all(userId) as Qator[]
+  )
+    .map((q) => ({
+      signalId: Number(q.signal_id),
+      symbol: String(q.symbol),
+      entry: Number(q.entry_price),
+      ochiqMiqdorUsd:
+        (Number(q.amount_usd) * Math.max(0, 100 - Number(q.sotilgan_pct))) /
+        100,
+      // Narx SAHIFADA qo'shiladi (`narxlarniOl`). Bu yerda null —
+      // "narx olinmadi", ya'ni unrealized hisobiga kirmaydi.
+      joriyNarx: null as number | null,
+    }))
+    .filter((p) => p.ochiqMiqdorUsd > 0);
+
+  const bolaklar = (
+    db()
+      .prepare(
+        `select raqam, hajm_usd, band_kapital_usd, band_xavf_usd
+           from capital_blocks where user_id = ? order by raqam`,
+      )
+      .all(userId) as Qator[]
+  ).map((q) => ({
+    raqam: Number(q.raqam),
+    hajm: Number(q.hajm_usd),
+    bandKapital: Number(q.band_kapital_usd),
+    bandXavf: Number(q.band_xavf_usd),
+  }));
+
+  return { qismlar, ochiqlar, bolaklar };
+}
+
 // --------------------------------------------------------------------------- //
 //  "Nega signal yo'q?" voronkasi
 // --------------------------------------------------------------------------- //
-
 
 /** Ball chegarasida to'xtaganlarning ball statistikasi.
  *
@@ -611,7 +700,11 @@ export function tolovniTasdiqla(
       );
 
     baza.exec("COMMIT");
-    return { ok: true, telegramId: songaAylantir(tolov.telegram_id), expiresAt: tugash };
+    return {
+      ok: true,
+      telegramId: songaAylantir(tolov.telegram_id),
+      expiresAt: tugash,
+    };
   } catch (e) {
     baza.exec("ROLLBACK");
     throw e;
@@ -643,7 +736,11 @@ export function tolovniRadEt(
     )
     .run(adminTelegramId, vaqtSatri(hozir), sabab, vaqtSatri(hozir), paymentId);
 
-  return { ok: true, telegramId: songaAylantir(tolov.telegram_id), expiresAt: hozir };
+  return {
+    ok: true,
+    telegramId: songaAylantir(tolov.telegram_id),
+    expiresAt: hozir,
+  };
 }
 
 // --------------------------------------------------------------------------- //
@@ -774,7 +871,6 @@ export function yopilganSignallar(limit = 50): YopilganSignal[] {
     closedAt: vaqt(q.closed_at as string),
   }));
 }
-
 
 // --------------------------------------------------------------------------- //
 //  Admin: narxlar (1.2-band)
@@ -954,7 +1050,8 @@ function tartibXatosi(k: SignalKirish): string | null {
     ["TP1", k.tp1],
     ["TP2", k.tp2],
   ] as const) {
-    if (!Number.isFinite(qiymat) || qiymat <= 0) return `${nom} musbat son bo'lishi kerak`;
+    if (!Number.isFinite(qiymat) || qiymat <= 0)
+      return `${nom} musbat son bo'lishi kerak`;
   }
   if (k.stop >= k.entry) return "Stop kirish narxidan PAST bo'lishi kerak";
   if (k.tp1 <= k.entry) return "TP1 kirish narxidan YUQORI bo'lishi kerak";
@@ -973,7 +1070,9 @@ export function signalOgohlantirishlari(k: SignalKirish): string[] {
 
   const stopMasofa = ((k.entry - k.stop) / k.entry) * 100;
   if (stopMasofa > q.maxStopPct) {
-    ogohlar.push(`Stop masofasi ${stopMasofa.toFixed(2)}% (chegara ${q.maxStopPct}%)`);
+    ogohlar.push(
+      `Stop masofasi ${stopMasofa.toFixed(2)}% (chegara ${q.maxStopPct}%)`,
+    );
   }
   for (const [nom, narx] of [
     ["TP1", k.tp1],
@@ -1041,7 +1140,11 @@ export function signalYarat(
 }
 
 /** Hali tarqatilmagan signallar — panelda "yuborilmoqda" deb ko'rsatiladi. */
-export function tarqatilmaganSignallar(): { id: number; symbol: string; createdAt: Date | null }[] {
+export function tarqatilmaganSignallar(): {
+  id: number;
+  symbol: string;
+  createdAt: Date | null;
+}[] {
   const qatorlar = db()
     .prepare(
       `select id, symbol, created_at from signals
@@ -1133,7 +1236,10 @@ export type DarsKirish = {
   published: boolean;
 };
 
-export function darslar(): (Kontent & { fileId: string | null; published: boolean })[] {
+export function darslar(): (Kontent & {
+  fileId: string | null;
+  published: boolean;
+})[] {
   const qatorlar = db()
     .prepare(
       `select id, kind, title, description, min_tier, position, file_id,
@@ -1173,7 +1279,9 @@ export function balansSaqla(
     return { ok: false, sabab: "Balans manfiy bo'lishi mumkin emas" };
   }
   const natija = db()
-    .prepare(`update users set declared_balance_usd = ?, updated_at = ? where id = ?`)
+    .prepare(
+      `update users set declared_balance_usd = ?, updated_at = ? where id = ?`,
+    )
     .run(summa, vaqtSatri(hozir), userId);
   if (songaAylantir(natija.changes) === 0) {
     return { ok: false, sabab: "Foydalanuvchi topilmadi" };
@@ -1220,7 +1328,8 @@ export function pozitsiyaQayd(
 
   const s = signalOl(signalId);
   if (!s) return { ok: false, sabab: "Signal topilmadi" };
-  if (yopilgan(s.status)) return { ok: false, sabab: "Bu signal allaqachon yopilgan" };
+  if (yopilgan(s.status))
+    return { ok: false, sabab: "Bu signal allaqachon yopilgan" };
 
   if (pozitsiyaOl(userId, signalId) !== null) {
     return { ok: false, sabab: "Siz bu signalga allaqachon kirgansiz" };
@@ -1233,11 +1342,21 @@ export function pozitsiyaQayd(
          (user_id, signal_id, amount_usd, entry_price, trade_date, created_at, updated_at)
        values (?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(userId, signalId, summa, s.entry, vaqtNow.slice(0, 10), vaqtNow, vaqtNow);
+    .run(
+      userId,
+      signalId,
+      summa,
+      s.entry,
+      vaqtNow.slice(0, 10),
+      vaqtNow,
+      vaqtNow,
+    );
   return { ok: true };
 }
 
-export type DarsNatijasi = { ok: true; id: number } | { ok: false; sabab: string };
+export type DarsNatijasi =
+  | { ok: true; id: number }
+  | { ok: false; sabab: string };
 
 export function darsSaqla(
   id: number | null,
@@ -1263,8 +1382,16 @@ export function darsSaqla(
                 file_id = coalesce(?, file_id), is_published = ?, updated_at = ?
           where id = ?`,
       )
-      .run(title, tavsif, kirish.minTier, kirish.position, fileId,
-           kirish.published ? 1 : 0, vaqtNow, id);
+      .run(
+        title,
+        tavsif,
+        kirish.minTier,
+        kirish.position,
+        fileId,
+        kirish.published ? 1 : 0,
+        vaqtNow,
+        id,
+      );
     return { ok: true, id };
   }
 
@@ -1274,8 +1401,16 @@ export function darsSaqla(
                             is_published, created_at, updated_at)
        values ('video', ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(title, tavsif, fileId, kirish.minTier, kirish.position,
-         kirish.published ? 1 : 0, vaqtNow, vaqtNow);
+    .run(
+      title,
+      tavsif,
+      fileId,
+      kirish.minTier,
+      kirish.position,
+      kirish.published ? 1 : 0,
+      vaqtNow,
+      vaqtNow,
+    );
   return { ok: true, id: songaAylantir(natija.lastInsertRowid) };
 }
 
@@ -1326,7 +1461,10 @@ export function videoBiriktir(
   db()
     .prepare(`update content set video_path = ?, updated_at = ? where id = ?`)
     .run(nom, vaqtSatri(hozir), id);
-  return { ok: true, eskiNom: oldingi.videoPath === nom ? null : oldingi.videoPath };
+  return {
+    ok: true,
+    eskiNom: oldingi.videoPath === nom ? null : oldingi.videoPath,
+  };
 }
 
 // --------------------------------------------------------------------------- //
@@ -1353,7 +1491,9 @@ function havolagaAylantir(q: Qator): Havola {
     id: songaAylantir(q.id),
     title: q.title as string,
     url: q.url as string,
-    icon: (IKONKALAR as readonly string[]).includes(icon) ? (icon as Ikonka) : "web",
+    icon: (IKONKALAR as readonly string[]).includes(icon)
+      ? (icon as Ikonka)
+      : "web",
     position: songaAylantir(q.position),
     active: Boolean(q.is_active),
   };
@@ -1381,7 +1521,9 @@ export function barchaHavolalar(): Havola[] {
   return qatorlar.map(havolagaAylantir);
 }
 
-export type HavolaNatijasi = { ok: true; id: number } | { ok: false; sabab: string };
+export type HavolaNatijasi =
+  | { ok: true; id: number }
+  | { ok: false; sabab: string };
 
 /** Havolani saqlaydi.
  *
@@ -1391,7 +1533,13 @@ export type HavolaNatijasi = { ok: true; id: number } | { ok: false; sabab: stri
  */
 export function havolaSaqla(
   id: number | null,
-  kirish: { title: string; url: string; icon: string; position: number; active: boolean },
+  kirish: {
+    title: string;
+    url: string;
+    icon: string;
+    position: number;
+    active: boolean;
+  },
   hozir = new Date(),
 ): HavolaNatijasi {
   const title = kirish.title.trim();
@@ -1402,13 +1550,21 @@ export function havolaSaqla(
   try {
     tekshirilgan = new URL(url);
   } catch {
-    return { ok: false, sabab: "Havola to'liq manzil bo'lishi kerak (https://...)" };
+    return {
+      ok: false,
+      sabab: "Havola to'liq manzil bo'lishi kerak (https://...)",
+    };
   }
   if (tekshirilgan.protocol !== "http:" && tekshirilgan.protocol !== "https:") {
-    return { ok: false, sabab: "Faqat http yoki https manzillari qabul qilinadi" };
+    return {
+      ok: false,
+      sabab: "Faqat http yoki https manzillari qabul qilinadi",
+    };
   }
 
-  const icon = (IKONKALAR as readonly string[]).includes(kirish.icon) ? kirish.icon : "web";
+  const icon = (IKONKALAR as readonly string[]).includes(kirish.icon)
+    ? kirish.icon
+    : "web";
   const baza = db();
   const vaqtNow = vaqtSatri(hozir);
 
@@ -1418,7 +1574,15 @@ export function havolaSaqla(
         `update social_links set title = ?, url = ?, icon = ?, position = ?,
                                  is_active = ?, updated_at = ? where id = ?`,
       )
-      .run(title, url, icon, kirish.position, kirish.active ? 1 : 0, vaqtNow, id);
+      .run(
+        title,
+        url,
+        icon,
+        kirish.position,
+        kirish.active ? 1 : 0,
+        vaqtNow,
+        id,
+      );
     return { ok: true, id };
   }
 
@@ -1427,12 +1591,22 @@ export function havolaSaqla(
       `insert into social_links (title, url, icon, position, is_active, created_at, updated_at)
        values (?, ?, ?, ?, ?, ?, ?)`,
     )
-    .run(title, url, icon, kirish.position, kirish.active ? 1 : 0, vaqtNow, vaqtNow);
+    .run(
+      title,
+      url,
+      icon,
+      kirish.position,
+      kirish.active ? 1 : 0,
+      vaqtNow,
+      vaqtNow,
+    );
   return { ok: true, id: songaAylantir(natija.lastInsertRowid) };
 }
 
 export function havolaOchir(id: number): boolean {
-  return db().prepare(`delete from social_links where id = ?`).run(id).changes > 0;
+  return (
+    db().prepare(`delete from social_links where id = ?`).run(id).changes > 0
+  );
 }
 
 // --------------------------------------------------------------------------- //
@@ -1519,7 +1693,9 @@ function xulosaHisobla(coinlar: JonliCoin[]): JonliXulosa | null {
     engKopSoni,
     chegaraga,
     ortachaBall:
-      ballar.length > 0 ? ballar.reduce((a, b) => a + b, 0) / ballar.length : null,
+      ballar.length > 0
+        ? ballar.reduce((a, b) => a + b, 0) / ballar.length
+        : null,
     engYuqoriBall: ballar.length > 0 ? Math.max(...ballar) : null,
   };
 }

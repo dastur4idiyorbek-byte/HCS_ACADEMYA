@@ -197,3 +197,35 @@ def test_xavf_matnda_ochiq_korsatiladi() -> None:
 
     assert "10.0%" in chiqish
     assert "Band: 1 ta savdo (bo'lak 1)" in chiqish
+
+
+def test_narxi_olinmagan_savdo_ekranda_AYTILADI() -> None:
+    xulosa = xulosa_qur(
+        [qism(1, +40.0)],
+        [
+            OchiqPozitsiya(2, "ETH", 100.0, 300.0, joriy_narx=120.0),
+            OchiqPozitsiya(3, "SOL", 100.0, 200.0),
+        ],
+        balans_usd=1000.0,
+        hozir=HOZIR,
+    )
+    d = dashboard_qur(xulosa, bolaklarni_yarat(1000.0, 3))
+    chiqish = matn(d)
+
+    assert d.baholanmagan_soni == 1
+    assert d.unrealized_usd == pytest.approx(60.0)
+    assert "joriy narxi olinmadi" in chiqish
+    assert "$60.00" in chiqish
+
+
+def test_hamma_ochiq_savdo_narxsiz_bolsa_NOL_qatori_chiqmaydi() -> None:
+    xulosa = xulosa_qur(
+        [qism(1, +40.0)],
+        [OchiqPozitsiya(2, "ETH", 100.0, 300.0)],
+        balans_usd=1000.0,
+        hozir=HOZIR,
+    )
+    chiqish = matn(dashboard_qur(xulosa, bolaklarni_yarat(1000.0, 3)))
+
+    assert "Ochiq savdolarda" not in chiqish
+    assert "joriy narxi olinmadi" in chiqish

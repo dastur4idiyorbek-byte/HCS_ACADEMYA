@@ -61,11 +61,22 @@ class OchiqPozitsiya:
     entry: float
     #: Hali sotilmagan qismning puldagi hajmi.
     ochiq_miqdor_usd: float
-    joriy_narx: float
+    #: Joriy narx, yoki `None` — narx OLINMADI (birja javob bermadi).
+    #:
+    #: NIMA UCHUN `None` BOR. Narx yo'q bo'lganda kirish narxini
+    #: qo'yish oson yo'l edi, lekin u ekranda "+$0.00" deb ko'rinardi —
+    #: ya'ni "savdo nolda turibdi" degan MA'LUMOT. Aslida bu "biz
+    #: bilmaymiz". Ikkisi boshqa narsa, va foydalanuvchi farqini
+    #: ko'rishi kerak.
+    joriy_narx: float | None = None
+
+    @property
+    def baholandimi(self) -> bool:
+        return self.joriy_narx is not None and self.entry > 0
 
     @property
     def unrealized_usd(self) -> float:
-        if self.entry <= 0:
+        if self.joriy_narx is None or self.entry <= 0:
             return 0.0
         return self.ochiq_miqdor_usd * (self.joriy_narx - self.entry) / self.entry
 
@@ -89,6 +100,9 @@ class PnlXulosasi:
     unrealized_usd: float
     ochiq_soni: int
     balans_usd: float
+    #: Joriy narxi olinmagan ochiq savdolar soni — ular
+    #: `unrealized_usd` ga KIRMAGAN.
+    baholanmagan_soni: int = 0
 
     def davr(self, nom: str) -> DavrNatijasi | None:
         for d in self.davrlar:
@@ -152,4 +166,5 @@ def xulosa_qur(
         unrealized_usd=sum(p.unrealized_usd for p in ochiqlar),
         ochiq_soni=len(ochiqlar),
         balans_usd=balans_usd,
+        baholanmagan_soni=sum(1 for p in ochiqlar if not p.baholandimi),
     )

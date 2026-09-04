@@ -133,6 +133,16 @@ portfolio:
   # Foydalanuvchi kiritishi mumkin bo'lgan minimal miqdor
   min_position_usd: 1.0
 
+  # --- Portfel va xavf boshqaruvi moduli (3-prompt) ---
+  #
+  # Balans nechta TENG bo'lakka bo'linadi. 3 — boshlang'ich qiymat,
+  # qat'iy qoida emas: promptning o'zi shuni ta'kidlaydi.
+  bolak_soni: 3
+  # Bitta bo'lakning ichki zarar chegarasi (BO'LAKNING O'ZIDAN, umumiy
+  # balansdan emas). Stop shu chegaradan uzoq bo'lsa, bo'lakning bir
+  # qismi ishlatiladi va xavf baribir chegarada qoladi.
+  bolak_chegara_pct: 10.0
+
 subscriptions:
   tiers: ["lite", "pro", "premium"]
   periods:

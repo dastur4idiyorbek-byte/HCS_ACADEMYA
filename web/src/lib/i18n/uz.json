@@ -182,7 +182,17 @@
     "yoq": "Hali birorta pozitsiya qayd etilmagan. Botdagi signal ostida \"Men kirdim\" tugmasini bosing.",
     "jami_natija": "Umumiy natija",
     "balans_kerak": "Avval balansingizni kiriting",
-    "balans_kerak_izoh": "Bu shunchaki HISOB-KITOB uchun — birjaga ulanmaydi va hech kimga ko'rinmaydi. Balansni kiritsangiz, har bir signalda qancha olish mumkinligini tizim o'zi hisoblab beradi."
+    "balans_kerak_izoh": "Bu shunchaki HISOB-KITOB uchun — birjaga ulanmaydi va hech kimga ko'rinmaydi. Balansni kiritsangiz, har bir signalda qancha olish mumkinligini tizim o'zi hisoblab beradi.",
+    "natijam": "Mening natijam",
+    "natijam_izoh": "Yopilgan savdolarning haqiqiy natijasi. Raqam har safar qayta hisoblanadi — oldindan taxmin qilinmaydi.",
+    "natijam_bosh": "Hozircha yopilgan savdo yo'q. Birinchi signal yopilgach raqamlar shu yerda paydo bo'ladi.",
+    "ochiq_natija": "Ochiq savdolarda",
+    "ochiq_natija_izoh": "hali pul emas — bozor bilan birga o'zgaradi",
+    "narx_yoq": "ta ochiq savdoning joriy narxi olinmadi",
+    "bolaklar": "Kapital bo'laklari",
+    "bolak_band": "Band",
+    "bolak_bosh": "Bo'sh",
+    "xavf_ostida": "Xavf ostida"
   },
   "sokinlik": {
     "sarlavha": "Nega signal yo'q?",

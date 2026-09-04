@@ -1,0 +1,433 @@
+[
+  {
+    "nom": "bosh",
+    "balans": 1000.0,
+    "hozir": "2026-09-04T15:00:00+00:00",
+    "qismlar": [],
+    "ochiqlar": [],
+    "bolaklar": [
+      {
+        "raqam": 1,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 2,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 3,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      }
+    ],
+    "kutilgan": {
+      "qatorlar": [
+        {
+          "nom": "Bugungi",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "7 kunlik",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "30 kunlik",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "Boshidan beri",
+          "usd": 0,
+          "pct": 0.0
+        }
+      ],
+      "unrealizedUsd": 0,
+      "ochiqSoni": 0,
+      "baholanmaganSoni": 0,
+      "bandBolaklar": [],
+      "boshBolaklar": [
+        1,
+        2,
+        3
+      ],
+      "xavfPct": 0.0,
+      "bosh": true
+    }
+  },
+  {
+    "nom": "bitta_foydali_savdo",
+    "balans": 1000.0,
+    "hozir": "2026-09-04T15:00:00+00:00",
+    "qismlar": [
+      {
+        "signalId": 1,
+        "yopilganVaqt": "2026-09-04T10:12:00+00:00",
+        "natijaUsd": 45.0
+      }
+    ],
+    "ochiqlar": [],
+    "bolaklar": [
+      {
+        "raqam": 1,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 2,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 3,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      }
+    ],
+    "kutilgan": {
+      "qatorlar": [
+        {
+          "nom": "Bugungi",
+          "usd": 45.0,
+          "pct": 4.5
+        },
+        {
+          "nom": "7 kunlik",
+          "usd": 45.0,
+          "pct": 4.5
+        },
+        {
+          "nom": "30 kunlik",
+          "usd": 45.0,
+          "pct": 4.5
+        },
+        {
+          "nom": "Boshidan beri",
+          "usd": 45.0,
+          "pct": 4.5
+        }
+      ],
+      "unrealizedUsd": 0,
+      "ochiqSoni": 0,
+      "baholanmaganSoni": 0,
+      "bandBolaklar": [],
+      "boshBolaklar": [
+        1,
+        2,
+        3
+      ],
+      "xavfPct": 0.0,
+      "bosh": false
+    }
+  },
+  {
+    "nom": "davrlar_ichma_ich",
+    "balans": 1000.0,
+    "hozir": "2026-09-04T15:00:00+00:00",
+    "qismlar": [
+      {
+        "signalId": 1,
+        "yopilganVaqt": "2026-09-04T12:36:00+00:00",
+        "natijaUsd": 10.0
+      },
+      {
+        "signalId": 2,
+        "yopilganVaqt": "2026-09-01T15:00:00+00:00",
+        "natijaUsd": 20.0
+      },
+      {
+        "signalId": 3,
+        "yopilganVaqt": "2026-08-15T15:00:00+00:00",
+        "natijaUsd": -30.0
+      },
+      {
+        "signalId": 4,
+        "yopilganVaqt": "2026-02-16T15:00:00+00:00",
+        "natijaUsd": 40.0
+      }
+    ],
+    "ochiqlar": [],
+    "bolaklar": [
+      {
+        "raqam": 1,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 2,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 3,
+        "hajm": 333.33,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      }
+    ],
+    "kutilgan": {
+      "qatorlar": [
+        {
+          "nom": "Bugungi",
+          "usd": 10.0,
+          "pct": 1.0
+        },
+        {
+          "nom": "7 kunlik",
+          "usd": 30.0,
+          "pct": 3.0
+        },
+        {
+          "nom": "30 kunlik",
+          "usd": 0.0,
+          "pct": 0.0
+        },
+        {
+          "nom": "Boshidan beri",
+          "usd": 40.0,
+          "pct": 4.0
+        }
+      ],
+      "unrealizedUsd": 0,
+      "ochiqSoni": 0,
+      "baholanmaganSoni": 0,
+      "bandBolaklar": [],
+      "boshBolaklar": [
+        1,
+        2,
+        3
+      ],
+      "xavfPct": 0.0,
+      "bosh": false
+    }
+  },
+  {
+    "nom": "ochiq_va_band_bolak",
+    "balans": 900.0,
+    "hozir": "2026-09-04T15:00:00+00:00",
+    "qismlar": [
+      {
+        "signalId": 1,
+        "yopilganVaqt": "2026-09-03T15:00:00+00:00",
+        "natijaUsd": 15.0
+      }
+    ],
+    "ochiqlar": [
+      {
+        "signalId": 2,
+        "entry": 100.0,
+        "ochiqMiqdorUsd": 300.0,
+        "joriyNarx": 112.0
+      }
+    ],
+    "bolaklar": [
+      {
+        "raqam": 1,
+        "hajm": 300.0,
+        "bandKapital": 300.0,
+        "bandXavf": 30.0
+      },
+      {
+        "raqam": 2,
+        "hajm": 300.0,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 3,
+        "hajm": 300.0,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      }
+    ],
+    "kutilgan": {
+      "qatorlar": [
+        {
+          "nom": "Bugungi",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "7 kunlik",
+          "usd": 15.0,
+          "pct": 1.6666666667
+        },
+        {
+          "nom": "30 kunlik",
+          "usd": 15.0,
+          "pct": 1.6666666667
+        },
+        {
+          "nom": "Boshidan beri",
+          "usd": 15.0,
+          "pct": 1.6666666667
+        }
+      ],
+      "unrealizedUsd": 36.0,
+      "ochiqSoni": 1,
+      "baholanmaganSoni": 0,
+      "bandBolaklar": [
+        1
+      ],
+      "boshBolaklar": [
+        2,
+        3
+      ],
+      "xavfPct": 3.3333333333,
+      "bosh": false
+    }
+  },
+  {
+    "nom": "narxi_olinmagan_ochiq",
+    "balans": 900.0,
+    "hozir": "2026-09-04T15:00:00+00:00",
+    "qismlar": [],
+    "ochiqlar": [
+      {
+        "signalId": 3,
+        "entry": 100.0,
+        "ochiqMiqdorUsd": 300.0,
+        "joriyNarx": 105.0
+      },
+      {
+        "signalId": 4,
+        "entry": 50.0,
+        "ochiqMiqdorUsd": 150.0,
+        "joriyNarx": null
+      }
+    ],
+    "bolaklar": [
+      {
+        "raqam": 1,
+        "hajm": 300.0,
+        "bandKapital": 300.0,
+        "bandXavf": 30.0
+      },
+      {
+        "raqam": 2,
+        "hajm": 300.0,
+        "bandKapital": 150.0,
+        "bandXavf": 15.0
+      },
+      {
+        "raqam": 3,
+        "hajm": 300.0,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      }
+    ],
+    "kutilgan": {
+      "qatorlar": [
+        {
+          "nom": "Bugungi",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "7 kunlik",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "30 kunlik",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "Boshidan beri",
+          "usd": 0,
+          "pct": 0.0
+        }
+      ],
+      "unrealizedUsd": 15.0,
+      "ochiqSoni": 2,
+      "baholanmaganSoni": 1,
+      "bandBolaklar": [
+        1
+      ],
+      "boshBolaklar": [
+        2,
+        3
+      ],
+      "xavfPct": 5.0,
+      "bosh": false
+    }
+  },
+  {
+    "nom": "bitta_signal_ikki_qism",
+    "balans": 1000.0,
+    "hozir": "2026-09-04T15:00:00+00:00",
+    "qismlar": [
+      {
+        "signalId": 7,
+        "yopilganVaqt": "2026-09-03T15:00:00+00:00",
+        "natijaUsd": 10.0
+      },
+      {
+        "signalId": 7,
+        "yopilganVaqt": "2026-09-03T15:00:00+00:00",
+        "natijaUsd": 15.0
+      }
+    ],
+    "ochiqlar": [],
+    "bolaklar": [
+      {
+        "raqam": 1,
+        "hajm": 500.0,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      },
+      {
+        "raqam": 2,
+        "hajm": 500.0,
+        "bandKapital": 0.0,
+        "bandXavf": 0.0
+      }
+    ],
+    "kutilgan": {
+      "qatorlar": [
+        {
+          "nom": "Bugungi",
+          "usd": 0,
+          "pct": 0.0
+        },
+        {
+          "nom": "7 kunlik",
+          "usd": 25.0,
+          "pct": 2.5
+        },
+        {
+          "nom": "30 kunlik",
+          "usd": 25.0,
+          "pct": 2.5
+        },
+        {
+          "nom": "Boshidan beri",
+          "usd": 25.0,
+          "pct": 2.5
+        }
+      ],
+      "unrealizedUsd": 0,
+      "ochiqSoni": 0,
+      "baholanmaganSoni": 0,
+      "bandBolaklar": [],
+      "boshBolaklar": [
+        1,
+        2
+      ],
+      "xavfPct": 0.0,
+      "bosh": false
+    }
+  }
+]
