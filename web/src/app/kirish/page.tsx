@@ -53,8 +53,12 @@ export default async function Kirish({
         </div>
 
         <div className="mt-6 space-y-2 border-t border-white/10 pt-4">
-          <p className="text-matn-past text-xs leading-relaxed">🔐 {t("kirish.xavfsizlik")}</p>
-          <p className="text-matn-past text-xs leading-relaxed">⏳ {t("kirish.muddat")}</p>
+          <p className="text-matn-past text-xs leading-relaxed">
+            🔐 {t("kirish.xavfsizlik")}
+          </p>
+          <p className="text-matn-past text-xs leading-relaxed">
+            ⏳ {t("kirish.muddat")}
+          </p>
         </div>
       </Card>
     </main>

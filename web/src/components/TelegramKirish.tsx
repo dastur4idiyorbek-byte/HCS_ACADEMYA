@@ -29,7 +29,10 @@ export function TelegramKirish({ botUsername }: { botUsername: string }) {
     skript.setAttribute("data-size", "large");
     skript.setAttribute("data-radius", "12");
     skript.setAttribute("data-userpic", "true");
-    skript.setAttribute("data-auth-url", `${window.location.origin}/api/auth/telegram`);
+    skript.setAttribute(
+      "data-auth-url",
+      `${window.location.origin}/api/auth/telegram`,
+    );
     joy.appendChild(skript);
 
     return () => {

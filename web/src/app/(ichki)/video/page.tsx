@@ -26,7 +26,9 @@ export default async function Video() {
 
   // Foydalanuvchi tarifi qamrab oladigan darslar. Bu yerda ham filtr
   // SERVERDA: qulflangan darsning nomi ham sotiladigan qiymat.
-  const darslar = kontent().filter((k) => k.kind === "video" && tarifQamraydi(tarif, k.minTier));
+  const darslar = kontent().filter(
+    (k) => k.kind === "video" && tarifQamraydi(tarif, k.minTier),
+  );
 
   return (
     <>
@@ -40,9 +42,7 @@ export default async function Video() {
         <div className="space-y-3">
           {darslar.map((d) => (
             <Card key={d.id}>
-              <CardTitle>
-                🎬 {d.title}
-              </CardTitle>
+              <CardTitle>🎬 {d.title}</CardTitle>
               {d.description && <CardHint>{d.description}</CardHint>}
 
               {/* Video saytga yuklangan bo'lsa — shu yerda o'ynaydi.
@@ -60,7 +60,10 @@ export default async function Video() {
                 </div>
               ) : (
                 <div className="mt-3">
-                  <Button href={botHavolasi(botUsername, "start")} variant="ikkilamchi">
+                  <Button
+                    href={botHavolasi(botUsername, "start")}
+                    variant="ikkilamchi"
+                  >
                     {t("kontent.botda_koring")}
                   </Button>
                 </div>

@@ -19,7 +19,9 @@ export async function kirdim(forma: FormData): Promise<void> {
 
   const signalId = Number(forma.get("signal_id"));
   const summa = Number(
-    String(forma.get("summa") ?? "").replace(/\s/g, "").replace(",", "."),
+    String(forma.get("summa") ?? "")
+      .replace(/\s/g, "")
+      .replace(",", "."),
   );
   const natija = pozitsiyaQayd(foydalanuvchi.id, signalId, summa);
 

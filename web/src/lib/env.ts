@@ -55,7 +55,8 @@ function adminlar(xom: string | undefined): ReadonlySet<number> {
     .filter(Boolean)
     .map((q) => {
       const n = Number(q);
-      if (!Number.isInteger(n)) throw new EnvError(`ADMIN_IDS noto'g'ri qiymat: ${q}`);
+      if (!Number.isInteger(n))
+        throw new EnvError(`ADMIN_IDS noto'g'ri qiymat: ${q}`);
       return n;
     });
   return new Set(ids);

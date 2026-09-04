@@ -74,7 +74,10 @@ export function SignalOchish({
         aria-expanded={ochiq}
         className="text-sarlavha hover:bg-panel-yorqin rounded-tugma -mx-2 flex w-full items-center gap-2 px-2 py-1.5 text-sm font-medium transition"
       >
-        <span aria-hidden className={ochiq ? "rotate-90 transition" : "transition"}>
+        <span
+          aria-hidden
+          className={ochiq ? "rotate-90 transition" : "transition"}
+        >
           ›
         </span>
         📈 {matnlar.ochish}

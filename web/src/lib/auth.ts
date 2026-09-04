@@ -56,7 +56,9 @@ export function telegramLoginTekshir(
     .join("\n");
 
   const sirKalit = createHash("sha256").update(botToken).digest();
-  const kutilgan = createHmac("sha256", sirKalit).update(tekshiruvSatri).digest("hex");
+  const kutilgan = createHmac("sha256", sirKalit)
+    .update(tekshiruvSatri)
+    .digest("hex");
   if (!xavfsizTeng(kutilgan, hash)) return null;
 
   const authDate = Number(maydonlar.auth_date);
@@ -103,7 +105,9 @@ export function sessiyaYarat(
   const exp = Math.floor(hozir.getTime() / 1000) + SESSIYA_SEK;
   const yuk: Yuk = { tid: telegramId, exp };
   const tana = b64url(Buffer.from(JSON.stringify(yuk), "utf8"));
-  const imzo = b64url(createHmac("sha256", sessiyaKaliti(botToken)).update(tana).digest());
+  const imzo = b64url(
+    createHmac("sha256", sessiyaKaliti(botToken)).update(tana).digest(),
+  );
   return { token: `${tana}.${imzo}`, expires: new Date(exp * 1000) };
 }
 
@@ -118,11 +122,15 @@ export function sessiyaOqi(
   const [tana, imzo] = token.split(".");
   if (!tana || !imzo) return null;
 
-  const kutilgan = b64url(createHmac("sha256", sessiyaKaliti(botToken)).update(tana).digest());
+  const kutilgan = b64url(
+    createHmac("sha256", sessiyaKaliti(botToken)).update(tana).digest(),
+  );
   if (!xavfsizTeng(kutilgan, imzo)) return null;
 
   try {
-    const yuk = JSON.parse(Buffer.from(tana, "base64url").toString("utf8")) as Yuk;
+    const yuk = JSON.parse(
+      Buffer.from(tana, "base64url").toString("utf8"),
+    ) as Yuk;
     if (typeof yuk.tid !== "number" || typeof yuk.exp !== "number") return null;
     if (yuk.exp * 1000 <= hozir.getTime()) return null;
     return yuk.tid;

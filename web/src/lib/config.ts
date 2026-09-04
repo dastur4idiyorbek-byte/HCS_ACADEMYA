@@ -157,10 +157,9 @@ export function sinovDavri(): {
     yoqilgan: sozlama(["sinov", "enabled"], true),
     boshlanish: String(sozlama(["sinov", "start_date"], "2026-08-29")),
     kunlar: sozlama(["sinov", "days"], 100),
-    chiqarilgan: sozlama(
-      ["sinov", "exclude_health_factors"],
-      ["aggregate_user_capacity"] as string[],
-    ),
+    chiqarilgan: sozlama(["sinov", "exclude_health_factors"], [
+      "aggregate_user_capacity",
+    ] as string[]),
     toxtatilgan: sozlama(["sinov", "suspend_risk_rules"], [] as string[]),
   };
 }
@@ -180,12 +179,19 @@ export function sinovHolati(paytida: Date): {
   const bosh = new Date(`${s.boshlanish}T00:00:00Z`);
   const tugash = new Date(bosh.getTime() + s.kunlar * 86_400_000);
   const kun = new Date(
-    Date.UTC(paytida.getUTCFullYear(), paytida.getUTCMonth(), paytida.getUTCDate()),
+    Date.UTC(
+      paytida.getUTCFullYear(),
+      paytida.getUTCMonth(),
+      paytida.getUTCDate(),
+    ),
   );
   const faol = s.yoqilgan && kun >= bosh && kun < tugash;
   return {
     faol,
-    qolganKun: Math.max(0, Math.round((tugash.getTime() - kun.getTime()) / 86_400_000)),
+    qolganKun: Math.max(
+      0,
+      Math.round((tugash.getTime() - kun.getTime()) / 86_400_000),
+    ),
     chiqarilgan: s.chiqarilgan,
     toxtatilgan: s.toxtatilgan,
   };

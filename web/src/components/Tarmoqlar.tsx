@@ -15,7 +15,13 @@ const BELGI: Record<Ikonka, string> = {
   web: "🔗",
 };
 
-export function Tarmoqlar({ havolalar, til }: { havolalar: Havola[]; til: Til }) {
+export function Tarmoqlar({
+  havolalar,
+  til,
+}: {
+  havolalar: Havola[];
+  til: Til;
+}) {
   const t = tarjimon(til);
 
   return (

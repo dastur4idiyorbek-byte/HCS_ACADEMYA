@@ -8,7 +8,13 @@ import { Card, CardTitle } from "@/components/ui/Card";
  * uzildi. Bo'sh jadval ko'rsatish o'rniga sabab yoziladi, aks
  * holda foydalanuvchi buni NOSOZLIK deb o'qirdi.
  */
-export function Yangilanmoqda({ sarlavha, izoh }: { sarlavha: string; izoh: string }) {
+export function Yangilanmoqda({
+  sarlavha,
+  izoh,
+}: {
+  sarlavha: string;
+  izoh: string;
+}) {
   return (
     <Card>
       <CardTitle>{sarlavha}</CardTitle>

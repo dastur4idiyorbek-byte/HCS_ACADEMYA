@@ -53,7 +53,10 @@ export async function GET(
   } catch {
     // Bazada yozuv bor, fayl esa yo'q — disk almashgan yoki qo'lda
     // o'chirilgan. 404 aniqroq: 500 "sayt buzuq" degan taassurot beradi.
-    return NextResponse.json({ xato: "Fayl diskda topilmadi" }, { status: 404 });
+    return NextResponse.json(
+      { xato: "Fayl diskda topilmadi" },
+      { status: 404 },
+    );
   }
 
   const turi = mimeTuri(dars_.videoPath);

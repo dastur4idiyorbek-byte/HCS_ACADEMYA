@@ -69,14 +69,19 @@ export function db(): DatabaseSync {
 export function vaqt(xom: string | null | undefined): Date | null {
   if (!xom) return null;
   const tozalangan = xom.includes("T") ? xom : xom.replace(" ", "T");
-  const zonali = /[Z+]|-\d\d:\d\d$/.test(tozalangan) ? tozalangan : `${tozalangan}Z`;
+  const zonali = /[Z+]|-\d\d:\d\d$/.test(tozalangan)
+    ? tozalangan
+    : `${tozalangan}Z`;
   const d = new Date(zonali);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
 /** `Date` -> SQLite formati (bot o'qiy oladigan ko'rinishda). */
 export function vaqtSatri(d: Date): string {
-  return d.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
+  return d
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d+Z$/, "");
 }
 
 /** Oxirgi qo'shilgan qatorning id si.

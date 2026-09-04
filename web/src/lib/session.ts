@@ -41,7 +41,14 @@ export async function kirim(): Promise<Kirim> {
   }
 
   if (telegramId === null) {
-    return { kirgan: false, foydalanuvchi: null, obuna: null, tarif: null, admin: false, til };
+    return {
+      kirgan: false,
+      foydalanuvchi: null,
+      obuna: null,
+      tarif: null,
+      admin: false,
+      til,
+    };
   }
 
   const foydalanuvchi = foydalanuvchiOl(telegramId);
@@ -51,7 +58,14 @@ export async function kirim(): Promise<Kirim> {
   // bermagan holat. Panelga kirishi kerak, aks holda "tovuqmi-tuxummi"
   // vaziyati chiqadi.
   if (!foydalanuvchi) {
-    return { kirgan: admin, foydalanuvchi: null, obuna: null, tarif: null, admin, til };
+    return {
+      kirgan: admin,
+      foydalanuvchi: null,
+      obuna: null,
+      tarif: null,
+      admin,
+      til,
+    };
   }
 
   const obuna = faolObuna(foydalanuvchi.id);

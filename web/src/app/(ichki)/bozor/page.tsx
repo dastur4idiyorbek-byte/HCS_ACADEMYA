@@ -19,7 +19,10 @@ export default async function Bozor() {
   return (
     <div className="space-y-4">
       <Sarlavha matn={t("menyu.bozor")} />
-      <Yangilanmoqda sarlavha={t("menyu.bozor")} izoh={t("umumiy.yangilanmoqda")} />
+      <Yangilanmoqda
+        sarlavha={t("menyu.bozor")}
+        izoh={t("umumiy.yangilanmoqda")}
+      />
     </div>
   );
 }

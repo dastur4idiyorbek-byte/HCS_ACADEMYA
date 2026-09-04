@@ -58,7 +58,12 @@ export function Button({
     const tashqi = href.startsWith("http") || href.startsWith("tg:");
     if (tashqi) {
       return (
-        <a className={asos} href={href} target="_blank" rel="noopener noreferrer">
+        <a
+          className={asos}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           {children}
         </a>
       );

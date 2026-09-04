@@ -25,7 +25,8 @@ export function Qulf({
       <CardTitle>🔒 {t("qulf.sarlavha")}</CardTitle>
       <CardHint>{t("qulf.izoh")}</CardHint>
       <p className="text-matn-past mt-3 text-sm">
-        {t("qulf.kerak")}: <span className="text-sarlavha font-semibold">{kerakliTarif}</span>
+        {t("qulf.kerak")}:{" "}
+        <span className="text-sarlavha font-semibold">{kerakliTarif}</span>
       </p>
       <div className="mt-4">
         <Button href={botHavolasi(botUsername)}>{t("profil.tolov")}</Button>

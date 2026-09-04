@@ -18,7 +18,13 @@ export function Yon({
   chiqishMatn,
   tilTanlov,
 }: {
-  bandlar: { yol: string; nom: string; belgi: string; qulf: boolean; tezKunda: boolean }[];
+  bandlar: {
+    yol: string;
+    nom: string;
+    belgi: string;
+    qulf: boolean;
+    tezKunda: boolean;
+  }[];
   tarifYorliq: string | null;
   chiqishMatn: string;
   tilTanlov: React.ReactNode;
@@ -51,12 +57,17 @@ export function Yon({
                 : "hover:bg-panel-yorqin border-transparent",
             )}
           >
-            <span aria-hidden className="w-6 text-center text-lg lg:w-5 lg:text-base">
+            <span
+              aria-hidden
+              className="w-6 text-center text-lg lg:w-5 lg:text-base"
+            >
               {b.belgi}
             </span>
             <span className="flex-1">{b.nom}</span>
             {b.tezKunda && (
-              <span className="text-matn-past text-[11px] uppercase lg:text-[10px]">soon</span>
+              <span className="text-matn-past text-[11px] uppercase lg:text-[10px]">
+                soon
+              </span>
             )}
             {b.qulf && !b.tezKunda && <span aria-hidden>🔒</span>}
           </Link>

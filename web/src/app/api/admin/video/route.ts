@@ -42,7 +42,10 @@ export async function POST(sorov: Request): Promise<NextResponse> {
   const darsId = Number(url.searchParams.get("dars"));
   const aslNom = url.searchParams.get("nom") ?? "";
   if (!Number.isInteger(darsId) || darsId <= 0) {
-    return NextResponse.json({ xato: "Dars raqami noto'g'ri" }, { status: 400 });
+    return NextResponse.json(
+      { xato: "Dars raqami noto'g'ri" },
+      { status: 400 },
+    );
   }
 
   const chegara = engKattaHajm();

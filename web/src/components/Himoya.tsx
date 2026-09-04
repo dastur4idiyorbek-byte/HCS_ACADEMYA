@@ -64,7 +64,8 @@ export function Himoya({
       taymer = setTimeout(() => setYashirin(false), 350);
     };
 
-    const korinish = () => (document.visibilityState === "hidden" ? yop() : och());
+    const korinish = () =>
+      document.visibilityState === "hidden" ? yop() : och();
 
     window.addEventListener("blur", yop);
     window.addEventListener("focus", och);
@@ -90,7 +91,11 @@ export function Himoya({
         onContextMenu={(e) => e.preventDefault()}
       >
         {children}
-        <span aria-hidden className="suv-belgisi" style={suvBelgisiUslubi(belgi)} />
+        <span
+          aria-hidden
+          className="suv-belgisi"
+          style={suvBelgisiUslubi(belgi)}
+        />
       </div>
 
       {yashirin && (

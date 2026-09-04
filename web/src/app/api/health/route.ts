@@ -45,7 +45,9 @@ function bazaniTekshir(): Natija {
     // Ilovaning HAQIQIY yo'li tekshiriladi. Alohida ulanish qursak, u
     // ishlab, ilovaniki ishlamasligi mumkin edi va tashxis yolg'on
     // tinchlik berardi.
-    const qator = db().prepare("select count(*) as n from users").get() as { n: number };
+    const qator = db().prepare("select count(*) as n from users").get() as {
+      n: number;
+    };
     return { holat: "ok", yol, foydalanuvchilar: Number(qator.n) };
   } catch (e) {
     return {

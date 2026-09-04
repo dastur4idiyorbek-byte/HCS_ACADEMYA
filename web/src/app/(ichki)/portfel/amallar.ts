@@ -17,11 +17,16 @@ export async function balansSaqlash(forma: FormData): Promise<void> {
 
   const xom = String(forma.get("balans") ?? "").trim();
   // Bo'sh maydon — "ko'rsatmayman" degani, nol emas.
-  const summa = xom === "" ? null : Number(xom.replace(/\s/g, "").replace(",", "."));
+  const summa =
+    xom === "" ? null : Number(xom.replace(/\s/g, "").replace(",", "."));
   const natija = balansSaqla(foydalanuvchi.id, summa);
 
   revalidatePath("/portfel");
   // Signal kartochkasidagi "Miqdor" ham shu balansdan hisoblanadi.
   revalidatePath("/signallar");
-  redirect(natija.ok ? "/portfel" : `/portfel?xato=${encodeURIComponent(natija.sabab)}`);
+  redirect(
+    natija.ok
+      ? "/portfel"
+      : `/portfel?xato=${encodeURIComponent(natija.sabab)}`,
+  );
 }

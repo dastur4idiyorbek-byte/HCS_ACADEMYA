@@ -41,8 +41,10 @@ export function tahlil(s: {
   closedAt: Date | null;
 }): Tahlil {
   const yaroqli = s.entry > 0;
-  const stopFoiz = yaroqli && s.stop > 0 ? ((s.entry - s.stop) / s.entry) * 100 : null;
-  const tp2Foiz = yaroqli && s.tp2 > 0 ? ((s.tp2 - s.entry) / s.entry) * 100 : null;
+  const stopFoiz =
+    yaroqli && s.stop > 0 ? ((s.entry - s.stop) / s.entry) * 100 : null;
+  const tp2Foiz =
+    yaroqli && s.tp2 > 0 ? ((s.tp2 - s.entry) / s.entry) * 100 : null;
 
   return {
     stopFoiz,
@@ -51,7 +53,9 @@ export function tahlil(s: {
     // teng bo'lsa bo'linma cheksizga ketardi va ekranda "Infinity"
     // chiqardi — bu raqam emas, xato.
     nisbat:
-      stopFoiz !== null && tp2Foiz !== null && stopFoiz > 0 ? tp2Foiz / stopFoiz : null,
+      stopFoiz !== null && tp2Foiz !== null && stopFoiz > 0
+        ? tp2Foiz / stopFoiz
+        : null,
     soat:
       s.createdAt && s.closedAt
         ? (s.closedAt.getTime() - s.createdAt.getTime()) / 3_600_000
@@ -66,7 +70,9 @@ export function tahlil(s: {
  * aylanmagan, ya'ni na yutuq, na yutqazish. Ularni maxrajga qo'shsak,
  * ko'rsatkich sun'iy ravishda pasayardi.
  */
-export function xulosa(qatorlar: { yakun: Yakun; natijaFoiz: number | null }[]): {
+export function xulosa(
+  qatorlar: { yakun: Yakun; natijaFoiz: number | null }[],
+): {
   savdo: number;
   yutuq: number;
   winRate: number | null;

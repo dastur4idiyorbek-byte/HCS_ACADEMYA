@@ -75,6 +75,9 @@ export async function GET(
     });
   } catch {
     // Tarmoq uzilsa ham admin paneli ishlayveradi (0.3-band).
-    return NextResponse.json({ xato: "Telegramga ulanib bo'lmadi" }, { status: 502 });
+    return NextResponse.json(
+      { xato: "Telegramga ulanib bo'lmadi" },
+      { status: 502 },
+    );
   }
 }

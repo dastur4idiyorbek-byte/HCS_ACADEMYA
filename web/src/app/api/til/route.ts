@@ -10,11 +10,16 @@ export async function POST(request: NextRequest) {
   const qayerga = String(forma.get("qayerga") ?? "/bosh");
 
   // Ochiq yo'naltirishning oldini olamiz: faqat shu saytdagi yo'l
-  const xavfsizYol = qayerga.startsWith("/") && !qayerga.startsWith("//") ? qayerga : "/bosh";
+  const xavfsizYol =
+    qayerga.startsWith("/") && !qayerga.startsWith("//") ? qayerga : "/bosh";
 
   const javob = yonaltir(xavfsizYol);
   if (tilmi(til)) {
-    javob.cookies.set(TIL_COOKIE, til, { path: "/", maxAge: 365 * 24 * 60 * 60, sameSite: "lax" });
+    javob.cookies.set(TIL_COOKIE, til, {
+      path: "/",
+      maxAge: 365 * 24 * 60 * 60,
+      sameSite: "lax",
+    });
   }
   return javob;
 }

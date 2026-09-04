@@ -5,6 +5,7 @@
  * da — u `node:fs` ni tortadi va klient to'plamiga tushmasligi kerak.
  */
 export function ozgarishFoizi(kirish: number, hozir: number): number | null {
-  if (!Number.isFinite(kirish) || !Number.isFinite(hozir) || kirish <= 0) return null;
+  if (!Number.isFinite(kirish) || !Number.isFinite(hozir) || kirish <= 0)
+    return null;
   return ((hozir - kirish) / kirish) * 100;
 }

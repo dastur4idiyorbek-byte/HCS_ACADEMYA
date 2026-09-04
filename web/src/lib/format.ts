@@ -4,7 +4,10 @@ import type { SignalHolati } from "@/lib/queries";
  *  Qat'iy 2 xona qo'ysak, arzon coinlar "0.00" bo'lib ko'rinadi. */
 export function narx(n: number): string {
   const xona = n >= 1000 ? 2 : n >= 1 ? 4 : n >= 0.01 ? 6 : 8;
-  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: xona });
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: xona,
+  });
 }
 
 /** PUL summasi — har doim ikki xona.
@@ -70,7 +73,11 @@ export function holatNomi(holat: SignalHolati, til: "uz" | "ru"): string {
 }
 
 /** Risk/Foyda nisbati — TP2 gacha masofa Stopgacha masofaga bo'linadi. */
-export function riskFoyda(entry: number, stop: number, tp2: number): number | null {
+export function riskFoyda(
+  entry: number,
+  stop: number,
+  tp2: number,
+): number | null {
   if (entry <= stop) return null;
   return (tp2 - entry) / (entry - stop);
 }

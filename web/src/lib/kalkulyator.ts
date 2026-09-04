@@ -72,7 +72,14 @@ export const ULUSH_JAMI = 100;
  * aylantirardi. Shuning uchun nol ham "yaroqsiz" deb qaraladi.
  */
 export function musbatSon(x: unknown): number | null {
-  const n = typeof x === "number" ? x : Number(String(x ?? "").replace(/\s/g, "").replace(",", "."));
+  const n =
+    typeof x === "number"
+      ? x
+      : Number(
+          String(x ?? "")
+            .replace(/\s/g, "")
+            .replace(",", "."),
+        );
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
@@ -85,7 +92,10 @@ export function hisobla(
   if (!(summa > 0) || !(entry > 0)) return null;
 
   const umumiyMiqdor = summa / entry;
-  const ulushJami = tplar.reduce((s, t) => s + (Number.isFinite(t.ulush) ? t.ulush : 0), 0);
+  const ulushJami = tplar.reduce(
+    (s, t) => s + (Number.isFinite(t.ulush) ? t.ulush : 0),
+    0,
+  );
 
   const natijalar: TpNatija[] = tplar.map((t) => {
     const ulush = Number.isFinite(t.ulush) ? t.ulush : 0;
@@ -173,7 +183,10 @@ export function ulushlarniTengla(
 
   // Chegaradan chiqqan qiymat kesiladi: 150% yozilsa boshqalari manfiy
   // bo'lib qolardi va hisob ma'nosini yo'qotardi.
-  const qiymat = Math.min(Math.max(Number.isFinite(yangi) ? yangi : 0, 0), ULUSH_JAMI);
+  const qiymat = Math.min(
+    Math.max(Number.isFinite(yangi) ? yangi : 0, 0),
+    ULUSH_JAMI,
+  );
   const qolgan = ULUSH_JAMI - qiymat;
 
   const musbat = (x: number) => (Number.isFinite(x) && x > 0 ? x : 0);
@@ -195,7 +208,10 @@ export function ulushlarniTengla(
   // masalan 33.333). Oxirgi tahrirlanmagan ulush QOLDIQDAN hisoblanadi,
   // qayta yaxlitlanmaydi: aks holda tuzatish yana yo'qolardi.
   const oxirgi = indeks === n - 1 ? n - 2 : n - 1;
-  const boshqalarJami = natija.reduce((s, x, i) => (i === oxirgi ? s : s + x), 0);
+  const boshqalarJami = natija.reduce(
+    (s, x, i) => (i === oxirgi ? s : s + x),
+    0,
+  );
   // 1e-9 gacha yaxlitlash — bu suzuvchi nuqta shovqinini oladi, lekin
   // haqiqiy qoldiqni saqlaydi.
   natija[oxirgi] = Math.round((ULUSH_JAMI - boshqalarJami) * 1e9) / 1e9;

@@ -144,17 +144,24 @@ export default async function SignalSahifasi({
           </div>
         )}
 
-        {/* Kech kirish: narx kirish nuqtasidan uzoqlashgan bo'lsa,
-            HALI KIRMAGAN odamga xavf kattalashgani aytiladi. */}
+        {/* Kirish holati — HALI KIRMAGAN odam uchun:
+              - limit kutilmoqda  -> narx entry'ga yetishiga qancha qolgani;
+              - narx entry'ga yetib, undan uzoqlashgan -> xavf kattalashgani.
+            Ilgari ikkalasi bir xil ko'rinardi va kutayotgan signal
+            "kelish tavsiya etilmaydi" deb belgilanardi. */}
         {yangiKirish && !pozitsiya && (
           <KirishOgohlantirish
             juftlik={birjaJuftligi(signal.symbol, kotirovka())}
             kirish={signal.entry}
             chegara={kechKirishChegarasi()}
+            holat={signal.status}
             matnlar={{
               sarlavha: t("signal.kech_ogoh"),
               izoh: t("signal.kech_ogoh_izoh"),
               masofa: t("signal.kech_masofa"),
+              kutilmoqda: t("signal.kutilmoqda"),
+              kutilmoqda_izoh: t("signal.kutilmoqda_izoh"),
+              qoldi: t("signal.qoldi"),
             }}
           />
         )}

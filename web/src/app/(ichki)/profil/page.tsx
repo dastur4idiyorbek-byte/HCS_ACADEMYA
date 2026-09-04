@@ -16,7 +16,9 @@ export default async function Profil() {
   const botUsername = env().botUsername;
 
   const oxirgi = foydalanuvchi ? oxirgiObuna(foydalanuvchi.id) : null;
-  const kutilmoqda = foydalanuvchi ? kutilayotganTolovBor(foydalanuvchi.id) : false;
+  const kutilmoqda = foydalanuvchi
+    ? kutilayotganTolovBor(foydalanuvchi.id)
+    : false;
   const narxRoyxati = narxlar();
 
   const faol = obuna !== null;
@@ -31,7 +33,9 @@ export default async function Profil() {
 
       <div className="space-y-5">
         <Card>
-          <CardTitle>{foydalanuvchi?.fullName ?? t("profil.sarlavha")}</CardTitle>
+          <CardTitle>
+            {foydalanuvchi?.fullName ?? t("profil.sarlavha")}
+          </CardTitle>
           <CardHint>
             {foydalanuvchi?.username ? `@${foydalanuvchi.username} · ` : ""}
             ID {foydalanuvchi?.telegramId ?? "—"}
@@ -44,7 +48,9 @@ export default async function Profil() {
             {faol ? (
               <Badge tone="yaxshi">{obuna.tier.toUpperCase()}</Badge>
             ) : (
-              <Badge tone="past">{tugagan ? t("profil.tugadi") : t("profil.yoq")}</Badge>
+              <Badge tone="past">
+                {tugagan ? t("profil.tugadi") : t("profil.yoq")}
+              </Badge>
             )}
           </div>
 
@@ -56,7 +62,9 @@ export default async function Profil() {
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-matn-past">{t("profil.muddat")}</dt>
-                <dd className="raqam font-semibold">{sana(obuna.expiresAt)} UTC</dd>
+                <dd className="raqam font-semibold">
+                  {sana(obuna.expiresAt)} UTC
+                </dd>
               </div>
             </dl>
           )}
@@ -90,15 +98,22 @@ export default async function Profil() {
                   <tr className="text-matn-past text-left text-xs uppercase">
                     <th className="pb-2 font-medium">{t("profil.tarif")}</th>
                     <th className="pb-2 font-medium">{t("statistika.davr")}</th>
-                    <th className="pb-2 text-right font-medium">{t("admin.summa")}</th>
+                    <th className="pb-2 text-right font-medium">
+                      {t("admin.summa")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {narxRoyxati.map((n) => (
-                    <tr key={`${n.tier}-${n.period}-${n.currency}`} className="border-t border-white/5">
+                    <tr
+                      key={`${n.tier}-${n.period}-${n.currency}`}
+                      className="border-t border-white/5"
+                    >
                       <td className="py-2 font-medium">{n.tier}</td>
                       <td className="text-matn-past py-2">
-                        {n.period === "daily" ? t("profil.kunlik") : t("profil.oylik")}
+                        {n.period === "daily"
+                          ? t("profil.kunlik")
+                          : t("profil.oylik")}
                       </td>
                       <td className="raqam py-2 text-right font-semibold">
                         {n.amount.toLocaleString("en-US")} {n.currency}

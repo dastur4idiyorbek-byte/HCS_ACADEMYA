@@ -19,7 +19,12 @@ import { birjaJuftligi } from "@/lib/kalkulyator";
 import { env } from "@/lib/env";
 import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
 import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
-import { kirishMumkin, signallar, tarifQamraydi, yopilgan } from "@/lib/queries";
+import {
+  kirishMumkin,
+  signallar,
+  tarifQamraydi,
+  yopilgan,
+} from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +48,9 @@ export default async function Signallar() {
   const royxat = signallar(100);
   const suvBelgisi = `HCS · ${foydalanuvchi?.telegramId ?? "—"}`;
   const ochiladigan = royxat.filter((s) => kirishMumkin(s.status));
-  const kech = royxat.filter((s) => !kirishMumkin(s.status) && !yopilgan(s.status));
+  const kech = royxat.filter(
+    (s) => !kirishMumkin(s.status) && !yopilgan(s.status),
+  );
   const arxiv = royxat.filter((s) => yopilgan(s.status));
 
   if (royxat.length === 0) {
@@ -81,9 +88,12 @@ export default async function Signallar() {
                     {HOLAT_BELGISI[s.status]}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="text-sarlavha block font-semibold">{s.symbol}</span>
+                    <span className="text-sarlavha block font-semibold">
+                      {s.symbol}
+                    </span>
                     <span className="text-matn-past raqam block text-xs">
-                      {t("signal.entry")} {narx(s.entry)} · {holatNomi(s.status, til)}
+                      {t("signal.entry")} {narx(s.entry)} ·{" "}
+                      {holatNomi(s.status, til)}
                     </span>
                   </span>
                   {/* Kirishdan qancha yurgani — YASHIL/QIZIL foiz. Avval
@@ -98,6 +108,7 @@ export default async function Signallar() {
                       qisqa
                       ogohChegara={kechKirishChegarasi()}
                       ogohMatn={t("signal.kech_ogoh")}
+                      holat={s.status}
                     />
                   </span>
                   {s.score !== null && (
@@ -121,11 +132,15 @@ export default async function Signallar() {
                 tp1Ulush={tp1Ulushi()}
                 ulushlar={tpUlushlari(s.tplar.length)}
                 buyurtmaMatni={`${s.entryOrderType === "market" ? "⚡" : "📌"} ${t(
-                  s.entryOrderType === "market" ? "signal.market" : "signal.limit",
+                  s.entryOrderType === "market"
+                    ? "signal.market"
+                    : "signal.limit",
                 )}`}
                 berilgan={s.createdAt}
                 boshlangichSumma={
-                  balans === null ? null : (hajmTaklifi(balans, s.entry, s.stop)?.hajm ?? null)
+                  balans === null
+                    ? null
+                    : (hajmTaklifi(balans, s.entry, s.stop)?.hajm ?? null)
                 }
                 matnlar={kalkulyatorMatnlari(t)}
               />
@@ -151,7 +166,9 @@ export default async function Signallar() {
               >
                 <span aria-hidden>{HOLAT_BELGISI[s.status]}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="text-sarlavha block text-sm font-semibold">{s.symbol}</span>
+                  <span className="text-sarlavha block text-sm font-semibold">
+                    {s.symbol}
+                  </span>
                   <span className="text-matn-past block text-xs">
                     {holatNomi(s.status, til)}
                     {s.tp1Reached ? ` · ${t("signal.breakeven_qisqa")}` : ""}
@@ -196,7 +213,13 @@ function Guruh({
 }) {
   return (
     <section>
-      <h2 className={bosh ? "text-sarlavha mb-3 font-semibold" : "text-matn-past mb-3 text-sm font-semibold uppercase tracking-wide"}>
+      <h2
+        className={
+          bosh
+            ? "text-sarlavha mb-3 font-semibold"
+            : "text-matn-past mb-3 text-sm font-semibold uppercase tracking-wide"
+        }
+      >
         {sarlavha}
       </h2>
       {izoh && <CardHint className="mb-3">{izoh}</CardHint>}

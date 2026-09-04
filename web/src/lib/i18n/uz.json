@@ -149,7 +149,10 @@
     "kalk_eng_yomon": "Eng yomon holat (Stop bo'lsa)",
     "rasmlar": "Grafik rasmlari",
     "rasm_kirish": "Signal berilgan payt",
-    "rasm_natija": "Yakuniy natija"
+    "rasm_natija": "Yakuniy natija",
+    "kutilmoqda": "Limit kutilmoqda — narx hali kirish nuqtasiga yetmadi",
+    "kutilmoqda_izoh": "Bu signal aynan shu narxga tushishini kutish uchun berilgan. Hozircha hech narsa qilish kerak emas: narx kirish nuqtasiga yetganda signal faollashadi.",
+    "qoldi": "Kirish nuqtasigacha"
   },
   "statistika": {
     "sarlavha": "Statistika",

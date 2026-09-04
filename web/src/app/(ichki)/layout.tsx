@@ -13,7 +13,11 @@ import { kirim } from "@/lib/session";
  * ma'lumotni YUKLAMASDAN oldin `/kirish` ga yo'naltiriladi. Bu "qulf
  * ko'rsatib, ma'lumotni HTML ichida yuborish" xatosining oldini oladi.
  */
-export default async function IchkiLayout({ children }: { children: React.ReactNode }) {
+export default async function IchkiLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { kirgan, tarif, admin, til } = await kirim();
   if (!kirgan) redirect("/kirish");
 
@@ -30,7 +34,9 @@ export default async function IchkiLayout({ children }: { children: React.ReactN
     <div className="lg:flex">
       <Yon
         bandlar={bandlar}
-        tarifYorliq={admin ? "ADMIN" : (tarif?.toUpperCase() ?? t("profil.yoq"))}
+        tarifYorliq={
+          admin ? "ADMIN" : (tarif?.toUpperCase() ?? t("profil.yoq"))
+        }
         chiqishMatn={t("umumiy.chiqish")}
         tilTanlov={<TilTanlov joriy={til} />}
       />

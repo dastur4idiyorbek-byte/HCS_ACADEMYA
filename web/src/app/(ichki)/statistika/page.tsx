@@ -40,7 +40,9 @@ export default async function Statistika({
   const since =
     tanlangan.kunlar === null
       ? null
-      : new Date(hozirgi.getTime() - tanlangan.kunlar * 86_400_000).toISOString().slice(0, 10);
+      : new Date(hozirgi.getTime() - tanlangan.kunlar * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
 
   const s = statistika(since);
 
@@ -48,7 +50,9 @@ export default async function Statistika({
   // hisobga kirmaydi — ular hali natija bermagan, ularni qo'shsak
   // ko'rsatkich sun'iy ravishda past chiqadi.
   const yakunlangan = s.tp1Count + s.tp2Count + s.stopCount;
-  const winrate = yakunlangan ? ((s.tp1Count + s.tp2Count) / yakunlangan) * 100 : null;
+  const winrate = yakunlangan
+    ? ((s.tp1Count + s.tp2Count) / yakunlangan) * 100
+    : null;
 
   return (
     <>
@@ -82,30 +86,51 @@ export default async function Statistika({
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <Katak nom={t("statistika.jami")} qiymat={String(s.signalsCreated)} />
+            <Katak
+              nom={t("statistika.jami")}
+              qiymat={String(s.signalsCreated)}
+            />
             <Katak
               nom={t("statistika.winrate")}
               qiymat={winrate === null ? "—" : `${winrate.toFixed(0)}%`}
               tone={winrate !== null && winrate >= 50 ? "yaxshi" : "past"}
             />
-            <Katak nom={t("statistika.tp2")} qiymat={String(s.tp2Count)} tone="yaxshi" />
-            <Katak nom={t("statistika.stop")} qiymat={String(s.stopCount)} tone="past" />
+            <Katak
+              nom={t("statistika.tp2")}
+              qiymat={String(s.tp2Count)}
+              tone="yaxshi"
+            />
+            <Katak
+              nom={t("statistika.stop")}
+              qiymat={String(s.stopCount)}
+              tone="past"
+            />
           </div>
 
           <Card>
             <CardTitle>{t("statistika.sarlavha")}</CardTitle>
             <dl className="mt-3 space-y-2">
-              <Qator nom={t("statistika.yopilgan")} qiymat={String(yakunlangan)} />
+              <Qator
+                nom={t("statistika.yopilgan")}
+                qiymat={String(yakunlangan)}
+              />
               <Qator nom={t("statistika.tp1")} qiymat={String(s.tp1Count)} />
-              <Qator nom={t("statistika.yolgon")} qiymat={String(s.falseSignalCount)} />
+              <Qator
+                nom={t("statistika.yolgon")}
+                qiymat={String(s.falseSignalCount)}
+              />
               <Qator
                 nom={t("statistika.ortacha_ball")}
-                qiymat={s.averageScore === null ? "—" : s.averageScore.toFixed(1)}
+                qiymat={
+                  s.averageScore === null ? "—" : s.averageScore.toFixed(1)
+                }
               />
               <Qator
                 nom={t("signal.nisbat")}
                 qiymat={
-                  s.averageRiskReward === null ? "—" : `1 : ${s.averageRiskReward.toFixed(2)}`
+                  s.averageRiskReward === null
+                    ? "—"
+                    : `1 : ${s.averageRiskReward.toFixed(2)}`
                 }
               />
             </dl>
@@ -128,7 +153,12 @@ function Katak({
   qiymat: string;
   tone?: "yaxshi" | "past";
 }) {
-  const rang = tone === "yaxshi" ? "text-yaxshi" : tone === "past" ? "text-past" : "text-sarlavha";
+  const rang =
+    tone === "yaxshi"
+      ? "text-yaxshi"
+      : tone === "past"
+        ? "text-past"
+        : "text-sarlavha";
   return (
     <div className="border-ramka-yumshoq bg-panel rounded-kartochka border p-3.5">
       <p className="text-matn-past text-xs">{nom}</p>

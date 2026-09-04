@@ -63,7 +63,9 @@ export function Kalkulyator({
   // kalkulyator kartochkadagi "Miqdor" bilan bir xil raqamdan
   // boshlanadi va foydalanuvchi ikki xil son ko'rmaydi.
   const [summa, setSumma] = useState(() =>
-    boshlangichSumma && boshlangichSumma > 0 ? boshlangichSumma.toFixed(2) : "1000",
+    boshlangichSumma && boshlangichSumma > 0
+      ? boshlangichSumma.toFixed(2)
+      : "1000",
   );
   // `String(entry)` EMAS: bazadagi son `0.8294354680460917` boʻlib
   // chiqishi mumkin va maydonda shundayligicha turardi — uni oʻqib ham,
@@ -72,7 +74,10 @@ export function Kalkulyator({
   const [stopMatn, setStopMatn] = useState(() => narxMatni(stop));
   const [tplar, setTplar] = useState<Matnli[]>(() => {
     const ulushlar = tengUlushlar(tpNarxlari.length);
-    return tpNarxlari.map((n, i) => ({ narx: narxMatni(n), ulush: String(ulushlar[i]) }));
+    return tpNarxlari.map((n, i) => ({
+      narx: narxMatni(n),
+      ulush: String(ulushlar[i]),
+    }));
   });
 
   const olindi = (i: number) => Boolean(olinganTplar?.[i]);
@@ -98,7 +103,9 @@ export function Kalkulyator({
   }, [summa, kirish, stopMatn, tplar, olinganTplar]);
 
   const narxYangila = (i: number, qiymat: string) =>
-    setTplar((oldingi) => oldingi.map((t, j) => (i === j ? { ...t, narx: qiymat } : t)));
+    setTplar((oldingi) =>
+      oldingi.map((t, j) => (i === j ? { ...t, narx: qiymat } : t)),
+    );
 
   /** Ulush o'zgarsa QOLGANLARI qayta hisoblanadi.
    *
@@ -109,7 +116,11 @@ export function Kalkulyator({
   const ulushYangila = (i: number, qiymat: string) =>
     setTplar((oldingi) => {
       const sonlar = oldingi.map((t) => Number(t.ulush.replace(",", ".")) || 0);
-      const yangilari = ulushlarniTengla(sonlar, i, Number(qiymat.replace(",", ".")) || 0);
+      const yangilari = ulushlarniTengla(
+        sonlar,
+        i,
+        Number(qiymat.replace(",", ".")) || 0,
+      );
       return oldingi.map((t, j) => ({
         narx: t.narx,
         ulush: j === i ? qiymat : String(yangilari[j]),
@@ -126,7 +137,8 @@ export function Kalkulyator({
     })}`;
   };
   const foiz = (x: number) => `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`;
-  const miqdor = (x: number) => x.toLocaleString("en-US", { maximumFractionDigits: 8 });
+  const miqdor = (x: number) =>
+    x.toLocaleString("en-US", { maximumFractionDigits: 8 });
 
   return (
     <Card>
@@ -203,7 +215,6 @@ export function Kalkulyator({
         ))}
       </div>
 
-
       {hisob && (
         <div className="border-ramka-yumshoq rounded-kichik mt-4 border p-3">
           <p className="text-matn-past raqam text-xs">
@@ -218,11 +229,17 @@ export function Kalkulyator({
 
           <ul className="mt-3 space-y-2">
             {hisob.tplar.map((t, i) => (
-              <li key={i} className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+              <li
+                key={i}
+                className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
+              >
                 <span>
                   {t.olindi ? "✅" : "🎯"} TP{i + 1}
                   {t.olindi && (
-                    <span className="text-yaxshi text-xs"> {matnlar.kalk_olindi}</span>
+                    <span className="text-yaxshi text-xs">
+                      {" "}
+                      {matnlar.kalk_olindi}
+                    </span>
                   )}{" "}
                   <span className="text-matn-past raqam text-xs">
                     ({t.ulush}% — {miqdor(t.miqdor)} {aktiv})
@@ -230,7 +247,9 @@ export function Kalkulyator({
                 </span>
                 <span className="raqam text-yaxshi font-semibold">
                   {pul(t.foyda)}{" "}
-                  <span className="text-matn-past text-xs">({foiz(t.foizOzgarish)})</span>
+                  <span className="text-matn-past text-xs">
+                    ({foiz(t.foizOzgarish)})
+                  </span>
                 </span>
               </li>
             ))}
@@ -239,13 +258,20 @@ export function Kalkulyator({
               <span>
                 🛑 {matnlar.stop_agar}{" "}
                 <span className="text-matn-past text-xs">
-                  ({((hisob.qolganMiqdor / hisob.umumiyMiqdor) * 100).toFixed(0)}%
-                  {hisob.sotilganMiqdor > 0 ? ` — ${matnlar.kalk_qolganiga}` : ""})
+                  (
+                  {((hisob.qolganMiqdor / hisob.umumiyMiqdor) * 100).toFixed(0)}
+                  %
+                  {hisob.sotilganMiqdor > 0
+                    ? ` — ${matnlar.kalk_qolganiga}`
+                    : ""}
+                  )
                 </span>
               </span>
               <span className="raqam text-past font-semibold">
                 {pul(-hisob.stopZarar)}{" "}
-                <span className="text-matn-past text-xs">({foiz(hisob.stopFoiz)})</span>
+                <span className="text-matn-past text-xs">
+                  ({foiz(hisob.stopFoiz)})
+                </span>
               </span>
             </li>
           </ul>
@@ -262,13 +288,17 @@ export function Kalkulyator({
                 </span>
               </div>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-matn-past">🎯 {matnlar.kalk_kutilmoqda}</span>
+                <span className="text-matn-past">
+                  🎯 {matnlar.kalk_kutilmoqda}
+                </span>
                 <span className="raqam font-semibold">
                   {pul(hisob.kutilayotganFoyda)}
                 </span>
               </div>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-matn-past">🛡 {matnlar.kalk_eng_yomon}</span>
+                <span className="text-matn-past">
+                  🛡 {matnlar.kalk_eng_yomon}
+                </span>
                 <span
                   className={`raqam font-semibold ${
                     hisob.engYomon >= 0 ? "text-yaxshi" : "text-past"
@@ -284,7 +314,9 @@ export function Kalkulyator({
             <span className="text-sm font-semibold">💰 {matnlar.jami}</span>
             <span className="raqam text-sarlavha text-lg font-bold">
               {pul(hisob.jamiFoyda)}{" "}
-              <span className="text-matn-past text-sm">({foiz(hisob.jamiFoiz)})</span>
+              <span className="text-matn-past text-sm">
+                ({foiz(hisob.jamiFoiz)})
+              </span>
             </span>
           </div>
         </div>

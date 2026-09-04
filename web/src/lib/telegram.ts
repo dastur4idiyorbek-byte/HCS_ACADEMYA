@@ -13,13 +13,20 @@ export async function xabarYubor(
   matn: string,
 ): Promise<boolean> {
   try {
-    const javob = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: matn, parse_mode: "HTML" }),
-      // Telegram javob bermay qolsa, admin paneli muzlab qolmasin
-      signal: AbortSignal.timeout(8000),
-    });
+    const javob = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: matn,
+          parse_mode: "HTML",
+        }),
+        // Telegram javob bermay qolsa, admin paneli muzlab qolmasin
+        signal: AbortSignal.timeout(8000),
+      },
+    );
     return javob.ok;
   } catch {
     // Xabar bormasa ham to'lov TASDIQLANGAN bo'lib qoladi — bu to'g'ri

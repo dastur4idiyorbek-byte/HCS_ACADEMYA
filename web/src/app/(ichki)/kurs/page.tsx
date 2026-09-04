@@ -10,7 +10,10 @@ export default async function Kurs() {
 
   return (
     <>
-      <Sarlavha matn={t("kontent.kurs")} ong={<Badge tone="ortacha">{t("kontent.tez_kunda")}</Badge>} />
+      <Sarlavha
+        matn={t("kontent.kurs")}
+        ong={<Badge tone="ortacha">{t("kontent.tez_kunda")}</Badge>}
+      />
       <Card variant="urgu">
         <CardTitle>🎓 {t("kontent.tez_kunda")}</CardTitle>
         <CardHint>{t("kontent.kurs_izoh")}</CardHint>

@@ -33,14 +33,33 @@ export function Card({ children, variant = "oddiy", className }: CardProps) {
   );
 }
 
-export function CardTitle({ children, className }: { children: ReactNode; className?: string }) {
+export function CardTitle({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <h2 className={cn("text-sarlavha text-base font-semibold sm:text-lg", className)}>
+    <h2
+      className={cn(
+        "text-sarlavha text-base font-semibold sm:text-lg",
+        className,
+      )}
+    >
       {children}
     </h2>
   );
 }
 
-export function CardHint({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("text-matn-past mt-1 text-sm", className)}>{children}</p>;
+export function CardHint({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={cn("text-matn-past mt-1 text-sm", className)}>{children}</p>
+  );
 }

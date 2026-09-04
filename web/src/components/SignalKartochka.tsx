@@ -91,12 +91,17 @@ export function SignalKartochka({
       <dl className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <dt className="text-matn-past text-xs uppercase">📊 {matnlar.hozir}</dt>
         <dd>
-          <JonliNarx juftlik={birjaJuftligi(symbol, kotirovka)} kirish={entry} />
+          <JonliNarx
+            juftlik={birjaJuftligi(symbol, kotirovka)}
+            kirish={entry}
+          />
         </dd>
       </dl>
 
       <dl className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <dt className="text-matn-past text-xs uppercase">⚖️ {matnlar.nisbat}</dt>
+        <dt className="text-matn-past text-xs uppercase">
+          ⚖️ {matnlar.nisbat}
+        </dt>
         <dd className="raqam text-sarlavha font-semibold">
           {nisbat === null ? "—" : `1 : ${nisbat.toFixed(2)}`}
         </dd>
@@ -127,14 +132,17 @@ function Qator({
   ulush?: number;
   tone?: "past" | "yaxshi";
 }) {
-  const rang = tone === "past" ? "text-past" : tone === "yaxshi" ? "text-yaxshi" : "";
+  const rang =
+    tone === "past" ? "text-past" : tone === "yaxshi" ? "text-yaxshi" : "";
   return (
     <div className="flex items-baseline gap-2 text-sm">
       <span aria-hidden>{belgi}</span>
       <span className="text-matn-past w-14 shrink-0">{nom}</span>
       {/* Narx o'ngga tekislanadi: to'rt qator bir ustunda tursin —
           botdagi monoshirift blok bilan bir xil o'qiladi. */}
-      <span className={`raqam flex-1 text-right font-semibold ${rang}`}>{qiymat}</span>
+      <span className={`raqam flex-1 text-right font-semibold ${rang}`}>
+        {qiymat}
+      </span>
       <span className={`raqam w-16 shrink-0 text-right text-xs ${rang}`}>
         {ozgarish === undefined ? "" : foiz(ozgarish)}
       </span>

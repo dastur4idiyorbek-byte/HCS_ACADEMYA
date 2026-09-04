@@ -24,6 +24,7 @@ export function JonliNarx({
   qisqa = false,
   ogohChegara = null,
   ogohMatn = "",
+  holat = "",
 }: {
   /** Birja juftligi — `DOTUSDT` */
   juftlik: string;
@@ -36,6 +37,9 @@ export function JonliNarx({
   ogohChegara?: number | null;
   /** Belgi ustiga olib borilganda chiqadigan izoh */
   ogohMatn?: string;
+  /** Signal holati. `pending` — limit hali kutilmoqda, ⚠️ CHIQMAYDI:
+   *  narx entry'ga tushmagani xavf emas, rejaning o'zi. */
+  holat?: string;
 }) {
   const [narx, setNarx] = useState<number | null>(null);
 
@@ -44,9 +48,13 @@ export function JonliNarx({
 
     const yangila = async () => {
       try {
-        const javob = await fetch(`/api/narx?juftlar=${encodeURIComponent(juftlik)}`);
+        const javob = await fetch(
+          `/api/narx?juftlar=${encodeURIComponent(juftlik)}`,
+        );
         if (!javob.ok) return;
-        const natija = (await javob.json()) as { narxlar?: Record<string, number> };
+        const natija = (await javob.json()) as {
+          narxlar?: Record<string, number>;
+        };
         const qiymat = natija.narxlar?.[juftlik.toUpperCase()];
         if (tirik && typeof qiymat === "number") setNarx(qiymat);
       } catch {
@@ -72,7 +80,8 @@ export function JonliNarx({
   const matn = `${musbat ? "+" : "−"}${Math.abs(foiz).toFixed(2)}%`;
   // Ro'yxatning O'ZIDA ko'rinsin: yangi foydalanuvchi signal sahifasini
   // ochmasdan turib ham "bu allaqachon uzoqlashgan" ekanini bilsin.
-  const kech = ogohChegara !== null && kechQoldimi(kirish, narx, ogohChegara);
+  const kech =
+    ogohChegara !== null && kechQoldimi(kirish, narx, ogohChegara, holat);
 
   if (qisqa) {
     return (
@@ -88,7 +97,9 @@ export function JonliNarx({
   }
   return (
     <span className={`raqam font-semibold ${rang}`}>
-      {narx === null ? "" : narx.toLocaleString("en-US", { maximumFractionDigits: 8 })}{" "}
+      {narx === null
+        ? ""
+        : narx.toLocaleString("en-US", { maximumFractionDigits: 8 })}{" "}
       <span className="text-xs">({matn})</span>
     </span>
   );

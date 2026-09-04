@@ -1,6 +1,11 @@
 import type { NextRequest } from "next/server";
 
-import { SESSIYA_COOKIE, SESSIYA_SEK, sessiyaYarat, telegramLoginTekshir } from "@/lib/auth";
+import {
+  SESSIYA_COOKIE,
+  SESSIYA_SEK,
+  sessiyaYarat,
+  telegramLoginTekshir,
+} from "@/lib/auth";
 import { env } from "@/lib/env";
 import { yonaltir } from "@/lib/manzil";
 import { foydalanuvchiniYozib } from "@/lib/queries";
@@ -23,14 +28,20 @@ export async function GET(request: NextRequest) {
     return yonaltir("/kirish?xato=1");
   }
 
-  const toliqIsm = [login.first_name, login.last_name].filter(Boolean).join(" ") || null;
+  const toliqIsm =
+    [login.first_name, login.last_name].filter(Boolean).join(" ") || null;
 
   // Bazaga yozish ALOHIDA o'ralgan: bu — so'rovdagi birinchi baza
   // murojaati, ya'ni sozlama xatolari (fayl yo'q, ruxsat yo'q, mahalliy
   // modul yiqildi) aynan shu yerda chiqadi. Ushlamasak, foydalanuvchi
   // sababsiz oq ekran ko'radi.
   try {
-    foydalanuvchiniYozib(login.id, login.username ?? null, toliqIsm, adminIds.has(login.id));
+    foydalanuvchiniYozib(
+      login.id,
+      login.username ?? null,
+      toliqIsm,
+      adminIds.has(login.id),
+    );
   } catch (e) {
     console.error("[kirish] Bazaga yozib bo'lmadi:", e);
     return yonaltir("/kirish?xato=baza");
@@ -39,11 +50,11 @@ export async function GET(request: NextRequest) {
   const { token } = sessiyaYarat(login.id, botToken);
   const javob = yonaltir("/bosh");
   javob.cookies.set(SESSIYA_COOKIE, token, {
-    httpOnly: true,       // JavaScript o'qiy olmasin (XSS bo'lsa ham)
-    sameSite: "lax",      // boshqa saytdan yuborilgan so'rovda kelmasin
+    httpOnly: true, // JavaScript o'qiy olmasin (XSS bo'lsa ham)
+    sameSite: "lax", // boshqa saytdan yuborilgan so'rovda kelmasin
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSIYA_SEK,  // 144 soat — topshiriq 2-bo'limi
+    maxAge: SESSIYA_SEK, // 144 soat — topshiriq 2-bo'limi
   });
   return javob;
 }

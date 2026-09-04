@@ -45,22 +45,37 @@ export function kunlikXavfFoizi(balans: number): number {
     throw new Error("position_sizing.risk_tiers sozlanmagan");
   }
   for (const p of pogonalar) {
-    if (p.max_balance === null || p.max_balance === undefined) return p.daily_risk_pct;
+    if (p.max_balance === null || p.max_balance === undefined)
+      return p.daily_risk_pct;
     if (balans <= p.max_balance) return p.daily_risk_pct;
   }
   return pogonalar[pogonalar.length - 1].daily_risk_pct;
 }
 
 /** Bitta signal uchun hajm tavsiyasi. `null` — hisoblab bo'lmadi. */
-export function hajmTaklifi(balans: number, entry: number, stop: number): Taklif | null {
-  if (!(balans > 0) || !(entry > 0) || !(stop > 0) || stop >= entry) return null;
+export function hajmTaklifi(
+  balans: number,
+  entry: number,
+  stop: number,
+): Taklif | null {
+  if (!(balans > 0) || !(entry > 0) || !(stop > 0) || stop >= entry)
+    return null;
 
   const stopFoiz = ((entry - stop) / entry) * 100;
   if (stopFoiz <= 0) return null;
 
-  const usul = sozlama<string>(["position_sizing", "allocation_method"], "sequential_decay");
-  const ulush = sozlama<number>(["position_sizing", "sequential_decay_fraction"], 0.34);
-  const joylar = sozlama<number>(["position_sizing", "equal_split_expected_slots"], 3);
+  const usul = sozlama<string>(
+    ["position_sizing", "allocation_method"],
+    "sequential_decay",
+  );
+  const ulush = sozlama<number>(
+    ["position_sizing", "sequential_decay_fraction"],
+    0.34,
+  );
+  const joylar = sozlama<number>(
+    ["position_sizing", "equal_split_expected_slots"],
+    3,
+  );
   const engKam = sozlama<number>(["position_sizing", "min_allocation_usd"], 1);
   const engKattaFoiz = sozlama<number>(
     ["position_sizing", "max_position_pct_of_balance"],
@@ -78,7 +93,13 @@ export function hajmTaklifi(balans: number, entry: number, stop: number): Taklif
   let rejaXavf = Math.min(bolish(byudjet), byudjet);
   if (rejaXavf < engKam) rejaXavf = 0;
   if (rejaXavf <= 0) {
-    return { kunlikXavfFoiz: foiz, kunlikByudjet: byudjet, hajm: 0, xavf: 0, kesilgan: false };
+    return {
+      kunlikXavfFoiz: foiz,
+      kunlikByudjet: byudjet,
+      hajm: 0,
+      xavf: 0,
+      kesilgan: false,
+    };
   }
 
   const xomHajm = rejaXavf / (stopFoiz / 100);
@@ -90,7 +111,13 @@ export function hajmTaklifi(balans: number, entry: number, stop: number): Taklif
   );
   const hajm = Math.min(xomHajm, engKattaHajm);
   if (hajm <= 0) {
-    return { kunlikXavfFoiz: foiz, kunlikByudjet: byudjet, hajm: 0, xavf: 0, kesilgan: false };
+    return {
+      kunlikXavfFoiz: foiz,
+      kunlikByudjet: byudjet,
+      hajm: 0,
+      xavf: 0,
+      kesilgan: false,
+    };
   }
 
   return {
