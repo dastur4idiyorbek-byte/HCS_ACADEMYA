@@ -216,3 +216,47 @@ def voronka_matni(natija: ZanjirNatijasi) -> str:
         for sabab, soni in sorted(natija.sigim_radlari.items(), key=lambda x: -x[1]):
             qatorlar.append(f"      {soni:>6} × {sabab}")
     return "\n".join(qatorlar)
+
+
+#: Tekshiruv shu ulushdan kam ijobiy chiqsa — ZAIF deb belgilanadi.
+#:
+#: 0.10 raqami TAXMINIY va shundayligicha yozilgan: u qaror
+#: qabul qilmaydi, faqat ro'yxatni tartiblaydi. Qaror har doim
+#: backtestdan chiqadi.
+ZAIF_ULUSH = 0.10
+
+
+def zaiflik_matni(natija: ZanjirNatijasi) -> str:
+    """Qaysi ichki tekshiruv zaif — sizning asl savolingiz.
+
+    Ablatsiya "tekshiruvni olib tashlasa nima bo'ladi" deydi.
+    Bu jadval boshqa narsani aytadi: "tekshiruv qanchalik tez-tez
+    ijobiy chiqadi". Blok 4 tadan bittasi bilan o'tgani uchun,
+    doim YO'Q chiqadigan tekshiruv blokni hech qachon o'tkazmaydi
+    — u zaif halqa.
+
+    MA'LUMOT YO'Q alohida ustunda: u "yomon" emas, "sinalmagan".
+    Ikkalasini aralashtirish eski tizimning xatosi edi.
+    """
+    if not natija.tekshiruv_holatlari:
+        return "   (tekshiruv holatlari yig'ilmagan)"
+
+    qatorlar = [
+        "   Ichki tekshiruvlar — qaysi biri ZAIF:",
+        f"      {'tekshiruv':<22}{'ko‘rildi':>9}{'HA':>8}{'YO‘Q':>8}{'ma’lumot yo‘q':>15}",
+    ]
+    for nom, hisob in sorted(
+        natija.tekshiruv_holatlari.items(),
+        key=lambda x: -(x[1]["ha"] + x[1]["yoq"] + x[1]["malumot_yoq"]),
+    ):
+        jami = hisob["ha"] + hisob["yoq"] + hisob["malumot_yoq"]
+        olchandi = hisob["ha"] + hisob["yoq"]
+        ulush = hisob["ha"] / olchandi if olchandi else 0.0
+        belgi = " ⚠️ zaif" if olchandi and ulush < ZAIF_ULUSH else ""
+        if not olchandi:
+            belgi = " ⚫ umuman o‘lchanmagan"
+        qatorlar.append(
+            f"      {nom:<22}{jami:>9}{hisob['ha']:>8}{hisob['yoq']:>8}"
+            f"{hisob['malumot_yoq']:>15}   {ulush * 100:>5.1f}%{belgi}"
+        )
+    return "\n".join(qatorlar)

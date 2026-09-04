@@ -335,3 +335,35 @@ def test_sigimda_kuchli_nomzod_orinni_oladi(config) -> None:  # noqa: ANN001
     dvigatel._joylashtir(nomzodlar, ochiq, natija)
 
     assert "ZZZ" in ochiq
+
+
+def test_zaiflik_hisoboti_yigiladi(config, dataset) -> None:  # noqa: ANN001
+    """Har bir tekshiruvning holati sanalsin.
+
+    Modulning asl g'oyasi: katta blokni to'rtga bo'lish — qaysi
+    biri ZAIF ekanini ko'rish uchun. Bu ma'lumot ilgari tizim
+    ichida bor edi, lekin tashqariga chiqarilmasdi.
+    """
+    natija = ZanjirBacktest(config, "sinov").yur(dataset, ["BTC", "ETH"])
+
+    assert natija.tekshiruv_holatlari
+    for nom, hisob in natija.tekshiruv_holatlari.items():
+        assert set(hisob) == {"ha", "yoq", "malumot_yoq"}, nom
+        assert sum(hisob.values()) > 0, nom
+
+
+def test_zaiflik_maxraji_har_xil(config, dataset) -> None:  # noqa: ANN001
+    """1-blokdagi tekshiruv 4-blokdagidan KO'PROQ marta ko'riladi.
+
+    Zanjir uzilganda keyingi bloklar umuman hisoblanmaydi. Agar
+    hisobotda umumiy qadam soni maxraj qilib olinsa, 4-blokdagi
+    tekshiruvlar sun'iy ravishda "zaif" ko'rinardi.
+    """
+    natija = ZanjirBacktest(config, "sinov").yur(dataset, ["BTC", "ETH"])
+    holatlar = natija.tekshiruv_holatlari
+
+    def jami(nom: str) -> int:
+        return sum(holatlar.get(nom, {}).values())
+
+    assert jami("bozor_holati") >= jami("swing_ketma_ketligi")
+    assert jami("swing_ketma_ketligi") >= jami("liquidity_sweep")

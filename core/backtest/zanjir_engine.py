@@ -69,6 +69,14 @@ class ZanjirNatijasi:
     #: Daraja ham tayyor bo'lgan, lekin PORTFEL chegarasi to'sgan
     #: holatlar (faqat `sigim=True` da to'ldiriladi)
     sigim_radlari: dict[str, int] = field(default_factory=dict)
+    #: ZAIFLIK HISOBOTI: har bir ichki tekshiruv necha marta
+    #: HA / YOQ / MALUMOT_YOQ chiqqani.
+    #:
+    #: Ablatsiyadan BOSHQA savolga javob beradi. Ablatsiya
+    #: "tekshiruvni olib tashlasa nima bo'ladi" deydi; bu esa
+    #: "tekshiruv qanchalik tez-tez ijobiy chiqadi" deydi —
+    #: ya'ni blokning qaysi qismi ZAIF ekanini ko'rsatadi.
+    tekshiruv_holatlari: dict[str, dict[str, int]] = field(default_factory=dict)
 
     @property
     def signal_soni(self) -> int:
@@ -196,6 +204,7 @@ class ZanjirBacktest:
                     )
                 )
                 zanjir = natijasi.zanjir
+                _holatlarni_yig(natija, zanjir)
 
                 if not zanjir.toliq:
                     kalit = zanjir.uzildi_blokda or "nomalum"
@@ -374,6 +383,23 @@ ASOSIY_OYNA = 500
 #: Chegarasiz qoldirilganda 730 kunlik sinovda bu qator har qadamda
 #: ~89 000 shamgacha o'sardi va o'lchov soatlab yurardi.
 PASTKI_OYNA = 500
+
+
+def _holatlarni_yig(natija: ZanjirNatijasi, zanjir) -> None:  # noqa: ANN001
+    """Har bir tekshiruvning holatini sanaydi.
+
+    MAXRAJ HAR XIL. Zanjir uzilganda keyingi bloklar UMUMAN
+    hisoblanmaydi, ya'ni 4-blokdagi tekshiruv 2-blokdagidan kamroq
+    marta ko'riladi. Shuning uchun hisobotda har bir tekshiruvning
+    O'Z jami ko'rsatiladi — foizlarni umumiy qadam soniga bo'lish
+    yolg'on natija berardi.
+    """
+    for blok in zanjir.bloklar:
+        for t in blok.tekshiruvlar:
+            hisob = natija.tekshiruv_holatlari.setdefault(
+                t.nom, {"ha": 0, "yoq": 0, "malumot_yoq": 0}
+            )
+            hisob[t.holat.value] += 1
 
 
 def _sabab_turi(sabab: str | None) -> str:
