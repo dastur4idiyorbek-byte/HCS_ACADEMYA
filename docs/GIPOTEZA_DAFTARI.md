@@ -1245,3 +1245,66 @@ ekanini aytadi.
 Shuningacha: zanjirning 16 ta ichki tekshiruvidan **qaysi biri
 ishlayotgani noma'lum**. PF 3.17 — zanjirning UMUMIY natijasi,
 uning qismlariniki emas.
+
+---
+
+## 2026-09-04 — ABLATSIYA JAVOB BERDI (12 coin, 277 savdo)
+
+Yuqoridagi savol — "16 ta tekshiruvdan qaysi biri ishlayapti?" —
+o'lchandi. To'liq natija:
+`docs/BACKTEST_NATIJA_2026-09-04_zanjir2.md`.
+
+### Javob: BIRORTASI HAM emas
+
+    Hissa qo'shadi (PF ni oshiradi):     0 ta
+    Ta'sirsiz (ΔPF = +0.00):            11 ta
+    O'chirilganda PF OSHADI:             5 ta
+
+Bu — gipoteza RAD ETILDI degani. Modul qurilganda taxmin
+shunday edi: "har bir tekshiruv nomzodni yaxshilaydi". O'lchov
+buni tasdiqlamadi.
+
+### Sabab TOPILDI va u tuzilmaviy
+
+Blok `kuch >= 1` da o'tadi — 4 tadan bittasi yetadi. Ya'ni blok
+ichida tekshiruvlar VA emas, **YOKI**:
+
+    Blok = t1 YOKI t2 YOKI t3 YOKI t4
+
+YOKI zanjiridan bitta halqani olib tashlash natijani
+o'zgartirmaydi. Shuning uchun 11 ta "+0.00" — bu tekshiruvlar
+yomon degani emas, ular hozirgi qoida ostida hech qachon HAL
+QILUVCHI emas degani.
+
+5 tasi (nisbiy kuch, fibonacci, RSI, pastki TF, swing)
+o'chirilganda PF oshgani boshqa narsani aytadi: ular ba'zan
+YOLG'IZ blokni o'tkazgan, va o'sha savdolar o'rtacha yomon.
+
+### 🔴 Bu yerdan CHIQARILMAYDIGAN xulosalar
+
+Quyidagilar MANTIQAN kelib chiqadi, lekin O'LCHANMAGAN — shuning
+uchun ular gipoteza, qaror emas:
+
+| 🔴 | Gipoteza | Nega hozir qabul qilinmaydi |
+|---|---|---|
+| 🔴 | Blok qoidasi 2/4 bo'lsin | Bu YANGI qoida — o'lchanishi shart |
+| 🔴 | 11 ta bo'sh tekshiruv olib tashlansin | Birma-bir ≠ birga; alohida o'lchanadi |
+| 🔴 | 5 ta "zararli" tekshiruv olib tashlansin | Ular boshqa qoida ostida foydali bo'lishi mumkin |
+| 🔴 | Ustunlik DARAJALARDA (zona/stop/TP) | Eng kuchli gumon — alohida o'lchanadi |
+
+Oxirgi qator eng muhimi. Agar 16 ta tekshiruvning birortasi ham
+natijani yaxshilamasa, PF 3.50 ni nima keltiryapti? Eng ehtimoliy
+javob — zanjir emas, **darajalar**: zona ichida kirish, zona
+tagida stop, strukturaviy TP. Buni tekshirishning yagona yo'li —
+zanjirni butunlay o'chirib, faqat darajalar bilan o'lchash.
+
+### Chegaralar 12 coinda qayta o'lchandi
+
+| Raqam | 5 coin xulosasi | 12 coin natijasi | Qaror |
+|---|---|---|---|
+| `stop_eng_kam_pct` | 1.5 (muhandislik) | 0.5→3.63, 1.5→3.50 (farq 0.13) | 1.5 QOLADI |
+| `tp1_eng_kam_nisbat` | 1.5 | 1.0→3.39, 1.5→3.51, 2.0→2.65 | 1.5 QOLADI |
+
+`stop_eng_kam_pct` farqi shovqin darajasida chiqdi — ya'ni bu
+raqam O'LCHOV bilan emas, muhandislik mulohazasi bilan tanlangani
+o'z kuchida qoladi va shundayligicha yozilgan.
