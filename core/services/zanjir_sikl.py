@@ -35,6 +35,11 @@ from core.position.entry_stop_tp import darajalar_qur
 from core.services.kirish_rejasi import decide_entry_plan
 from core.storage.database import Database
 from core.storage.repositories import SignalRepository
+from core.storage.zanjir_repository import (
+    BlokHolati,
+    CoinHolati,
+    ZanjirHolatRepository,
+)
 from core.utils.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -97,6 +102,7 @@ class ZanjirSikl:
 
         btc = await self._shamlar("BTC", z.timeframelar.asosiy, ASOSIY_OYNA)
 
+        holatlar: list[CoinHolati] = []
         for symbol in z.kuzatiladigan_coinlar:
             symbol = symbol.upper()
             if symbol in ochiq:
@@ -104,22 +110,80 @@ class ZanjirSikl:
                 # shunday ishlaydi — aks holda jonli natija
                 # o'lchangandan ko'p savdo berardi.
                 natija.ochiq_sababli_otkazildi += 1
+                holatlar.append(
+                    CoinHolati(
+                        symbol=symbol,
+                        bloklar=(),
+                        toliq=False,
+                        uzildi_blokda=None,
+                        ishonch=0.0,
+                        natija="ochiq_signal",
+                        izoh="ochiq signali bor — tekshirilmadi",
+                    )
+                )
                 continue
             try:
-                await self._bitta_coin(symbol, btc, natija)
+                holat = await self._bitta_coin(symbol, btc, natija)
             except Exception as xato:  # noqa: BLE001 — bitta coin butun siklni to'xtatmasin
                 natija.xatolar[symbol] = f"{type(xato).__name__}: {xato}"
                 logger.exception("Zanjir sikli: %s tekshirilmadi", symbol)
+                holat = CoinHolati(
+                    symbol=symbol,
+                    bloklar=(),
+                    toliq=False,
+                    uzildi_blokda=None,
+                    ishonch=0.0,
+                    natija="xato",
+                    izoh=f"{type(xato).__name__}: {xato}",
+                )
+            if holat is not None:
+                holatlar.append(holat)
+
+        await self._holatlarni_yoz(holatlar)
 
         logger.info("Zanjir sikli tugadi:\n%s", natija.matn())
         return natija
 
-    async def _bitta_coin(self, symbol: str, btc: list[Candle], natija: SiklNatijasi) -> None:
+    async def _holatlarni_yoz(self, holatlar: list[CoinHolati]) -> None:
+        """Ekran uchun holatni bazaga yozadi — BIR TOMONLAMA oqim.
+
+        Yozuv SIKLNI TO'XTATMASLIGI kerak: bu ma'lumot faqat
+        ko'rsatish uchun, signal esa allaqachon yaratilgan. Baza
+        bilan muammo bo'lsa, ekran eskiroq holatni ko'rsatadi —
+        lekin signal yo'qolmaydi.
+        """
+        if not holatlar:
+            return
+        try:
+            async with self._db.session() as session:
+                repo = ZanjirHolatRepository(session)
+                for holat in holatlar:
+                    await repo.yoz(holat)
+        except Exception:  # noqa: BLE001 — ko'rsatish uchun ma'lumot, signal emas
+            logger.exception("Zanjir holatlari yozilmadi (ekran eskiroq bo'ladi)")
+
+    async def _bitta_coin(
+        self, symbol: str, btc: list[Candle], natija: SiklNatijasi
+    ) -> CoinHolati | None:
+        """Bitta coinni tekshiradi va EKRAN uchun holatini qaytaradi.
+
+        Holat qaytariladi, shu yerda YOZILMAYDI: yozish `yur()` da,
+        bitta sessiyada. Ansiz har coin uchun alohida tranzaksiya
+        ochilardi.
+        """
         z = self._config.zanjir
         shamlar = await self._shamlar(symbol, z.timeframelar.asosiy, ASOSIY_OYNA)
         if len(shamlar) < 30:  # noqa: PLR2004
             natija.xatolar[symbol] = "sham yetarli emas"
-            return
+            return CoinHolati(
+                symbol=symbol,
+                bloklar=(),
+                toliq=False,
+                uzildi_blokda=None,
+                ishonch=0.0,
+                natija="xato",
+                izoh="sham yetarli emas",
+            )
 
         natija.tekshirildi += 1
         narx = shamlar[-1].close
@@ -137,20 +201,36 @@ class ZanjirSikl:
             )
         )
         zanjir = natijasi.zanjir
+        bloklar = _blok_holatlari(zanjir)
+
+        def holat(turi: str, izoh: str = "", signal_id: int | None = None) -> CoinHolati:
+            return CoinHolati(
+                symbol=symbol,
+                bloklar=bloklar,
+                toliq=zanjir.toliq,
+                uzildi_blokda=zanjir.uzildi_blokda,
+                ishonch=zanjir.ishonch(),
+                natija=turi,
+                izoh=izoh,
+                signal_id=signal_id,
+            )
 
         if not zanjir.toliq:
             kalit = zanjir.uzildi_blokda or "nomalum"
             natija.uzilishlar[kalit] = natija.uzilishlar.get(kalit, 0) + 1
-            return
+            return holat("zanjir_uzildi", f"uzildi: {kalit}")
 
         if zanjir.ishonch() < z.eng_kam_ishonch:
             natija.uzilishlar["ishonch"] = natija.uzilishlar.get("ishonch", 0) + 1
-            return
+            return holat(
+                "ishonch_past",
+                f"ishonch {zanjir.ishonch():.2f} < {z.eng_kam_ishonch:.2f}",
+            )
 
         zona = natijasi.zona_natija.zona if natijasi.zona_natija else None
         if zona is None:
             natija.daraja_radlari["zona yo'q"] = natija.daraja_radlari.get("zona yo'q", 0) + 1
-            return
+            return holat("daraja_rad", "zona yo'q")
 
         darajalar = darajalar_qur(
             zona,
@@ -163,7 +243,7 @@ class ZanjirSikl:
         if not darajalar.yaroqli:
             sabab = _sabab_turi(darajalar.rad_sababi)
             natija.daraja_radlari[sabab] = natija.daraja_radlari.get(sabab, 0) + 1
-            return
+            return holat("daraja_rad", darajalar.rad_sababi or sabab)
 
         levels = signal_levels(
             entry=darajalar.entry,
@@ -180,7 +260,7 @@ class ZanjirSikl:
             natija.daraja_radlari["kech — narx zonadan chiqdi"] = (
                 natija.daraja_radlari.get("kech — narx zonadan chiqdi", 0) + 1
             )
-            return
+            return holat("daraja_rad", "kech — narx zonadan chiqdi")
 
         async with self._db.session() as session:
             yozuv = await SignalRepository(session).create(
@@ -195,9 +275,25 @@ class ZanjirSikl:
 
         natija.yangi_signallar.append((symbol, signal_id))
         logger.info("ZANJIR SIGNAL: %s id=%s ishonch=%.2f", symbol, signal_id, zanjir.ishonch())
+        return holat("signal", "signal berildi", signal_id)
 
     async def _shamlar(self, symbol: str, timeframe: str, oyna: int) -> list[Candle]:
         return await self._provider.fetch_candles(symbol, timeframe, oyna)
+
+
+def _blok_holatlari(zanjir) -> tuple[BlokHolati, ...]:  # noqa: ANN001
+    """Zanjir bloklarini ekran uchun tayyor holatga aylantiradi."""
+    return tuple(
+        BlokHolati(
+            nom=b.nom,
+            kuch=b.kuch,
+            maxraj=b.maxraj,
+            otdi=b.otdi,
+            olchanmadi=b.olchanmadi,
+            tosiq=b.qattiq_tosiq or "",
+        )
+        for b in zanjir.bloklar
+    )
 
 
 def _sabab_turi(sabab: str | None) -> str:

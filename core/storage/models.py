@@ -584,3 +584,54 @@ class HomepagePost(Base, TimestampMixin):
     )
 
     __table_args__ = (Index("ix_homepage_posts_created", "created_at"),)
+
+
+# --------------------------------------------------------------------------- #
+#  Zanjir modulining jonli holati (4-prompt, 3-qism)
+# --------------------------------------------------------------------------- #
+
+
+class ZanjirHolati(Base, TimestampMixin):
+    """Bitta coin uchun zanjirning ENG OXIRGI tekshiruv natijasi.
+
+    NIMA UCHUN KERAK. Zanjir sikli har necha soatda yuradi va
+    natijasini faqat LOGGA yozardi. Ya'ni "hozir qaysi coin qaysi
+    blokda to'xtadi" degan savolga javob berish uchun serverdagi
+    matn faylni o'qish kerak edi. Admin uchun bu yopiq quti.
+
+    NIMA UCHUN TARIX EMAS, FAQAT OXIRGISI. `symbol` — TAKRORLANMAS:
+    har yugurishda o'sha qator yangilanadi. Tarix saqlansa, jadval
+    har kuni o'nlab qator bilan o'sardi va u hech qayerda
+    ishlatilmasdi. Kerak bo'lsa, tarix uchun alohida qaror qabul
+    qilinadi — taxmin qilib qo'shilmaydi.
+
+    MUHIM CHEGARA (4-promptning qat'iy qoidasi): bu jadval FAQAT
+    KO'RSATISH uchun. Undan hech narsa modulga QAYTIB kirmaydi va
+    signal qaroriga ta'sir qilmaydi. Bir tomonlama oqim:
+    modul -> jadval -> ekran.
+    """
+
+    __tablename__ = "zanjir_holatlari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+
+    #: Bloklar JSON ro'yxati: nom, kuch, maxraj, o'tdimi, o'lchanmadimi, to'siq
+    bloklar_json: Mapped[str] = mapped_column(Text, nullable=False)
+    #: To'rtala blok bog'landimi
+    toliq: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    #: Zanjir qaysi blokda uzildi (`None` — uzilmagan)
+    uzildi_blokda: Mapped[str | None] = mapped_column(String(64))
+    ishonch: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+
+    #: `signal`, `zanjir_uzildi`, `ishonch_past`, `daraja_rad`,
+    #: `ochiq_signal`, `xato` — yugurishning yakuni
+    natija: Mapped[str] = mapped_column(String(32), nullable=False)
+    #: Yakunning tafsiloti (masalan qaysi daraja qoidasi rad etdi)
+    izoh: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    #: Signal chiqqan bo'lsa — uning raqami
+    signal_id: Mapped[int | None] = mapped_column(
+        ForeignKey("signals.id", ondelete="SET NULL")
+    )
+
+    tekshirilgan: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)

@@ -20,6 +20,7 @@ import pytest
 from core.config.loader import load_config
 from core.domain.models import Candle
 from core.services.zanjir_sikl import ASOSIY_OYNA, PASTKI_OYNA, SiklNatijasi, ZanjirSikl
+from core.storage.zanjir_repository import CoinHolati
 
 BOSH = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -58,12 +59,34 @@ class SoxtaProvayder:
         return seriya(limit, qadam)
 
 
+class BoshNatija:
+    """Hech narsa topmagan so'rov natijasi."""
+
+    def scalars(self):  # noqa: ANN201
+        return []
+
+    def scalar_one_or_none(self):  # noqa: ANN201
+        return None
+
+    def all(self):  # noqa: ANN201
+        return []
+
+
 class SoxtaSessiya:
     async def __aenter__(self):  # noqa: ANN204
         return self
 
     async def __aexit__(self, *_):  # noqa: ANN002, ANN204
         return False
+
+    async def execute(self, *_):  # noqa: ANN002, ANN202
+        return BoshNatija()
+
+    async def flush(self) -> None:
+        return None
+
+    def add(self, _obyekt) -> None:  # noqa: ANN001
+        return None
 
 
 class SoxtaBaza:
@@ -135,3 +158,88 @@ def test_natija_matni_sabab_korsatadi() -> None:
     assert "12 coin" in matn
     assert "Struktura" in matn
     assert "stop juda yaqin" in matn
+
+
+# --------------------------------------------------------------------- #
+#  Ekran uchun holat (4-prompt, 3-qism)
+# --------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_har_bir_coin_uchun_EKRAN_holati_qaytadi(config) -> None:  # noqa: ANN001
+    """Zanjir qayerda to'xtaganini ekran ko'rsata olishi kerak.
+
+    Ilgari bu ma'lumot faqat LOGGA tushardi — ya'ni "hozir qaysi
+    coin qaysi blokda to'xtadi" degan savolga javob berish uchun
+    serverdagi matn faylni o'qish kerak edi.
+    """
+    sikl = ZanjirSikl(config, SoxtaProvayder(), SoxtaBaza())
+    natija = SiklNatijasi()
+
+    holat = await sikl._bitta_coin("BTC", [], natija)
+
+    assert holat is not None
+    assert holat.symbol == "BTC"
+    assert holat.natija in {
+        "signal",
+        "zanjir_uzildi",
+        "ishonch_past",
+        "daraja_rad",
+        "xato",
+    }
+    # Zanjir yurgan bo'lsa, bloklar ham qaytadi — ekran shulardan chiziladi.
+    if holat.natija != "xato":
+        assert holat.bloklar, "bloklar bo'sh — ekranda chizadigan narsa qolmaydi"
+        for blok in holat.bloklar:
+            assert blok.nom
+            assert 0 <= blok.kuch <= blok.maxraj or blok.olchanmadi
+
+
+@pytest.mark.asyncio
+async def test_xato_bergan_coin_ham_ekranga_tushadi(config) -> None:  # noqa: ANN001
+    """Xato ham HOLAT — ekranda "sabab noma'lum" bo'lib qolmasin."""
+    sikl = ZanjirSikl(config, SoxtaProvayder(xato_beradigan={"ETH"}), SoxtaBaza())
+
+    yozilgan: list = []
+
+    async def yozishni_kuzat(holatlar):  # noqa: ANN001, ANN202
+        yozilgan.extend(holatlar)
+
+    sikl._holatlarni_yoz = yozishni_kuzat  # type: ignore[method-assign]
+    natija = await sikl.yur()
+
+    symbollar = {h.symbol for h in yozilgan}
+    assert "ETH" in symbollar, "xato bergan coin ekranga tushmadi"
+    eth = next(h for h in yozilgan if h.symbol == "ETH")
+    assert eth.natija == "xato"
+    assert "birja javob bermadi" in eth.izoh
+    assert natija.xatolar["ETH"]
+
+
+@pytest.mark.asyncio
+async def test_holat_yozilmasa_ham_sikl_TUGAYDI(config) -> None:  # noqa: ANN001
+    """Ekran ma'lumoti signalni yo'qotmasin.
+
+    Holat yozuvi — faqat ko'rsatish uchun. Baza bilan muammo bo'lsa
+    ekran eskiroq raqam ko'rsatadi, lekin sikl to'xtamasligi kerak.
+    """
+
+    class YiqiladiganBaza(SoxtaBaza):
+        def session(self):  # noqa: ANN201
+            raise RuntimeError("baza javob bermadi")
+
+    sikl = ZanjirSikl(config, SoxtaProvayder(), YiqiladiganBaza())
+    # `yur()` ochiq signallarni ham bazadan o'qiydi, shuning uchun
+    # bu yerda faqat yozuv qismini sinaymiz.
+    await sikl._holatlarni_yoz(
+        [
+            CoinHolati(
+                symbol="BTC",
+                bloklar=(),
+                toliq=False,
+                uzildi_blokda=None,
+                ishonch=0.0,
+                natija="xato",
+            )
+        ]
+    )  # xato ko'tarilmasligi kerak
