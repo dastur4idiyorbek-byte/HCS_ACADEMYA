@@ -23,6 +23,7 @@ import {
   signalOl,
   tarifQamraydi,
 } from "@/lib/queries";
+import { signalRasmlari } from "@/lib/signal-rasm";
 import { kirim } from "@/lib/session";
 
 import { kirdim } from "../amallar";
@@ -107,6 +108,7 @@ export default async function SignalSahifasi({
             ulushlar={tpUlushlari(signal.tplar.length)}
             buyurtmaMatni={`${signal.entryOrderType === "market" ? "⚡" : "📌"} ${t(buyurtma)}`}
             berilgan={signal.createdAt}
+            rasmlar={signalRasmlari(signal, t)}
             matnlar={kartochkaMatnlari(t)}
           />
         </Himoya>
@@ -220,53 +222,6 @@ export default async function SignalSahifasi({
             />
           </div>
         </Card>
-
-        {/* Admin QO'LDA yuklagan grafiklar (4-prompt, 4-qism).
-            Tizimning o'z grafigi (yuqorida, TradingView) darajalarni
-            ko'rsatadi; bu rasmlar esa STRUKTURANI — nega aynan shu joy
-            tanlangani va oxirida nima bo'lgani. Ikkalasi boshqa
-            savolga javob beradi, shuning uchun biri ikkinchisining
-            o'rnini bosmaydi.
-
-            HIMOYA ICHIDA: rasmda kirish va TP darajalari chizilgan
-            bo'lishi mumkin — ya'ni bu signalning o'zi. */}
-        {(signal.entryChartImage || signal.resultChartImage) && (
-          <Himoya belgi={suvBelgisi} ogohlantirish={t("signal.himoya")}>
-            <Card>
-              <CardTitle>🖼 {t("signal.rasmlar")}</CardTitle>
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                {signal.entryChartImage && (
-                  <figure>
-                    <figcaption className="text-matn-past mb-1.5 text-xs uppercase">
-                      {t("signal.rasm_kirish")}
-                    </figcaption>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/api/signal-media/${signal.entryChartImage}`}
-                      alt={t("signal.rasm_kirish")}
-                      loading="lazy"
-                      className="rounded-tugma border-ramka-yumshoq w-full border"
-                    />
-                  </figure>
-                )}
-                {signal.resultChartImage && (
-                  <figure>
-                    <figcaption className="text-matn-past mb-1.5 text-xs uppercase">
-                      {t("signal.rasm_natija")}
-                    </figcaption>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/api/signal-media/${signal.resultChartImage}`}
-                      alt={t("signal.rasm_natija")}
-                      loading="lazy"
-                      className="rounded-tugma border-ramka-yumshoq w-full border"
-                    />
-                  </figure>
-                )}
-              </div>
-            </Card>
-          </Himoya>
-        )}
 
         {/* Kalkulyator HIMOYA ICHIDA: unda kirish, Stop va TP narxlari
             turadi — ya'ni signalning o'zi. Grafik esa tashqarida, chunki

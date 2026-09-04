@@ -31,6 +31,7 @@ export function SignalOchish({
   ulushlar,
   buyurtmaMatni,
   berilgan,
+  rasmlar,
   boshlangichSumma,
   matnlar,
 }: {
@@ -56,6 +57,8 @@ export function SignalOchish({
   ulushlar: number[];
   buyurtmaMatni: string;
   berilgan: Date | null;
+  /** Admin yuklagan grafik rasmlari — kartochkaning chap ustunida */
+  rasmlar?: { manzil: string; izoh: string }[];
   /** Kalkulyatorning boshlang'ich summasi — tizim taklifi */
   boshlangichSumma: number | null;
   /** Spot juftlik kotirovkasi (`USDT`). SERVERDAN keladi: uni
@@ -98,6 +101,7 @@ export function SignalOchish({
               ulushlar={ulushlar}
               buyurtmaMatni={buyurtmaMatni}
               berilgan={berilgan}
+              rasmlar={rasmlar}
               matnlar={matnlar}
             />
           </Himoya>

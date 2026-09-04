@@ -35,6 +35,7 @@ export function SignalKartochka({
   ulushlar,
   buyurtmaMatni,
   berilgan,
+  rasmlar,
   matnlar,
 }: {
   symbol: string;
@@ -48,6 +49,11 @@ export function SignalKartochka({
   /** "Buyurtma qoldiring…" yoki "Hozir oling…" — belgisi bilan */
   buyurtmaMatni: string;
   berilgan: Date | null;
+  /** Admin qo'lda yuklagan grafik rasmlari. Kartochkaning CHAP
+   *  ustunida turadi, raqamlar esa o'ngda. Rasm yo'q bo'lsa ustun
+   *  umuman chizilmaydi va kartochka avvalgidek to'liq kenglikda
+   *  qoladi. */
+  rasmlar?: { manzil: string; izoh: string }[];
   matnlar: Record<string, string>;
 }) {
   const oz = (narxi: number) => ((narxi - entry) / entry) * 100;
@@ -55,64 +61,99 @@ export function SignalKartochka({
   const yakuniy = tplar[tplar.length - 1];
   const nisbat = entry > stop ? (yakuniy - entry) / (entry - stop) : null;
 
+  const bor = rasmlar && rasmlar.length > 0;
+
   return (
     <Card variant="urgu">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-sarlavha raqam text-lg font-bold">
-          {symbol}/{kotirovka}
-        </span>
-        <span className="text-matn-past text-xs">{buyurtmaMatni}</span>
-      </div>
+      {/* Rasm bo'lsa kartochka IKKI USTUN bo'ladi: chapda grafik,
+          o'ngda raqamlar. Rasm bo'lmasa `flex` bitta bolani egallaydi
+          va ko'rinish avvalgidek qoladi — ya'ni rasmsiz signal hech
+          narsa yo'qotmaydi.
 
-      <div className="border-ramka/50 mt-3 space-y-1.5 border-t border-b py-3">
-        <Qator belgi="💠" nom={matnlar.kirish} qiymat={narx(entry)} />
-        <Qator
-          belgi="🛑"
-          nom={matnlar.stop}
-          qiymat={narx(stop)}
-          ozgarish={oz(stop)}
-          tone="past"
-        />
-        {tplar.map((tp, i) => (
-          <Qator
-            key={`tp${i + 1}`}
-            belgi="🎯"
-            nom={`TP${i + 1}`}
-            qiymat={narx(tp)}
-            ozgarish={oz(tp)}
-            ulush={ulushlar[i]}
-            tone="yaxshi"
-          />
-        ))}
-      </div>
+          Telefonda ustunlar TEPMA-PAST turadi (rasm yuqorida): 380px
+          ekranda ikkita ustun raqamlarni siqib, TP jadvalini o'qib
+          bo'lmas holga keltirardi. */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        {bor && (
+          <div className="space-y-3 sm:w-2/5 sm:shrink-0">
+            {rasmlar.map((r) => (
+              <figure key={r.manzil}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={r.manzil}
+                  alt={r.izoh}
+                  loading="lazy"
+                  className="rounded-tugma border-ramka/50 w-full border"
+                />
+                <figcaption className="text-matn-past mt-1 text-[10px] uppercase">
+                  {r.izoh}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
 
-      {/* HOZIRGI narx — faqat saytda. Telegram xabari bir marta
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-sarlavha raqam text-lg font-bold">
+              {symbol}/{kotirovka}
+            </span>
+            <span className="text-matn-past text-xs">{buyurtmaMatni}</span>
+          </div>
+
+          <div className="border-ramka/50 mt-3 space-y-1.5 border-t border-b py-3">
+            <Qator belgi="💠" nom={matnlar.kirish} qiymat={narx(entry)} />
+            <Qator
+              belgi="🛑"
+              nom={matnlar.stop}
+              qiymat={narx(stop)}
+              ozgarish={oz(stop)}
+              tone="past"
+            />
+            {tplar.map((tp, i) => (
+              <Qator
+                key={`tp${i + 1}`}
+                belgi="🎯"
+                nom={`TP${i + 1}`}
+                qiymat={narx(tp)}
+                ozgarish={oz(tp)}
+                ulush={ulushlar[i]}
+                tone="yaxshi"
+              />
+            ))}
+          </div>
+
+          {/* HOZIRGI narx — faqat saytda. Telegram xabari bir marta
           yuboriladi va o'zgarmaydi, sayt esa jonli ko'rsata oladi. */}
-      <dl className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <dt className="text-matn-past text-xs uppercase">📊 {matnlar.hozir}</dt>
-        <dd>
-          <JonliNarx
-            juftlik={birjaJuftligi(symbol, kotirovka)}
-            kirish={entry}
-          />
-        </dd>
-      </dl>
+          <dl className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <dt className="text-matn-past text-xs uppercase">
+              📊 {matnlar.hozir}
+            </dt>
+            <dd>
+              <JonliNarx
+                juftlik={birjaJuftligi(symbol, kotirovka)}
+                kirish={entry}
+              />
+            </dd>
+          </dl>
 
-      <dl className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <dt className="text-matn-past text-xs uppercase">
-          ⚖️ {matnlar.nisbat}
-        </dt>
-        <dd className="raqam text-sarlavha font-semibold">
-          {nisbat === null ? "—" : `1 : ${nisbat.toFixed(2)}`}
-        </dd>
-      </dl>
+          <dl className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <dt className="text-matn-past text-xs uppercase">
+              ⚖️ {matnlar.nisbat}
+            </dt>
+            <dd className="raqam text-sarlavha font-semibold">
+              {nisbat === null ? "—" : `1 : ${nisbat.toFixed(2)}`}
+            </dd>
+          </dl>
 
-      <p className="text-matn-past mt-3 text-xs leading-relaxed">
-        🔸 {matnlar.stop_izoh}
-      </p>
-      <p className="text-matn-past raqam mt-1 text-xs">
-        🗓 {sana(berilgan)} UTC
-      </p>
+          <p className="text-matn-past mt-3 text-xs leading-relaxed">
+            🔸 {matnlar.stop_izoh}
+          </p>
+          <p className="text-matn-past raqam mt-1 text-xs">
+            🗓 {sana(berilgan)} UTC
+          </p>
+        </div>
+      </div>
     </Card>
   );
 }

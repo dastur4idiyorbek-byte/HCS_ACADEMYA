@@ -25,6 +25,7 @@ import {
   tarifQamraydi,
   yopilgan,
 } from "@/lib/queries";
+import { signalRasmlari } from "@/lib/signal-rasm";
 import { kirim } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +138,7 @@ export default async function Signallar() {
                     : "signal.limit",
                 )}`}
                 berilgan={s.createdAt}
+                rasmlar={signalRasmlari(s, t)}
                 boshlangichSumma={
                   balans === null
                     ? null
