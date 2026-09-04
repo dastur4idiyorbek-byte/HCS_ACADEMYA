@@ -5809,3 +5809,113 @@ allaqachon bor edi (`hajm_fixtures`), shuning uchun takrorlandi.
 daftarida 🔴. 3-promptning o'zi ularni "boshlang'ich qiymat" deydi.
 Ular backtestda hali sinalmagan; sinalgunicha raqam taxmin bo'lib
 qoladi va daftarda shunday ko'rinib turadi.
+
+---
+
+## 95. VEB-SAYT INTERFEYSI — OQIM, SALOMATLIK, ZANJIR (2026-09-04)
+
+4-prompt to'rt qismdan iborat edi va ikkitasi **mavjud bo'lmagan
+narsani o'zgartirishni** so'ragan: "Jonli Oshxona" nomini
+almashtirish va Bozor Salomatligi sahifasini yangilash. Ikkalasi ham
+eski tahlil moduli bilan birga 2026-09-04 da o'chirilgan edi
+(`pipeline_events` jadvali ham). Shuning uchun ular
+**o'zgartirilmadi — yangi modul ustida qayta qurildi**.
+
+### 1-qism: bosh sahifa — oqim
+
+Statik matn o'rniga xronologik oqim (`homepage_posts`). Admin
+panelda matn, rasm yoki ovozli xabar qo'shiladi.
+
+Tanishtiruv, diniy asos va ijtimoiy tarmoqlar — **oqimning birinchi
+postlari** (loyiha egasining tanlovi). Ular bazaga TUSHMAYDI va
+admin panelda ko'rinmaydi: diniy iqtibos joyi olim tasdiqlaguncha
+placeholder bo'lishi shart, oddiy postga aylantirsak uni tasodifan
+o'chirib yuborish mumkin bo'lardi.
+
+Sahifalash **id bo'yicha**, offset emas: sahifa ochilgandan keyin
+yangi post qo'shilsa, offset bilan bitta post ikki marta ko'rinardi
+yoki bittasi tushib qolardi.
+
+Post turi (`text`/`image`/`audio`/`mixed`) **tarkibdan hisoblanadi**,
+admin tanlamaydi — aks holda tur bilan tarkib zid bo'lardi.
+
+Fayl **avval** alohida yo'l bilan diskka yoziladi, formaga faqat nomi
+tushadi. Server amali FormData ni butunlay xotiraga yig'adi va
+Next.js ning 1 MB chegarasi 25 MB lik audioni to'sib qo'yardi.
+
+### 2-qism: Bozor Salomatligi — qat'iy bir tomonlama
+
+    ✅  modul -> hisoblaydi -> `zanjir_holatlari` -> ekran
+    ❌  ekrandagi qiymat -> modulga qaytadi -> signal qaroriga
+        ta'sir qiladi
+
+Ikkinchisi **taqiqlanadi**. Nima uchun bu shunchalik qat'iy
+yozilgan: eski tizimda aynan shu chegara buzilgan edi. Bozor
+Salomatligi "ko'rsatkich" deb boshlanib, keyin signal chiqishini
+to'sadigan darvozaga aylandi. Natijada modul o'zining
+ko'rsatkichiga qarab qaror qiladigan, tekshirib bo'lmaydigan halqa
+paydo bo'ldi — va bir necha hafta davomida strategiya emas, o'sha
+darvoza o'lchandi.
+
+**Indeks formulasi — sof statistika:** o'rtacha nechta blok
+bog'langani (0–4) foizga aylantirilgani. Blok — modulning O'Z
+birligi; boshqa formula o'ylab topilsa, u modulda yo'q narsani
+o'lchagan bo'lardi.
+
+Ochiq signali bor coin o'rtachaga **kirmaydi**: u "zaif" emas,
+tekshirilmagan. Aks holda ochiq signal ko'paygan sari indeks
+pasayardi va sabab ko'rinmasdi.
+
+**Terminallar:** Sektorlar / Ekotizim tablari, coin bosilsa
+TradingView grafigi ochiladi. Faqat halol skriningdan o'tgan 12
+coin — ro'yxat test bilan `core/config/schema.py` dagi asl
+ro'yxatga qulflangan.
+
+Mini-grafik emas, ro'yxat + bitta to'liq grafik: 12 ta alohida
+TradingView widgeti = 12 ta iframe va 12 ta tashqi skript; mobil
+qurilmada sahifa amalda ochilmasdi.
+
+### 3-qism: Jonli Blok Zanjiri
+
+`zanjir_holatlari` — har coin uchun OXIRGI tekshiruv natijasi.
+Tarix saqlanmaydi (`symbol` takrorlanmas): u har kuni o'sardi va
+hech qayerda ishlatilmasdi.
+
+Ekranda to'rt blok chapdan o'ngga "yonib" chiqadi, bo'g'inlar
+oldingi blok to'liq bo'lsa ulanadi. Butunlay CSS,
+`prefers-reduced-motion` da o'chadi.
+
+**Bu jonli oqim EMAS va ekranda shunday yozilgan.** Sikl har necha
+soatda yuradi va bir necha soniyada tugaydi — "hozir tekshirilmoqda"
+holatini ushlab turish deyarli imkonsiz. Ekran oxirgi yugurishning
+yozilgan natijasini qayta o'ynatadi va tepasida o'sha vaqt turadi.
+"Jonli" ko'rinib, aslida eski raqam ko'rsatadigan ekran eng yomon
+turdagi interfeys bo'lardi.
+
+Holat yozuvi **siklni to'xtatmaydi**: bu ma'lumot faqat ko'rsatish
+uchun, signal esa allaqachon yaratilgan.
+
+### 4-qism: signal grafiklari
+
+`entry_chart_image` va `result_chart_image` — admin TradingView'da
+chizib, qo'lda yuklaydi. Tizimning o'z grafigi DARAJALARNI
+ko'rsatadi, bu rasmlar esa STRUKTURANI. Biri ikkinchisining o'rnini
+bosmaydi.
+
+Botda alohida "🖼 Grafik" tugmasi, kartochkaga qo'shib
+yuborilmaydi: rasm odatda signal tarqatilgandan KEYIN yuklanadi,
+natija rasmi esa signal YOPILGANDA — kartochkaga bog'lansa ikkalasi
+ham deyarli hech qachon ko'rinmasdi.
+
+### Yo'l ochiq turgan xato — tuzatildi
+
+Bu ish paytida topildi: `create_all` faqat yetishmaydigan JADVALNI
+yaratadi, ishga tushishda esa `alembic upgrade` chaqirilmaydi
+(`bot/main.py`). Ya'ni yangi USTUN Railway'ga **hech qachon yetib
+bormasdi** va xato faqat o'sha maydonga birinchi murojaatda,
+butunlay boshqa joyda chiqardi.
+
+Endi ishga tushish yetishmagan ustunlarni o'zi qo'shadi (faqat NULL
+qabul qiladigan yoki server qiymati borini) va bu test bilan
+qulflandi. `NOT NULL` va qiymatsiz ustun uchun ogohlantirish
+yoziladi — o'shanda migratsiyani qo'lda yugurtirish kerak.
