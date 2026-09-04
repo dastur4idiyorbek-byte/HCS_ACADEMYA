@@ -70,3 +70,41 @@ def test_uzilgan_zanjir_toliq_emas() -> None:
 
 def test_ishonchsiz_zanjirda_nol() -> None:
     assert Zanjir(()).ishonch() == 0.0
+
+
+def test_blok_chegarasi_maxrajdan_oshmaydi() -> None:
+    """2/4 talab qilinsa-yu, faqat bittasi o'lchangan bo'lsa.
+
+    Chegara maxrajdan oshsa, ma'lumot yo'qligi JAZOGA aylanardi:
+    blok o'tishi ATAYLAB imkonsiz bo'lardi. Bu `MALUMOT_YOQ` ning
+    butun ma'nosiga (maxrajdan chiqarish) qarshi.
+    """
+    from core.analysis.turlar import blok, blok_sozla, ha, malumot_yoq
+
+    b = blok_sozla(
+        blok("Zona Sifati", [ha("fibonacci"), malumot_yoq("fvg"), malumot_yoq("order_block")]),
+        eng_kam_kuch=2,
+    )
+    assert b.maxraj == 1
+    assert b.otdi
+
+
+def test_blok_chegarasi_ikki_talab_qiladi() -> None:
+    """To'rttasi ham o'lchangan bo'lsa — 2/4 haqiqatan 2 ta talab qilsin."""
+    from core.analysis.turlar import blok, blok_sozla, ha, yoq
+
+    tekshiruvlar = [ha("fibonacci"), yoq("fvg"), yoq("order_block"), yoq("volume_profile")]
+    bitta = blok_sozla(blok("Zona Sifati", tekshiruvlar), eng_kam_kuch=1)
+    ikkita = blok_sozla(blok("Zona Sifati", tekshiruvlar), eng_kam_kuch=2)
+
+    assert bitta.otdi
+    assert not ikkita.otdi
+
+
+def test_sukut_qoida_ozgarmadi() -> None:
+    """Bayroqsiz HECH NARSA o'zgarmasin — 1/4 promptning qoidasi."""
+    from core.analysis.turlar import blok, ha, yoq
+
+    b = blok("Struktura", [ha("swing_ketma_ketligi"), yoq("bos_tasdiqlangan")])
+    assert b.eng_kam_kuch == 1
+    assert b.otdi

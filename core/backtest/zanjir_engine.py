@@ -122,6 +122,7 @@ class ZanjirBacktest:
         ochirilgan_tekshiruvlar: frozenset[str] = frozenset(),
         reja: ChiqishRejasi | None = None,
         sigim: bool = False,
+        eng_kam_kuch: int = 1,
     ) -> None:
         self._config = config
         self._nom = nom
@@ -131,6 +132,10 @@ class ZanjirBacktest:
         # (fayl boshidagi izoh). Yoqilganda esa savol boshqa bo'ladi:
         # "shu strategiyadan REAL hisobda nechtasini olish mumkin?"
         self._sigim = sigim
+        # BLOK QOIDASI. Sukut 1 — 2-promptning qoidasi. Boshqa
+        # qiymat faqat `scripts/zanjir_blok_qoidasi.py` o'lchovida
+        # beriladi; jonli tizim va boshqa o'lchovlar tegmaydi.
+        self._eng_kam_kuch = eng_kam_kuch
         # ABLATSIYA uchun: nomi shu to'plamda bo'lgan ichki tekshiruv
         # `MALUMOT_YOQ` ga aylantiriladi, ya'ni maxrajdan chiqadi.
         self._ochirilgan = ochirilgan_tekshiruvlar
@@ -187,6 +192,7 @@ class ZanjirBacktest:
                         etalon=symbol.upper() == "BTC",
                         ob_tarifi=ObTarifi(z.bloklar.ob_tarifi),
                         ochirilgan=self._ochirilgan,
+                        eng_kam_kuch=self._eng_kam_kuch,
                     )
                 )
                 zanjir = natijasi.zanjir

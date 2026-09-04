@@ -75,9 +75,9 @@ def test_ablatsiya_tekshiruvni_maxrajdan_chiqaradi(config, dataset) -> None:  # 
     Nolga tushirish blokni sun'iy zaiflashtirardi va biz "tekshiruv
     yomon" degan yolg'on xulosa chiqarardik.
     """
-    from core.analysis.turlar import Holat, ablatsiya_qil, blok, ha
+    from core.analysis.turlar import Holat, blok, blok_sozla, ha
 
-    b = ablatsiya_qil(
+    b = blok_sozla(
         blok("Zona Sifati", [ha("fibonacci"), ha("fvg")]),
         frozenset({"fibonacci"}),
     )
@@ -89,9 +89,9 @@ def test_ablatsiya_tekshiruvni_maxrajdan_chiqaradi(config, dataset) -> None:  # 
 
 def test_ablatsiya_blokni_bosh_qoldirsa_blok_otmaydi() -> None:
     """Yagona ijobiy tekshiruv o'chirilsa — blok 0/1 bo'lib qoladi."""
-    from core.analysis.turlar import ablatsiya_qil, blok, ha, yoq
+    from core.analysis.turlar import blok, blok_sozla, ha, yoq
 
-    b = ablatsiya_qil(
+    b = blok_sozla(
         blok("Zona Sifati", [ha("fibonacci"), yoq("fvg")]),
         frozenset({"fibonacci"}),
     )

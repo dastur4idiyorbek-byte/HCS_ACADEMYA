@@ -5,6 +5,7 @@ name: Zanjir o'lchovi
 #   ablatsiya     — 16 ta ichki tekshiruv birma-bir
 #   walk-forward  — kesishmaydigan oynalarda takrorlanish
 #   sigim         — portfel chegarasi nechtasini kesadi
+#   blok          — blok qoidasi 1/4 mi, 2/4 mi
 #
 # Nima uchun Actions'da: bu muhitdan Binance'ga chiqish yopiq, va
 # 730 kunlik yuklash mahalliy mashinada ham uzoq davom etadi.
@@ -13,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       olchov:
-        description: "backtest | ablatsiya | walk-forward | chegara | sigim | hammasi"
+        description: "backtest | ablatsiya | walk-forward | chegara | sigim | blok | hammasi"
         default: "hammasi"
       days:
         description: "Necha kun tahlil qilinsin"
@@ -141,6 +142,15 @@ jobs:
       # Kalit unikal (run_id) — shuning uchun HAR SAFAR saqlanadi.
       # Ilgari `cache-hit != 'true'` sharti bor edi va u yarim
       # keshni abadiy muzlatib qo'yardi.
+      - name: Blok qoidasi
+        if: inputs.olchov == 'blok' || inputs.olchov == 'hammasi'
+        run: |
+          python -m scripts.zanjir_blok_qoidasi \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            --offline \
+            | tee natija_blok.txt
+
       - name: Sham keshini saqlash
         uses: actions/cache/save@v4
         if: always()

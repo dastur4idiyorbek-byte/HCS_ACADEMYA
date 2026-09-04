@@ -28,7 +28,7 @@ from core.analysis.fundamental.fundamental_block import (
 )
 from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
 from core.analysis.structure.swing_detector import swinglar
-from core.analysis.turlar import Blok, Zanjir, ablatsiya_qil
+from core.analysis.turlar import Blok, Zanjir, blok_sozla
 from core.analysis.zone_quality.order_block import ObTarifi
 from core.analysis.zone_quality.zone_block import ZonaKirish, ZonaNatija, zona_blok
 from core.domain.models import Candle
@@ -63,6 +63,10 @@ class ZanjirKirish:
     #: ishlardi va "hech bir tekshiruv hissa qo'shmaydi" degan
     #: xulosa chiqargandi (2026-09-04).
     ochirilgan: frozenset[str] = frozenset()
+    #: Blok o'tishi uchun kerakli eng kam ijobiy tekshiruv soni.
+    #: Sukut 1 — promptning qoidasi. Boshqa qiymat FAQAT o'lchov
+    #: uchun beriladi (`scripts/zanjir_blok_qoidasi.py`).
+    eng_kam_kuch: int = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,14 +81,14 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
     bloklar: list[Blok] = []
 
     # --- BLOK 1: Fundamental ---
-    b1 = ablatsiya_qil(fundamental_blok(kirish.fundamental), kirish.ochirilgan)
+    b1 = blok_sozla(fundamental_blok(kirish.fundamental), kirish.ochirilgan, kirish.eng_kam_kuch)
     bloklar.append(b1)
     if not b1.otdi:
         return ZanjirNatija(Zanjir(tuple(bloklar), uzildi_blokda=b1.nom))
 
     # --- BLOK 2: Struktura ---
     nuqtalar = swinglar(kirish.shamlar, shubhali=kirish.shubhali)
-    b2 = ablatsiya_qil(
+    b2 = blok_sozla(
         struktura_blok(
             StrukturaKirish(
                 shamlar=kirish.shamlar,
@@ -95,6 +99,7 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
             )
         ),
         kirish.ochirilgan,
+        kirish.eng_kam_kuch,
     )
     bloklar.append(b2)
     if not b2.otdi:
@@ -108,7 +113,7 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
             ob_tarifi=kirish.ob_tarifi,
         )
     )
-    b3 = ablatsiya_qil(zona_natija.blok, kirish.ochirilgan)
+    b3 = blok_sozla(zona_natija.blok, kirish.ochirilgan, kirish.eng_kam_kuch)
     bloklar.append(b3)
     if not b3.otdi:
         return ZanjirNatija(
@@ -117,7 +122,7 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
         )
 
     # --- BLOK 4: Tasdiqlash ---
-    b4 = ablatsiya_qil(tasdiqlash_blok(
+    b4 = blok_sozla(tasdiqlash_blok(
         TasdiqKirish(
             shamlar=kirish.shamlar,
             nuqtalar=nuqtalar,
@@ -130,7 +135,7 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
             eski_fundamental=kirish.eski_fundamental or b1,
             yangi_fundamental=b1,
         )
-    ), kirish.ochirilgan)
+    ), kirish.ochirilgan, kirish.eng_kam_kuch)
     bloklar.append(b4)
     if not b4.otdi:
         return ZanjirNatija(

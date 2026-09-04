@@ -68,6 +68,14 @@ class Blok:
     qattiq_tosiq: str | None = None
     #: 1-blokdagi "ZIDDIYATLI" belgisi (2-prompt, 4-qism, BLOK 1)
     ziddiyatli: bool = False
+    #: Blok o'tishi uchun kerakli ENG KAM ijobiy tekshiruv soni.
+    #:
+    #: Sukut 1 — 2-promptning qoidasi ("blok 0/4 bo'lsa zanjir
+    #: uziladi"). 2026-09-04 o'lchovi bu qoida blok ichidagi
+    #: tekshiruvlarni YOKI ga aylantirishini ko'rsatdi, shuning
+    #: uchun 2/4 varianti O'LCHANADIGAN qilib qo'yildi — taxmin
+    #: bilan o'zgartirilmaydi.
+    eng_kam_kuch: int = 1
 
     @property
     def kuch(self) -> int:
@@ -94,7 +102,12 @@ class Blok:
         if self.olchanmadi:
             # Ma'lumot yo'qligi zanjirni uzmaydi — yuqoridagi izohga qarang.
             return True
-        return self.kuch >= 1
+        # CHEGARA MAXRAJDAN OSHMAYDI. Agar 4 tadan faqat bittasi
+        # o'lchangan bo'lsa, "2 ta ijobiy kerak" deyish blokni
+        # ATAYLAB imkonsiz qilardi — ya'ni ma'lumot yo'qligi jazoga
+        # aylanardi. Bu esa `MALUMOT_YOQ` ning butun ma'nosiga
+        # (maxrajdan chiqarish) qarshi.
+        return self.kuch >= min(self.eng_kam_kuch, self.maxraj)
 
     @property
     def nisbat(self) -> float:
@@ -111,8 +124,15 @@ class Blok:
         return f"{self.nom}: {self.kuch}/{self.maxraj} {belgi}{ziddiyat}"
 
 
-def ablatsiya_qil(blok: Blok, ochirilgan: frozenset[str]) -> Blok:
-    """Nomi ro'yxatda bo'lgan tekshiruvni `MALUMOT_YOQ` ga aylantiradi.
+def blok_sozla(
+    blok: Blok,
+    ochirilgan: frozenset[str] = frozenset(),
+    eng_kam_kuch: int = 1,
+) -> Blok:
+    """O'lchov sozlamalarini blokka qo'llaydi: ablatsiya va chegara.
+
+    ABLATSIYA — nomi ro'yxatda bo'lgan tekshiruvni `MALUMOT_YOQ` ga
+    aylantiradi.
 
     Vaznni nolga tushirish EMAS — MAXRAJDAN chiqarish. Ikkalasi
     boshqa narsa: nolga tushirish blokni sun'iy zaiflashtirardi,
@@ -124,8 +144,12 @@ def ablatsiya_qil(blok: Blok, ochirilgan: frozenset[str]) -> Blok:
     qo'llash ma'nosiz — o'sha paytda keyingi bloklar allaqachon
     hisoblanmagan bo'ladi va o'chirilgan tekshiruv nomzodni
     oldinga o'tkaza olmaydi (2026-09-04 da topilgan xato).
+
+    CHEGARA — blok o'tishi uchun kerakli eng kam ijobiy tekshiruv
+    soni. Sukut 1 (promptning qoidasi). 2/4 varianti O'LCHASH
+    uchun bor, qaror uchun emas.
     """
-    if not ochirilgan:
+    if not ochirilgan and eng_kam_kuch == blok.eng_kam_kuch:
         return blok
     return Blok(
         blok.nom,
@@ -137,6 +161,7 @@ def ablatsiya_qil(blok: Blok, ochirilgan: frozenset[str]) -> Blok:
         ),
         blok.qattiq_tosiq,
         blok.ziddiyatli,
+        eng_kam_kuch,
     )
 
 
