@@ -5684,3 +5684,128 @@ BULAR QO'SHILMADI. Ular vaqtga bog'liq va tarixiy simulyatsiyada
 qanday qo'llanishini ALOHIDA hal qilish kerak. Taxmin qilib
 qo'shilsa, natija "o'lchandi" deb ko'rinardi-yu, aslida taxmin
 bo'lardi.
+
+---
+
+## 94. PORTFEL VA XAVF BOSHQARUVI MODULI (2026-09-04)
+
+Tahlil moduli **qayerga kirishni** aytadi. Bu modul **qancha pul
+bilan kirishni va qachon chiqishni** aytadi. Ikkalasi bir-biriga
+bog'lanmaydi.
+
+Nima uchun ajratilgan: 2026-09-04 dagi $1000 hisob simulyatsiyasi
+(`docs/BACKTEST_NATIJA_2026-09-04_hisob.md`) shuni ko'rsatdi —
+tahlil moduli PF 3.49 bergan bo'lsa ham, pul taqsimoti sababli
+hisob **−68.1%** ga tushdi. Ya'ni signal to'g'ri, taqsimot noto'g'ri
+edi. Bitta modul ichida bu ikkisi aralashib turganda sabab ko'rinmasdi.
+
+### To'rt qism
+
+| Fayl | Vazifa |
+|---|---|
+| `capital_allocator.py` | balansni N ta teng bo'lakka bo'lish, signalga bo'lak topish |
+| `exit_manager.py` | N ta TP ga moslashuvchan chiqish, Stop ko'chishi |
+| `pnl_calculator.py` | realized / unrealized, davrlar bo'yicha |
+| `pnl_dashboard.py` | bot va sayt uchun bitta manzara |
+
+### Mustaqillik — izoh emas, test
+
+`core/portfolio/` **hech qanday `core.*` paketga bog'lanmaydi**.
+Buni ikki test ushlab turadi:
+
+* `tests/test_arxitektura.py` — portfel 0-qavatda;
+* `tests/core/test_portfel_mustaqil.py` — AST orqali har bir
+  importni tekshiradi va soxta signalni to'liq yo'ldan o'tkazadi.
+
+Kimdir kelib unga `core.analysis` importini qo'shsa, test darrov
+yiqiladi. 3-promptning asosiy sharti shu edi.
+
+### Kapital bo'laklari
+
+Balans N ta teng bo'lakka bo'linadi (boshlang'ich N = 3). Har bir
+bo'lak **o'zining** ichki zarar chegarasiga ega — umumiy balansdan
+emas, bo'lakning o'zidan hisoblanadi:
+
+    Stop% <= chegara  ->  bo'lakning to'lig'i
+    Stop% >  chegara  ->  ulush = chegara / Stop%
+
+Ikkinchi holatda pozitsiya kichrayadi, lekin **xavf baribir
+chegarada qoladi**: (hajm × chegara/stop) × stop = hajm × chegara.
+
+Barcha bo'laklar band bo'lsa — signal **kutadi**, rad etilmaydi.
+
+### Kafolat qayerda ishlamaydi
+
+3-prompt aytadi: "hamma bo'lak band bo'lib, hammasi Stop ursa —
+umumiy zarar ~10%". Bu **bo'lakda bitta pozitsiya** bo'lgandagina
+to'g'ri.
+
+O'sha promptning o'zi ishlatilmagan qismni keyingi signalga berishga
+ruxsat beradi. Bo'lakda ikkita pozitsiya bo'lsa, o'sha bo'lakning
+xavfi chegaradan oshadi — o'lchangani: **20%**
+(`test_bolakda_IKKITA_pozitsiya_bolsa_xavf_chegaradan_OSHADI`).
+
+Shuning uchun raqam taxmin qilinmaydi: `umumiy_xavf_pct()` uni har
+safar o'lchaydi va ekranda ochiq ko'rsatiladi.
+
+### N ta TP — yashirin shartsiz
+
+    TP[k] ga yetganda:  1/N sotiladi, Stop -> TP[k-1]
+    k = 1 bo'lsa:       Stop -> Entry (breakeven)
+    oxirgi TP da:       qolgan hammasi
+
+Kodda birorta `if tp_soni == 2` yo'q. Testlar N = 1, 2, 3, 5, 8 ni
+parametr sifatida yuradi — yashirin shart paydo bo'lsa, N = 5 da
+darrov yiqiladi.
+
+Eski `core/position/scaling_out.py` da ulushlar qo'lda yozilgan
+jadval edi (50/50, 40/30/30) va u faqat 1–3 TP ni bilardi.
+
+### Raqam TAXMIN qilinmaydi
+
+Bu modulda birorta ham "kutilayotgan oylik foyda" turidagi doimiy
+yo'q. Har bir raqam kiruvchi yozuvlardan chiqadi; yozuv bo'lmasa —
+nol qaytadi va ekran **rostini aytadi** ("hozircha yopilgan savdo
+yo'q"), taxminiy raqam emas.
+
+Shu sababdan **`pnl_records` jadvali ataylab yaratilmadi**. Yig'ilgan
+raqamni alohida saqlash ikkinchi haqiqat manbaini yaratardi va vaqt
+o'tib ikkalasi farq qila boshlardi. Kunlik/haftalik/oylik natija
+`position_exits` yozuvlaridan har safar qayta hisoblanadi.
+
+### "Narx olinmadi" ≠ "savdo nolda"
+
+Ochiq pozitsiyaning joriy narxi olinmasa, `joriy_narx = None` bo'ladi:
+u unrealized hisobiga kirmaydi va ekranda alohida aytiladi
+("❓ N ta ochiq savdoning joriy narxi olinmadi").
+
+Ilgari bunday holatda kirish narxi qo'yilardi va ekranda "+$0.00"
+chiqardi — ya'ni **ma'lumot** ko'rinishida. Aslida bu "biz
+bilmaymiz" edi.
+
+### Bitta manba, ikki ekran
+
+Bot ham, sayt ham `dashboard_qur()` dan o'qiydi. Sayt TypeScriptda
+ishlagani uchun u yerda ikkinchi nusxa bor (`web/src/lib/portfel.ts`),
+lekin nusxa **etalon fayl bilan bog'langan**:
+
+    scripts/portfel_fixtures.py -> tests/portfel_fixtures.json
+        tests/test_portfel_fixtures.py   (Python tomon)
+        web/tests/portfel.test.ts        (sayt tomoni)
+
+Biror tomon o'zgarsa testlardan biri yiqiladi. Bu naqsh loyihada
+allaqachon bor edi (`hajm_fixtures`), shuning uchun takrorlandi.
+
+### Baza
+
+| Jadval | Nima uchun |
+|---|---|
+| `capital_blocks` | bot qayta ishga tushganda "bu bo'lak band" bilimi yo'qolmasin — aks holda o'sha bo'lakka ikkinchi pozitsiya ochilib xavf ikki barobar bo'lardi |
+| `position_exits` | TP1 dushanba, TP2 payshanba bo'lishi mumkin; "bugungi natija" faqat QISM darajasidagi yozuvdan to'g'ri chiqadi |
+
+### O'lchanmagan qolgani
+
+`bolak_soni` (3) va `bolak_chegara_pct` (10) — ikkalasi ham gipoteza
+daftarida 🔴. 3-promptning o'zi ularni "boshlang'ich qiymat" deydi.
+Ular backtestda hali sinalmagan; sinalgunicha raqam taxmin bo'lib
+qoladi va daftarda shunday ko'rinib turadi.
