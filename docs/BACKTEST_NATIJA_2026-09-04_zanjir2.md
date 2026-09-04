@@ -220,3 +220,60 @@ topiladi. Bu 3-bo'limdagi tuzilmaviy sabab bilan bir xil.
 4. Faqat shundan keyin — jonli tizimga ulash haqida gap.
 
 Hech biri bajarilmaguncha modul **jonli signal bermaydi.**
+
+---
+
+## 9. SIG'IM O'LCHOVI (qo'shimcha, o'sha kuni)
+
+Actions yugurishi: 33823004516. Ablatsiyadan MUSTAQIL — bu o'lchov
+ablatsiya mexanizmiga tegmaydi, shuning uchun 2-bo'limning bekor
+qilinishi bunga TA'SIR QILMAYDI.
+
+Savol: jonli tizimning portfel chegaralari (`max_open_signals = 5`,
+korrelyatsiya guruhidan bitta signal) zanjirdan nechtasini kesadi?
+
+| Variant | Savdo | PF |
+|---|---|---|
+| sig'imsiz (zanjirning o'zi) | 277 | 3.50 |
+| **sig'im bilan** | **208** (75%) | **3.54** |
+
+Chegara nimani to'sgani:
+
+| To'siq | Soni |
+|---|---|
+| korrelyatsiya | 144 |
+| max_open_signals | 1 |
+
+### Bu — eski tizimdan ENG KATTA farq
+
+Eski, 100 balllik tizimda `risk_engine` 4 668 nomzoddan 593 tasini
+o'tkazardi va sababning **87% i `max_open_signals`** edi. Ya'ni
+o'sha paytda biz strategiyani emas, portfel chegarasini
+o'lchayotgan edik (`OLCHOVLAR_XULOSASI.md`, audit 2-bosqichi).
+
+Bu yerda `max_open_signals` **bir marta** to'sdi. Sabab oddiy:
+zanjir bir vaqtda beshta nomzod chiqarmaydi — u kamdan-kam
+gapiradi. "Signal bermaslik — xato emas" qoidasi shu yerda
+o'zini ko'rsatdi.
+
+Asosiy chegara — **korrelyatsiya** (144 marta). U ham kutilgan:
+12 coinning sakkiztasi `l1_smart_contract` va `btc_major`
+guruhlarida, ya'ni ular ko'pincha BIR VAQTDA signal beradi.
+
+### Xulosa
+
+Sig'im natijani **yomonlashtirmadi**: PF 3.50 → 3.54, ya'ni
+farq shovqin darajasida. Savdo soni chorakka kamaydi.
+
+Bu — yaxshi xabar va shundayligicha yoziladi: jonli tizim
+backtestdagidan **kamroq** savdo qiladi, lekin har bir savdoning
+sifati bir xil qoladi. Chegara eng yaxshi savdolarni kesib
+tashlamayapti.
+
+### 🔴 Hali o'lchanmagan
+
+Kunlik/haftalik zarar chegaralari, kill switch, juma filtri bu
+o'lchovga KIRMAGAN. Ular vaqtga bog'liq va tarixiy simulyatsiyada
+qanday qo'llanishini alohida hal qilish kerak. Taxmin qilib
+qo'shilsa, natija "o'lchandi" deb ko'rinardi-yu, aslida taxmin
+bo'lardi (`ARXITEKTURA.md` §93).
