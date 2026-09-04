@@ -28,7 +28,7 @@ from core.analysis.fundamental.fundamental_block import (
 )
 from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
 from core.analysis.structure.swing_detector import swinglar
-from core.analysis.turlar import Blok, Zanjir
+from core.analysis.turlar import Blok, Zanjir, ablatsiya_qil
 from core.analysis.zone_quality.order_block import ObTarifi
 from core.analysis.zone_quality.zone_block import ZonaKirish, ZonaNatija, zona_blok
 from core.domain.models import Candle
@@ -52,6 +52,17 @@ class ZanjirKirish:
     etalon: bool = False
     shubhali: set[datetime] = field(default_factory=set)
     ob_tarifi: ObTarifi = ObTarifi.LAST_OPPOSITE
+    #: ABLATSIYA uchun o'chiriladigan ichki tekshiruvlar nomi.
+    #:
+    #: Zanjir YURAYOTGANDA qo'llanadi — har bir blok qurilgandan
+    #: keyin darhol. Ilgari ablatsiya zanjir tugagandan KEYIN
+    #: qo'llanardi va bu o'lchovni buzardi: 2-blokda uzilgan
+    #: nomzodning 3- va 4-bloklari umuman hisoblanmagan bo'lardi,
+    #: ya'ni tekshiruvni o'chirish nomzodni oldinga O'TKAZA
+    #: OLMASDI. Natijada ablatsiya faqat bitta yo'nalishda
+    #: ishlardi va "hech bir tekshiruv hissa qo'shmaydi" degan
+    #: xulosa chiqargandi (2026-09-04).
+    ochirilgan: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)
@@ -66,21 +77,24 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
     bloklar: list[Blok] = []
 
     # --- BLOK 1: Fundamental ---
-    b1 = fundamental_blok(kirish.fundamental)
+    b1 = ablatsiya_qil(fundamental_blok(kirish.fundamental), kirish.ochirilgan)
     bloklar.append(b1)
     if not b1.otdi:
         return ZanjirNatija(Zanjir(tuple(bloklar), uzildi_blokda=b1.nom))
 
     # --- BLOK 2: Struktura ---
     nuqtalar = swinglar(kirish.shamlar, shubhali=kirish.shubhali)
-    b2 = struktura_blok(
-        StrukturaKirish(
-            shamlar=kirish.shamlar,
-            btc_shamlar=kirish.btc_shamlar,
-            yosh_kun=kirish.yosh_kun,
-            etalon=kirish.etalon,
-            shubhali=kirish.shubhali,
-        )
+    b2 = ablatsiya_qil(
+        struktura_blok(
+            StrukturaKirish(
+                shamlar=kirish.shamlar,
+                btc_shamlar=kirish.btc_shamlar,
+                yosh_kun=kirish.yosh_kun,
+                etalon=kirish.etalon,
+                shubhali=kirish.shubhali,
+            )
+        ),
+        kirish.ochirilgan,
     )
     bloklar.append(b2)
     if not b2.otdi:
@@ -94,15 +108,16 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
             ob_tarifi=kirish.ob_tarifi,
         )
     )
-    bloklar.append(zona_natija.blok)
-    if not zona_natija.blok.otdi:
+    b3 = ablatsiya_qil(zona_natija.blok, kirish.ochirilgan)
+    bloklar.append(b3)
+    if not b3.otdi:
         return ZanjirNatija(
-            Zanjir(tuple(bloklar), uzildi_blokda=zona_natija.blok.nom),
+            Zanjir(tuple(bloklar), uzildi_blokda=b3.nom),
             zona_natija=zona_natija,
         )
 
     # --- BLOK 4: Tasdiqlash ---
-    b4 = tasdiqlash_blok(
+    b4 = ablatsiya_qil(tasdiqlash_blok(
         TasdiqKirish(
             shamlar=kirish.shamlar,
             nuqtalar=nuqtalar,
@@ -115,7 +130,7 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
             eski_fundamental=kirish.eski_fundamental or b1,
             yangi_fundamental=b1,
         )
-    )
+    ), kirish.ochirilgan)
     bloklar.append(b4)
     if not b4.otdi:
         return ZanjirNatija(

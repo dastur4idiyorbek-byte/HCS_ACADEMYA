@@ -111,6 +111,35 @@ class Blok:
         return f"{self.nom}: {self.kuch}/{self.maxraj} {belgi}{ziddiyat}"
 
 
+def ablatsiya_qil(blok: Blok, ochirilgan: frozenset[str]) -> Blok:
+    """Nomi ro'yxatda bo'lgan tekshiruvni `MALUMOT_YOQ` ga aylantiradi.
+
+    Vaznni nolga tushirish EMAS — MAXRAJDAN chiqarish. Ikkalasi
+    boshqa narsa: nolga tushirish blokni sun'iy zaiflashtirardi,
+    chiqarish esa "bu tekshiruv umuman bo'lmasa" holatini
+    ko'rsatadi.
+
+    MUHIM: bu ZANJIR YURAYOTGANDA, har bir blok qurilgandan keyin
+    darhol qo'llanishi kerak. Zanjir uzilib bo'lgandan KEYIN
+    qo'llash ma'nosiz — o'sha paytda keyingi bloklar allaqachon
+    hisoblanmagan bo'ladi va o'chirilgan tekshiruv nomzodni
+    oldinga o'tkaza olmaydi (2026-09-04 da topilgan xato).
+    """
+    if not ochirilgan:
+        return blok
+    return Blok(
+        blok.nom,
+        tuple(
+            Tekshiruv(t.nom, Holat.MALUMOT_YOQ, "ablatsiya: o'chirilgan")
+            if t.nom in ochirilgan
+            else t
+            for t in blok.tekshiruvlar
+        ),
+        blok.qattiq_tosiq,
+        blok.ziddiyatli,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class Zanjir:
     """To'rt blokning ketma-ket natijasi.

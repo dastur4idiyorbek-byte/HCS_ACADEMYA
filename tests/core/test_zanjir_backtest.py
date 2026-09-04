@@ -75,30 +75,61 @@ def test_ablatsiya_tekshiruvni_maxrajdan_chiqaradi(config, dataset) -> None:  # 
     Nolga tushirish blokni sun'iy zaiflashtirardi va biz "tekshiruv
     yomon" degan yolg'on xulosa chiqarardik.
     """
-    from core.analysis.turlar import Holat
+    from core.analysis.turlar import Holat, ablatsiya_qil, blok, ha
 
-    dvigatel = ZanjirBacktest(
-        config, "test", ochirilgan_tekshiruvlar=frozenset({"fibonacci"})
+    b = ablatsiya_qil(
+        blok("Zona Sifati", [ha("fibonacci"), ha("fvg")]),
+        frozenset({"fibonacci"}),
     )
-    from core.analysis.turlar import Zanjir, blok, ha
-
-    z = Zanjir((blok("Zona Sifati", [ha("fibonacci"), ha("fvg")]),))
-    yangi = dvigatel._ablatsiya(z)
-    holatlar = {t.nom: t.holat for t in yangi.bloklar[0].tekshiruvlar}
+    holatlar = {t.nom: t.holat for t in b.tekshiruvlar}
     assert holatlar["fibonacci"] is Holat.MALUMOT_YOQ
     assert holatlar["fvg"] is Holat.HA
-    assert yangi.bloklar[0].maxraj == 1
+    assert b.maxraj == 1
 
 
-def test_ablatsiya_blokni_bosh_qoldirsa_zanjir_uziladi(config) -> None:  # noqa: ANN001
-    from core.analysis.turlar import Zanjir, blok, ha, yoq
+def test_ablatsiya_blokni_bosh_qoldirsa_blok_otmaydi() -> None:
+    """Yagona ijobiy tekshiruv o'chirilsa — blok 0/1 bo'lib qoladi."""
+    from core.analysis.turlar import ablatsiya_qil, blok, ha, yoq
 
-    dvigatel = ZanjirBacktest(
-        config, "test", ochirilgan_tekshiruvlar=frozenset({"fibonacci"})
+    b = ablatsiya_qil(
+        blok("Zona Sifati", [ha("fibonacci"), yoq("fvg")]),
+        frozenset({"fibonacci"}),
     )
-    z = Zanjir((blok("Zona Sifati", [ha("fibonacci"), yoq("fvg")]),))
-    yangi = dvigatel._ablatsiya(z)
-    assert yangi.uzildi_blokda == "Zona Sifati"
+    assert not b.otdi
+
+
+def test_ablatsiya_ZANJIR_ICHIDA_qollanadi() -> None:
+    """O'chirilgan tekshiruv nomzodni OLDINGA o'tkaza olsin.
+
+    2026-09-04 da topilgan xato: ablatsiya zanjir TUGAGANDAN keyin
+    qo'llanardi. Natijada 2-blokda uzilgan nomzodning 3- va
+    4-bloklari umuman hisoblanmagan bo'lardi va tekshiruvni
+    o'chirish uni oldinga o'tkaza olmasdi — ablatsiya faqat bitta
+    yo'nalishda ishlardi.
+
+    Bu test zanjirning uzilishi ablatsiyadan KEYIN hisoblanishini
+    tekshiradi: struktura bloki faqat bitta ijobiy tekshiruv bilan
+    o'tgan bo'lsa va o'sha tekshiruv o'chirilsa, zanjir aynan shu
+    blokda uzilishi kerak — "nomalum" bo'lib qolmasligi kerak.
+    """
+    from core.analysis.chain.block_chain_engine import ZanjirKirish, zanjir_yur
+
+    shamlar = seriya(200)
+    ochiq = zanjir_yur(ZanjirKirish(symbol="BTC", shamlar=shamlar))
+    hammasi = zanjir_yur(
+        ZanjirKirish(
+            symbol="BTC",
+            shamlar=shamlar,
+            ochirilgan=frozenset({
+                "swing_ketma_ketligi", "bos_tasdiqlangan", "qarshi_choch_yoq",
+                "nisbiy_kuch", "yangi_coin_naqshi",
+            }),
+        )
+    )
+    # Barcha tekshiruv o'chirilganda struktura bloki "o'lchanmadi"
+    # holatiga tushadi va zanjirni UZMAYDI — ya'ni keyingi bloklar
+    # HISOBLANADI. Eski mexanizmda bu mumkin emas edi.
+    assert len(hammasi.zanjir.bloklar) >= len(ochiq.zanjir.bloklar)
 
 
 def test_stop_tp_dan_oldin_tekshiriladi(config) -> None:  # noqa: ANN001

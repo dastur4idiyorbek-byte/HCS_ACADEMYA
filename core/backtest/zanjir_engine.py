@@ -29,7 +29,6 @@ from datetime import datetime, timedelta
 from core.analysis.chain.block_chain_engine import ZanjirKirish, zanjir_yur
 from core.analysis.fundamental.fundamental_block import FundamentalKirish
 from core.analysis.structure.swing_detector import swinglar
-from core.analysis.turlar import Blok, Holat, Tekshiruv, Zanjir
 from core.analysis.zone_quality.order_block import ObTarifi
 from core.backtest.dataset import Dataset
 from core.config.schema import AppConfig
@@ -187,9 +186,10 @@ class ZanjirBacktest:
                         fundamental=FundamentalKirish(),
                         etalon=symbol.upper() == "BTC",
                         ob_tarifi=ObTarifi(z.bloklar.ob_tarifi),
+                        ochirilgan=self._ochirilgan,
                     )
                 )
-                zanjir = self._ablatsiya(natijasi.zanjir)
+                zanjir = natijasi.zanjir
 
                 if not zanjir.toliq:
                     kalit = zanjir.uzildi_blokda or "nomalum"
@@ -287,32 +287,6 @@ class ZanjirBacktest:
                     )
                     continue
             ochiq[savdo.symbol] = savdo
-
-    def _ablatsiya(self, zanjir):  # noqa: ANN001, ANN202
-        """O'chirilgan tekshiruvlarni `MALUMOT_YOQ` ga aylantiradi.
-
-        Vaznni nolga tushirish EMAS — maxrajdan CHIQARISH. Ikkalasi
-        boshqa narsa: nolga tushirish blokni sun'iy ravishda
-        zaiflashtirardi, chiqarish esa "bu tekshiruv bo'lmasa"
-        holatini to'g'ri ko'rsatadi.
-        """
-        if not self._ochirilgan:
-            return zanjir
-        yangi_bloklar = []
-        uzildi = None
-        for b in zanjir.bloklar:
-            tekshiruvlar = tuple(
-                Tekshiruv(t.nom, Holat.MALUMOT_YOQ, "ablatsiya: o'chirilgan")
-                if t.nom in self._ochirilgan
-                else t
-                for t in b.tekshiruvlar
-            )
-            yangi = Blok(b.nom, tekshiruvlar, b.qattiq_tosiq, b.ziddiyatli)
-            yangi_bloklar.append(yangi)
-            if uzildi is None and not yangi.otdi:
-                uzildi = yangi.nom
-                break
-        return Zanjir(tuple(yangi_bloklar), uzildi_blokda=uzildi)
 
     def _yangila(self, savdo: Savdo, sham: Candle, hozir: datetime) -> bool:
         """Savdoni bitta sham bilan oldinga suradi. `True` — yopildi."""
