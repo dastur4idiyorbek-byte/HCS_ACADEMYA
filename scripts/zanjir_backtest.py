@@ -61,6 +61,19 @@ BOSH_TEKSHIRUVLAR = frozenset({
 })
 
 
+#: BARCHA ichki tekshiruvlar. Bu variant zanjirni butunlay
+#: o'chiradi: har bir blok "o'lchanmadi" holatiga tushadi va
+#: nomzodni faqat DARAJALAR (zona ichida kirish, zona tagida stop,
+#: strukturaviy TP) saralaydi.
+#:
+#: Nega kerak: 2026-09-04 ablatsiyasi 16 ta tekshiruvdan birortasi
+#: ham PF ni oshirmaganini ko'rsatdi. Undan bitta savol tug'ildi —
+#: unda PF 3.50 ni NIMA keltiryapti? Bu variant aynan shuni
+#: tekshiradi. Agar natija to'liq zanjirnikiga yaqin chiqsa,
+#: ustunlik zanjirda emas, darajalarda.
+BARCHA_TEKSHIRUVLAR = frozenset().union(*BLOK_TEKSHIRUVLARI.values())
+
+
 def _variantlar() -> list[tuple[str, frozenset[str]]]:
     """Zanjirning turli chuqurliklari."""
     zona = BLOK_TEKSHIRUVLARI["Zona Sifati"]
@@ -70,6 +83,7 @@ def _variantlar() -> list[tuple[str, frozenset[str]]]:
         ("11 bo'sh tekshiruvsiz", BOSH_TEKSHIRUVLAR),
         ("tasdiqlashsiz (3 blok)", tasdiq),
         ("faqat fundamental+struktura", zona | tasdiq),
+        ("zanjirsiz — faqat darajalar", BARCHA_TEKSHIRUVLAR),
     ]
 
 

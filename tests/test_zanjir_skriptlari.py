@@ -356,3 +356,20 @@ def test_chegara_yorligi_configdan_oqiladi() -> None:
     config = load_config()
     nom = _variantlar(config)[0][0]
     assert str(config.zanjir.darajalar.stop_eng_kam_pct) in nom
+
+
+def test_zanjirsiz_variant_barcha_tekshiruvni_ochiradi() -> None:
+    """Zanjirsiz variant HAQIQATAN bo'sh qolsin.
+
+    Agar bitta tekshiruv nomi ro'yxatdan tushib qolsa, variant
+    "zanjirsiz" deb ataladi-yu, aslida o'sha tekshiruv ishlab
+    turaveradi — va "ustunlik darajalarda" degan YOLG'ON xulosa
+    chiqardi.
+    """
+    from scripts.zanjir_backtest import BARCHA_TEKSHIRUVLAR, _variantlar
+
+    kalitlar = {k for _, k in TEKSHIRUVLAR}
+    assert kalitlar <= BARCHA_TEKSHIRUVLAR
+
+    nomlar = dict(_variantlar())
+    assert nomlar["zanjirsiz — faqat darajalar"] == BARCHA_TEKSHIRUVLAR
