@@ -64,16 +64,6 @@ export default async function Bosh() {
         <CardHint className="mt-3">{t("bosh.diniy_izoh")}</CardHint>
       </Card>
 
-      <Card>
-        <CardTitle>{t("menyu.salomatlik")}</CardTitle>
-        <CardHint>{t("salomatlik.izoh")}</CardHint>
-        <div className="mt-4">
-          <Button href="/salomatlik" variant="ikkilamchi">
-            {t("menyu.salomatlik")}
-          </Button>
-        </div>
-      </Card>
-
       <Tarmoqlar havolalar={tarmoqlar} til={til} />
     </div>
   );

@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 import pytest
 
 from core.config.schema import PortfolioConfig
-from core.domain.enums import SignalSource, SignalStatus
+from core.domain.enums import SignalSource
 from core.domain.models import signal_levels
 from core.services import compute_outcome, summarize
 from core.storage import Database
 from core.storage.repositories import (
-    DailyStatsRepository,
     SignalRepository,
     UserPositionRepository,
     UserRepository,
@@ -37,7 +36,7 @@ async def tayyorla(db: Database, telegram_id: int = 111) -> tuple[int, int]:
         signal = await SignalRepository(session).create(
             symbol="BTC",
             levels=signal_levels(entry=100, stop=99, tp1=103, tp2=105),
-            source=SignalSource.CLASSIC_TA,
+            source=SignalSource.ZANJIR,
             score=82.0,
         )
         return user.id, signal.id
@@ -140,7 +139,7 @@ async def test_portfel_xulosasi_bazadan_quriladi(db: Database) -> None:
         ikkinchi = await SignalRepository(session).create(
             symbol="ETH",
             levels=signal_levels(entry=50, stop=49.5, tp1=51.5, tp2=52.5),
-            source=SignalSource.CLASSIC_TA,
+            source=SignalSource.ZANJIR,
         )
         repo = UserPositionRepository(session)
         await repo.record_entry(user_id, birinchi, 100.0, 100.0)
@@ -166,70 +165,12 @@ async def test_portfel_xulosasi_bazadan_quriladi(db: Database) -> None:
 # --------------------------------------------------------------------------- #
 
 
-async def test_umumiy_statistika_agregat(db: Database) -> None:
-    """Shaxsiy ma'lumot oshkor qilinmaydi — faqat agregat raqamlar."""
-    async with db.session() as session:
-        repo = SignalRepository(session)
-        for i in range(3):
-            yozuv = await repo.create(
-                symbol=f"C{i}",
-                levels=signal_levels(entry=100, stop=99, tp1=103, tp2=105),
-                source=SignalSource.CLASSIC_TA,
-                score=80.0,
-            )
-            holat = SignalStatus.TP2_HIT if i < 2 else SignalStatus.STOPPED
-            await repo.apply_event(yozuv.id, SignalStatus.ACTIVE, 100.0, HOZIR, "activated")
-            await repo.apply_event(yozuv.id, holat, 105.0, HOZIR, holat.value)
-
-    async with db.session() as session:
-        statistika = await DailyStatsRepository(session).aggregate(
-            date(2026, 1, 1), "30 kun"
-        )
-
-    assert statistika.signals_created == 3
-    assert statistika.signals_activated == 3
-    assert statistika.tp2_count == 2
-    assert statistika.stop_count == 1
-    assert statistika.win_rate == pytest.approx(2 / 3)
-    assert statistika.average_score == pytest.approx(80.0)
 
 
-async def test_ishtirokchilar_agregat_sanaladi(db: Database) -> None:
-    """Kim kirgani emas, nechta odam kirgani ko'rsatiladi."""
-    _, signal_id = await tayyorla(db, telegram_id=111)
-
-    async with db.session() as session:
-        repo = UserPositionRepository(session)
-        users = UserRepository(session)
-        for tg in (111, 222, 333):
-            user = await users.get_or_create(tg)
-            await repo.record_entry(user.id, signal_id, 100.0, 100.0)
-
-    async with db.session() as session:
-        statistika = await DailyStatsRepository(session).aggregate(date(2026, 1, 1), "30 kun")
-
-    assert statistika.participants == 3
-    assert statistika.total_volume_usd == pytest.approx(300.0)
 
 
-async def test_bosh_davrda_statistika_xato_bermaydi(db: Database) -> None:
-    async with db.session() as session:
-        statistika = await DailyStatsRepository(session).aggregate(date(2026, 1, 1), "30 kun")
-
-    assert statistika.signals_created == 0
-    assert statistika.win_rate is None
 
 
-async def test_kunlik_agregat_yoziladi_va_yangilanadi(db: Database) -> None:
-    async with db.session() as session:
-        repo = DailyStatsRepository(session)
-        await repo.upsert_daily(date(2026, 8, 19), signals_created=3, tp2_count=1)
-        await repo.upsert_daily(date(2026, 8, 19), tp2_count=2)
-
-    async with db.session() as session:
-        yozuv = await DailyStatsRepository(session).upsert_daily(date(2026, 8, 19))
-        assert yozuv.signals_created == 3, "oldingi qiymat saqlanishi kerak"
-        assert yozuv.tp2_count == 2
 
 
 async def test_ishtirokchi_soni_signal_boyicha(db: Database) -> None:

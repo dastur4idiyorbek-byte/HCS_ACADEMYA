@@ -321,57 +321,6 @@ class SignalEvent(Base, TimestampMixin):
     signal: Mapped[SignalRecord] = relationship(back_populates="events")
 
 
-class PipelineEventRecord(Base, TimestampMixin):
-    """Jonli tahlil monitori — "oshxona ko'rinishi" (59-bo'lim).
-
-    Har bir coin har bir bosqichda nima bo'lgani. Admin tizimning
-    ishlayotganini ko'zi bilan ko'rishi va bir necha soat signal
-    chiqmaganda QAYSI bosqichda to'xtayotganini darhol topishi uchun.
-
-    BU DOIMIY ARXIV EMAS. Yozuvlar bir necha soatdan keyin tozalanadi
-    (`purge_older_than`): doimiy statistika allaqachon `risk_blocks`
-    va Signal Xotirasi/Postmortem modulida bor. Bu jadval faqat
-    "hozir nima bo'lyapti" degan savolga xizmat qiladi, shuning uchun
-    u tez o'sib, tez bo'shashi normal.
-    """
-
-    __tablename__ = "pipeline_events"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    #: `*` — sikl darajasidagi hodisa (bitta coinniki emas)
-    symbol: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
-    stage: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
-    #: `pass` / `fail` / `pending`
-    status: Mapped[str] = mapped_column(String(8), nullable=False)
-    reason: Mapped[str | None] = mapped_column(Text)
-    score: Mapped[float | None] = mapped_column(Float)
-    #: Bitta siklning barcha hodisalari bir xil belgiga ega — sahifa
-    #: ularni shu bo'yicha guruhlaydi va "oxirgi sikl" ni ajratadi.
-    cycle_at: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
-
-    __table_args__ = (Index("ix_pipeline_events_cycle", "cycle_at", "symbol"),)
-
-
-class RiskBlock(Base, TimestampMixin):
-    """4-bo'lim: Risk Engine nima uchun signalni to'xtatdi.
-
-    Admin dashboardida "tizim nega sokin?" savoliga aniq javob beradi
-    (3.7-band bilan birga).
-    """
-
-    __tablename__ = "risk_blocks"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    symbol: Mapped[str | None] = mapped_column(String(32), index=True)
-    reason: Mapped[str] = mapped_column(String(48), index=True, nullable=False)
-    detail: Mapped[str | None] = mapped_column(Text)
-    market_health: Mapped[float | None] = mapped_column(Float)
-    #: Nomzod olgan ball (bo'lsa). Bu ustunsiz "chegara juda balandmi yoki
-    #: nomzodlar haqiqatan zaifmi" degan savolga javob berib bo'lmasdi:
-    #: dashboard faqat "chegaradan past" deb yozardi, qanchalik past
-    #: ekanini esa hech kim ko'rmasdi. Aynan shu ko'rlik sababli chegara
-    #: 48 soat davomida erishib bo'lmas darajada balandligi sezilmadi.
-    score: Mapped[float | None] = mapped_column(Float)
 
 
 class RiskConfigEntry(Base, TimestampMixin):
@@ -431,24 +380,6 @@ class UserPosition(Base, TimestampMixin):
     )
 
 
-class DailyStat(Base, TimestampMixin):
-    """3.6 / 5.4-band: shaffoflik uchun real statistika (kunlik agregat)."""
-
-    __tablename__ = "daily_stats"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    stat_date: Mapped[date] = mapped_column(Date, unique=True, index=True, nullable=False)
-    signals_created: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    signals_activated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    tp1_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    tp2_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    stop_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    false_signal_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    avg_score: Mapped[float | None] = mapped_column(Float)
-    avg_risk_reward: Mapped[float | None] = mapped_column(Float)
-    total_participants: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    total_volume_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
-
 
 class SocialLink(Base, TimestampMixin):
     """Saytning pastki qismidagi ijtimoiy tarmoq havolalari.
@@ -471,88 +402,6 @@ class SocialLink(Base, TimestampMixin):
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-
-class AuditReport(Base, TimestampMixin):
-    """3.8-band: haftalik o'z-o'zini tekshirish hisobotining QAYDI.
-
-    Nima uchun saqlanadi: hisobot faqat Telegramga yuborilardi. Admin uni
-    o'qimay qolsa yoki chat tozalansa — hisobot butunlay yo'qolardi, ya'ni
-    "o'tgan oy tizim qanday ishlagan" degan savolga javob bermasdi. Endi
-    veb-panel ham xuddi shu qaydni ko'rsatadi.
-
-    `rendered` — tayyor matn. Nima uchun raqamlar bilan birga to'liq matn
-    ham: naqshlar (`patterns`) tuzilmasi kelajakda o'zgarishi mumkin, matn
-    esa o'sha paytda admin AYNAN NIMANI ko'rgani. Bu — audit izi.
-    """
-
-    __tablename__ = "audit_reports"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    generated_at: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
-    period_days: Mapped[int] = mapped_column(Integer, nullable=False)
-    rendered: Mapped[str] = mapped_column(Text, nullable=False)
-
-    total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    traded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    tp2: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    tp1_then_stop: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    stop: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    cancelled: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    false_signals: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    average_score: Mapped[float | None] = mapped_column(Float)
-    average_holding_hours: Mapped[float | None] = mapped_column(Float)
-    pattern_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    sample_warning: Mapped[str | None] = mapped_column(Text)
-
-    #: Bir kunda bitta qayd: admin tugmani o'n marta bossa ham jadval
-    #: to'lib ketmasligi kerak, oxirgi holat esa doim yangi bo'lishi kerak.
-    report_date: Mapped[date] = mapped_column(Date, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("report_date", "period_days", name="report_date_period"),
-    )
-
-
-# --------------------------------------------------------------------------- #
-#  3.7 — Bozor Salomatligi Indeksi tarixi
-# --------------------------------------------------------------------------- #
-
-
-class MarketHealthLog(Base, TimestampMixin):
-    """3.7-band: indeks har sham yopilganda qayta hisoblanadi va saqlanadi.
-
-    Tarix postmortem (3.8) uchun zarur: "Indeks 60dan past bo'lganda berilgan
-    signallarning necha foizi Stop yegan?" degan savolga javob shu jadvaldan
-    chiqadi.
-    """
-
-    __tablename__ = "market_health_log"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    value: Mapped[float] = mapped_column(Float, nullable=False)
-    band: Mapped[str] = mapped_column(String(8), nullable=False)
-    #: ASOSIY omil (30) — SMC strukturasi bo'yicha kenglik
-    structure_breadth_score: Mapped[float | None] = mapped_column(Float)
-    #: EMA asosidagi eski kenglik — ikkinchi darajali (15)
-    trend_breadth_score: Mapped[float | None] = mapped_column(Float)
-    #: Kichik vazn (5) — qo'shimcha kontekst
-    btc_dominance_score: Mapped[float | None] = mapped_column(Float)
-    #: QT (AMDX) davri (5)
-    quarterly_phase_score: Mapped[float | None] = mapped_column(Float)
-    #: QT davri HARFI (A/M/D/X). `None` — aniqlanmadi.
-    #:
-    #: Nima uchun ball yetarli emas: "aniqlanmadi" neytral 0.5 ball
-    #: oladi va bu D davrining balli bilan bir xil. Ya'ni balldan
-    #: davrni tiklab bo'lmaydi — sayt uni SOATDAN hisoblardi, endi esa
-    #: davr soatga umuman bog'liq emas.
-    quarterly_phase: Mapped[str | None] = mapped_column(String(1))
-    volatility_score: Mapped[float | None] = mapped_column(Float)
-    user_capacity_score: Mapped[float | None] = mapped_column(Float)
-    saturation_score: Mapped[float | None] = mapped_column(Float)
-    is_daily_preview: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    detail: Mapped[str | None] = mapped_column(Text)
-
-    __table_args__ = (Index("ix_market_health_created", "created_at"),)
 
 
 class BozorKesimi(Base, TimestampMixin):

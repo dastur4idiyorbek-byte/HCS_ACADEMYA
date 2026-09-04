@@ -93,6 +93,23 @@ class FridayFilterConfig:
 
 @dataclass(frozen=True, slots=True)
 class RiskEngineConfig:
+    """Portfel chegaralari — SOZLAMA, modul emas.
+
+    2026-09-04: `core/risk_engine/` MODULI o'chirildi. U qurilgan edi,
+    lekin hech qayerdan chaqirilmasdi — bot uni yaratib, faqat
+    jurnalga yozardi.
+
+    Bu SOZLAMA esa qoladi va YANGI modul ishlatadi:
+
+        correlation_group_of()  -> `core/services/zanjir_sikl.py`
+        max_open_signals        -> sig'im o'lchovi
+        friday_filter           -> `core/config/loader.py`
+
+    Ya'ni bu eski modulning qoldig'i emas. Pulni taqsimlash qoidalari
+    alohida modul sifatida qayta quriladi — o'shanda bu bo'lim ham
+    qayta ko'rib chiqiladi.
+    """
+
     daily_loss_limit_pct: float = 3.0
     weekly_loss_limit_pct: float = 8.0
     max_open_signals: int = 5

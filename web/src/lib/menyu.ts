@@ -28,7 +28,6 @@ export const MENYU: MenyuBandi[] = [
   // mazmuni shu sahifaning ikkinchi yarmi, chunki ikkalasi bitta
   // savolning ikki yarmi: "bozor qanday?" va "shuning uchun bugun nima
   // bo'ldi?".
-  { kod: "salomatlik", yol: "/salomatlik", kalit: "menyu.salomatlik", belgi: "🩺", talab: null },
   // Bozor ko'rinishi — haftalik va kunlik qarash. SIGNAL EMAS:
   // loyiha egasining sharti bo'yicha asosiy tahlil 4 soatlikda
   // qoladi, bu sahifa esa umumiy manzarani ko'rsatadi.

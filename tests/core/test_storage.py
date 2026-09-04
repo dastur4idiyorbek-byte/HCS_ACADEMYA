@@ -22,9 +22,6 @@ KUTILGAN_JADVALLAR = {
     "coin_rulings",
     "halal_universe_snapshots",
     "user_positions",
-    "daily_stats",
-    "market_health_log",
-    "risk_blocks",
 }
 
 

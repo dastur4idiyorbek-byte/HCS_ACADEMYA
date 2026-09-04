@@ -9,8 +9,6 @@ agregat (nechta ishtirokchi, jami hajm).
 
 from __future__ import annotations
 
-from datetime import timedelta
-
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -25,12 +23,10 @@ from core.domain.models import signal_levels
 from core.services import summarize
 from core.storage import Database
 from core.storage.repositories import (
-    DailyStatsRepository,
     SignalRepository,
     UserPositionRepository,
 )
 from core.utils.logging_setup import get_logger
-from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
 router = Router(name="portfolio")
@@ -250,43 +246,18 @@ async def choose_period(callback: CallbackQuery, language: str, **_: object) -> 
 
 @router.callback_query(F.data.startswith("stat:"))
 async def show_stats(
-    callback: CallbackQuery, database: Database, language: str, **_: object
+    callback: CallbackQuery, language: str, **_: object
 ) -> None:
-    kod = callback.data.split(":", 1)[1]
-    kalit, kunlar = PERIODS[kod]
-    boshlanish = (utc_now() - timedelta(days=kunlar)).date()
+    """Statistika — HOZIRCHA BO'SH.
 
-    async with database.session() as session:
-        statistika = await DailyStatsRepository(session).aggregate(
-            boshlanish, t(kalit, language)
-        )
+    2026-09-04: eski tahlil moduli butunlay olib tashlandi va u bilan
+    birga `daily_stats` jadvali ham ketdi. O'sha jadvaldagi raqamlar
+    ESKI modulning natijasi edi.
 
-    if statistika.signals_created == 0:
-        await callback.answer(t("statistika.bosh", language), show_alert=True)
-        return
+    Ularni yangi modul natijasi sifatida ko'rsatish — foydalanuvchini
+    aldash bo'lardi: ikki modul boshqa mantiq bilan ishlaydi.
 
-    matn = t(
-        "statistika.hisobot",
-        language,
-        period=statistika.period_label,
-        created=statistika.signals_created,
-        activated=statistika.signals_activated,
-        tp2=statistika.tp2_count,
-        stop=statistika.stop_count,
-        win_rate=f"{statistika.win_rate:.0%}" if statistika.win_rate is not None else "—",
-        participants=statistika.participants,
-        volume=f"{statistika.total_volume_usd:,.0f}",
-    )
-    if statistika.average_score is not None:
-        matn += t(
-            "statistika.qoshimcha",
-            language,
-            score=f"{statistika.average_score:.0f}",
-            rr=f"{statistika.average_risk_reward:.1f}"
-            if statistika.average_risk_reward
-            else "—",
-        )
-    matn += "\n\n" + t("shaffoflik.aniqlik_dagvosi_yoq", language)
-
-    await callback.message.edit_text(matn, reply_markup=back_button("home", language))
-    await callback.answer()
+    Yangi statistika yangi modul yetarli signal berganda quriladi.
+    Shungacha ekran ROSTINI aytadi.
+    """
+    await callback.answer(t("statistika.bosh", language), show_alert=True)

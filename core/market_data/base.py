@@ -12,7 +12,7 @@ from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
-from core.domain.models import Candle, MarketRankEntry, PriceTick
+from core.domain.models import Candle, PriceTick
 from core.utils.time_utils import utc_now
 
 
@@ -40,21 +40,12 @@ class CandleProvider(ABC):
         ...
 
 
-class RankingProvider(ABC):
-    """Kapitalizatsiya reytingi manbai (3.4-band)."""
-
-    @abstractmethod
-    async def fetch_ranking(self, limit: int) -> list[MarketRankEntry]:
-        ...
-
-
 @dataclass(slots=True)
 class PriceCache:
     """Oxirgi narxlar va ularning yoshi.
 
-    6.2-band: `stale_price_seconds` dan eski narx bilan signal BERILMAYDI.
-    Bu tekshiruvni Risk Engine'dagi `FreshDataRule` bajaradi, lekin yoshni
-    shu yerda hisoblanadi.
+    6.2-band: `stale_price_seconds` dan eski narx bilan signal
+    BERILMAYDI. Yosh shu yerda hisoblanadi.
     """
 
     prices: dict[str, PriceTick] = field(default_factory=dict)

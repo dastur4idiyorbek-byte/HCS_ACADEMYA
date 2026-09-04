@@ -174,18 +174,6 @@ export default async function SignalSahifasi({
         )}
 
         <div className="grid gap-5 sm:grid-cols-2">
-          {/* Risk/Foyda va sana KARTOCHKADA turadi — bu yerda takrorlanmaydi.
-              Qolgani: signal berilgan paytdagi bozor holati. */}
-          <Card>
-            <CardTitle>{t("salomatlik.sarlavha")}</CardTitle>
-            <p className="raqam text-sarlavha mt-2 text-2xl font-bold">
-              {signal.marketHealthAtEntry === null
-                ? "—"
-                : `${signal.marketHealthAtEntry.toFixed(0)}/100`}
-            </p>
-            <CardHint>{t("signal.salomatlik_izoh")}</CardHint>
-          </Card>
-
           <Card>
             <CardTitle>{t("signal.halol_sabab")}</CardTitle>
             <p className="mt-2 text-sm leading-relaxed">

@@ -118,18 +118,6 @@ def test_qolda_kiritilgan_signal_boshqa_yorliq() -> None:
     assert "Zanjir moduli" not in matn
 
 
-def test_notanish_manba_ISHONCHLI_deb_korsatilmaydi() -> None:
-    """Eng muhim test: noma'lum manba "yangi modul" bo'lib chiqmasin.
-
-    Eski modul qoldirgan signalning manbasi ro'yxatda yo'q. Agar u
-    jimgina "Zanjir moduli" yorlig'ini olsa, admin eski signalga
-    yangisidek ishonardi.
-    """
-    from core.domain.enums import SignalSource
-
-    matn = _kartochka(SignalSource.CLASSIC_TA)
-    assert "Zanjir moduli" not in matn
-    assert "Eski modul" in matn
 
 
 def test_manba_berilmasa_yorliq_umuman_yoq() -> None:

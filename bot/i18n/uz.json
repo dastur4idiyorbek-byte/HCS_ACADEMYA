@@ -97,8 +97,7 @@
     "qisqa_timed_out": "muddati tugadi",
     "kirdim_kech": "Bu signal TP1 ni olib bo'ldi — yangi kirish tavsiya etilmaydi. Stop endi kirish narxida turadi, harakatning katta qismi o'tgan.",
     "manba_zanjir": "🤖 <b>Zanjir moduli</b> (avtomatik)",
-    "manba_qolda": "✍️ <b>Qo'lda kiritilgan</b>",
-    "manba_eski": "🕰 <b>Eski modul</b> — bu signalga ishonmang"
+    "manba_qolda": "✍️ <b>Qo'lda kiritilgan</b>"
   },
   "portfel": {
     "sarlavha": "📊 Mening portfelim",

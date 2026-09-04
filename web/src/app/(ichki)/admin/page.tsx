@@ -98,14 +98,6 @@ export default async function Admin() {
           )}
         </Card>
 
-        {/* Bozor Salomatligi shkalasi va CryptoSpot3% sozlamalari
-            2026-09-03 da eski tahlil moduli bilan birga uzildi. Eski
-            yozuvni ko'rsatish yolg'on bo'lardi: indeks endi
-            hisoblanmaydi, ya'ni raqam qotib qolgan. */}
-        <Yangilanmoqda
-          sarlavha={t("admin.salomatlik")}
-          izoh={t("umumiy.yangilanmoqda")}
-        />
       </div>
     </>
   );

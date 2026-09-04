@@ -52,11 +52,6 @@ export default async function Signallar() {
         <Sarlavha matn={t("signal.sarlavha")} />
         <Card>
           <CardTitle>🤫 {t("signal.yoq")}</CardTitle>
-          <div className="mt-4">
-            <Button href="/salomatlik" variant="ikkilamchi">
-              {t("signal.nega_yoq")}
-            </Button>
-          </div>
         </Card>
       </>
     );

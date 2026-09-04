@@ -40,19 +40,16 @@ from core.storage import Database
 from core.storage.repositories import (
     ContentRepository,
     PaymentRepository,
-    RiskBlockRepository,
     SignalRepository,
     SubscriptionRepository,
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
-from core.utils.time_utils import utc_now
 
 logger = get_logger(__name__)
 
 #: Rad etish sabablari shuncha kun saqlanadi. Admin paneli oxirgi 24 soatni
 #: ko'rsatadi; bir hafta esa "kecha ham shunday edimi" savoliga yetadi.
-RISK_BLOCK_RETENTION_DAYS = 7
 
 
 async def _repeat(
@@ -119,7 +116,6 @@ class Scheduler:
         """Barcha vazifalarni fon rejimida ishga tushiradi."""
         vazifalar = [
             ("subscriptions", timedelta(hours=1), self._check_subscriptions, timedelta(minutes=2)),
-            ("cleanup", timedelta(hours=24), self._cleanup, timedelta(minutes=10)),
             # Veb-panelda yaratilgan signallar shu vazifa orqali hayotga
             # kiradi. Oraliq qisqa: signal yozilgandan keyin obunachiga
             # yetguncha o'tgan har bir daqiqa — narx harakatlangan daqiqa.
@@ -182,18 +178,6 @@ class Scheduler:
 
     # ------------------------------------------------------------------ #
 
-    async def _cleanup(self) -> None:
-        """Eski kuzatuv yozuvlarini o'chiradi.
-
-        Har siklda o'nlab rad etish sababi yoziladi — cheklanmasa jadval
-        yillar davomida o'sib ketadi va bepul serverning diskini to'ldiradi.
-        Sabablar faqat "hozir nima bo'lyapti" uchun kerak, uzoq tarix emas.
-        """
-        kesim = utc_now() - timedelta(days=RISK_BLOCK_RETENTION_DAYS)
-        async with self._db.session() as session:
-            soni = await RiskBlockRepository(session).purge_before(kesim)
-        if soni:
-            logger.info("Eski rad etish yozuvlari o'chirildi: %d ta", soni)
 
     async def _check_subscriptions(self) -> None:
         """1.2-band: muddati tugaganlarni yopish va eslatma yuborish."""

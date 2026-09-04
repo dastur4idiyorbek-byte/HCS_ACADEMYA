@@ -16,12 +16,6 @@ from core.market_data import (
     to_binance_symbol,
 )
 from core.market_data.binance import BinancePriceStream
-from core.market_data.ranking import (
-    CoinGeckoRanking,
-    CoinMarketCapRanking,
-    RankingUnavailableError,
-    build_ranking_provider,
-)
 
 HOZIR = datetime(2026, 8, 19, 12, 0, tzinfo=UTC)
 
@@ -208,24 +202,10 @@ def test_obuna_ozgarsa_qayta_ulanish_soraladi(stream: BinancePriceStream) -> Non
 # --------------------------------------------------------------------------- #
 
 
-def test_kalit_yoq_bolsa_coingecko_tanlanadi(monkeypatch) -> None:
-    """Fail-safe: kalit yo'qligi tizimni to'xtatmasligi kerak."""
-    monkeypatch.delenv("CMC_API_KEY", raising=False)
-    provider = build_ranking_provider(MarketDataConfig(ranking_source="coinmarketcap"))
-    assert isinstance(provider, CoinGeckoRanking)
 
 
-def test_kalit_bor_bolsa_cmc_zaxira_bilan(monkeypatch) -> None:
-    monkeypatch.setenv("CMC_API_KEY", "test-kalit")
-    provider = build_ranking_provider(MarketDataConfig(ranking_source="coinmarketcap"))
-    assert provider._primary.__class__ is CoinMarketCapRanking
-    assert provider._fallback.__class__ is CoinGeckoRanking
 
 
-def test_coingecko_tanlansa_kalit_kerak_emas(monkeypatch) -> None:
-    monkeypatch.delenv("CMC_API_KEY", raising=False)
-    provider = build_ranking_provider(MarketDataConfig(ranking_source="coingecko"))
-    assert isinstance(provider, CoinGeckoRanking)
 
 
 # --------------------------------------------------------------------------- #
@@ -274,55 +254,18 @@ class SoxtaSession:
         return SoxtaJavob(yozuvlar)
 
 
-def _coingecko(session: SoxtaSession) -> CoinGeckoRanking:
-    provider = CoinGeckoRanking(MarketDataConfig())
-    provider._session = session
-    provider._get_session = lambda: _tayyor(session)  # type: ignore[assignment]
-    return provider
 
 
 async def _tayyor(qiymat):  # noqa: ANN001, ANN202
     return qiymat
 
 
-async def test_reyting_bir_sahifadan_kop_yuklanadi() -> None:
-    """250 dan ortiq so'ralganda hammasi kelishi kerak.
-
-    Ilgari kod `min(limit, 250)` deb yozib, faqat birinchi sahifani
-    so'rardi: 500 ta so'ralsa ham 250 tasi kelardi, JIMGINA. Skanerlash
-    chuqurligini oshirish hech qanday ta'sir bermasdi va buni sezish
-    ham qiyin edi — xato yo'q, log "250 ta coin olindi" deb yozardi.
-    """
-    session = SoxtaSession(jami=600)
-    natija = await _coingecko(session).fetch_ranking(500)
-
-    assert len(natija) == 500
-    assert session.sorovlar == [(1, 250), (2, 250)]
-    assert natija[0].symbol == "C0"
-    assert natija[-1].symbol == "C499"
 
 
-async def test_bir_sahifaga_sigsa_ikkinchisi_soralmaydi() -> None:
-    session = SoxtaSession(jami=600)
-    natija = await _coingecko(session).fetch_ranking(30)
-
-    assert len(natija) == 30
-    assert session.sorovlar == [(1, 30)], "ortiqcha so'rov yuborilmasin"
 
 
-async def test_royxat_tugasa_toxtaydi() -> None:
-    """Birja ro'yxati so'ralgandan kalta bo'lsa — bu xato emas."""
-    session = SoxtaSession(jami=310)
-    natija = await _coingecko(session).fetch_ranking(500)
-
-    assert len(natija) == 310
-    assert len(session.sorovlar) == 2, "bo'sh sahifalar cheksiz so'ralmasin"
 
 
-async def test_bosh_reyting_xato_beradi() -> None:
-    """0.3-band: bo'sh ro'yxat bilan davom etish — eski ro'yxatni yo'qotish."""
-    with pytest.raises(RankingUnavailableError):
-        await _coingecko(SoxtaSession(jami=0)).fetch_ranking(150)
 
 
 # --------------------------------------------------------------------------- #

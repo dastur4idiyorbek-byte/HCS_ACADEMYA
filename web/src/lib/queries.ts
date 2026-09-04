@@ -363,25 +363,7 @@ const SALOMATLIK_USTUNLARI = `value, band, structure_breadth_score,
 
 /** Kunlik "oldindan ko'rish" yozuvlari chiqarib tashlanadi — ular
  *  bashorat, o'lchov emas (`is_daily_preview`). */
-export function salomatlikOxirgi(): Salomatlik | null {
-  const q = db()
-    .prepare(
-      `select ${SALOMATLIK_USTUNLARI} from market_health_log
-        where is_daily_preview = 0 order by created_at desc limit 1`,
-    )
-    .get() as Qator | undefined;
-  return q ? salomatlikkaAylantir(q) : null;
-}
 
-export function salomatlikTarixi(limit = 24): Salomatlik[] {
-  const qatorlar = db()
-    .prepare(
-      `select ${SALOMATLIK_USTUNLARI} from market_health_log
-        where is_daily_preview = 0 order by created_at desc limit ?`,
-    )
-    .all(limit) as Qator[];
-  return qatorlar.map(salomatlikkaAylantir);
-}
 
 // --------------------------------------------------------------------------- //
 //  Statistika
@@ -469,20 +451,6 @@ export function pozitsiyalar(userId: number): Pozitsiya[] {
 //  "Nega signal yo'q?" voronkasi
 // --------------------------------------------------------------------------- //
 
-export function voronka(since: Date): VoronkaQatori[] {
-  const qatorlar = db()
-    .prepare(
-      `select reason as stage, count(*) as soni
-         from risk_blocks where created_at >= ?
-        group by reason order by soni desc`,
-    )
-    .all(vaqtSatri(since)) as Qator[];
-  return qatorlar.map((q) => ({
-    stage: q.stage as string,
-    count: Number(q.soni),
-    routine: false,
-  }));
-}
 
 /** Ball chegarasida to'xtaganlarning ball statistikasi.
  *
@@ -491,21 +459,6 @@ export function voronka(since: Date): VoronkaQatori[] {
  * yozardi. Aynan shu ko'rlik sababli chegara 48 soat davomida erishib
  * bo'lmas darajada balandligi sezilmagan edi.
  */
-export function ballStatistikasi(
-  since: Date,
-  stage = "threshold",
-): { soni: number; engYuqori: number; ortacha: number } | null {
-  const q = db()
-    .prepare(
-      `select count(*) as soni, max(score) as eng, avg(score) as ort
-         from risk_blocks
-        where created_at >= ? and reason = ? and score is not null`,
-    )
-    .get(vaqtSatri(since), stage) as Qator;
-  const soni = Number(q.soni ?? 0);
-  if (!soni) return null;
-  return { soni, engYuqori: Number(q.eng), ortacha: Number(q.ort) };
-}
 
 // --------------------------------------------------------------------------- //
 //  Kontent va narxlar
@@ -822,33 +775,6 @@ export function yopilganSignallar(limit = 50): YopilganSignal[] {
   }));
 }
 
-export function hisobotlar(limit = 8): Hisobot[] {
-  const qatorlar = db()
-    .prepare(
-      `select id, generated_at, period_days, rendered, total, traded, tp2,
-              tp1_then_stop, stop, cancelled, false_signals, average_score,
-              average_holding_hours, pattern_count, sample_warning
-         from audit_reports order by generated_at desc limit ?`,
-    )
-    .all(limit) as Qator[];
-  return qatorlar.map((q) => ({
-    id: Number(q.id),
-    generatedAt: vaqt(q.generated_at as string),
-    periodDays: Number(q.period_days),
-    rendered: (q.rendered as string) ?? "",
-    total: Number(q.total),
-    traded: Number(q.traded),
-    tp2: Number(q.tp2),
-    tp1ThenStop: Number(q.tp1_then_stop),
-    stop: Number(q.stop),
-    cancelled: Number(q.cancelled),
-    falseSignals: Number(q.false_signals),
-    averageScore: son(q.average_score),
-    averageHoldingHours: son(q.average_holding_hours),
-    patternCount: Number(q.pattern_count),
-    sampleWarning: (q.sample_warning as string) ?? null,
-  }));
-}
 
 // --------------------------------------------------------------------------- //
 //  Admin: narxlar (1.2-band)
@@ -1554,57 +1480,6 @@ export type JonliHolat = {
  * savolga javob beradi. Bir necha siklni aralashtirsak, bir coin ikki
  * marta va ikki xil natija bilan chiqardi.
  */
-export function jonliHolat(): JonliHolat {
-  const oxirgi = db()
-    .prepare(`select max(cycle_at) as v from pipeline_events`)
-    .get() as Qator | undefined;
-  const belgi = oxirgi?.v as string | undefined;
-  if (!belgi) return { cycleAt: null, coinlar: [], siklToxtadi: null, xulosa: null };
-
-  const qatorlar = db()
-    .prepare(
-      `select symbol, stage, status, reason, score from pipeline_events
-        where cycle_at = ? order by id`,
-    )
-    .all(belgi) as Qator[];
-
-  let siklToxtadi: string | null = null;
-  const xarita = new Map<string, JonliCoin>();
-
-  for (const q of qatorlar) {
-    const symbol = q.symbol as string;
-    if (symbol === "*") {
-      siklToxtadi = (q.reason as string) ?? null;
-      continue;
-    }
-    let coin = xarita.get(symbol);
-    if (!coin) {
-      coin = { symbol, bosqichlar: [], score: null, signal: false };
-      xarita.set(symbol, coin);
-    }
-    coin.bosqichlar.push({
-      stage: q.stage as string,
-      status: q.status as JonliBosqich["status"],
-      reason: (q.reason as string) ?? null,
-    });
-    if (q.score !== null && q.score !== undefined) coin.score = Number(q.score);
-  }
-
-  const coinlar = [...xarita.values()];
-  for (const coin of coinlar) {
-    coin.signal = coin.bosqichlar.every((b) => b.status === "pass");
-  }
-
-  // Signal chiqqanlar YUQORIDA — admin avval natijani ko'radi. Qolganlari
-  // qanchalik uzoq borgani bo'yicha: eng ilg'orlari tepada, chunki aynan
-  // ular "nega o'tmadi" degan savolga eng yaqin javob.
-  coinlar.sort((a, b) => {
-    if (a.signal !== b.signal) return a.signal ? -1 : 1;
-    return b.bosqichlar.length - a.bosqichlar.length;
-  });
-
-  return { cycleAt: vaqt(belgi), coinlar, siklToxtadi, xulosa: xulosaHisobla(coinlar) };
-}
 
 /** Monitor tepasidagi bir qatorli xulosa.
  *

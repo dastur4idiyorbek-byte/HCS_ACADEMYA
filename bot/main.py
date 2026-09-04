@@ -29,7 +29,6 @@ from core.config import AppConfig, load_config
 from core.market_data import (
     BinanceCandleProvider,
 )
-from core.risk_engine import RiskEngine
 from core.storage import Database
 from core.utils.logging_setup import get_logger, setup_logging
 
@@ -67,10 +66,6 @@ UMUMIY_BUYRUQLAR = [
 ADMIN_BUYRUQLARI = [
     *UMUMIY_BUYRUQLAR,
     BotCommand(command="panel", description="Admin panel"),
-    BotCommand(
-        command="eski_tozalash",
-        description="Eski modul ma'lumotini ko'rish/o'chirish",
-    ),
 ]
 
 
@@ -118,8 +113,6 @@ async def run() -> None:
     if not await database.healthcheck():
         raise RuntimeError("Ma'lumotlar bazasi javob bermayapti — ishga tushirish to'xtatildi")
 
-    engine = RiskEngine(config)
-    logger.info("Risk Engine tayyor: %d ta qoida", len(engine.rules))
     # ID'lar ataylab to'liq yoziladi: `/panel` admin bo'lmaganga JIMGINA
     # javob bermaydi (panel borligi oshkor qilinmasligi kerak). Shu sababli
     # ADMIN_IDS xato yozilsa hech qanday belgi qolmasdi — sozlangan ID'ni

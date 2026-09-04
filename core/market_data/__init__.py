@@ -4,12 +4,18 @@
   - REST orqali tarixiy OHLCV (backtest va indikatorlar uchun)
   - Bitget — IKKINCHI manba: Binance'da yo'q coinlar uchun va bitta
     birjaning tasodifiy "wick"ini rad etish uchun
-  - CoinMarketCap orqali kapitalizatsiya reytingi (3.4-band)
+
+2026-09-04: CoinMarketCap provayderlari (reyting va BTC dominance)
+O'CHIRILDI. Ular FAQAT eski tahlil moduli uchun qurilgan edi: reyting
+"Top-N coin" ro'yxatini yasardi, dominance esa Bozor Salomatligi
+Indeksiga kirardi. Ikkalasi ham eski modul bilan birga ketdi.
+
+Yangi modul coinlarni reytingdan olmaydi — ular `config` dagi ANIQ
+ro'yxat (`zanjir.kuzatiladigan_coinlar`). Shuning uchun bu yerda
+hech qanday API kaliti kerak emas.
 
 Fail-safe (0.3 va 6.4-band):
   - uzilish va qayta ulanish MAJBURIY log qilinadi
-  - `stale_price_seconds` dan eski narx bilan signal BERILMAYDI — buni
-    Risk Engine'dagi `FreshDataRule` ta'minlaydi
   - buzuq xabar butun oqimni to'xtatmaydi
 """
 
@@ -18,7 +24,6 @@ from core.market_data.base import (
     CandleProvider,
     PriceCache,
     PriceStream,
-    RankingProvider,
     SpikeDetector,
 )
 from core.market_data.binance import (
@@ -28,43 +33,27 @@ from core.market_data.binance import (
     to_binance_symbol,
 )
 from core.market_data.bitget import BitgetCandleProvider, to_bitget_symbol
-from core.market_data.dominance import CoinMarketCapDominance, DominanceSnapshot
 from core.market_data.price_reconciliation import (
     Solishtiruv,
     qamrov_pct,
     shubhali_vaqtlar,
     solishtir,
 )
-from core.market_data.ranking import (
-    CoinGeckoRanking,
-    CoinMarketCapRanking,
-    FallbackRanking,
-    RankingUnavailableError,
-    build_ranking_provider,
-)
 
 __all__ = [
-    "BitgetCandleProvider",
-    "Solishtiruv",
-    "qamrov_pct",
-    "shubhali_vaqtlar",
-    "solishtir",
-    "to_bitget_symbol",
-    "CoinMarketCapDominance",
-    "DominanceSnapshot",
     "BackoffPolicy",
     "BinanceCandleProvider",
     "BinancePriceStream",
+    "BitgetCandleProvider",
     "CandleProvider",
-    "CoinGeckoRanking",
-    "CoinMarketCapRanking",
-    "FallbackRanking",
-    "RankingUnavailableError",
     "PriceCache",
     "PriceStream",
-    "RankingProvider",
+    "Solishtiruv",
     "SpikeDetector",
-    "build_ranking_provider",
     "from_binance_symbol",
+    "qamrov_pct",
+    "shubhali_vaqtlar",
+    "solishtir",
     "to_binance_symbol",
+    "to_bitget_symbol",
 ]

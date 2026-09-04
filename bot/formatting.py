@@ -131,9 +131,10 @@ def render_summary(  # noqa: PLR0913
 
 #: Signal manbasi -> kartochkadagi yorliq.
 #:
-#: Ro'yxatda YO'Q manba "eski modul" deb belgilanadi — ya'ni
-#: ATAYLAB eng ehtiyotkor talqin. Yangi manba qo'shilib bu
-#: yerga yozilmasa, u "ishonchli" deb ko'rsatilmaydi.
+#: Faqat IKKI manba bor: zanjir moduli va qo'lda kiritish. Eski
+#: tahlil moduli 2026-09-04 da butunlay o'chirildi — kod ham,
+#: jadvallar ham, ma'lumot ham. Shuning uchun "eski modul"
+#: yorlig'i ham kerak emas: belgilanadigan eski signal qolmadi.
 _MANBA_KALITI = {
     SignalSource.ZANJIR: "signal.manba_zanjir",
     SignalSource.MANUAL: "signal.manba_qolda",
@@ -182,14 +183,9 @@ def render_signal_card(  # noqa: PLR0913
         created_at: signal berilgan vaqt. Berilmasa — hozir.
         manba: signalni QAYSI modul bergani.
 
-            2026-09-04 da admin yangi signal olib, uni yangi
-            modul berganmi yoki eski moduldan qolganmi ajrata
-            olmadi. Kartochkada bu ma'lumot umuman yo'q edi.
-
-            Ikki modul BOSHQA mantiq bilan ishlaydi va ularning
-            signaliga bir xil ishonch bo'lolmaydi — shuning
-            uchun manba kartochkaning O'ZIDA ko'rinadi, admin
-            panelida emas: signalni obunachi ham oladi.
+            Kartochkaning O'ZIDA ko'rinadi, admin panelida emas:
+            signalni obunachi ham oladi va u ham avtomatik
+            signalni qo'lda kiritilganidan ajrata olishi kerak.
     """
     if suggestion is not None and suggestion.position_size_usd > 0:
         amount = f"${format_price(suggestion.position_size_usd)}"
@@ -233,8 +229,9 @@ def render_signal_card(  # noqa: PLR0913
         ),
     )
 
-    if manba is not None:
-        kartochka += "\n\n" + t(_MANBA_KALITI.get(manba, "signal.manba_eski"), language)
+    kalit = _MANBA_KALITI.get(manba) if manba is not None else None
+    if kalit is not None:
+        kartochka += "\n\n" + t(kalit, language)
 
     kartochka += "\n\n" + t("signal.izoh_stop", language)
 

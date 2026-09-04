@@ -117,14 +117,19 @@ class ExitOrderType(str, Enum):
 
 
 class SignalSource(str, Enum):
-    """Signal qayerdan keldi."""
+    """Signal qayerdan keldi.
 
-    MANUAL = "manual"                      # 2-bo'lim: admin qo'lda kiritgan
-    CLASSIC_TA = "classic_ta"              # 3.1 — S/R + indikatorlar
-    OPENING_RANGE_SCALP = "opening_range_scalp"  # 3.9 — kunlik sham ochilishi
-    CORRECTION_ENTRY = "correction_entry"  # 3.10 — pasayishdagi tuzilmaviy kirish
-    NARX_HARAKATI = "narx_harakati"        # yorish -> qayta sinov -> tasdiq
-    ZANJIR = "zanjir"                      # 2026-09: to'rt blokli zanjir moduli
+    2026-09-04: eski tahlil modulining to'rtta manbasi (CLASSIC_TA,
+    OPENING_RANGE_SCALP, CORRECTION_ENTRY, NARX_HARAKATI) BUTUNLAY
+    o'chirildi. Ular eski modulning strategiyalari edi va o'sha modul
+    endi mavjud emas.
+
+    Ro'yxatda faqat ikkita qiymat qoldi. Uchinchisini qo'shish —
+    yangi manba qurish demak, ya'ni backtestsiz qilinmaydi.
+    """
+
+    MANUAL = "manual"    # admin qo'lda kiritgan
+    ZANJIR = "zanjir"    # to'rt blokli zanjir moduli — YAGONA avtomatik manba
 
 
 class MarketRegime(str, Enum):

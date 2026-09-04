@@ -59,21 +59,6 @@ class PriceTick:
     timestamp: datetime
 
 
-@dataclass(frozen=True, slots=True)
-class MarketRankEntry:
-    """Kapitalizatsiya reytingidagi bitta yozuv (CoinGecko/CMC)."""
-
-    rank: int
-    symbol: str
-    name: str
-    market_cap_usd: float
-    volume_24h_usd: float
-
-
-# --------------------------------------------------------------------------- #
-#  3.4 — Halol skrining
-# --------------------------------------------------------------------------- #
-
 
 @dataclass(frozen=True, slots=True)
 class HalalVerdict:

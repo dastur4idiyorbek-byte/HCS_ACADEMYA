@@ -12,7 +12,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from sqlalchemy import event, text
+from sqlalchemy import event, inspect, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -131,6 +131,41 @@ def _stamp_if_fresh(connection, head: str) -> None:  # noqa: ANN001
         )
 
 
+#: Eski tahlil moduli qoldirgan jadvallar.
+#:
+#: Kod 2026-09-03 da, jadval ta'riflari esa 2026-09-04 da o'chirildi.
+#: Lekin `create_all` faqat YARATADI — mavjud jadvalni olib tashlamaydi.
+#: Ya'ni serverdagi bazada ular ma'lumoti bilan birga qolib ketardi va
+#: sayt statistikasi ESKI modulning raqamlarini ko'rsatishda davom
+#: etardi.
+#:
+#: Shuning uchun ular ishga tushishda o'zi olib tashlanadi. Admin
+#: uchun qo'shimcha buyruq yo'q: deploy qilinsa — tozalanadi.
+ESKI_MODUL_JADVALLARI = (
+    "pipeline_events",
+    "risk_blocks",
+    "daily_stats",
+    "market_health_log",
+    "audit_reports",
+)
+
+
+def _eski_jadvallarni_olib_tashla(connection) -> list[str]:  # noqa: ANN001
+    """Eski modul jadvallarini bazadan chiqaradi.
+
+    Jadval yo'q bo'lsa jim o'tadi — ya'ni ikkinchi marta ishga
+    tushirilganda hech narsa qilmaydi.
+    """
+    mavjud = set(inspect(connection).get_table_names())
+    natija = []
+    for nom in ESKI_MODUL_JADVALLARI:
+        if nom not in mavjud:
+            continue
+        connection.exec_driver_sql(f'DROP TABLE IF EXISTS "{nom}"')
+        natija.append(nom)
+    return natija
+
+
 async def init_models(engine: AsyncEngine) -> None:
     """Jadvallarni yaratadi (dastlabki ishga tushirish uchun).
 
@@ -141,10 +176,16 @@ async def init_models(engine: AsyncEngine) -> None:
     head = _alembic_head()
 
     async with engine.begin() as connection:
+        olib_tashlandi = await connection.run_sync(_eski_jadvallarni_olib_tashla)
         await connection.run_sync(Base.metadata.create_all)
         if head is not None:
             await connection.run_sync(_stamp_if_fresh, head)
 
+    if olib_tashlandi:
+        logger.warning(
+            "Eski tahlil moduli jadvallari bazadan chiqarildi: %s",
+            ", ".join(olib_tashlandi),
+        )
     logger.info("Ma'lumotlar bazasi sxemasi tayyor (%d jadval)", len(Base.metadata.tables))
 
 
