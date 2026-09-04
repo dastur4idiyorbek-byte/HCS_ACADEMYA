@@ -363,7 +363,8 @@
     "post_yuklanmadi": "⚠️ Fayl yuklanmadi",
     "post_nashr": "Nashr etish",
     "post_royxat": "Postlar",
-    "post_yoq": "Hali post yozilmagan."
+    "post_yoq": "Hali post yozilmagan.",
+    "zanjir": "Zanjir"
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",
@@ -418,5 +419,26 @@
     "eng_kop": "Eng ko'p to'xtagan joy",
     "ortacha_ball": "O'rtacha ball",
     "eng_yuqori": "eng yuqori"
+  },
+  "zanjir": {
+    "sarlavha": "Jonli Blok Zanjiri",
+    "hali_yoq": "Zanjir hali yugurmagan.",
+    "hali_yoq_izoh": "Modul birinchi marta ishga tushgach, har coin uchun to'rt blokning holati shu yerda paydo bo'ladi.",
+    "tekshirildi": "Tekshirildi",
+    "toliq": "To'liq zanjir",
+    "signal": "Signal",
+    "ortacha": "O'rtacha blok",
+    "indeks": "Bozor Salomatligi",
+    "ishonch": "Ishonch",
+    "uzildi": "Uzildi",
+    "tekshirilmagan": "Bu yugurishda tekshirilmadi.",
+    "bir_tomonlama": "Bu ekran FAQAT kuzatadi. Undagi hech bir raqam modulga qaytib kirmaydi va signal qaroriga ta'sir qilmaydi.",
+    "eskirgan": "Bu — oxirgi yugurishning yozilgan natijasi, jonli oqim emas.",
+    "terminallar": "Real narx terminallari",
+    "tab_sektorlar": "Sektorlar",
+    "tab_ekotizim": "Ekotizim",
+    "tab_harakat": "Top harakatlanuvchilar",
+    "indeks_izoh": "Bu — modulning AGREGAT natijasi: o'rtacha nechta blok bog'landi. Sof statistik ko'rsatkich.",
+    "uzilish_joylari": "Zanjir qayerda uzildi"
   }
 }

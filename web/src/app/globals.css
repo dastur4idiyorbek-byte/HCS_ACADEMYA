@@ -16,13 +16,13 @@
 
 :root {
   /* --- Logotipdan o'lchangan xom ranglar ------------------------------- */
-  --logo-h-turkuaz: #01aac1;       /* H ustuni            (210, 300) */
-  --logo-h-turkuaz-och: #00bcd5;   /* H ko'ndalang chizig'i (270, 318) */
-  --logo-c-apelsin: #f47f16;       /* C yoyi              (420, 185) */
-  --logo-s-kok: #10469c;           /* S yoyi              (440, 370) */
-  --logo-s-kok-toq: #133c7c;       /* past-chap shakl     ( 55, 590) */
-  --logo-sariq: #f0b02a;           /* tepa-o'ng shakl     (600,  25) */
-  --logo-oq: #f9f9f9;              /* logotip foni        (560, 120) */
+  --logo-h-turkuaz: #01aac1; /* H ustuni            (210, 300) */
+  --logo-h-turkuaz-och: #00bcd5; /* H ko'ndalang chizig'i (270, 318) */
+  --logo-c-apelsin: #f47f16; /* C yoyi              (420, 185) */
+  --logo-s-kok: #10469c; /* S yoyi              (440, 370) */
+  --logo-s-kok-toq: #133c7c; /* past-chap shakl     ( 55, 590) */
+  --logo-sariq: #f0b02a; /* tepa-o'ng shakl     (600,  25) */
+  --logo-oq: #f9f9f9; /* logotip foni        (560, 120) */
 
   /* --- Interfeys rollari ----------------------------------------------- */
   /* Sahifa foni: --logo-s-kok-toq dan HISOBLAB qoraytirilgan (~x0.62).
@@ -30,22 +30,26 @@
      fondan ajralib turishi kerak. Ikkalasi bir xil rang bo'lsa, kartochka
      "suzib" ketadi va faqat ramka ushlab turadi. */
   --rang-fon: #0a2450;
-  --rang-panel: var(--logo-s-kok-toq);   /* kartochka foni */
+  --rang-panel: var(--logo-s-kok-toq); /* kartochka foni */
   --rang-panel-yorqin: var(--logo-s-kok); /* hover / ko'tarilgan holat */
 
   --rang-ramka: var(--logo-c-apelsin);
   /* Ingichka chiziq "qichqirmasligi" uchun oddiy kartochkada shaffofroq */
-  --rang-ramka-yumshoq: color-mix(in srgb, var(--logo-c-apelsin) 62%, transparent);
+  --rang-ramka-yumshoq: color-mix(
+    in srgb,
+    var(--logo-c-apelsin) 62%,
+    transparent
+  );
 
   --rang-sarlavha: var(--logo-h-turkuaz-och);
   /* Uzun matn uchun turkuaz charchatadi — logotip ko'kining OCH TONI
      (hisoblangan tint), kontrast 7.7:1 */
   --rang-matn: #c7d4ea;
-  --rang-matn-past: #9ab0d2;      /* hisoblangan, ikkinchi darajali matn */
+  --rang-matn-past: #9ab0d2; /* hisoblangan, ikkinchi darajali matn */
   --rang-oq: var(--logo-oq);
 
   /* --- Ma'noviy ranglar (Bozor Salomatligi shkalasi, holatlar) ---------- */
-  --rang-yaxshi: var(--logo-h-turkuaz-och);  /* to'yingan ko'k-yashil */
+  --rang-yaxshi: var(--logo-h-turkuaz-och); /* to'yingan ko'k-yashil */
   --rang-ortacha: var(--logo-sariq);
   /* Qizil logotipda yo'q — apelsin ohangiga moslab HISOBLANGAN.
      Ikkita variant kerak, chunki ikki xil ish bajaradi:
@@ -57,7 +61,7 @@
   --rang-past: #f2695a;
 
   /* --- O'lchamlar ------------------------------------------------------- */
-  --radius-kartochka: 14px;   /* topshiriq: 12-16px, keskin ham, dumaloq ham emas */
+  --radius-kartochka: 14px; /* topshiriq: 12-16px, keskin ham, dumaloq ham emas */
   --radius-kichik: 10px;
   --radius-tugma: 12px;
 }
@@ -136,5 +140,94 @@ body {
 @media print {
   .himoya {
     display: none !important;
+  }
+}
+
+/* ===========================================================================
+   JONLI BLOK ZANJIRI (4-prompt, 3-qism)
+
+   Butunlay CSS — hech qanday kutubxona yo'q. Bloklar chapdan o'ngga
+   ketma-ket "yonib" chiqadi (`animation-delay` bilan navbat), zanjir
+   bo'g'inlari esa oldingi blok to'liq bo'lsa ulanadi.
+
+   MUHIM: bu — YOZILGAN holatning qayta o'ynatilishi, jonli oqim EMAS.
+   Sikl har necha soatda yuradi va bir necha soniyada tugaydi, ya'ni
+   "hozir tekshirilmoqda" holatini ushlab turish deyarli imkonsiz.
+   Ekranda ham shunday yozilgan.
+   =========================================================================== */
+
+@keyframes blok-yonadi {
+  from {
+    opacity: 0.25;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bogin-ulanadi {
+  from {
+    transform: scaleX(0);
+    opacity: 0.3;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* Kutilayotgan coin — hali tekshirilmagan. Sekin miltillaydi. */
+@keyframes blok-pulsatsiya {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.blok-katak {
+  animation: blok-yonadi 420ms ease-out backwards;
+}
+
+.zanjir-bogin {
+  display: block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  transform-origin: left center;
+  animation: bogin-ulanadi 320ms ease-out backwards;
+}
+
+.zanjir-bogin--ulangan {
+  background: var(--rang-yaxshi);
+}
+
+/* Uzilgan bo'g'in — to'liq chiziq emas, "sindirilgan" ko'rinish:
+   ikkita kalta bo'lak orasida bo'shliq. */
+.zanjir-bogin--uzilgan {
+  background: linear-gradient(
+    to right,
+    var(--rang-past) 0 40%,
+    transparent 40% 60%,
+    var(--rang-past) 60% 100%
+  );
+  opacity: 0.55;
+}
+
+.blok-kutilmoqda {
+  animation: blok-pulsatsiya 1.8s ease-in-out infinite;
+}
+
+/* Harakatga sezgir foydalanuvchilar uchun animatsiya o'chadi.
+   Ma'lumot rang va raqamda ham bor, ya'ni hech narsa yo'qolmaydi. */
+@media (prefers-reduced-motion: reduce) {
+  .blok-katak,
+  .zanjir-bogin,
+  .blok-kutilmoqda {
+    animation: none;
   }
 }

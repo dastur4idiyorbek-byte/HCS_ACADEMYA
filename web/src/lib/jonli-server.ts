@@ -35,8 +35,12 @@ let kesh: Kesh = { narxlar: {}, vaqt: 0 };
  * ma'lumot, signalning o'zi emas. Binance javob bermasa bo'sh obyekt
  * qaytadi va sahifada foiz ko'rsatilmaydi, xolos.
  */
-export async function narxlarniOl(juftlar: string[]): Promise<Record<string, number>> {
-  const kerak = [...new Set(juftlar.map((j) => j.toUpperCase()))].filter(Boolean);
+export async function narxlarniOl(
+  juftlar: string[],
+): Promise<Record<string, number>> {
+  const kerak = [...new Set(juftlar.map((j) => j.toUpperCase()))].filter(
+    Boolean,
+  );
   if (kerak.length === 0) return {};
 
   const hozir = Date.now();
@@ -44,7 +48,10 @@ export async function narxlarniOl(juftlar: string[]): Promise<Record<string, num
     return Object.fromEntries(kerak.map((j) => [j, kesh.narxlar[j]]));
   }
 
-  const asos = sozlama<string>(["market_data", "rest_base_url"], "https://api.binance.com");
+  const asos = sozlama<string>(
+    ["market_data", "rest_base_url"],
+    "https://api.binance.com",
+  );
   const manzil =
     `${asos}/api/v3/ticker/price?symbols=` +
     encodeURIComponent(JSON.stringify(kerak));
@@ -68,5 +75,82 @@ export async function narxlarniOl(juftlar: string[]): Promise<Record<string, num
     // Tarmoq uzilsa eski keshdagi narx qoladi — u yo'q narsadan yaxshi,
     // lekin sahifa baribir ochiladi.
     return kesh.narxlar;
+  }
+}
+
+// --------------------------------------------------------------------------- //
+//  24 soatlik o'zgarish — "Top harakatlanuvchilar" uchun (4-prompt, 2-qism)
+// --------------------------------------------------------------------------- //
+
+export type SutkalikHolat = {
+  juftlik: string;
+  narx: number;
+  /** 24 soatdagi o'zgarish, foizda */
+  ozgarishPct: number;
+};
+
+type SutkaKesh = { qatorlar: SutkalikHolat[]; vaqt: number };
+
+/** Kesh muddati. Narxdan UZUNROQ: 24 soatlik raqam bir daqiqada
+ *  sezilarli o'zgarmaydi, so'rov esa og'irroq. */
+export const SUTKA_KESH_MS = 60_000;
+
+let sutkaKesh: SutkaKesh = { qatorlar: [], vaqt: 0 };
+
+/** Berilgan juftliklarning 24 soatlik o'zgarishi.
+ *
+ * HECH QACHON ISTISNO TASHLAMAYDI — narx bilan bir xil qoida: bu
+ * qo'shimcha ma'lumot, signalning o'zi emas. Binance javob bermasa
+ * eski kesh (yoki bo'sh ro'yxat) qaytadi va sahifa baribir ochiladi.
+ */
+export async function sutkalikOzgarish(
+  juftlar: string[],
+): Promise<SutkalikHolat[]> {
+  const kerak = [...new Set(juftlar.map((j) => j.toUpperCase()))].filter(
+    Boolean,
+  );
+  if (kerak.length === 0) return [];
+
+  const hozir = Date.now();
+  if (hozir - sutkaKesh.vaqt < SUTKA_KESH_MS && sutkaKesh.qatorlar.length > 0) {
+    return sutkaKesh.qatorlar.filter((q) => kerak.includes(q.juftlik));
+  }
+
+  const asos = sozlama<string>(
+    ["market_data", "rest_base_url"],
+    "https://api.binance.com",
+  );
+  const manzil =
+    `${asos}/api/v3/ticker/24hr?symbols=` +
+    encodeURIComponent(JSON.stringify(kerak));
+
+  try {
+    const javob = await fetch(manzil, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!javob.ok) return sutkaKesh.qatorlar;
+
+    const xom = (await javob.json()) as {
+      symbol: string;
+      lastPrice: string;
+      priceChangePercent: string;
+    }[];
+
+    const qatorlar: SutkalikHolat[] = [];
+    for (const q of Array.isArray(xom) ? xom : []) {
+      const narx = Number(q.lastPrice);
+      const pct = Number(q.priceChangePercent);
+      if (!Number.isFinite(narx) || !Number.isFinite(pct)) continue;
+      qatorlar.push({
+        juftlik: q.symbol.toUpperCase(),
+        narx,
+        ozgarishPct: pct,
+      });
+    }
+    sutkaKesh = { qatorlar, vaqt: hozir };
+    return qatorlar;
+  } catch {
+    return sutkaKesh.qatorlar;
   }
 }

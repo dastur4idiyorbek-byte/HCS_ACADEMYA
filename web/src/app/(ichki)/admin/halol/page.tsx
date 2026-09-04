@@ -108,7 +108,9 @@ export default async function Halol() {
                         <span className="text-sarlavha block text-sm font-semibold">
                           {q.symbol}
                         </span>
-                        <span className="text-matn-past block text-xs">{q.reason}</span>
+                        <span className="text-matn-past block text-xs">
+                          {q.reason}
+                        </span>
                       </span>
                       <form action={qarorOchir}>
                         <input type="hidden" name="symbol" value={q.symbol} />

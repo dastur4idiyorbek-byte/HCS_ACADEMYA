@@ -16,7 +16,10 @@ export default async function Havolalar() {
 
   return (
     <>
-      <Sarlavha matn={`🔗 ${t("admin.havolalar")}`} izoh={t("admin.havola_izoh")} />
+      <Sarlavha
+        matn={`🔗 ${t("admin.havolalar")}`}
+        izoh={t("admin.havola_izoh")}
+      />
 
       <div className="space-y-5">
         <Card variant="urgu">
@@ -47,7 +50,13 @@ export default async function Havolalar() {
   );
 }
 
-function HavolaFormasi({ t, havola }: { t: (k: string) => string; havola?: Havola }) {
+function HavolaFormasi({
+  t,
+  havola,
+}: {
+  t: (k: string) => string;
+  havola?: Havola;
+}) {
   const id = havola ? String(havola.id) : "";
   const pre = (nom: string) => `${id || "yangi"}-h-${nom}`;
 
@@ -58,7 +67,10 @@ function HavolaFormasi({ t, havola }: { t: (k: string) => string; havola?: Havol
 
         <div className="flex flex-wrap gap-3">
           <span className="min-w-0 flex-1">
-            <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("t")}>
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("t")}
+            >
               {t("admin.havola_nomi")}
             </label>
             <input
@@ -70,7 +82,10 @@ function HavolaFormasi({ t, havola }: { t: (k: string) => string; havola?: Havol
             />
           </span>
           <span>
-            <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("i")}>
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("i")}
+            >
               {t("admin.havola_ikonka")}
             </label>
             <select
@@ -87,7 +102,10 @@ function HavolaFormasi({ t, havola }: { t: (k: string) => string; havola?: Havol
             </select>
           </span>
           <span>
-            <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("p")}>
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("p")}
+            >
               {t("admin.tartib")}
             </label>
             <input
@@ -101,7 +119,10 @@ function HavolaFormasi({ t, havola }: { t: (k: string) => string; havola?: Havol
         </div>
 
         <div>
-          <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("u")}>
+          <label
+            className="text-matn-past mb-1 block text-xs uppercase"
+            htmlFor={pre("u")}
+          >
             {t("admin.havola_url")}
           </label>
           <input

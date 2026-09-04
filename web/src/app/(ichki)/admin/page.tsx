@@ -20,7 +20,11 @@ export default async function Admin() {
     <>
       <Sarlavha
         matn={t("admin.sarlavha")}
-        ong={tolovlar.length > 0 ? <Badge tone="ortacha">{tolovlar.length}</Badge> : undefined}
+        ong={
+          tolovlar.length > 0 ? (
+            <Badge tone="ortacha">{tolovlar.length}</Badge>
+          ) : undefined
+        }
       />
 
       <div className="space-y-5">
@@ -31,17 +35,23 @@ export default async function Admin() {
           ) : (
             <ul className="mt-3 space-y-3">
               {tolovlar.map((p) => (
-                <li key={p.id} className="border-ramka-yumshoq rounded-kichik border p-3">
+                <li
+                  key={p.id}
+                  className="border-ramka-yumshoq rounded-kichik border p-3"
+                >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="min-w-0">
                       <span className="text-sarlavha block text-sm font-semibold">
                         {p.fullName ?? p.username ?? `ID ${p.telegramId}`}
                       </span>
                       <span className="text-matn-past raqam block text-xs">
-                        {p.tier} · {p.period} · {p.amount.toLocaleString("en-US")} {p.currency}
+                        {p.tier} · {p.period} ·{" "}
+                        {p.amount.toLocaleString("en-US")} {p.currency}
                       </span>
                     </span>
-                    <span className="text-matn-past raqam text-xs">{sana(p.createdAt)}</span>
+                    <span className="text-matn-past raqam text-xs">
+                      {sana(p.createdAt)}
+                    </span>
                   </div>
 
                   {/* Chek RASMI shu yerda ko'rinadi. Avval "chek botda
@@ -62,7 +72,9 @@ export default async function Admin() {
                       />
                     </a>
                   ) : (
-                    <CardHint className="mt-2">📎 {t("admin.chek_yoq")}</CardHint>
+                    <CardHint className="mt-2">
+                      📎 {t("admin.chek_yoq")}
+                    </CardHint>
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -76,7 +88,10 @@ export default async function Admin() {
                       </button>
                     </form>
 
-                    <form action={radEt} className="flex flex-1 flex-wrap items-center gap-2">
+                    <form
+                      action={radEt}
+                      className="flex flex-1 flex-wrap items-center gap-2"
+                    >
                       <input type="hidden" name="id" value={p.id} />
                       <input
                         type="text"
@@ -97,7 +112,6 @@ export default async function Admin() {
             </ul>
           )}
         </Card>
-
       </div>
     </>
   );

@@ -52,7 +52,10 @@ export default async function YangiSignal({
 
   return (
     <>
-      <Sarlavha matn={`📈 ${t("admin.signal")}`} izoh={t("admin.signal_izoh")} />
+      <Sarlavha
+        matn={`📈 ${t("admin.signal")}`}
+        izoh={t("admin.signal_izoh")}
+      />
 
       <div className="space-y-5">
         {yaratilgan && (
@@ -88,7 +91,10 @@ export default async function YangiSignal({
           <CardTitle>{t("admin.signal")}</CardTitle>
           <form action={signalBer} className="mt-4 space-y-3">
             <div>
-              <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor="symbol">
+              <label
+                className="text-matn-past mb-1 block text-xs uppercase"
+                htmlFor="symbol"
+              >
                 {t("admin.symbol")}
               </label>
               <input
@@ -121,7 +127,10 @@ export default async function YangiSignal({
             </div>
 
             <div>
-              <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor="note">
+              <label
+                className="text-matn-past mb-1 block text-xs uppercase"
+                htmlFor="note"
+              >
                 {t("admin.signal_izoh_maydoni")}
               </label>
               <input
@@ -145,7 +154,9 @@ export default async function YangiSignal({
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>{t("admin.kutilmoqda")}</CardTitle>
-            {kutayotganlar.length > 0 && <Badge tone="ortacha">{kutayotganlar.length}</Badge>}
+            {kutayotganlar.length > 0 && (
+              <Badge tone="ortacha">{kutayotganlar.length}</Badge>
+            )}
           </div>
           {kutayotganlar.length === 0 ? (
             <CardHint>{t("admin.kutilmoqda_yoq")}</CardHint>
@@ -154,7 +165,9 @@ export default async function YangiSignal({
               {kutayotganlar.map((s) => (
                 <li key={s.id} className="flex justify-between gap-3 text-sm">
                   <span className="text-sarlavha font-medium">{s.symbol}</span>
-                  <span className="text-matn-past raqam text-xs">{sana(s.createdAt)}</span>
+                  <span className="text-matn-past raqam text-xs">
+                    {sana(s.createdAt)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -178,9 +191,12 @@ export default async function YangiSignal({
                   className="border-ramka-yumshoq rounded-kichik flex flex-wrap items-center justify-between gap-2 border p-2.5"
                 >
                   <span className="min-w-0">
-                    <span className="text-sarlavha font-medium">{s.symbol}</span>{" "}
+                    <span className="text-sarlavha font-medium">
+                      {s.symbol}
+                    </span>{" "}
                     <span className="text-matn-past raqam text-xs">
-                      {holatNomi(s.status, til)} · {narx(s.entry)} · {sana(s.createdAt)}
+                      {holatNomi(s.status, til)} · {narx(s.entry)} ·{" "}
+                      {sana(s.createdAt)}
                       {s.resultPct !== null && ` · ${foiz(s.resultPct)}`}
                     </span>
                   </span>

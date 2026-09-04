@@ -7,6 +7,7 @@ import {
 } from "./config.ts";
 import { asosiyAktiv } from "./kalkulyator.ts";
 import { postMediaTuri } from "./media.ts";
+import type { Blok as ZanjirBlok, CoinZanjiri } from "./zanjir.ts";
 import type { Bolak, OchiqPozitsiya, YopilganQism } from "./portfel.ts";
 
 /** Botning bazasidan o'qish/yozish.
@@ -1466,6 +1467,61 @@ export function videoBiriktir(
     ok: true,
     eskiNom: oldingi.videoPath === nom ? null : oldingi.videoPath,
   };
+}
+
+// --------------------------------------------------------------------------- //
+//  Zanjir modulining jonli holati (4-prompt, 2/3-qism)
+// --------------------------------------------------------------------------- //
+
+/** Har coinning OXIRGI tekshiruv natijasi.
+ *
+ * FAQAT O'QIYDI. Sayt bu jadvalga hech narsa yozmaydi va undan
+ * chiqqan raqam modulga qaytmaydi — bir tomonlama oqim
+ * (`core/storage/zanjir_repository.py` dagi qoida). */
+export function zanjirHolatlari(): CoinZanjiri[] {
+  const qatorlar = db()
+    .prepare(
+      `select symbol, bloklar_json, toliq, uzildi_blokda, ishonch,
+              natija, izoh, signal_id, tekshirilgan
+         from zanjir_holatlari order by symbol`,
+    )
+    .all() as Qator[];
+
+  return qatorlar.map((q) => {
+    let bloklar: ZanjirBlok[] = [];
+    try {
+      // JSON bazadan keladi. Buzuq bo'lsa BUTUN SAHIFA yiqilmasin —
+      // o'sha coin blokssiz ko'rinadi, qolganlari ishlaydi.
+      const xom = JSON.parse(String(q.bloklar_json ?? "[]")) as unknown;
+      if (Array.isArray(xom)) {
+        bloklar = xom.map((b) => {
+          const o = b as Record<string, unknown>;
+          return {
+            nom: String(o.nom ?? ""),
+            kuch: Number(o.kuch ?? 0),
+            maxraj: Number(o.maxraj ?? 0),
+            otdi: Boolean(o.otdi),
+            olchanmadi: Boolean(o.olchanmadi),
+            tosiq: String(o.tosiq ?? ""),
+          };
+        });
+      }
+    } catch {
+      bloklar = [];
+    }
+
+    return {
+      symbol: String(q.symbol),
+      bloklar,
+      toliq: Boolean(q.toliq),
+      uzildiBlokda: (q.uzildi_blokda as string | null) ?? null,
+      ishonch: Number(q.ishonch ?? 0),
+      natija: String(q.natija ?? ""),
+      izoh: String(q.izoh ?? ""),
+      signalId: son(q.signal_id),
+      tekshirilgan: vaqt(q.tekshirilgan as string),
+    };
+  });
 }
 
 // --------------------------------------------------------------------------- //

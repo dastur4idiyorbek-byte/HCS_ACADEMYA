@@ -91,7 +91,10 @@ function DarsFormasi({ t, dars }: { t: (k: string) => string; dars?: Dars }) {
         <input type="hidden" name="id" value={id} />
 
         <div>
-          <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("title")}>
+          <label
+            className="text-matn-past mb-1 block text-xs uppercase"
+            htmlFor={pre("title")}
+          >
             {t("admin.sarlavha")}
           </label>
           <input
@@ -104,7 +107,10 @@ function DarsFormasi({ t, dars }: { t: (k: string) => string; dars?: Dars }) {
         </div>
 
         <div>
-          <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("desc")}>
+          <label
+            className="text-matn-past mb-1 block text-xs uppercase"
+            htmlFor={pre("desc")}
+          >
             {t("admin.tavsif")}
           </label>
           <input
@@ -165,7 +171,10 @@ function DarsFormasi({ t, dars }: { t: (k: string) => string; dars?: Dars }) {
         </div>
 
         <div>
-          <label className="text-matn-past mb-1 block text-xs uppercase" htmlFor={pre("file")}>
+          <label
+            className="text-matn-past mb-1 block text-xs uppercase"
+            htmlFor={pre("file")}
+          >
             {t("admin.file_id")}
           </label>
           <input

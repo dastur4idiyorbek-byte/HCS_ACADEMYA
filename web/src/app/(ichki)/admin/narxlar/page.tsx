@@ -22,8 +22,14 @@ export default async function Narxlar() {
   const t = tarjimon(til);
   const mavjud = narxlar();
 
-  const top = (tier: string, period: string, currency: string): Narx | undefined =>
-    mavjud.find((n) => n.tier === tier && n.period === period && n.currency === currency);
+  const top = (
+    tier: string,
+    period: string,
+    currency: string,
+  ): Narx | undefined =>
+    mavjud.find(
+      (n) => n.tier === tier && n.period === period && n.currency === currency,
+    );
 
   return (
     <>
@@ -48,12 +54,17 @@ export default async function Narxlar() {
                       <input type="hidden" name="currency" value={currency} />
 
                       <p className="text-matn-past mb-2 text-xs uppercase">
-                        {period === "daily" ? t("profil.kunlik") : t("profil.oylik")} ·{" "}
-                        {currency}
+                        {period === "daily"
+                          ? t("profil.kunlik")
+                          : t("profil.oylik")}{" "}
+                        · {currency}
                       </p>
 
                       <div className="flex flex-wrap items-center gap-2">
-                        <label className="sr-only" htmlFor={`s-${tier}-${period}-${currency}`}>
+                        <label
+                          className="sr-only"
+                          htmlFor={`s-${tier}-${period}-${currency}`}
+                        >
                           {t("admin.summa_kiriting")}
                         </label>
                         <input
