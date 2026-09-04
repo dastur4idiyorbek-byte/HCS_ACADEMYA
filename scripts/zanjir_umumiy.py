@@ -22,7 +22,40 @@ from core.config.loader import load_config
 from core.config.schema import AppConfig
 
 HISOBOT_PAPKA = Path("reports")
-STANDART_COINLAR = ["BTC", "ETH", "SOL", "BNB", "XRP"]
+#: O'LCHOV COINLARI — HALOL SKRININGDAN O'TGAN.
+#:
+#: 2026-09-04 da topilgan xato: o'lchovlar BNB va XRP bilan
+#: yuritilgan edi. Holbuki `config/default.yaml` da BNB — HAROM
+#: ro'yxatida, XRP — MASHBOOH ro'yxatida. Ya'ni PF 3.50 raqami
+#: bot HECH QACHON signal bermaydigan coinlardagi savdolarni ham
+#: o'z ichiga olardi.
+#:
+#: Bu ro'yxat endi test bilan qulflangan
+#: (`test_olchov_coinlari_halol.py`): harom yoki mashbooh
+#: ro'yxatidagi coin bu yerga tushsa, test yiqiladi.
+#:
+#: DIQQAT: bu ro'yxat "halol" degan DINIY hukm emas. U faqat
+#: loyihaning o'z skrining ro'yxatiga MOS kelishini bildiradi.
+#: Yakuniy hukm — mutaxassis kishining ishi (loyiha qoidasi).
+STANDART_COINLAR = ["BTC", "ETH", "SOL", "ADA", "AVAX"]
+
+#: 12 coinlik to'plam — 2026-09-04 gacha bo'lgan o'lchovlar shu
+#: hajmda yuritilgan. BNB va XRP o'rniga ETC va FIL qo'yildi,
+#: qolgan o'nta o'zgarmadi (natijalarni solishtirish uchun).
+OLCHOV_12 = [
+    "BTC", "ETH", "SOL", "ADA", "AVAX",
+    "LINK", "DOT", "ATOM", "LTC", "NEAR",
+    "ETC", "FIL",
+]
+
+#: Kengaytirilgan to'plam — savdo sonini oshirish uchun.
+#: Hammasi 2021-yildan oldin Binance spotda bo'lgan, ya'ni
+#: 4 yillik sinovda to'liq tarixi bor.
+OLCHOV_24 = [
+    *OLCHOV_12,
+    "ALGO", "VET", "XLM", "HBAR", "EOS", "ICP",
+    "XTZ", "IOTA", "THETA", "EGLD", "GRT", "BCH",
+]
 
 #: Isinish kunlari — struktura va POC uchun tarix kerak.
 #: Kunlik timeframeda 200 sham ~ 200 kun.

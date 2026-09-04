@@ -20,8 +20,8 @@ on:
         description: "Necha kun tahlil qilinsin"
         default: "730"
       symbols:
-        description: "Coinlar, vergul bilan"
-        default: "BTC,ETH,SOL,BNB,XRP"
+        description: "Coinlar, vergul bilan (halol skriningdan o'tganlar)"
+        default: "BTC,ETH,SOL,ADA,AVAX,LINK,DOT,ATOM,LTC,NEAR,ETC,FIL"
       end_date:
         description: "Sinov oynasining oxiri (YYYY-MM-DD), bo'sh — eng so'nggi"
         default: ""
