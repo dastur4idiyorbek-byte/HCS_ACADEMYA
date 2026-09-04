@@ -63,3 +63,29 @@ def test_bola_jadval_avval_ochiriladi() -> None:
     tartib = [jadval for _, jadval, _ in OCHIRILADI]
     assert tartib.index("signal_events") < tartib.index("signals")
     assert tartib.index("user_positions") < tartib.index("signals")
+
+
+def test_bot_buyrugi_royxatda_bor() -> None:
+    """Buyruq Telegram menyusida ko'rinsin.
+
+    Ro'yxatga yozilmasa, buyruq ishlaydi-yu, admin uning borligini
+    bilmaydi — Railway'da tozalashning yagona qulay yo'li shu.
+    """
+    from bot.main import ADMIN_BUYRUQLARI, UMUMIY_BUYRUQLAR
+
+    admin = {b.command for b in ADMIN_BUYRUQLARI}
+    oddiy = {b.command for b in UMUMIY_BUYRUQLAR}
+    assert "eski_tozalash" in admin
+    # ODDIY foydalanuvchi bu buyruqni KO'RMASLIGI kerak.
+    assert "eski_tozalash" not in oddiy
+
+
+def test_buyruq_ikki_qadamli() -> None:
+    """Bitta xabar bilan o'chirilmasin — tasodifan yuborilishi mumkin."""
+    import inspect
+
+    from bot.handlers.admin import eski_tozalash
+
+    manba = inspect.getsource(eski_tozalash)
+    assert '"tasdiqla"' in manba
+    assert "Hech narsa o'chirilmadi" in manba

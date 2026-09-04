@@ -67,6 +67,10 @@ UMUMIY_BUYRUQLAR = [
 ADMIN_BUYRUQLARI = [
     *UMUMIY_BUYRUQLAR,
     BotCommand(command="panel", description="Admin panel"),
+    BotCommand(
+        command="eski_tozalash",
+        description="Eski modul ma'lumotini ko'rish/o'chirish",
+    ),
 ]
 
 
