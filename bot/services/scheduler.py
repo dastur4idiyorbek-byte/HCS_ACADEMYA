@@ -35,6 +35,7 @@ from core.domain.enums import OrderType, SignalSource
 from core.domain.models import EntryPlan, signal_levels
 from core.market_data.binance import BinanceCandleProvider
 from core.services import SubscriptionService
+from core.services.signal_kuzatuvchi import SignalKuzatuvchi
 from core.services.zanjir_sikl import ZanjirSikl
 from core.storage import Database
 from core.storage.repositories import (
@@ -109,6 +110,12 @@ class Scheduler:
         self._sikl = (
             ZanjirSikl(config, candles, database) if candles is not None else None
         )
+        # KUZATUVCHI — narxni kuzatib signal holatini yangilaydi.
+        # 2026-09-05 gacha bu umuman yo'q edi: hech bir signal "Faol"
+        # bo'lmasdi, TP va Stop qayd etilmasdi, statistika to'lmasdi.
+        self._kuzatuvchi = (
+            SignalKuzatuvchi(config, candles, database) if candles is not None else None
+        )
         self._video_dir = video_dir()
         self._tasks: list[asyncio.Task] = []
 
@@ -155,6 +162,22 @@ class Scheduler:
                 timedelta(hours=self._config.zanjir.sikl_soat),
                 self._zanjir_sikli,
                 timedelta(minutes=3),
+            ))
+            # KUZATUV — signal sikldan TEZ-TEZ yuradi.
+            #
+            # Sikl 4 soatda bir marta YANGI signal qidiradi; kuzatuv
+            # esa MAVJUD signallarni oldinga suradi. Narx TP yoki
+            # Stopga tegishi uchun 4 soat kutish — foydalanuvchi
+            # botda eskirgan holatni ko'rishi demak.
+            #
+            # 5 daqiqa: kuzatuv timeframei 15 daqiqa, ya'ni undan
+            # tez-tez tekshirish yangi ma'lumot bermaydi, lekin
+            # yopilgan sham darrov o'qiladi.
+            vazifalar.append((
+                "kuzatuv",
+                timedelta(minutes=5),
+                self._signallarni_kuzat,
+                timedelta(minutes=1),
             ))
         else:
             logger.warning(
@@ -231,6 +254,22 @@ class Scheduler:
                 await self._bot.send_message(admin_id, matn)
             except Exception:  # noqa: BLE001 — bitta admin yetmasligi jiddiy emas
                 logger.warning("Adminga xabar yetmadi: %s", admin_id)
+
+    async def _signallarni_kuzat(self) -> None:
+        """Ochiq signallarni narx bilan oldinga suradi.
+
+        Bu vazifa 2026-09-05 da qo'shildi. Undan oldin signal holati
+        UMUMAN yangilanmasdi: hammasi abadiy "Kutilmoqda" bo'lib
+        turardi, TP va Stop qayd etilmasdi, statistika to'lmasdi.
+
+        Kuzatuv XABAR YUBORMAYDI. Holat o'zgarishi botda va saytda
+        keyingi ochilishda ko'rinadi. Har TP uchun alohida xabar
+        yuborish alohida qaror — u foydalanuvchini bezovta qilishi
+        mumkin va uni loyiha egasi hal qiladi.
+        """
+        if self._kuzatuvchi is None:
+            return
+        await self._kuzatuvchi.yur()
 
     async def _zanjir_sikli(self) -> None:
         """Yangi tahlil modulini yuritadi va topilgan signalni yozadi.
