@@ -59,6 +59,21 @@ TP_ENG_KOP = 3
 #: ajratishning foydasi yo'q.
 TP_ENG_KAM_ORALIQ_PCT = 1.0
 
+#: Stop LIKVIDLIKDAN shuncha foiz pastga qo'yiladi.
+#:
+#: 🔴 O'LCHANMAGAN. `0` — qoida o'chiq (eski xatti-harakat).
+#:
+#: NIMA UCHUN KERAK. Stop zonaning pastki chetiga qo'yilardi va
+#: boshqa hech narsaga qaralmasdi. Lekin zona cheti AYNAN oxirgi
+#: swing PAST ustiga yoki uning ustiga tushishi mumkin — ya'ni
+#: to'plangan likvidlikning ichiga. Stop-hunt aynan o'sha yerda
+#: bo'ladi: narx pastni yalab, stoplarni yig'ib, keyin qaytadi.
+#:
+#: Eng achinarlisi: modul likvidlik qayerdaligini BILADI. Tasdiqlash
+#: blokidagi `sweep_bormi()` oxirgi swing PASTni topadi — lekin faqat
+#: `True/False` qaytaradi va narxning o'zini tashlab yuboradi.
+STOP_LIKVIDLIK_BUFER_PCT = 0.3
+
 
 @dataclass(frozen=True, slots=True)
 class Darajalar:
@@ -88,6 +103,7 @@ def darajalar_qur(
     eng_kam_nisbat: float = TP1_ENG_KAM_NISBAT,
     eng_kop_tp: int = TP_ENG_KOP,
     eng_kam_oraliq_pct: float = TP_ENG_KAM_ORALIQ_PCT,
+    likvidlik_bufer_pct: float = STOP_LIKVIDLIK_BUFER_PCT,
 ) -> Darajalar:
     """Zona va struktura nuqtalaridan darajalarni quradi.
 
@@ -105,7 +121,7 @@ def darajalar_qur(
         return _rad(zona, "narx zonadan pastga tushgan — zona buzilgan")
 
     entry = joriy_narx if zona.ichida(joriy_narx) else zona.yuqori
-    stop = zona.past
+    stop = _stop_darajasi(zona, nuqtalar, entry, likvidlik_bufer_pct)
 
     if stop >= entry:
         return _rad(zona, "stop kirish narxidan yuqori")
@@ -125,6 +141,57 @@ def darajalar_qur(
         return _rad(zona, f"TP1/Stop nisbati past ({nisbat:.2f})")
 
     return Darajalar(entry=entry, stop=stop, tplar=tuple(tplar))
+
+
+def _likvidlik_pasti(nuqtalar: list[Swing], entry: float) -> float | None:
+    """Entry'dan pastdagi ENG YAQIN swing PAST — to'plangan likvidlik.
+
+    "Eng yaqin" — chunki stop-hunt eng yaqin pastdan boshlanadi:
+    o'sha yerda eng ko'p stop yig'ilgan bo'ladi. Uzoqdagi past ham
+    likvidlik, lekin unga yetish uchun narx avval yaqinini olishi
+    kerak.
+    """
+    yaqin = None
+    for s in nuqtalar:
+        if s.turi is not SwingTuri.PAST or s.narx >= entry:
+            continue
+        if yaqin is None or s.narx > yaqin:
+            yaqin = s.narx
+    return yaqin
+
+
+def _stop_darajasi(
+    zona: Zona,
+    nuqtalar: list[Swing],
+    entry: float,
+    bufer_pct: float,
+) -> float:
+    """Stop — zona cheti, LEKIN likvidlikdan har doim pastda.
+
+    QOIDA (loyiha egasining tanlovi, 2026-09-05):
+
+        zona.past  <  likvidlik  ->  o'zgarmaydi
+                                     (stop allaqachon pastda)
+        zona.past  >= likvidlik  ->  stop = likvidlik − bufer
+
+    Ya'ni stop FAQAT kerak bo'lganda uzaytiriladi. Har doim
+    likvidlikka bog'lash stopni behuda uzoqlashtirardi va pozitsiya
+    hajmini kichraytirardi — zona allaqachon pastda bo'lgan holatda
+    bunga sabab yo'q.
+
+    NARXGA TA'SIRI. Stop uzaysa, xavf masofasi ham uzayadi va
+    pozitsiya hajmi kichrayadi (`PositionSizer` shu masofadan
+    hisoblaydi). Bu YO'QOTISH emas: o'sha stop ilgari likvidlik
+    ichida turgani uchun urilish ehtimoli yuqori edi.
+    """
+    stop = zona.past
+    if bufer_pct <= 0:
+        return stop
+
+    likvidlik = _likvidlik_pasti(nuqtalar, entry)
+    if likvidlik is None or stop < likvidlik:
+        return stop
+    return likvidlik * (1 - bufer_pct / 100)
 
 
 def _tp_nuqtalari(

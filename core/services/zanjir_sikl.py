@@ -241,6 +241,7 @@ class ZanjirSikl:
             eng_kam_nisbat=z.darajalar.tp1_eng_kam_nisbat,
             eng_kop_tp=z.darajalar.tp_eng_kop,
             eng_kam_oraliq_pct=z.darajalar.tp_eng_kam_oraliq_pct,
+            likvidlik_bufer_pct=z.darajalar.stop_likvidlik_bufer_pct,
         )
         if not darajalar.yaroqli:
             sabab = _sabab_turi(darajalar.rad_sababi)

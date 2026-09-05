@@ -89,6 +89,9 @@ def umumiy_argumentlar(tavsif: str) -> argparse.ArgumentParser:
     # Berilmasa — HECH NARSA o'zgarmaydi (test bilan qulflangan).
     p.add_argument("--stop-eng-kam", type=float, default=None)
     p.add_argument("--tp1-nisbat", type=float, default=None)
+    #: Stop likvidlik buferi. `0` — qoida o'chiq (eski xatti-harakat),
+    #: ya'ni ikkala variantni bitta yugurishda solishtirish mumkin.
+    p.add_argument("--likvidlik-bufer", type=float, default=None)
     return p
 
 
@@ -96,7 +99,8 @@ def chegara_qolla(config: AppConfig, argumentlar) -> AppConfig:  # noqa: ANN001
     """Nomzod chegarani qo'llaydi. Bayroqsiz — o'zgarishsiz qaytaradi."""
     stop = getattr(argumentlar, "stop_eng_kam", None)
     nisbat = getattr(argumentlar, "tp1_nisbat", None)
-    if stop is None and nisbat is None:
+    bufer = getattr(argumentlar, "likvidlik_bufer", None)
+    if stop is None and nisbat is None and bufer is None:
         return config
 
     ozgarishlar = {}
@@ -104,6 +108,8 @@ def chegara_qolla(config: AppConfig, argumentlar) -> AppConfig:  # noqa: ANN001
         ozgarishlar["stop_eng_kam_pct"] = stop
     if nisbat is not None:
         ozgarishlar["tp1_eng_kam_nisbat"] = nisbat
+    if bufer is not None:
+        ozgarishlar["stop_likvidlik_bufer_pct"] = bufer
 
     darajalar = dataclasses.replace(config.zanjir.darajalar, **ozgarishlar)
     return dataclasses.replace(

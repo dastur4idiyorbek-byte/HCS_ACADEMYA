@@ -549,6 +549,20 @@ class DarajalarConfig:
     #: qismini yeydi.
     tp_eng_kam_oraliq_pct: float = 1.0
 
+    #: Stop LIKVIDLIKDAN shuncha foiz pastga qo'yiladi. `0` — o'chiq.
+    #:
+    #: 🔴 O'LCHANMAGAN.
+    #:
+    #: Stop zona chetiga qo'yilardi va boshqa hech narsaga
+    #: qaralmasdi. Lekin zona cheti oxirgi swing PAST ustiga
+    #: tushishi mumkin — ya'ni to'plangan likvidlikning ichiga.
+    #: Stop-hunt aynan o'sha yerda bo'ladi.
+    #:
+    #: FAQAT KERAK BO'LGANDA uzaytiriladi: zona pasti allaqachon
+    #: likvidlikdan past bo'lsa, hech narsa o'zgarmaydi (loyiha
+    #: egasining tanlovi, 2026-09-05).
+    stop_likvidlik_bufer_pct: float = 0.3
+
 
 @dataclass(frozen=True, slots=True)
 class ChiqishConfig:

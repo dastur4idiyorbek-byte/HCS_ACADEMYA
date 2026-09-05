@@ -136,11 +136,19 @@ def _nuqtalar() -> list[Swing]:
     ]
 
 
-def test_stop_zona_chetidan_olinadi() -> None:
-    """Qat'iy foiz EMAS — struktura (2-prompt, "NIMA QILINMAYDI")."""
+def test_stop_STRUKTURADAN_olinadi() -> None:
+    """Qat'iy foiz EMAS — struktura (2-prompt, "NIMA QILINMAYDI").
+
+    2026-09-05 dan MANBA IKKITA: zona cheti VA likvidlik (oxirgi
+    swing PAST). Qaysi biri pastroq bo'lsa — o'sha. `_nuqtalar()`
+    da swing PAST 90.0, ya'ni zona pastidan (95.0) past: stop
+    likvidlik ostiga tushadi.
+
+    Qat'iy foiz baribir YO'Q — ikkala manba ham strukturadan.
+    """
     d = darajalar_qur(Zona(95.0, 105.0, "fib"), _nuqtalar(), 100.0)
     assert d.yaroqli
-    assert d.stop == 95.0
+    assert d.stop == pytest.approx(89.73)  # 90.0 − 0.3%
     assert d.entry == 100.0
 
 
@@ -154,13 +162,33 @@ def test_narx_zona_ustida_bolsa_entry_zona_cheti() -> None:
     """Entry = joriy narx QILINMAYDI — eski tizimning o'lik tarmog'i.
 
     Bu yerda LIMIT buyurtma zonaning yuqori chetida kutadi.
+
+    Likvidlik uzoqda emas: `_nuqtalar()` dagi swing PAST (90.0)
+    stopni cho'zib, R/R ni polidan pastga tushirib yuborardi va
+    daraja rad etilardi. Bu testning mavzusi ENTRY, shuning uchun
+    likvidlik zona ichida bo'lgan nuqtalar berildi.
     """
-    d = darajalar_qur(Zona(95.0, 105.0, "fib"), _nuqtalar(), 115.0)
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 97.0, BOSH, 0),  # zona ICHIDA
+        Swing(SwingTuri.YUQORI, 120.0, BOSH, 5),
+        Swing(SwingTuri.YUQORI, 140.0, BOSH, 8),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 115.0)
     assert d.entry == 105.0
 
 
 def test_juda_yaqin_stop_rad_etiladi() -> None:
-    d = darajalar_qur(Zona(99.0, 100.0, "fib"), _nuqtalar(), 100.0)
+    """Stop shovqin ichida bo'lsa signal berilmaydi.
+
+    Likvidlik ZONA ICHIDA berilgan: aks holda stop likvidlik ostiga
+    cho'zilib, "juda yaqin" holati umuman yuzaga kelmasdi. Bu
+    testning mavzusi — chegara, likvidlik qoidasi emas.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 99.5, BOSH, 0),  # zona ICHIDA
+        Swing(SwingTuri.YUQORI, 120.0, BOSH, 5),
+    ]
+    d = darajalar_qur(Zona(99.0, 100.0, "fib"), nuqtalar, 100.0)
     assert not d.yaroqli
     assert "juda yaqin" in d.rad_sababi
 
@@ -316,3 +344,74 @@ def test_trailing_r_birligida() -> None:
 def test_buzuq_daraja_trailingni_yiqitmaydi() -> None:
     r = chiqish_rejasi(trailing_yoqilgan=True)
     assert trailing_stop(100.0, 100.0, 120.0, r) is None
+
+
+# --------------------------------------------------------------------- #
+#  Stop LIKVIDLIK ostiga (loyiha egasining tanlovi, 2026-09-05)
+# --------------------------------------------------------------------- #
+
+
+def test_stop_likvidlik_USTIDA_qolsa_pastga_kochadi() -> None:
+    """Stop-hunt aynan likvidlik ustida bo'ladi.
+
+    Zona cheti oxirgi swing PASTdan YUQORIDA bo'lsa, stop to'plangan
+    likvidlikning ichida qoladi: narx pastni yalab, stoplarni yig'ib,
+    keyin qaytadi. O'shanda savdo zarar bilan yopiladi-yu, signal
+    aslida to'g'ri edi.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 90.0, BOSH, 1),  # likvidlik ZONADAN PAST
+        Swing(SwingTuri.YUQORI, 130.0, BOSH, 5),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+
+    assert d.yaroqli
+    # 90.0 − 0.3% = 89.73
+    assert d.stop == pytest.approx(89.73)
+    assert d.stop < 90.0, "stop likvidlik ostiga tushmadi"
+
+
+def test_zona_allaqachon_likvidlikdan_PAST_bolsa_ozgarmaydi() -> None:
+    """Stop behuda uzaytirilmasin.
+
+    Zona pasti swing PASTdan pastda bo'lsa, stop allaqachon
+    likvidlikdan past. Uni yana uzaytirish xavf masofasini oshirib,
+    pozitsiya hajmini sababsiz kichraytirardi.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 97.0, BOSH, 1),  # likvidlik ZONA ICHIDA
+        Swing(SwingTuri.YUQORI, 130.0, BOSH, 5),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+
+    assert d.stop == pytest.approx(95.0), "stop sababsiz uzaydi"
+
+
+def test_ENG_YAQIN_past_olinadi() -> None:
+    """Stop-hunt eng yaqin pastdan boshlanadi — eng ko'p stop o'sha yerda."""
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 70.0, BOSH, 1),   # uzoq
+        Swing(SwingTuri.PAST, 92.0, BOSH, 3),   # ENG YAQIN
+        Swing(SwingTuri.YUQORI, 130.0, BOSH, 5),
+    ]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+    assert d.stop == pytest.approx(92.0 * 0.997)
+
+
+def test_bufer_nolga_qoyilsa_eski_qoida_qaytadi() -> None:
+    """O'lchov uchun: ikkala variantni solishtirish mumkin bo'lsin."""
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 90.0, BOSH, 1),
+        Swing(SwingTuri.YUQORI, 130.0, BOSH, 5),
+    ]
+    d = darajalar_qur(
+        Zona(95.0, 105.0, "fib"), nuqtalar, 100.0, likvidlik_bufer_pct=0.0
+    )
+    assert d.stop == pytest.approx(95.0)
+
+
+def test_swing_past_yoq_bolsa_zona_cheti_qoladi() -> None:
+    """Ma'lumot yo'qligi qoidani buzmasin."""
+    nuqtalar = [Swing(SwingTuri.YUQORI, 130.0, BOSH, 5)]
+    d = darajalar_qur(Zona(95.0, 105.0, "fib"), nuqtalar, 100.0)
+    assert d.stop == pytest.approx(95.0)
