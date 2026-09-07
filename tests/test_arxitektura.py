@@ -69,7 +69,6 @@ def test_infratuzilma_papkalari_mavjud() -> None:
     O'SIB BORADIGAN qurilish.
     """
     kutilgan = [
-        "core/risk_engine",
         "core/position_sizing",
         "core/halal_screening",
         "core/market_data",

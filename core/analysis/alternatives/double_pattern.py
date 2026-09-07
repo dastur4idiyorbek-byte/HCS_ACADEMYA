@@ -62,9 +62,12 @@ def qosh_tub_topish(
 
     boyin: Swing | None = None
     for s in nuqtalar:
-        if birinchi.indeks < s.indeks < ikkinchi.indeks and s.turi is SwingTuri.YUQORI:
-            if boyin is None or s.narx > boyin.narx:
-                boyin = s
+        if (
+            birinchi.indeks < s.indeks < ikkinchi.indeks
+            and s.turi is SwingTuri.YUQORI
+            and (boyin is None or s.narx > boyin.narx)
+        ):
+            boyin = s
     if boyin is None:
         return None
 

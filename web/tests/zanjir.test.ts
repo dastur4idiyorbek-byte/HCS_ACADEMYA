@@ -160,8 +160,12 @@ test("eng oxirgi tekshiruv vaqti olinadi", () => {
 
 /** O'z saytimizda haram yoki shubhali coinning grafigini ko'rsatish
  *  mahsulotning o'z va'dasiga zid bo'lardi. Ro'yxat kodda, shuning
- *  uchun uni test qulflaydi. */
-test("terminal coinlari zanjir kuzatadigan ro'yxat bilan BIR XIL", () => {
+ *  uchun uni test qulflaydi.
+ *
+ *  Terminallar sahifasi KURATILGAN kichik ro'yxat (12 coin) — u
+ *  zanjir kuzatadigan 200 coinlik HALOL ro'yxatning ICHIDA bo'lishi
+ *  shart, aynan teng bo'lishi shart emas. */
+test("terminal coinlari zanjir kuzatadigan halol ro'yxat ICHIDA", () => {
   const sxema = readFileSync(
     path.join(import.meta.dirname, "..", "..", "core", "config", "schema.py"),
     "utf8",
@@ -172,17 +176,19 @@ test("terminal coinlari zanjir kuzatadigan ro'yxat bilan BIR XIL", () => {
     );
   assert.ok(moslik, "schema.py da kuzatiladigan_coinlar topilmadi");
 
-  const asldagi = moslik[1]
-    .split(",")
-    .map((s) => s.trim().replace(/["']/g, ""))
-    .filter(Boolean)
-    .sort();
-
-  assert.deepEqual(
-    [...TERMINAL_COINLARI].sort(),
-    asldagi,
-    "sayt boshqa coinlar ro'yxatini ko'rsatyapti — halol skrining chetlab o'tilishi mumkin",
+  const halolRoyxat = new Set(
+    moslik[1]
+      .split(",")
+      .map((s) => s.trim().replace(/["']/g, ""))
+      .filter(Boolean),
   );
+
+  for (const coinNomi of TERMINAL_COINLARI) {
+    assert.ok(
+      halolRoyxat.has(coinNomi),
+      `${coinNomi} halol ro'yxatda yo'q — sayt haram yoki shubhali coin ko'rsatishi mumkin`,
+    );
+  }
 });
 
 test("har bir toifadagi coin terminal ro'yxatida bor", () => {
