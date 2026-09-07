@@ -584,6 +584,23 @@ class ChiqishConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class AiVerificationConfig:
+    """5-blok — sun'iy intellekt tekshiruvi (yakuniy filtr).
+
+    FAQAT 4 blok o'tgan nomzod uchun ishga tushadi. DeepSeek API
+    orqali "TASDIQLANDI" yoki "RAD ETILDI" javobini oladi. Noaniqlik
+    yoki API xatosi — RAD ETILDI (signal chiqarilmaydi).
+    """
+
+    enabled: bool = False
+    model: str = "deepseek-chat"
+    base_url: str = "https://api.deepseek.com/chat/completions"
+    api_key_env: str = "DEEPSEEK_API_KEY"
+    timeout_seconds: float = 20.0
+    max_tokens: int = 8
+
+
+@dataclass(frozen=True, slots=True)
 class ZanjirConfig:
     """Yangi tahlil modulining butun sozlamasi."""
 
@@ -592,6 +609,7 @@ class ZanjirConfig:
     bloklar: BloklarConfig = field(default_factory=BloklarConfig)
     darajalar: DarajalarConfig = field(default_factory=DarajalarConfig)
     chiqish: ChiqishConfig = field(default_factory=ChiqishConfig)
+    ai: AiVerificationConfig = field(default_factory=AiVerificationConfig)
     #: JONLI tizim kuzatadigan coinlar — 200 ta HALOL coin.
     #:
     #: Ro'yxat ANIQ (statik) — "Top N" kabi o'zgaruvchan son emas.

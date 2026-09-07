@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from core.analysis.ai_verification.ai_verifier import AiTekshiruvKirish, ai_tekshir
 from core.analysis.alternatives.alternative_chain import zanjir_yur_alternativ
 from core.analysis.chain.block_chain_engine import ZanjirKirish
 from core.analysis.structure.swing_detector import swinglar
@@ -265,6 +266,21 @@ class ZanjirSikl:
                 natija.daraja_radlari.get("kech — narx zonadan chiqdi", 0) + 1
             )
             return holat("daraja_rad", "kech — narx zonadan chiqdi")
+
+        # 5-BLOK — SI tekshiruvi. Faqat 4 blok va darajalar o'tgandan
+        # keyin ishga tushadi. Rad etsa signal YOZILMAYDI.
+        ai_natija = await ai_tekshir(
+            AiTekshiruvKirish(
+                symbol=symbol,
+                matn=zanjir.matn(),
+                ishonch=zanjir.ishonch(),
+                narx=narx,
+            ),
+            z.ai,
+        )
+        if not ai_natija.tasdiqlandi:
+            natija.uzilishlar["SI"] = natija.uzilishlar.get("SI", 0) + 1
+            return holat("ai_rad", ai_natija.sabab)
 
         async with self._db.session() as session:
             yozuv = await SignalRepository(session).create(

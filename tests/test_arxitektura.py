@@ -128,6 +128,9 @@ QAVATLAR = {
     # darrov yiqiladi. Izohga ishonib qolinmaydi.
     "portfolio": 0,
     "config": 1,
+    # Sozlamalar tahriri — config bilan bir qavatda turadi, chunki u
+    # faqat config qiymatlarini o'zgartiradi va jurnalga yozadi.
+    "admin": 1,
     "storage": 1,
     "market_data": 2,
     "halal_screening": 2,
