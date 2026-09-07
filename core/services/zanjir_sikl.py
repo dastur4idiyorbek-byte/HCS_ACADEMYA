@@ -200,6 +200,8 @@ class ZanjirSikl:
                 btc_shamlar=btc,
                 etalon=symbol == "BTC",
                 ob_tarifi=ObTarifi(z.bloklar.ob_tarifi),
+                unlock_yaqin_kun=z.bloklar.unlock_yaqin_kun,
+                unlock_katta_pct=z.bloklar.unlock_katta_pct,
             )
         )
         zanjir = natijasi.zanjir

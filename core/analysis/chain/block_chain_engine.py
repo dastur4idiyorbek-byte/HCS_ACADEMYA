@@ -67,6 +67,9 @@ class ZanjirKirish:
     #: Sukut 1 — promptning qoidasi. Boshqa qiymat FAQAT o'lchov
     #: uchun beriladi (`scripts/zanjir_blok_qoidasi.py`).
     eng_kam_kuch: int = 1
+    #: 1.3 — Token unlock qattiq to'sig'i chegaralari (config'dan)
+    unlock_yaqin_kun: int = 7
+    unlock_katta_pct: float = 5.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,7 +84,15 @@ def zanjir_yur(kirish: ZanjirKirish) -> ZanjirNatija:
     bloklar: list[Blok] = []
 
     # --- BLOK 1: Fundamental ---
-    b1 = blok_sozla(fundamental_blok(kirish.fundamental), kirish.ochirilgan, kirish.eng_kam_kuch)
+    b1 = blok_sozla(
+        fundamental_blok(
+            kirish.fundamental,
+            unlock_yaqin_kun=kirish.unlock_yaqin_kun,
+            unlock_katta_pct=kirish.unlock_katta_pct,
+        ),
+        kirish.ochirilgan,
+        kirish.eng_kam_kuch,
+    )
     bloklar.append(b1)
     if not b1.otdi:
         return ZanjirNatija(Zanjir(tuple(bloklar), uzildi_blokda=b1.nom))

@@ -205,6 +205,8 @@ class ZanjirBacktest:
                     ob_tarifi=ObTarifi(z.bloklar.ob_tarifi),
                     ochirilgan=self._ochirilgan,
                     eng_kam_kuch=self._eng_kam_kuch,
+                    unlock_yaqin_kun=z.bloklar.unlock_yaqin_kun,
+                    unlock_katta_pct=z.bloklar.unlock_katta_pct,
                 )
                 natijasi = (
                     zanjir_yur_alternativ(kirish)

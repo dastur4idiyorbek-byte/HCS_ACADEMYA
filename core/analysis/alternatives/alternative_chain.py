@@ -100,7 +100,14 @@ def zanjir_yur_alternativ(kirish: ZanjirKirish) -> ZanjirNatija:
     bloklar: list[Blok] = []
 
     # --- BLOK 1: Fundamental (alternativsiz — promptda yo'q) ---
-    b1 = blok_sozla(fundamental_blok(kirish.fundamental), kirish.ochirilgan)
+    b1 = blok_sozla(
+        fundamental_blok(
+            kirish.fundamental,
+            unlock_yaqin_kun=kirish.unlock_yaqin_kun,
+            unlock_katta_pct=kirish.unlock_katta_pct,
+        ),
+        kirish.ochirilgan,
+    )
     bloklar.append(b1)
     if not b1.otdi:
         return ZanjirNatija(Zanjir(tuple(bloklar), uzildi_blokda=b1.nom))

@@ -17,6 +17,40 @@ BLOK_NOMI = "Struktura"
 #: Coin shundan yosh bo'lsa — soddalashtirilgan naqsh (1-qism)
 YANGI_COIN_KUN = 90
 
+#: Coin shundan katta bo'lsa — to'liq 4 TF (yetuk)
+YARIM_YETUK_KUN = 365
+
+
+def timeframelar_yosh_uchun(
+    yosh_kun: int | None,
+    *,
+    yonalish: str = "1w",
+    asosiy: str = "1d",
+    aniqlik: str = "4h",
+    tasdiq: str = "15m",
+) -> list[str]:
+    """Coin yoshiga qarab yuklanadigan timeframe'lar ro'yxati.
+
+    Qoida (spec, Blok 2 cheklovlari):
+      * Yangi (<90 kun): 1W/1D tarix yo'q yoki qisqa — faqat 4H + pastki.
+      * Yarim yetuk (90..365): 1D + 4H + pastki.
+      * Yetuk (>365): to'liq — 1W + 1D + 4H + pastki.
+
+    Ma'lumot yuklashda qo'llanadi: yangi coin uchun 1W/1D so'ramaslik
+    200 coinlik ro'yxatda API chaqiruvlarini sezilarli kamaytiradi.
+
+    Args:
+        yosh_kun: Coin necha kunlik. `None` — noma'lum, yetuk deb qaraladi.
+
+    Returns:
+        Yuklanadigan timeframe'lar ro'yxati (kattadan kichikka).
+    """
+    if yosh_kun is not None and yosh_kun < YANGI_COIN_KUN:
+        return [aniqlik, tasdiq]
+    if yosh_kun is not None and yosh_kun < YARIM_YETUK_KUN:
+        return [asosiy, aniqlik, tasdiq]
+    return [yonalish, asosiy, aniqlik, tasdiq]
+
 
 @dataclass(frozen=True, slots=True)
 class StrukturaKirish:

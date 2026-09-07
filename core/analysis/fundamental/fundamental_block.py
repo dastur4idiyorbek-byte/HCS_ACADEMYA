@@ -24,6 +24,27 @@ BLOK_NOMI = "Fundamental"
 
 
 @dataclass(frozen=True, slots=True)
+class TokenUnlock:
+    """Coin uchun yaqinlashayotgan token unlock ma'lumoti.
+
+    `kun_qoldi` va `pct` `None` bo'lsa — manba yo'q, tekshiruv
+    o'tkazib yuboriladi (blok shu sabab bilan to'silmaydi).
+    """
+
+    kun_qoldi: int | None
+    pct: float | None
+    izoh: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class DelistingXavfi:
+    """Delisting xavfi — aniq bo'lsa coin butunlay chetlatiladi."""
+
+    anik: bool
+    sabab: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class FundamentalKirish:
     """Blok 1 uchun barcha xom ma'lumot bitta joyda."""
 
@@ -31,11 +52,58 @@ class FundamentalKirish:
     oqim: PulOqimi = field(default_factory=PulOqimi)
     voqea: Katalizator = field(default_factory=Katalizator)
     kayf: Kayfiyat = field(default_factory=Kayfiyat)
+    unlock: TokenUnlock | None = None
+    delisting: DelistingXavfi | None = None
 
 
-def fundamental_blok(kirish: FundamentalKirish) -> Blok:
-    """To'rt tekshiruvni bajaradi va blok holatini qaytaradi."""
+def delisting_tosig(xavf: DelistingXavfi | None) -> str | None:
+    """Delisting xavfi ANIQ bo'lsa — butunlay chetlatish sababini qaytaradi."""
+    if xavf is not None and xavf.anik:
+        return f"Delisting xavfi: {xavf.sabab or 'aniq'}"
+    return None
+
+
+def unlock_tosig(
+    unlock: TokenUnlock | None,
+    *,
+    yaqin_kun: int,
+    katta_pct: float,
+) -> str | None:
+    """Token unlock <yaqin_kun kun va >katta_pct% bo'lsa — to'siq.
+
+    Manba yo'q (`None`) bo'lsa to'siq ham yo'q — ma'lumot yetishmasligi
+    chetlatishga aylanmaydi (MALUMOT_YOQ tamoyili).
+    """
+    if unlock is None or unlock.kun_qoldi is None or unlock.pct is None:
+        return None
+    if unlock.kun_qoldi < yaqin_kun and unlock.pct > katta_pct:
+        return f"Token Unlock: {unlock.kun_qoldi} kunda {unlock.pct:.1f}%"
+    return None
+
+
+def fundamental_blok(
+    kirish: FundamentalKirish,
+    *,
+    unlock_yaqin_kun: int = 7,
+    unlock_katta_pct: float = 5.0,
+) -> Blok:
+    """To'rt tekshiruvni bajaradi va blok holatini qaytaradi.
+
+    Qattiq to'siqlar (zanjirni UZADI): delisting > token unlock >
+    katalizator. Ulardan birortasi bo'lsa blok o'tmaydi — ichki
+    tekshiruvlar hisoblangani bilan zanjir shu yerda to'xtaydi.
+    """
     voqea_tekshiruv, tosiq = katalizator(kirish.voqea)
+
+    qattiq = (
+        delisting_tosig(kirish.delisting)
+        or unlock_tosig(
+            kirish.unlock,
+            yaqin_kun=unlock_yaqin_kun,
+            katta_pct=unlock_katta_pct,
+        )
+        or tosiq
+    )
 
     tekshiruvlar = [
         bozor_holati(kirish.holat),
@@ -47,7 +115,7 @@ def fundamental_blok(kirish: FundamentalKirish) -> Blok:
     return blok(
         BLOK_NOMI,
         tekshiruvlar,
-        qattiq_tosiq=tosiq,
+        qattiq_tosiq=qattiq,
         ziddiyatli=_ziddiyatlimi(tekshiruvlar),
     )
 
