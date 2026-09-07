@@ -117,11 +117,12 @@ def test_oyna_backtest_bilan_bir_xil() -> None:
     assert PASTKI_OYNA == BACKTEST_PASTKI
 
 
-def test_kuzatiladigan_coinlar_olchangan_royxat(config) -> None:  # noqa: ANN001
-    """Jonli ro'yxat o'lchangan ro'yxat bilan bir xil bo'lsin."""
+def test_kuzatiladigan_coinlar_200_ta_halol(config) -> None:  # noqa: ANN001
+    """Jonli ro'yxat 200 ta va o'lchangan 12 coinlik to'plamni qamraydi."""
     from scripts.zanjir_umumiy import OLCHOV_12
 
-    assert set(config.zanjir.kuzatiladigan_coinlar) == set(OLCHOV_12)
+    assert len(config.zanjir.kuzatiladigan_coinlar) == 200
+    assert set(OLCHOV_12) <= set(config.zanjir.kuzatiladigan_coinlar)
 
 
 def test_sikl_soat_musbat(config) -> None:  # noqa: ANN001

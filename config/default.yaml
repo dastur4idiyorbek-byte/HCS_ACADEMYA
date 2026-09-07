@@ -18,7 +18,7 @@ halal_screening:
   # Bir vaqtning o'zida nechta signal ochiq turishini bu raqam emas, Risk
   # Engine belgilaydi (4.2-band), shuning uchun ro'yxatni kengaytirish
   # signal oqimini toshirib yubormaydi.
-  target_count: 150
+  target_count: 200
   max_scan_depth: 500              # reyting bo'yicha maksimal necha o'ringacha tekshiriladi
   # Likvidlik filtri. ATAYLAB pasaytirilmadi: reytingda pastroq turgan
   # coinlarda kunlik hajm kichik bo'ladi va $500 lik buyurtma ham narxni

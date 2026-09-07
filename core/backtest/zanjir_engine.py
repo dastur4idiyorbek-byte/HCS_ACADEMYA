@@ -26,6 +26,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
+from core.analysis.alternatives.alternative_chain import zanjir_yur_alternativ
 from core.analysis.chain.block_chain_engine import ZanjirKirish, zanjir_yur
 from core.analysis.fundamental.fundamental_block import FundamentalKirish
 from core.analysis.structure.swing_detector import swinglar
@@ -131,6 +132,7 @@ class ZanjirBacktest:
         reja: ChiqishRejasi | None = None,
         sigim: bool = False,
         eng_kam_kuch: int = 1,
+        alternativ: bool = False,
     ) -> None:
         self._config = config
         self._nom = nom
@@ -144,6 +146,9 @@ class ZanjirBacktest:
         # qiymat faqat `scripts/zanjir_blok_qoidasi.py` o'lchovida
         # beriladi; jonli tizim va boshqa o'lchovlar tegmaydi.
         self._eng_kam_kuch = eng_kam_kuch
+        # ALTERNATIV ZANJIR: `zanjir_yur_alternativ` — zaif (1/N)
+        # blokni alternativ yo'llar bilan qutqaradi.
+        self._alternativ = alternativ
         # ABLATSIYA uchun: nomi shu to'plamda bo'lgan ichki tekshiruv
         # `MALUMOT_YOQ` ga aylantiriladi, ya'ni maxrajdan chiqadi.
         self._ochirilgan = ochirilgan_tekshiruvlar
@@ -188,20 +193,23 @@ class ZanjirBacktest:
                         del ochiq[symbol]
                     continue
 
-                natijasi = zanjir_yur(
-                    ZanjirKirish(
-                        symbol=symbol,
-                        shamlar=shamlar,
-                        pastki_shamlar=_shamlar(
-                            dataset, symbol, z.timeframelar.tasdiq, hozir, PASTKI_OYNA
-                        ),
-                        btc_shamlar=btc,
-                        fundamental=FundamentalKirish(),
-                        etalon=symbol.upper() == "BTC",
-                        ob_tarifi=ObTarifi(z.bloklar.ob_tarifi),
-                        ochirilgan=self._ochirilgan,
-                        eng_kam_kuch=self._eng_kam_kuch,
-                    )
+                kirish = ZanjirKirish(
+                    symbol=symbol,
+                    shamlar=shamlar,
+                    pastki_shamlar=_shamlar(
+                        dataset, symbol, z.timeframelar.tasdiq, hozir, PASTKI_OYNA
+                    ),
+                    btc_shamlar=btc,
+                    fundamental=FundamentalKirish(),
+                    etalon=symbol.upper() == "BTC",
+                    ob_tarifi=ObTarifi(z.bloklar.ob_tarifi),
+                    ochirilgan=self._ochirilgan,
+                    eng_kam_kuch=self._eng_kam_kuch,
+                )
+                natijasi = (
+                    zanjir_yur_alternativ(kirish)
+                    if self._alternativ
+                    else zanjir_yur(kirish)
                 )
                 zanjir = natijasi.zanjir
                 _holatlarni_yig(natija, zanjir)

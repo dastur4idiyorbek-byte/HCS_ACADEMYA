@@ -30,7 +30,7 @@ class ProjectConfig:
 
 @dataclass(frozen=True, slots=True)
 class HalalScreeningConfig:
-    target_count: int = 150
+    target_count: int = 200
     max_scan_depth: int = 500
     min_daily_volume_usd: float = 50_000_000
     quote_asset: str = "USDT"
@@ -592,20 +592,51 @@ class ZanjirConfig:
     bloklar: BloklarConfig = field(default_factory=BloklarConfig)
     darajalar: DarajalarConfig = field(default_factory=DarajalarConfig)
     chiqish: ChiqishConfig = field(default_factory=ChiqishConfig)
-    #: JONLI tizim kuzatadigan coinlar.
+    #: JONLI tizim kuzatadigan coinlar — 200 ta HALOL coin.
     #:
-    #: Ro'yxat ANIQ — "Top 30" kabi o'zgaruvchan son emas
-    #: (2-promptning taqiqi). Aynan shu 12 coinda modul
-    #: o'lchangan: 4 yil, 498 savdo, PF 3.49. Boshqa coin
-    #: qo'shish — O'LCHANMAGAN o'zgarish.
+    #: Ro'yxat ANIQ (statik) — "Top N" kabi o'zgaruvchan son emas.
+    #: Likvid spot juftliklardan (USDT) harom / mashbooh / stablecoin
+    #: ro'yxatlaridan TOZALANGAN (test bilan qulflangan).
     #:
-    #: Hammasi halol skriningdan o'tgan: harom yoki mashbooh
-    #: ro'yxatidagi coin bu yerga tusholmaydi (test bilan
-    #: qulflangan).
+    #: O'lchov: 12 coinlik asosiy to'plamda o'tkazilgan (4 yil, 498
+    #: savdo, PF 3.49). 200 coin — kengaytirilgan doira; bir vaqtda
+    #: ochiq signal sonini `target_count` emas, Risk Engine chegaralaydi.
     kuzatiladigan_coinlar: list[str] = field(
         default_factory=lambda: [
             "BTC", "ETH", "SOL", "ADA", "AVAX", "LINK",
-            "DOT", "ATOM", "LTC", "NEAR", "ETC", "FIL",
+            "DOT", "BCH", "LTC", "NEAR", "ETC", "FIL",
+            "UNI", "APT", "SUI", "ICP", "POL", "XLM",
+            "HBAR", "VET", "KAS", "ATOM", "INJ", "OP",
+            "ARB", "TAO", "TIA", "STX", "IMX", "GRT",
+            "RENDER", "FET", "SEI", "RUNE", "ALGO", "EGLD",
+            "THETA", "S", "JUP", "PYTH", "WLD", "ONDO",
+            "GALA", "SAND", "MANA", "CHZ", "ENJ", "FLOW",
+            "MINA", "AR", "KDA", "CKB", "ZIL", "ONE",
+            "KSM", "CELO", "ZRX", "BAT", "IOTA", "XTZ",
+            "EOS", "QTUM", "NEO", "ZEN", "KAVA", "BAND",
+            "ANKR", "STORJ", "COTI", "DUSK", "VTHO", "SC",
+            "RVN", "LRC", "SKL", "AUDIO", "MASK", "C98",
+            "ALPHA", "BAL", "1INCH", "SUSHI", "YFI", "UMA",
+            "API3", "TRB", "ICX", "ONT", "NKN", "ASTR",
+            "GLMR", "MOVR", "CFX", "WOO", "STRAX", "AGLD",
+            "ILV", "RLC", "SYN", "AIOZ", "METIS", "MAGIC",
+            "SSV", "ACA", "PHA", "OXT", "REQ", "KEY",
+            "DEXE", "ARPA", "BICO", "ALPACA", "XVS", "SXP",
+            "TLM", "ALICE", "ERN", "RARE", "SUPER", "JASMY",
+            "BEAM", "STRK", "ZK", "EIGEN", "RAY", "BSV",
+            "XEC", "TFUEL", "AST", "PRIME", "AERO", "GT",
+            "CORE", "ORDI", "PIXEL", "PORTAL", "ETHFI", "ALT",
+            "MANTA", "JTO", "PEOPLE", "JST", "SUN", "WIN",
+            "DENT", "HOT", "IOST", "STEEM", "HIVE", "YGG",
+            "ACH", "DODO", "REN", "PERP", "LINA", "RIF",
+            "CTSI", "LIT", "NFP", "AI", "ID", "HOOK",
+            "EDU", "ACE", "VANRY", "ARKM", "BLUR", "ZETA",
+            "DYM", "SAGA", "OMNI", "RONIN", "NTRN", "FXS",
+            "BLZ", "LOOM", "MDX", "HARD", "BAKE", "ONG",
+            "MTL", "NMR", "OGN", "AXS", "TWT", "CHR",
+            "COS", "AVA", "REEF", "CVC", "FUN", "IDEX",
+            "KNC", "QKC", "WAN", "PIVX", "NEBL", "XVG",
+            "DGB", "WAVES",
         ]
     )
     #: Sikl necha soatda bir marta yuradi.

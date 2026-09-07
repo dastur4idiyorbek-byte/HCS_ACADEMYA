@@ -24,7 +24,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from core.analysis.chain.block_chain_engine import ZanjirKirish, zanjir_yur
+from core.analysis.alternatives.alternative_chain import zanjir_yur_alternativ
+from core.analysis.chain.block_chain_engine import ZanjirKirish
 from core.analysis.structure.swing_detector import swinglar
 from core.analysis.zone_quality.order_block import ObTarifi
 from core.config.schema import AppConfig
@@ -188,7 +189,7 @@ class ZanjirSikl:
         natija.tekshirildi += 1
         narx = shamlar[-1].close
 
-        natijasi = zanjir_yur(
+        natijasi = zanjir_yur_alternativ(
             ZanjirKirish(
                 symbol=symbol,
                 shamlar=shamlar,
