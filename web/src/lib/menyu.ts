@@ -105,3 +105,45 @@ export const MENYU: MenyuBandi[] = [
 export function korinadiganBandlar(admin: boolean): MenyuBandi[] {
   return MENYU.filter((b) => !b.adminUchun || admin);
 }
+
+/** Pastki navigatsiya bo'limi — mobil ilova uslubidagi 5 ta asosiy tab.
+ *
+ * Har bir tab bitta asosiy yo'lga ochadi, lekin o'z ostidagi sahifalarda
+ * ham FAOL ko'rinadi (`bolimlar`). Bo'limlar guruhi `MENYU` bilan BIR
+ * JOYDA tursin: aks holda yangi sahifa qo'shilsa, qaysi bo'limga
+ * tegishliligi ikki joyda yozilib, biri eskirib qoladi.
+ */
+export type PastkiTab = {
+  kod: string;
+  yol: string;
+  kalit: string;
+  bolimlar: string[];
+};
+
+export const PASTKI_TABLAR: PastkiTab[] = [
+  { kod: "bosh", yol: "/bosh", kalit: "pastki.bosh", bolimlar: ["/bosh"] },
+  {
+    kod: "bozor",
+    yol: "/bozor",
+    kalit: "pastki.bozor",
+    bolimlar: ["/bozor", "/salomatlik"],
+  },
+  {
+    kod: "akademiya",
+    yol: "/video",
+    kalit: "pastki.akademiya",
+    bolimlar: ["/video", "/kurs"],
+  },
+  {
+    kod: "produkt",
+    yol: "/signallar",
+    kalit: "pastki.produkt",
+    bolimlar: ["/signallar", "/statistika"],
+  },
+  {
+    kod: "kabinet",
+    yol: "/profil",
+    kalit: "pastki.kabinet",
+    bolimlar: ["/profil", "/portfel", "/admin"],
+  },
+];

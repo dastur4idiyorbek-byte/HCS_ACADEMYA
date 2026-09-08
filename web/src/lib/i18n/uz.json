@@ -30,6 +30,13 @@
     "salomatlik": "Bozor Salomatligi",
     "bozor": "Bozor ko'rinishi"
   },
+  "pastki": {
+    "bosh": "Bosh",
+    "bozor": "Bozor",
+    "akademiya": "Akademiya",
+    "produkt": "Produkt",
+    "kabinet": "Kabinet"
+  },
   "kirish": {
     "sarlavha": "Telegram orqali kiring",
     "izoh": "Botda ro'yxatdan o'tgan bo'lsangiz, saytda avtomatik tanilasiz — Telegram ID umumiy kalit.",
