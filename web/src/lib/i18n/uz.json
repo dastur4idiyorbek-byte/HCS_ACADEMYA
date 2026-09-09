@@ -43,7 +43,7 @@
     "sektor_ogoh": "DIQQAT: sektor ko'rsatkichlari BUTUN BOZORDAN hisoblangan — ular ichida haram va shubhali loyihalar ham bor. Quyidagi coinlar ro'yxati esa faqat halol.",
     "coinlar": "Coinlar",
     "coin": "Coin",
-    "coin_izoh": "Ustun nomini bosib saralang.",
+    "coin_izoh": "Ustun nomini bosib saralang. Xaritada eng yirik 40 tasi, katak o'lchami SIQILGAN shkalada — aks holda BTC butun ekranni egallardi.",
     "korinish_jadval": "Jadval",
     "korinish_kartochka": "Kartochka",
     "korinish_xarita": "Xarita",
@@ -72,7 +72,14 @@
     "tvl": "Bog'langan mablag'",
     "grafik": "Real narx grafigi",
     "bolim_blokcheynlar": "Blokcheynlar",
-    "bolim_grafik": "Grafik"
+    "bolim_grafik": "Grafik",
+    "onchain": "Tarmoq faolligi (on-chain)",
+    "onchain_izoh": "Narx savdodan keladi, bu raqamlar esa tarmoqning o'zidan: coin haqiqatan ishlatilyaptimi. Manba sanoqli tarmoqni qo'llaydi, shuning uchun ro'yxat qisqa.",
+    "tarmoq": "Tarmoq",
+    "tranzaksiya": "Tranzaksiya 24s",
+    "blok": "Blok 24s",
+    "komissiya": "O'rtacha komissiya",
+    "bolim_onchain": "On-chain"
   },
   "pastki": {
     "bosh": "Bosh",

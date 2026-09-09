@@ -4,6 +4,7 @@ import { CoinKorinishi } from "@/components/CoinKorinishi";
 import { SektorBloklari } from "@/components/SektorBloklari";
 import { Blokcheynlar } from "@/components/Blokcheynlar";
 import { NarxGrafigi } from "@/components/NarxGrafigi";
+import { TarmoqFaolligi } from "@/components/TarmoqFaolligi";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import {
@@ -12,6 +13,7 @@ import {
   globalHolat,
   qorquvOchkozlik,
   sektorHolatlari,
+  tarmoqFaolliklari,
 } from "@/lib/bozor-server";
 import { altcoinMavsumi } from "@/lib/bozor";
 import { sektorlarniSaralash } from "@/lib/sektorlar";
@@ -64,12 +66,13 @@ export default async function BozorHolati() {
   const indeks = salomatlikIndeksi(xulosa);
   const tasnif = salomatlikTasnifi(indeks);
 
-  const [bozor, sektorlar, global, qorquv, zanjirlar] = await Promise.all([
+  const [bozor, sektorlar, global, qorquv, zanjirlar, faollik] = await Promise.all([
     coinHolatlari(HALOL_COINLAR),
     sektorHolatlari(HALOL_COINLAR),
     globalHolat(),
     qorquvOchkozlik(),
     blokcheynHolatlari(HALOL_COINLAR),
+    tarmoqFaolliklari(HALOL_COINLAR),
   ]);
 
   const narxi = bozor.filter((c) => c.narx !== null);
@@ -89,6 +92,7 @@ export default async function BozorHolati() {
           { langar: "salomatlik", nom: t("holat.bolim_salomatlik") },
           { langar: "sektorlar", nom: t("holat.bolim_sektorlar") },
           { langar: "blokcheynlar", nom: t("holat.bolim_blokcheynlar") },
+          { langar: "onchain", nom: t("holat.bolim_onchain") },
           { langar: "grafik", nom: t("holat.bolim_grafik") },
           { langar: "coinlar", nom: t("holat.bolim_coinlar") },
         ]}
@@ -201,7 +205,27 @@ export default async function BozorHolati() {
           </Card>
         )}
 
-        {/* 4. Real narx grafigi. Ilgari bu yerda coin "chiplari"
+        {/* 4. On-chain — tarmoq faolligi. Narx savdodan keladi, bu
+            raqamlar tarmoqning O'ZIDAN: coin haqiqatan
+            ishlatilyaptimi degan boshqa savolga javob beradi. */}
+        {faollik.length > 0 && (
+          <Card id="onchain" className="scroll-mt-20">
+            <CardTitle>{t("holat.onchain")}</CardTitle>
+            <CardHint className="mt-1 mb-4">{t("holat.onchain_izoh")}</CardHint>
+            <TarmoqFaolligi
+              tarmoqlar={faollik}
+              coinlar={bozor}
+              yorliq={{
+                tarmoq: t("holat.tarmoq"),
+                tranzaksiya: t("holat.tranzaksiya"),
+                blok: t("holat.blok"),
+                komissiya: t("holat.komissiya"),
+              }}
+            />
+          </Card>
+        )}
+
+        {/* 5. Real narx grafigi. Ilgari bu yerda coin "chiplari"
             ro'yxati turardi va grafik faqat bosilganda ochilardi —
             foydalanuvchi uni ko'rmasdi. Endi grafik darrov turadi. */}
         <Card id="grafik" className="scroll-mt-20">

@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import { qisqaSon, type CoinHolati } from "@/lib/bozor";
 import type { BlokcheynHolati } from "@/lib/bozor-server";
 
@@ -41,12 +39,13 @@ export function Blokcheynlar({
                   {z.ticker.slice(0, 2)}
                 </span>
               ) : (
-                <Image
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={logo}
                   alt=""
                   width={20}
                   height={20}
-                  unoptimized
+                  loading="lazy"
                   className="shrink-0 rounded-full"
                 />
               )}

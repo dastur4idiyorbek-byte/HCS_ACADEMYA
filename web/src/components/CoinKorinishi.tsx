@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
 
 import { cn } from "@/lib/cn";
@@ -75,13 +74,19 @@ function Belgi({ coin, olcham = 22 }: { coin: CoinHolati; olcham?: number }) {
       </span>
     );
   }
+  // NEGA `next/image` EMAS. U tashqi manzilni `next.config.ts` dagi
+  // ro'yxatdan tekshiradi va ro'yxatda yo'q uy nomidan kelgan
+  // logotip JIMGINA chizilmaydi — coin yonida bo'sh joy qoladi.
+  // CoinGecko esa logotiplarni bir necha manzildan uzatadi. Bu yerda
+  // optimizatsiya ham kerak emas: rasm 22px va allaqachon kichik.
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={coin.logo}
       alt=""
       width={olcham}
       height={olcham}
-      unoptimized
+      loading="lazy"
       className="shrink-0 rounded-full"
     />
   );
@@ -447,24 +452,44 @@ function Kartochkalar({
 // --------------------------------------------------------------------- //
 
 function Xarita({ coinlar }: { coinlar: CoinHolati[] }) {
+  // ENG YIRIK 40 TASI. Sakson coin bir ekranga sig'ganda eng
+  // kichiklari o'qib bo'lmas chiziqqa aylanadi va bir-birining
+  // ustiga chiqadi.
+  const kattalar = [...coinlar]
+    .filter((c) => (c.kapital ?? 0) > 0)
+    .sort((a, b) => (b.kapital ?? 0) - (a.kapital ?? 0))
+    .slice(0, 40);
+
+  // OG'IRLIK — KAPITALNING KVADRAT ILDIZI, kapitalning o'zi emas.
+  //
+  // Nima uchun: BTC halol doiramizning yarmidan ko'pini tashkil
+  // qiladi. To'g'ridan-to'g'ri kapital bilan chizilsa u ekranning
+  // yarmini egallaydi, ETH chorakni, qolgan o'ttiz sakkiztasi esa
+  // pastda ko'rinmas chiziqqa aylanadi — aynan shu holat kuzatildi.
+  //
+  // Ildiz farqni SIQADI: tartib va nisbat saqlanadi (kattaroq coin
+  // baribir kattaroq katak oladi), lekin kichiklari o'qiladigan
+  // bo'lib qoladi. Shuning uchun sahifada "siqilgan shkala" deb
+  // yozib qo'yiladi — katak maydoni ULUSHGA teng emas.
   const kataklar = treemap(
-    coinlar.map((c) => ({ kalit: c.ticker, ogirlik: c.kapital ?? 0 })),
+    kattalar.map((c) => ({
+      kalit: c.ticker,
+      ogirlik: Math.sqrt(c.kapital as number),
+    })),
   );
-  const boyicha = new Map(coinlar.map((c) => [c.ticker, c]));
+  const boyicha = new Map(kattalar.map((c) => [c.ticker, c]));
 
   if (kataklar.length === 0) return null;
 
   return (
     // Balandlik BELGILANGAN: treemap foizda ishlaydi, ya'ni idishning
-    // o'lchami bo'lishi shart. Telefonda pastroq, kengroq ekranda
-    // balandroq — kataklar juda yassi bo'lib qolmasin.
-    <div className="relative h-[26rem] w-full sm:h-[32rem]">
+    // o'lchami bo'lishi shart. Telefonda ham yetarli balandlik kerak,
+    // aks holda kataklar yassilanib matn sig'may qoladi.
+    <div className="relative h-[34rem] w-full sm:h-[40rem]">
       {kataklar.map((k) => {
         const coin = boyicha.get(k.kalit);
         if (!coin) return null;
-        // Juda kichik katakda matn sig'maydi va o'qilmaydi — faqat
-        // ticker qoladi, foiz esa yashiriladi.
-        const torgina = k.en < 7 || k.boy < 9;
+        const torgina = k.en < 8 || k.boy < 6;
         return (
           <div
             key={k.kalit}
@@ -476,7 +501,7 @@ function Xarita({ coinlar }: { coinlar: CoinHolati[] }) {
               height: `${k.boy}%`,
               background: xaritaFoni(coin.ozgarish24),
             }}
-            className="rounded-kichik absolute flex flex-col items-center justify-center overflow-hidden border border-white/10 p-1 text-center"
+            className="rounded-kichik absolute flex flex-col items-center justify-center overflow-hidden border border-white/10 p-0.5 text-center"
           >
             <span className="text-sarlavha text-[11px] leading-tight font-semibold sm:text-xs">
               {k.kalit}

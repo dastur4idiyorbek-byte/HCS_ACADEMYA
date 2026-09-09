@@ -215,6 +215,7 @@ export function keshniTozala(): void {
   globalKesh = null;
   qorquvKesh = null;
   zanjirKesh = null;
+  faollikKesh = null;
 }
 
 /** Butun bozorning umumiy ko'rsatkichlari — CoinGecko `/global`.
@@ -356,5 +357,79 @@ export async function blokcheynHolatlari(
 
   natija.sort((a, b) => (b.tvl ?? 0) - (a.tvl ?? 0));
   zanjirKesh = { qiymat: natija, vaqt: hozir };
+  return natija;
+}
+
+/** Tarmoq faolligi (on-chain) — Blockchair.
+ *
+ * NIMA UCHUN BU KO'RSATKICH. Narx savdodan keladi, tranzaksiya soni
+ * esa tarmoqning O'ZIDAN: coin haqiqatan ishlatilyaptimi yoki faqat
+ * savdo qilinyaptimi — shu savolga javob beradi. Narx va faollik bir
+ * xil emas: narxi o'sib, tarmog'i bo'shab turgan coin ham bor.
+ *
+ * NEGA HAMMA COIN EMAS. Blockchair sanoqli tarmoqni qo'llab
+ * quvvatlaydi va har biri uchun ALOHIDA so'rov kerak. Bizning
+ * ro'yxatimizdan yettitasi mos keladi — o'shalar so'raladi.
+ * Boshqa tarmoqlar uchun bepul va ishonchli manba yo'q; bo'sh
+ * ma'lumot ko'rsatishdan ko'ra ro'yxatda umuman bo'lmagani rost.
+ *
+ * ISTISNO TASHLAMAYDI: bittasi javob bermasa qolganlari ko'rinadi.
+ */
+export type TarmoqFaolligi = {
+  ticker: string;
+  nom: string;
+  tranzaksiya24: number | null;
+  blok24: number | null;
+  ortachaKomissiya: number | null;
+};
+
+/** Blockchair'dagi nom -> bizdagi ticker. Qo'lda yozilgan, chunki
+ *  ikkalasi orasida formula yo'q. */
+const BLOCKCHAIR_TARMOQLARI: { yol: string; ticker: string; nom: string }[] = [
+  { yol: "bitcoin", ticker: "BTC", nom: "Bitcoin" },
+  { yol: "ethereum", ticker: "ETH", nom: "Ethereum" },
+  { yol: "litecoin", ticker: "LTC", nom: "Litecoin" },
+  { yol: "bitcoin-cash", ticker: "BCH", nom: "Bitcoin Cash" },
+  { yol: "stellar", ticker: "XLM", nom: "Stellar" },
+  { yol: "cardano", ticker: "ADA", nom: "Cardano" },
+  { yol: "ecash", ticker: "XEC", nom: "eCash" },
+];
+
+let faollikKesh: Kesh<TarmoqFaolligi[]> | null = null;
+
+export async function tarmoqFaolliklari(
+  halolTickerlar: string[],
+): Promise<TarmoqFaolligi[]> {
+  const hozir = Date.now();
+  if (faollikKesh && hozir - faollikKesh.vaqt < KESH_MS) {
+    return faollikKesh.qiymat;
+  }
+
+  const halol = new Set(halolTickerlar);
+  const kerakli = BLOCKCHAIR_TARMOQLARI.filter((x) => halol.has(x.ticker));
+
+  const javoblar = await Promise.all(
+    kerakli.map(async (tarmoq) => {
+      const javob = await soragich(
+        `https://api.blockchair.com/${tarmoq.yol}/stats`,
+      );
+      const d = (javob as { data?: Record<string, unknown> } | null)?.data;
+      if (!d) return null;
+      return {
+        ticker: tarmoq.ticker,
+        nom: tarmoq.nom,
+        tranzaksiya24: son(d.transactions_24h),
+        blok24: son(d.blocks_24h),
+        ortachaKomissiya: son(d.average_transaction_fee_usd_24h),
+      };
+    }),
+  );
+
+  const natija = javoblar.filter((x): x is TarmoqFaolligi => x !== null);
+  // Hammasi yiqilsa eski kesh yaxshiroq — bo'sh ro'yxat "tarmoqlar
+  // to'xtadi" degan noto'g'ri taassurot berardi.
+  if (natija.length === 0) return faollikKesh?.qiymat ?? [];
+
+  faollikKesh = { qiymat: natija, vaqt: hozir };
   return natija;
 }
