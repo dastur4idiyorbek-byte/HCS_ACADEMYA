@@ -12,9 +12,10 @@ import { cn } from "@/lib/cn";
  * platformaga qarab har xil ko'rinadi, SVG esa hamma joyda bir xil
  * va `currentColor` orqali aktiv/nofaol rangni meros oladi.
  *
- * Aktiv holat: turkuaz ikonka + qalin yorliq + tagida kichik nuqta.
- * Nofaol holat: xira ikonka va matn. Faqat rang emas — belgi ham bor,
- * shuning uchun rang ajrata olmaydiganlar ham bo'limni taniydi.
+ * Har bir tab o'z ASOSIY sahifasiga (`sahifalar[0]`) olib boradi.
+ * Tabning HAMMA sahifasi qulf bo'lsa, ikonka burchagida kichik qulf
+ * belgisi chiqadi — va `aria-label` da ham yoziladi, shuning uchun
+ * faqat rangga tayanilmaydi.
  */
 
 const STROKE = {
@@ -62,14 +63,26 @@ const IKONKALAR: Record<string, React.ReactNode> = {
   ),
 };
 
-export type PastkiTabKirish = {
-  kod: string;
+export type PastkiSahifa = {
   yol: string;
   nom: string;
-  bolimlar: string[];
+  qulf: boolean;
+  tezKunda: boolean;
 };
 
-export function PastkiNav({ tablar }: { tablar: PastkiTabKirish[] }) {
+export type PastkiTabKirish = {
+  kod: string;
+  nom: string;
+  sahifalar: PastkiSahifa[];
+};
+
+export function PastkiNav({
+  tablar,
+  qulfMatn,
+}: {
+  tablar: PastkiTabKirish[];
+  qulfMatn: string;
+}) {
   const yol = usePathname();
 
   return (
@@ -82,14 +95,17 @@ export function PastkiNav({ tablar }: { tablar: PastkiTabKirish[] }) {
     >
       <div className="grid grid-cols-5">
         {tablar.map((tab) => {
-          const faol = tab.bolimlar.some(
-            (b) => yol === b || yol.startsWith(`${b}/`),
+          if (tab.sahifalar.length === 0) return null;
+          const faol = tab.sahifalar.some(
+            (s) => yol === s.yol || yol.startsWith(`${s.yol}/`),
           );
+          const hammasiQulf = tab.sahifalar.every((s) => s.qulf);
           return (
             <Link
               key={tab.kod}
-              href={tab.yol}
+              href={tab.sahifalar[0].yol}
               aria-current={faol ? "page" : undefined}
+              aria-label={hammasiQulf ? `${tab.nom} — ${qulfMatn}` : undefined}
               className={cn(
                 "flex flex-col items-center gap-1 py-2.5 text-[11px] leading-none transition-colors",
                 faol ? "text-sarlavha" : "text-matn-past hover:text-matn",
@@ -97,11 +113,19 @@ export function PastkiNav({ tablar }: { tablar: PastkiTabKirish[] }) {
             >
               <span
                 className={cn(
-                  "h-6 w-6 transition-opacity",
+                  "relative h-6 w-6 transition-opacity",
                   faol ? "opacity-100" : "opacity-60",
                 )}
               >
                 {IKONKALAR[tab.kod]}
+                {hammasiQulf && (
+                  <span
+                    aria-hidden
+                    className="absolute -right-1 -top-1 text-[9px] leading-none"
+                  >
+                    🔒
+                  </span>
+                )}
               </span>
               <span className={faol ? "font-semibold" : undefined}>
                 {tab.nom}

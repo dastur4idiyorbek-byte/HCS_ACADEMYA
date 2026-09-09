@@ -108,42 +108,59 @@ export function korinadiganBandlar(admin: boolean): MenyuBandi[] {
 
 /** Pastki navigatsiya bo'limi — mobil ilova uslubidagi 5 ta asosiy tab.
  *
- * Har bir tab bitta asosiy yo'lga ochadi, lekin o'z ostidagi sahifalarda
- * ham FAOL ko'rinadi (`bolimlar`). Bo'limlar guruhi `MENYU` bilan BIR
- * JOYDA tursin: aks holda yangi sahifa qo'shilsa, qaysi bo'limga
- * tegishliligi ikki joyda yozilib, biri eskirib qoladi.
+ * Har bir tab o'z sahifalarini MENYU dagi `kod` orqali ko'rsatadi —
+ * yo'l ikki joyda yozilmaydi. Ro'yxatdagi BIRINCHI sahifa tabning
+ * asosiy sahifasi (tab o'sha yerga olib boradi).
  */
 export type PastkiTab = {
   kod: string;
-  yol: string;
   kalit: string;
-  bolimlar: string[];
+  /** Shu bo'limga tegishli sahifalar — MENYU dagi kod lar.
+   *  BIRINCHISI tabning asosiy sahifasi. */
+  sahifalar: string[];
 };
 
 export const PASTKI_TABLAR: PastkiTab[] = [
-  { kod: "bosh", yol: "/bosh", kalit: "pastki.bosh", bolimlar: ["/bosh"] },
+  { kod: "bosh", kalit: "pastki.bosh", sahifalar: ["bosh"] },
+  // "bozor" tabining asosiy sahifasi — /salomatlik. Sabab yuqorida:
+  // Bozor Salomatligi tizimning markaziy ko'rsatkichi, pastki tab uni
+  // ikkinchi darajaga tushirib qo'ymasin.
   {
     kod: "bozor",
-    yol: "/bozor",
     kalit: "pastki.bozor",
-    bolimlar: ["/bozor", "/salomatlik"],
+    sahifalar: ["salomatlik", "bozor"],
   },
   {
     kod: "akademiya",
-    yol: "/video",
     kalit: "pastki.akademiya",
-    bolimlar: ["/video", "/kurs"],
+    sahifalar: ["video", "kurs"],
   },
   {
     kod: "produkt",
-    yol: "/signallar",
     kalit: "pastki.produkt",
-    bolimlar: ["/signallar", "/statistika"],
+    sahifalar: ["signallar", "statistika"],
   },
   {
     kod: "kabinet",
-    yol: "/profil",
     kalit: "pastki.kabinet",
-    bolimlar: ["/profil", "/portfel", "/admin"],
+    sahifalar: ["profil", "portfel", "admin"],
   },
 ];
+
+/** Tabning to'liq ma'lumoti: sahifalar MENYU dan olinadi.
+ *
+ * `adminUchun: true` band admin bo'lmaganga qaytarilmaydi — yon
+ * paneldagi `korinadiganBandlar` bilan bir xil qoida. Noma'lum kod
+ * (MENYU da yo'q) jimgina tashlab yuboriladi — bo'sh havola bo'lmasin.
+ */
+export function tabSahifalari(tab: PastkiTab, admin: boolean): MenyuBandi[] {
+  const manba = new Map(MENYU.map((b) => [b.kod, b]));
+  const natija: MenyuBandi[] = [];
+  for (const kod of tab.sahifalar) {
+    const band = manba.get(kod);
+    if (!band) continue;
+    if (band.adminUchun && !admin) continue;
+    natija.push(band);
+  }
+  return natija;
+}
