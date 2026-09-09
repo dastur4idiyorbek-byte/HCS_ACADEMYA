@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
+import { TilTanlov } from "@/components/TilTanlov";
 import { botHavolasi, env } from "@/lib/env";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
@@ -125,6 +126,21 @@ export default async function Profil() {
             </div>
           </Card>
         )}
+
+        <Card>
+          <CardTitle>{t("profil.sozlamalar")}</CardTitle>
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <TilTanlov joriy={til} />
+            <form action="/api/auth/chiqish" method="post">
+              <button
+                type="submit"
+                className="text-matn-past hover:text-sarlavha text-sm underline underline-offset-4"
+              >
+                {t("umumiy.chiqish")}
+              </button>
+            </form>
+          </div>
+        </Card>
       </div>
     </>
   );

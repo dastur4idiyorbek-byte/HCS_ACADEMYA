@@ -99,13 +99,17 @@ export function PastkiNav({
           const faol = tab.sahifalar.some(
             (s) => yol === s.yol || yol.startsWith(`${s.yol}/`),
           );
-          const hammasiQulf = tab.sahifalar.every((s) => s.qulf);
+          // Qulf belgisi tab QAYERGA OLIB BORSA, o'shaning holatini
+          // ko'rsatsin: tugma bitta joyga (sahifalar[0]) olib boradi va
+          // qulf o'sha joy haqida gapirishi kerak. Boshqa sahifalar ochiq
+          // bo'lsa ham, asosiy sahifa qulflangan bo'lsa belgi chiqadi.
+          const asosiyQulf = tab.sahifalar[0].qulf;
           return (
             <Link
               key={tab.kod}
               href={tab.sahifalar[0].yol}
               aria-current={faol ? "page" : undefined}
-              aria-label={hammasiQulf ? `${tab.nom} — ${qulfMatn}` : undefined}
+              aria-label={asosiyQulf ? `${tab.nom} — ${qulfMatn}` : undefined}
               className={cn(
                 "flex flex-col items-center gap-1 py-2.5 text-[11px] leading-none transition-colors",
                 faol ? "text-sarlavha" : "text-matn-past hover:text-matn",
@@ -118,7 +122,7 @@ export function PastkiNav({
                 )}
               >
                 {IKONKALAR[tab.kod]}
-                {hammasiQulf && (
+                {asosiyQulf && (
                   <span
                     aria-hidden
                     className="absolute -right-1 -top-1 text-[9px] leading-none"
