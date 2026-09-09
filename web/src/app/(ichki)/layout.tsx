@@ -58,7 +58,15 @@ export default async function IchkiLayout({
       {/* Mobil uchun pastki bo'shliq: pastki nav kontentni yopmasin.
           Desktopda yon panel bor, qo'shimcha bo'shliq kerak emas. */}
       <main className="min-w-0 flex-1 px-4 pt-6 pb-24 sm:px-6 sm:pt-8 lg:pb-8">
-        <div className="mx-auto max-w-4xl">
+        {/* KENGLIK. Ilgari bu yer `max-w-4xl` edi va u matnli sahifalar
+            uchun to'g'ri o'lchov: uzun qator o'qishni qiyinlashtiradi.
+            Lekin Bozor holati — jadval va xaritalardan iborat boshqaruv
+            paneli; unga tor ustun kifoya qilmaydi.
+
+            Shuning uchun umumiy kenglik kengaytirildi, matnli sahifalar
+            esa (`/bosh`, `/kurs`) o'z ichida `max-w-3xl` bilan
+            toraytiriladi. Ya'ni qaror sahifaning O'ZIDA turadi. */}
+        <div className="mx-auto max-w-6xl">
           <BolimTablari tablar={pastkiTablar} />
           {children}
         </div>

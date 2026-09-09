@@ -143,3 +143,20 @@ export function xulosaHisobla(coinlar: CoinZanjiri[]): Xulosa {
       : null,
   };
 }
+
+/** Indeksga SO'Z bilan baho: past / o'rtacha / yaxshi.
+ *
+ * NEGA KERAK. "72/100" — raqam, lekin u yaxshimi yoki yomonmi degan
+ * savolga javob bermaydi. Foydalanuvchi shkalani birinchi marta
+ * ko'rganda o'lchov qayerdan boshlanib qayerda tugashini bilmaydi.
+ *
+ * Chegaralar doira rangi bilan BIR XIL (`components/Doira.tsx`):
+ * ikki joyda boshqacha bo'lsa, yashil doira yonida "o'rtacha" degan
+ * yozuv turib qolardi.
+ */
+export function salomatlikTasnifi(indeks: number | null): "past" | "ortacha" | "yaxshi" | null {
+  if (indeks === null) return null;
+  if (indeks >= 60) return "yaxshi";
+  if (indeks >= 35) return "ortacha";
+  return "past";
+}

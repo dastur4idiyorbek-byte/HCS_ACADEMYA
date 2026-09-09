@@ -55,7 +55,9 @@ export default async function Bosh({
   const yanaBor = olingan.length > SAHIFA;
 
   return (
-    <div className="space-y-5">
+    // Matn oqimi TOR qoladi: umumiy kenglik boshqaruv paneli uchun
+    // kengaytirildi, uzun matn qatori esa o'qishni qiyinlashtiradi.
+    <div className="mx-auto max-w-3xl space-y-5">
       {/* ---- Oqimning birinchi, doimiy postlari ---- */}
       <header className="flex flex-col items-center py-6 text-center">
         <Image

@@ -1,19 +1,29 @@
+import { BolimTugmalari } from "@/components/BolimTugmalari";
 import { BozorTepasi } from "@/components/BozorTepasi";
 import { CoinKorinishi } from "@/components/CoinKorinishi";
 import { SektorBloklari } from "@/components/SektorBloklari";
 import { Terminallar } from "@/components/Terminallar";
-import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { coinHolatlari, globalHolat, sektorHolatlari } from "@/lib/bozor-server";
-import { sana } from "@/lib/format";
+import {
+  coinHolatlari,
+  globalHolat,
+  qorquvOchkozlik,
+  sektorHolatlari,
+} from "@/lib/bozor-server";
+import { altcoinMavsumi } from "@/lib/bozor";
 import { HALOL_COINLAR } from "@/lib/coingecko-id";
 import { tarjimon } from "@/lib/i18n";
 import { sutkalikOzgarish } from "@/lib/jonli-server";
 import { zanjirHolatlari } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 import { TERMINAL_COINLARI, binanceJuftligi } from "@/lib/terminallar";
-import { BLOK_NOMLARI, salomatlikIndeksi, xulosaHisobla } from "@/lib/zanjir";
+import {
+  BLOK_NOMLARI,
+  salomatlikIndeksi,
+  salomatlikTasnifi,
+  xulosaHisobla,
+} from "@/lib/zanjir";
 
 export const dynamic = "force-dynamic";
 
@@ -51,11 +61,13 @@ export default async function BozorHolati() {
   const coinlar = zanjirHolatlari();
   const xulosa = xulosaHisobla(coinlar);
   const indeks = salomatlikIndeksi(xulosa);
+  const tasnif = salomatlikTasnifi(indeks);
 
-  const [bozor, sektorlar, global, sutka] = await Promise.all([
+  const [bozor, sektorlar, global, qorquv, sutka] = await Promise.all([
     coinHolatlari(HALOL_COINLAR),
     sektorHolatlari(HALOL_COINLAR),
     globalHolat(),
+    qorquvOchkozlik(),
     sutkalikOzgarish(TERMINAL_COINLARI.map((c) => binanceJuftligi(c))),
   ]);
 
@@ -79,15 +91,32 @@ export default async function BozorHolati() {
     <>
       <Sarlavha matn={t("holat.sarlavha")} izoh={t("holat.izoh")} />
 
+      <BolimTugmalari
+        bolimlar={[
+          { langar: "salomatlik", nom: t("holat.bolim_salomatlik") },
+          { langar: "sektorlar", nom: t("holat.bolim_sektorlar") },
+          { langar: "terminallar", nom: t("holat.bolim_terminallar") },
+          { langar: "coinlar", nom: t("holat.bolim_coinlar") },
+        ]}
+      />
+
       <BozorTepasi
+        salomatlik={indeks}
+        salomatlikTasnifi={tasnif === null ? undefined : t(`zanjir.tasnif_${tasnif}`)}
         global={global}
+        qorquv={qorquv}
+        altcoin={altcoinMavsumi(bozor)}
         halolKapital={halolKapital}
         halolSoni={narxi.length}
         jamiSoni={bozor.length}
         yorliq={{
+          salomatlik: t("zanjir.indeks"),
           jami_kapital: t("holat.jami_kapital"),
           hajm24: t("holat.hajm24"),
           btc_ulushi: t("holat.btc_ulushi"),
+          eth_ulushi: t("holat.eth_ulushi"),
+          qorquv: t("holat.qorquv"),
+          altcoin: t("holat.altcoin"),
           halol_kapital: t("holat.halol_kapital"),
           bozor_manba: t("holat.bozor_manba"),
           halol_manba: t("holat.halol_manba"),
@@ -95,37 +124,34 @@ export default async function BozorHolati() {
       />
 
       <div className="space-y-5">
-        {/* 1. Bozor Salomatligi — loyihaning O'Z ko'rsatkichi. Boshqa
-            hech bir saytda yo'q, shuning uchun eng tepada va shisha
-            yuzada turadi. */}
-        <Card variant="oyna">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle>{t("zanjir.indeks")}</CardTitle>
-            <Badge tone="neytral">{sana(xulosa.oxirgi)}</Badge>
-          </div>
+        <div id="salomatlik" className="scroll-mt-20" />
+        {/* 1. Salomatlik TAFSILOTI. Indeks raqamining o'zi tepadagi
+            doirada turadi — bu yerda takrorlanmaydi. Qoladigan narsa:
+            nechta coin tekshirildi va zanjir qayerda uzildi. */}
+        {indeks !== null && (
+          <Card>
+            <CardTitle>{t("zanjir.tafsilot")}</CardTitle>
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+              <Raqam
+                nom={t("zanjir.tekshirildi")}
+                qiymat={String(xulosa.jami)}
+              />
+              <Raqam nom={t("zanjir.toliq")} qiymat={String(xulosa.toliq)} />
+              <Raqam nom={t("zanjir.signal")} qiymat={String(xulosa.signal)} />
+              <Raqam
+                nom={t("zanjir.ortacha")}
+                qiymat={`${xulosa.ortachaBloklar.toFixed(1)} / ${BLOK_NOMLARI.length}`}
+              />
+            </dl>
+            <CardHint className="mt-4">{t("zanjir.bir_tomonlama")}</CardHint>
+          </Card>
+        )}
 
-          {indeks === null ? (
-            <p className="text-matn-past mt-3 text-sm">{t("zanjir.hali_yoq")}</p>
-          ) : (
-            <>
-              <Shkala qiymat={indeks} />
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-                <Raqam
-                  nom={t("zanjir.tekshirildi")}
-                  qiymat={String(xulosa.jami)}
-                />
-                <Raqam nom={t("zanjir.toliq")} qiymat={String(xulosa.toliq)} />
-                <Raqam nom={t("zanjir.signal")} qiymat={String(xulosa.signal)} />
-                <Raqam
-                  nom={t("zanjir.ortacha")}
-                  qiymat={`${xulosa.ortachaBloklar.toFixed(1)} / ${BLOK_NOMLARI.length}`}
-                />
-              </dl>
-            </>
-          )}
-
-          <CardHint className="mt-4">{t("zanjir.bir_tomonlama")}</CardHint>
-        </Card>
+        {indeks === null && (
+          <Card>
+            <p className="text-matn-past text-sm">{t("zanjir.hali_yoq")}</p>
+          </Card>
+        )}
 
         {Object.keys(xulosa.uzilishlar).length > 0 && (
           <Card>
@@ -147,7 +173,7 @@ export default async function BozorHolati() {
         )}
 
         {/* 2. Sektorlar */}
-        <Card>
+        <Card id="sektorlar" className="scroll-mt-20">
           <CardTitle>{t("holat.sektorlar")}</CardTitle>
           {/* OGOHLANTIRISH ro'yxatdan OLDIN turadi: foydalanuvchi
               raqamni ko'rishdan avval u nimadan hisoblanganini
@@ -168,7 +194,7 @@ export default async function BozorHolati() {
         </Card>
 
         {/* 3. Terminallar */}
-        <Card>
+        <Card id="terminallar" className="scroll-mt-20">
           <CardTitle>{t("zanjir.terminallar")}</CardTitle>
           <div className="mt-3">
             <Terminallar til={til} ozgarishlar={ozgarishlar} />
@@ -176,7 +202,7 @@ export default async function BozorHolati() {
         </Card>
 
         {/* 4. Coinlar */}
-        <Card>
+        <Card id="coinlar" className="scroll-mt-20">
           <CardTitle>{t("holat.coinlar")}</CardTitle>
           <CardHint className="mt-1 mb-4">{t("holat.coin_izoh")}</CardHint>
           <CoinKorinishi
@@ -199,34 +225,6 @@ export default async function BozorHolati() {
         </Card>
       </div>
     </>
-  );
-}
-
-/** Qizil-sariq-yashil shkala va joriy qiymat ustidagi strelka. */
-function Shkala({ qiymat }: { qiymat: number }) {
-  const joy = Math.min(100, Math.max(0, qiymat));
-  return (
-    <div className="mt-4">
-      <div className="relative">
-        <div
-          className="h-3 w-full rounded-full"
-          style={{
-            background:
-              "linear-gradient(to right, var(--rang-past-toq), var(--rang-ortacha), var(--rang-yaxshi))",
-          }}
-        />
-        {/* Strelka — mutlaq joylashuv, chunki qiymat 0-100 oralig'ida
-            uzluksiz siljiydi. */}
-        <div
-          aria-hidden
-          className="absolute -top-1.5 -translate-x-1/2"
-          style={{ left: `${joy}%` }}
-        >
-          <div className="border-sarlavha bg-fon h-6 w-1.5 rounded-full border" />
-        </div>
-      </div>
-      <p className="raqam text-sarlavha mt-4 text-3xl font-bold">{qiymat}/100</p>
-    </div>
   );
 }
 

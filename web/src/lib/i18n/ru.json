@@ -60,7 +60,14 @@
     "bozor_manba": "весь рынок",
     "halol_manba": "халяльный список",
     "qidir": "Поиск монеты...",
-    "topilmadi": "Такой монеты в списке нет."
+    "topilmadi": "Такой монеты в списке нет.",
+    "eth_ulushi": "Доля ETH",
+    "qorquv": "Страх / Жадность",
+    "altcoin": "Сезон альткоинов",
+    "bolim_salomatlik": "Здоровье",
+    "bolim_sektorlar": "Секторы",
+    "bolim_terminallar": "Терминалы",
+    "bolim_coinlar": "Монеты"
   },
   "pastki": {
     "bosh": "Главная",
@@ -492,6 +499,10 @@
     "tab_ekotizim": "Экосистема",
     "tab_harakat": "Топ движений",
     "indeks_izoh": "Это АГРЕГАТНЫЙ результат модуля: сколько блоков связалось в среднем. Чисто статистический показатель.",
-    "uzilish_joylari": "Где обрывается цепь"
+    "uzilish_joylari": "Где обрывается цепь",
+    "tafsilot": "Детали здоровья",
+    "tasnif_past": "Низкое",
+    "tasnif_ortacha": "Среднее",
+    "tasnif_yaxshi": "Хорошее"
   }
 }

@@ -9,6 +9,8 @@ type CardProps = {
    *  xiralashadi (`globals.css` dagi `.oyna-yuza`). */
   variant?: "oddiy" | "urgu" | "oyna";
   className?: string;
+  /** Sahifa ichida langar sifatida ishlatiladi (`#coinlar`). */
+  id?: string;
 };
 
 /** Dizayn tizimining asosiy g'ishti.
@@ -26,10 +28,11 @@ type CardProps = {
  * chizadi va bir ekranda o'nlab shisha yuza kuchsiz telefonni
  * sekinlashtiradi.
  */
-export function Card({ children, variant = "oddiy", className }: CardProps) {
+export function Card({ children, variant = "oddiy", className, id }: CardProps) {
   const oyna = variant === "oyna";
   return (
     <div
+      id={id}
       className={cn(
         "rounded-kartochka border p-4 sm:p-5",
         oyna ? "oyna-yuza" : "bg-panel",

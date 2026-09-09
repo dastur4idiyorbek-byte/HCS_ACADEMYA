@@ -60,7 +60,14 @@
     "bozor_manba": "butun bozor",
     "halol_manba": "halol ro'yxat",
     "qidir": "Coin qidirish...",
-    "topilmadi": "Bunday coin ro'yxatda yo'q."
+    "topilmadi": "Bunday coin ro'yxatda yo'q.",
+    "eth_ulushi": "ETH ulushi",
+    "qorquv": "Qo'rquv / Ochko'zlik",
+    "altcoin": "Altcoin mavsumi",
+    "bolim_salomatlik": "Salomatlik",
+    "bolim_sektorlar": "Sektorlar",
+    "bolim_terminallar": "Terminallar",
+    "bolim_coinlar": "Coinlar"
   },
   "pastki": {
     "bosh": "Bosh",
@@ -492,6 +499,10 @@
     "tab_ekotizim": "Ekotizim",
     "tab_harakat": "Top harakatlanuvchilar",
     "indeks_izoh": "Bu — modulning AGREGAT natijasi: o'rtacha nechta blok bog'landi. Sof statistik ko'rsatkich.",
-    "uzilish_joylari": "Zanjir qayerda uzildi"
+    "uzilish_joylari": "Zanjir qayerda uzildi",
+    "tafsilot": "Salomatlik tafsiloti",
+    "tasnif_past": "Past",
+    "tasnif_ortacha": "O'rtacha",
+    "tasnif_yaxshi": "Yaxshi"
   }
 }

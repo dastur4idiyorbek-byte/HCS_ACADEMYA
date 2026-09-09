@@ -238,3 +238,34 @@ export function chiziqMaydoni(
   if (nuqtalar === null) return null;
   return `M0,${boyi} L${nuqtalar.split(" ").join(" L")} L${eni},${boyi} Z`;
 }
+
+/** "Altcoin mavsumi" ko'rsatkichi — 0 dan 100 gacha.
+ *
+ * NEGA O'ZIMIZ HISOBLAYMIZ. Tayyor manba (blockchaincenter) ochiq
+ * API bermaydi. Lekin ko'rsatkichning o'zi sodda: 7 kun ichida
+ * altcoinlarning necha foizi BITCOINDAN yaxshiroq yurgan.
+ *
+ * MUHIM CHEKLOV — SAHIFADA YOZILISHI SHART: bu bizning 80 talik
+ * HALOL ro'yxatimiz bo'yicha hisoblanadi, butun bozor bo'yicha emas.
+ * Shuning uchun u boshqa saytlardagi raqamdan farq qiladi. Bu xato
+ * emas, boshqa savolga javob: "halol doiradagi altcoinlar BTC dan
+ * yaxshiroqmi?".
+ *
+ * BTC ning o'zi hisobga kirmaydi — u o'lchov, ishtirokchi emas.
+ * Ma'lumot yetarli bo'lmasa `null`: taxminiy raqam ko'rsatishdan
+ * ko'ra bo'shliq halolroq.
+ */
+export function altcoinMavsumi(coinlar: CoinHolati[]): number | null {
+  const btc = coinlar.find((c) => c.ticker === "BTC");
+  if (btc === undefined || btc.ozgarish7k === null) return null;
+
+  const altlar = coinlar.filter(
+    (c) => c.ticker !== "BTC" && c.ozgarish7k !== null,
+  );
+  if (altlar.length < 10) return null;
+
+  const yutgan = altlar.filter(
+    (c) => (c.ozgarish7k as number) > (btc.ozgarish7k as number),
+  ).length;
+  return Math.round((yutgan / altlar.length) * 100);
+}

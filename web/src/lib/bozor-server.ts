@@ -213,6 +213,7 @@ export function keshniTozala(): void {
   coinKesh = null;
   sektorKesh = null;
   globalKesh = null;
+  qorquvKesh = null;
 }
 
 /** Butun bozorning umumiy ko'rsatkichlari — CoinGecko `/global`.
@@ -262,5 +263,44 @@ export async function globalHolat(): Promise<GlobalHolat | null> {
   };
 
   globalKesh = { qiymat: natija, vaqt: hozir };
+  return natija;
+}
+
+/** Qo'rquv va Ochko'zlik indeksi — `alternative.me`.
+ *
+ * NEGA BU MANBA: bepul, kalitsiz va sohada standart hisoblanadi —
+ * boshqa kripto saytlari ham xuddi shu raqamni ko'rsatadi, ya'ni
+ * foydalanuvchi uni tanib oladi va solishtira oladi.
+ *
+ * DIQQAT: bu raqam BOZOR KAYFIYATI, bizning modulimizga aloqasi
+ * yo'q. U signal qaroriga kirmaydi va faqat sahifada ko'rinadi.
+ */
+export type QorquvIndeksi = { qiymat: number; tasnif: string };
+
+let qorquvKesh: Kesh<QorquvIndeksi> | null = null;
+
+export async function qorquvOchkozlik(): Promise<QorquvIndeksi | null> {
+  const hozir = Date.now();
+  if (qorquvKesh && hozir - qorquvKesh.vaqt < KESH_MS) return qorquvKesh.qiymat;
+
+  const javob = await soragich("https://api.alternative.me/fng/?limit=1");
+  const qator = (javob as { data?: unknown[] } | null)?.data?.[0] as
+    | Record<string, unknown>
+    | undefined;
+  if (!qator) return qorquvKesh?.qiymat ?? null;
+
+  // Manba raqamni MATN sifatida qaytaradi ("74"), shuning uchun
+  // `son()` ishlamaydi.
+  const qiymat = Number(qator.value);
+  if (!Number.isFinite(qiymat)) return qorquvKesh?.qiymat ?? null;
+
+  const natija: QorquvIndeksi = {
+    qiymat,
+    tasnif:
+      typeof qator.value_classification === "string"
+        ? qator.value_classification
+        : "",
+  };
+  qorquvKesh = { qiymat: natija, vaqt: hozir };
   return natija;
 }
