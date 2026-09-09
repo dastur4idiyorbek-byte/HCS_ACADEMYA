@@ -470,7 +470,31 @@
     "tarmoqlar_yoq": "Havolalar hali qo'shilmagan.",
     "oqim_yoq": "Hali post yo'q. Yangiliklar shu yerda paydo bo'ladi.",
     "koproq": "Ko'proq yuklash",
-    "oqim_oxiri": "Oqimning boshiga yetdingiz."
+    "oqim_oxiri": "Oqimning boshiga yetdingiz.",
+    "ochish": "Ochish"
+  },
+  "vidjet": {
+    "bolim": "Bugungi holat",
+    "sozlash": "Sozlash",
+    "saqlash": "Saqlash",
+    "bekor": "Bekor qilish",
+    "tanlangan": "Ko'rinadiganlar",
+    "mavjud": "Qo'shish mumkin",
+    "saqlandi": "Saqlandi",
+    "xato": "Saqlanmadi, qayta urinib ko'ring",
+    "qulf": "Obuna kerak",
+    "yoq": "Ma'lumot yo'q",
+    "signal_yoq": "Hozircha signal yo'q",
+    "dona": "ta ochiq",
+    "salomatlik": "Bozor Salomatligi",
+    "oxirgi_signal": "Oxirgi signal",
+    "pozitsiyalar": "Pozitsiyalaringiz",
+    "natija": "Natijangiz",
+    "qorquv": "Qo'rquv / Ochko'zlik",
+    "tarif": "Tarifingiz",
+    "altcoin": "Altcoin mavsumi",
+    "bozor_kapitali": "Bozor kapitali",
+    "yangi_dars": "Yangi dars"
   },
   "oshxona": {
     "sarlavha": "Jonli oshxona",

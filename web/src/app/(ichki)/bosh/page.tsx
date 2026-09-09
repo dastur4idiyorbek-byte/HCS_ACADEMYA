@@ -1,12 +1,27 @@
 import Image from "next/image";
 
 import { Tarmoqlar } from "@/components/Tarmoqlar";
+import { Vidjet, type VidjetMalumoti } from "@/components/Vidjetlar";
+import { VidjetSozlash } from "@/components/VidjetSozlash";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
-import { boshPostlar, havolalar, type BoshPost } from "@/lib/queries";
+import {
+  boshPostlar,
+  havolalar,
+  kontent,
+  pozitsiyalar,
+  signallar,
+  tarifQamraydi,
+  vidjetTanlovi,
+  zanjirHolatlari,
+  type BoshPost,
+} from "@/lib/queries";
+import { globalHolat, qorquvOchkozlik } from "@/lib/bozor-server";
 import { kirim } from "@/lib/session";
+import { korinadiganVidjetlar, type VidjetKod } from "@/lib/vidjetlar";
+import { salomatlikIndeksi, salomatlikTasnifi, xulosaHisobla } from "@/lib/zanjir";
 
 export const dynamic = "force-dynamic";
 
@@ -39,10 +54,68 @@ export default async function Bosh({
 }: {
   searchParams: Promise<{ oxirgi?: string }>;
 }) {
-  const { til } = await kirim();
+  const { til, tarif, foydalanuvchi } = await kirim();
   const { oxirgi } = await searchParams;
   const t = tarjimon(til);
   const tarmoqlar = havolalar();
+
+  // --- Vidjetlar uchun ma'lumot ---
+  //
+  // Hammasi PARALLEL olinadi: ketma-ket bo'lsa sahifa eng sekin
+  // manbaning vaqtini kutardi.
+  const [global, qorquv] = await Promise.all([
+    globalHolat(),
+    qorquvOchkozlik(),
+  ]);
+
+  const zanjir = xulosaHisobla(zanjirHolatlari());
+  const indeks = salomatlikIndeksi(zanjir);
+  const tasnif = salomatlikTasnifi(indeks);
+
+  const oxirgiSignallar = signallar(1);
+  const mening = foydalanuvchi ? pozitsiyalar(foydalanuvchi.id) : [];
+  const ochiq = mening.filter((p) => p.closedAt === null);
+  const yopilgan = mening.filter((p) => p.pnlUsd !== null);
+
+  const darslar = kontent();
+  const oxirgiDars = darslar.length > 0 ? darslar[darslar.length - 1] : null;
+
+  const vidjetMalumoti: VidjetMalumoti = {
+    salomatlik: indeks,
+    salomatlikTasnifi: tasnif === null ? null : t(`zanjir.tasnif_${tasnif}`),
+    qorquv,
+    altcoin: null,
+    bozorKapitali: global?.jamiKapital ?? null,
+    bozorOzgarish: global?.ozgarish24 ?? null,
+    oxirgiSignal:
+      oxirgiSignallar.length === 0
+        ? null
+        : {
+            id: oxirgiSignallar[0].id,
+            coin: oxirgiSignallar[0].symbol,
+            holat: t(`holat.${oxirgiSignallar[0].status}`),
+          },
+    ochiqPozitsiya: ochiq.length,
+    // Yopilgan savdo bo'lmasa `null` — nol emas. "$0.00" "hech narsa
+    // yutmadingiz" degan MA'LUMOT bo'lardi, aslida savdo yo'q.
+    natijaUsd:
+      yopilgan.length === 0
+        ? null
+        : yopilgan.reduce((s, p) => s + (p.pnlUsd ?? 0), 0),
+    tarif: tarif ? tarif.toUpperCase() : null,
+    yangiDars:
+      oxirgiDars === null
+        ? null
+        : { id: oxirgiDars.id, nom: oxirgiDars.title, turi: oxirgiDars.kind },
+  };
+
+  const tanlov = foydalanuvchi
+    ? (vidjetTanlovi(foydalanuvchi.id) as VidjetKod[])
+    : [];
+  const vidjetlar = korinadiganVidjetlar(tanlov);
+  const vidjetNomlari = Object.fromEntries(
+    vidjetlar.map((v) => [v.kod, t(v.kalit)]),
+  );
 
   const oxirgiId = Number(oxirgi);
   // Bittasini ORTIQCHA so'raymiz: shundan keyin yana post bormi —
@@ -58,8 +131,98 @@ export default async function Bosh({
     // Matn oqimi TOR qoladi: umumiy kenglik boshqaruv paneli uchun
     // kengaytirildi, uzun matn qatori esa o'qishni qiyinlashtiradi.
     <div className="mx-auto max-w-3xl space-y-5">
-      {/* ---- Oqimning birinchi, doimiy postlari ---- */}
-      <header className="flex flex-col items-center py-6 text-center">
+      {/* ---- 1-QATLAM: SIZ va BUGUN ---- */}
+      {/* NEGA TANISHTIRUV EMAS. Ilgari sahifa logotip va to'rtta
+          tanishtiruv kartochkasidan boshlanardi. Birinchi tashrifda
+          bu to'g'ri, ellikinchisida esa to'siq: har safar kirgan odam
+          ular ustidan o'tib, keyin yangilikka yetardi.
+
+          Endi tepada BUGUNGI HOLAT turadi, tanishtiruv esa oqimning
+          oxiriga ko'chdi — u yerda ham ko'rinadi, chunki yangi odamda
+          oqim bo'sh bo'ladi. */}
+      <div className="mb-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sarlavha text-lg font-bold">
+            {t("vidjet.bolim")}
+          </h2>
+          {foydalanuvchi && (
+            <VidjetSozlash
+              boshlangich={vidjetlar.map((v) => v.kod)}
+              vidjetNomlari={vidjetNomlari}
+              yorliq={{
+                sozlash: t("vidjet.sozlash"),
+                saqlash: t("vidjet.saqlash"),
+                bekor: t("vidjet.bekor"),
+                tanlangan: t("vidjet.tanlangan"),
+                mavjud: t("vidjet.mavjud"),
+                saqlandi: t("vidjet.saqlandi"),
+                xato: t("vidjet.xato"),
+              }}
+            />
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {vidjetlar.map((v) => (
+            <Vidjet
+              key={v.kod}
+              kod={v.kod}
+              nom={t(v.kalit)}
+              malumot={vidjetMalumoti}
+              qulf={v.talab !== null && !tarifQamraydi(tarif, v.talab)}
+              yorliq={{
+                qulf: t("vidjet.qulf"),
+                yoq: t("vidjet.yoq"),
+                signal_yoq: t("vidjet.signal_yoq"),
+                dona: t("vidjet.dona"),
+                tarif_yoq: t("profil.yoq"),
+                halol_manba: t("holat.halol_manba"),
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ---- Xronologik oqim ---- */}
+      <div className="border-ramka-yumshoq border-t pt-5">
+        {postlar.length === 0 ? (
+          <Card>
+            <p className="text-matn-past text-sm">{t("bosh.oqim_yoq")}</p>
+          </Card>
+        ) : (
+          <div className="space-y-5">
+            {postlar.map((p) => (
+              <PostKartochka key={p.id} post={p} tugmaMatn={t("bosh.ochish")} />
+            ))}
+          </div>
+        )}
+
+        {/* "Ko'proq yuklash" — oddiy HAVOLA, JS emas.
+            Sabab: sahifa server komponenti va JS o'chiq bo'lsa ham
+            ishlashi kerak. Manzilda oxirgi post id si turadi, ya'ni
+            havolani ulashish ham mumkin. */}
+        {yanaBor && postlar.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <a
+              href={`/bosh?oxirgi=${postlar[postlar.length - 1].id}`}
+              className="border-ramka-yumshoq rounded-tugma hover:bg-panel-yorqin border px-4 py-2 text-sm transition"
+            >
+              {t("bosh.koproq")}
+            </a>
+          </div>
+        )}
+        {!yanaBor && oxirgiId > 0 && (
+          <p className="text-matn-past mt-6 text-center text-sm">
+            {t("bosh.oqim_oxiri")}
+          </p>
+        )}
+      </div>
+
+      {/* ---- 3-QATLAM: loyiha haqida ----
+          Oqimning OXIRIDA. Yangi odamda oqim bo'sh bo'ladi va u
+          baribir shu yerga darrov yetadi; qayta kirgan odam esa
+          har safar ular ustidan o'tishga majbur emas. */}
+      <div className="border-ramka-yumshoq space-y-5 border-t pt-8">      <header className="flex flex-col items-center py-6 text-center">
         <Image
           src="/logo.jpg"
           alt="HCS — Halol Crypto Savdo"
@@ -111,48 +274,33 @@ export default async function Bosh({
 
       <Tarmoqlar havolalar={tarmoqlar} til={til} />
 
-      {/* ---- Xronologik oqim ---- */}
-      <div className="border-ramka-yumshoq border-t pt-5">
-        {postlar.length === 0 ? (
-          <Card>
-            <p className="text-matn-past text-sm">{t("bosh.oqim_yoq")}</p>
-          </Card>
-        ) : (
-          <div className="space-y-5">
-            {postlar.map((p) => (
-              <PostKartochka key={p.id} post={p} />
-            ))}
-          </div>
-        )}
-
-        {/* "Ko'proq yuklash" — oddiy HAVOLA, JS emas.
-            Sabab: sahifa server komponenti va JS o'chiq bo'lsa ham
-            ishlashi kerak. Manzilda oxirgi post id si turadi, ya'ni
-            havolani ulashish ham mumkin. */}
-        {yanaBor && postlar.length > 0 && (
-          <div className="mt-6 flex justify-center">
-            <a
-              href={`/bosh?oxirgi=${postlar[postlar.length - 1].id}`}
-              className="border-ramka-yumshoq rounded-tugma hover:bg-panel-yorqin border px-4 py-2 text-sm transition"
-            >
-              {t("bosh.koproq")}
-            </a>
-          </div>
-        )}
-        {!yanaBor && oxirgiId > 0 && (
-          <p className="text-matn-past mt-6 text-center text-sm">
-            {t("bosh.oqim_oxiri")}
-          </p>
-        )}
       </div>
     </div>
   );
 }
 
-function PostKartochka({ post }: { post: BoshPost }) {
+/** Avtomatik post turiga qarab belgi. Qo'lda yozilganda belgi yo'q. */
+const MANBA_BELGISI: Record<string, string> = {
+  dars: "🎬",
+  maqola: "📄",
+  signal: "📈",
+  hisobot: "📊",
+};
+
+function PostKartochka({
+  post,
+  tugmaMatn,
+}: {
+  post: BoshPost;
+  tugmaMatn: string;
+}) {
+  const belgi = MANBA_BELGISI[post.manbaTuri];
   return (
     <article className="border-ramka-yumshoq bg-panel rounded-kartochka border p-4">
-      <p className="text-matn-past text-xs">{sana(post.yaratilgan)}</p>
+      <p className="text-matn-past text-xs">
+        {belgi && <span aria-hidden className="mr-1.5">{belgi}</span>}
+        {sana(post.yaratilgan)}
+      </p>
 
       {post.matn && (
         <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap">
@@ -177,6 +325,19 @@ function PostKartochka({ post }: { post: BoshPost }) {
           src={`/api/post-media/${post.media}`}
           className="mt-3 w-full"
         />
+      )}
+
+      {/* Avtomatik postning tugmasi. Qulflangan darsga olib borsa
+          ham YASHIRILMAYDI: bosilganda qulf ekrani chiqadi va odam
+          nima yetishmayotganini biladi. Saytning qolgan qismida ham
+          shu qoida — dars nomi sotiladigan qiymat. */}
+      {post.havola && (
+        <a
+          href={post.havola}
+          className="border-ramka rounded-tugma hover:bg-panel-yorqin mt-3 inline-block border px-4 py-2 text-sm transition"
+        >
+          {tugmaMatn} →
+        </a>
       )}
     </article>
   );

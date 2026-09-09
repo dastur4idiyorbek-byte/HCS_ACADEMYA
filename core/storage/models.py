@@ -209,6 +209,39 @@ class ContentProgress(Base, TimestampMixin):
     percent: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
+class UserWidget(Base, TimestampMixin):
+    """Foydalanuvchi bosh sahifasida qaysi vidjet, qaysi tartibda.
+
+    NEGA BAZADA, BRAUZERDA EMAS. Odam telefonda ham, kompyuterda ham
+    kiradi va tanlovi ikkalasida bir xil bo'lishi kerak. Brauzer
+    xotirasi qurilmaga bog'langan — u yerda saqlansa, telefonda
+    qilingan tartib kompyuterda yo'q bo'lardi.
+
+    NEGA HAR VIDJET ALOHIDA QATOR, JSON EMAS. Tartibni o'zgartirish
+    va bittasini o'chirish — oddiy SQL. JSON bo'lsa, butun ro'yxatni
+    o'qib, o'zgartirib, qayta yozish kerak bo'lardi va ikki qurilma
+    bir vaqtda yozsa biri ikkinchisini yo'qotardi.
+
+    RO'YXATI BO'SH FOYDALANUVCHI — yangi kelgan odam. Unga sukut
+    bo'yicha to'plam ko'rsatiladi (`web/src/lib/vidjetlar.ts`), bazaga
+    esa hech narsa yozilmaydi: u hali hech narsa tanlamagan.
+    """
+
+    __tablename__ = "user_widgets"
+    __table_args__ = (
+        UniqueConstraint("user_id", "widget", name="uq_widget_user_widget"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Vidjet kodi — `web/src/lib/vidjetlar.ts` dagi ro'yxatdan.
+    widget: Mapped[str] = mapped_column(String(32), nullable=False)
+    #: Kichik raqam tepada turadi.
+    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
 class Violation(Base, TimestampMixin):
     """1.3-band: qoidabuzarlik — ogohlantirish va tarifni vaqtincha to'xtatish."""
 
@@ -620,7 +653,6 @@ class HomepagePost(Base, TimestampMixin):
     """
 
     __tablename__ = "homepage_posts"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     #: `text`, `image`, `audio` yoki `mixed` — SAQLASHDA hisoblanadi,
     #: admin tanlamaydi. Aks holda tur bilan tarkib bir-biriga zid
@@ -630,11 +662,39 @@ class HomepagePost(Base, TimestampMixin):
     #: FAQAT FAYL NOMI (to'liq yo'l emas) — video bilan bir xil sabab:
     #: Railway diski ko'chganda yo'l o'zgaradi, nom o'zgarmaydi.
     media_url: Mapped[str | None] = mapped_column(String(256))
+
+    #: Post qayerdan kelgan: `qolda` yoki avtomatik (`dars`, `maqola`,
+    #: `signal`, `hisobot`).
+    source_kind: Mapped[str] = mapped_column(
+        String(16), default="qolda", nullable=False
+    )
+    #: Avtomatik post qaysi yozuv haqida. Qo'lda yozilganda `None`.
+    source_id: Mapped[int | None] = mapped_column(Integer)
+    #: Post ostidagi tugma qayerga olib boradi. Qo'lda yozilganda
+    #: `None` — tugma chiqmaydi.
+    link: Mapped[str | None] = mapped_column(String(256))
     admin_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
 
-    __table_args__ = (Index("ix_homepage_posts_created", "created_at"),)
+    # BITTA MANBA — BITTA POST.
+    #
+    # Ansiz admin darsni har tahrirlaganda oqimda yangi post paydo
+    # bo'lardi va oqim bir xil xabar bilan to'lib ketardi. Bu shart
+    # KODDA emas, BAZADA turadi: kod unutishi mumkin, baza unutmaydi.
+    #
+    # `source_id` NULL bo'lgan qatorlar (qo'lda yozilganlar) bu
+    # shartga tushmaydi — SQLite da NULL hech narsaga teng emas.
+    #
+    # NEGA `UniqueConstraint` EMAS, INDEKS. SQLite mavjud jadvalga
+    # cheklov qo'sha olmaydi — jadvalni nusxalab qayta qurish kerak
+    # bo'lardi, postlar esa allaqachon yozilgan. Unique indeks aynan
+    # shu kafolatni beradi va ikkala yo'lda ham (yangi baza va
+    # migratsiya) bir xil chiqadi.
+    __table_args__ = (
+        Index("ix_homepage_posts_created", "created_at"),
+        Index("uq_post_manba", "source_kind", "source_id", unique=True),
+    )
 
 
 # --------------------------------------------------------------------------- #

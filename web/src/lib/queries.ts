@@ -1532,7 +1532,21 @@ export function darsSaqla(
       vaqtNow,
       vaqtNow,
     );
-  return { ok: true, id: songaAylantir(natija.lastInsertRowid) };
+  const yangiId = songaAylantir(natija.lastInsertRowid);
+
+  // OQIMDA AVTOMATIK POST. Faqat YANGI dars uchun va faqat CHOP
+  // ETILGANDA: chop etilmagan dars hali tayyor emas, u haqda xabar
+  // berish erta bo'lardi.
+  //
+  // Tahrirlashda post yozilmaydi — yuqoridagi shox `return` bilan
+  // tugaydi. Baribir ikki marta chaqirilsa, baza `uq_post_manba`
+  // indeksi bilan to'sadi va `avtomatikPost` buni xato deb emas,
+  // "allaqachon bor" deb qaytaradi.
+  if (kirish.published) {
+    avtomatikPost("dars", yangiId, title, "/video", hozir);
+  }
+
+  return { ok: true, id: yangiId };
 }
 
 export function darsOchir(id: number): boolean {
@@ -1686,6 +1700,13 @@ export type BoshPost = {
   /** Rasmmi yoki audiomi — sahifa qaysi elementni chizishini shu hal qiladi */
   mediaTuri: "image" | "audio" | null;
   yaratilgan: Date | null;
+  /** `qolda` — admin yozgan. Qolgani avtomatik: `dars`, `maqola`,
+   *  `signal`, `hisobot`. */
+  manbaTuri: string;
+  /** Avtomatik post qaysi yozuv haqida. Qo'lda yozilganda `null`. */
+  manbaId: number | null;
+  /** Post ostidagi tugma manzili. `null` — tugma chiqmaydi. */
+  havola: string | null;
 };
 
 /** Tarkibdan turni HISOBLAYDI, admindan so'ramaydi.
@@ -1710,6 +1731,11 @@ function boshPostgaAylantir(q: Qator): BoshPost {
     media,
     mediaTuri: media ? postMediaTuri(media) : null,
     yaratilgan: vaqt(q.created_at as string),
+    manbaTuri: (q.source_kind as string) ?? "qolda",
+    manbaId: q.source_id === null || q.source_id === undefined
+      ? null
+      : songaAylantir(q.source_id),
+    havola: (q.link as string | null) ?? null,
   };
 }
 
@@ -1725,19 +1751,115 @@ export function boshPostlar(nechta = 20, oxirgiId?: number): BoshPost[] {
     oxirgiId && oxirgiId > 0
       ? db()
           .prepare(
-            `select id, content_type, text_content, media_url, created_at
+            `select id, content_type, text_content, media_url, created_at,
+                    source_kind, source_id, link
                from homepage_posts where id < ?
               order by id desc limit ?`,
           )
           .all(oxirgiId, chegara)
       : db()
           .prepare(
-            `select id, content_type, text_content, media_url, created_at
+            `select id, content_type, text_content, media_url, created_at,
+                    source_kind, source_id, link
                from homepage_posts order by id desc limit ?`,
           )
           .all(chegara)
   ) as Qator[];
   return qatorlar.map(boshPostgaAylantir);
+}
+
+
+// --------------------------------------------------------------------------- //
+//  Bosh sahifa vidjetlari
+// --------------------------------------------------------------------------- //
+
+/** Foydalanuvchi tanlagan vidjetlar — tartibi bilan.
+ *
+ * Bo'sh massiv "hech narsa tanlamagan" degani, "hech narsa ko'rsatma"
+ * emas. Farqni chaqiruvchi hal qiladi (`korinadiganVidjetlar`).
+ */
+export function vidjetTanlovi(userId: number): string[] {
+  const qatorlar = db()
+    .prepare(
+      `select widget from user_widgets where user_id = ?
+        order by position asc, id asc`,
+    )
+    .all(userId) as Qator[];
+  return qatorlar.map((q) => q.widget as string);
+}
+
+/** Tanlovni butunlay almashtiradi.
+ *
+ * NEGA O'CHIRIB QAYTA YOZILADI. Tartib ham, tarkib ham bir vaqtda
+ * o'zgaradi: bittasi olib tashlanib, ikkinchisi yuqoriga ko'chishi
+ * mumkin. Farqni hisoblab, qaysi qatorni yangilash kerakligini
+ * topish — bir necha so'rov va xato qilish oson. Ro'yxat oltitadan
+ * iborat, shuning uchun butunlay qayta yozish ham arzon, ham aniq.
+ *
+ * IKKALASI BITTA TRANZAKSIYADA: o'chirish o'tib, yozish yiqilsa,
+ * foydalanuvchi vidjetsiz qolardi.
+ */
+export function vidjetTanloviSaqla(
+  userId: number,
+  kodlar: string[],
+  hozir = new Date(),
+): { ok: true } | { ok: false; sabab: string } {
+  if (kodlar.length > 20) {
+    return { ok: false, sabab: "Juda ko'p vidjet" };
+  }
+  const vaqt = vaqtSatri(hozir);
+  const baza = db();
+
+  // `node:sqlite` da `transaction()` yordamchisi yo'q — BEGIN/COMMIT
+  // qo'lda yoziladi. Xato bo'lsa ROLLBACK: o'chirish o'tib, yozish
+  // yiqilsa foydalanuvchi vidjetsiz qolardi.
+  baza.exec("begin");
+  try {
+    baza.prepare(`delete from user_widgets where user_id = ?`).run(userId);
+    const qoshish = baza.prepare(
+      `insert into user_widgets (user_id, widget, position, created_at, updated_at)
+            values (?, ?, ?, ?, ?)`,
+    );
+    kodlar.forEach((kod, i) => qoshish.run(userId, kod, i, vaqt, vaqt));
+    baza.exec("commit");
+  } catch {
+    baza.exec("rollback");
+    return { ok: false, sabab: "Saqlanmadi" };
+  }
+  return { ok: true };
+}
+
+// --------------------------------------------------------------------------- //
+//  Avtomatik postlar
+// --------------------------------------------------------------------------- //
+
+/** Avtomatik post — dars, maqola, signal yoki hisobot yaratilganda.
+ *
+ * BIR MANBA — BIR POST. Takrorlanishni BAZA to'sadi (`uq_post_manba`
+ * unique indeksi), kod emas: kod unutishi mumkin, baza unutmaydi.
+ * Shuning uchun ikkinchi urinish XATO emas — u shunchaki "allaqachon
+ * bor" degani va `ok: true` qaytadi. Chaqiruvchi (dars qo'shish
+ * oqimi) buni xato deb hisoblab, butun amalni bekor qilmasligi kerak.
+ */
+export function avtomatikPost(
+  manbaTuri: "dars" | "maqola" | "signal" | "hisobot",
+  manbaId: number,
+  matn: string,
+  havola: string,
+  hozir = new Date(),
+): { ok: true; yangi: boolean } {
+  const vaqt = vaqtSatri(hozir);
+  const natija = db()
+    .prepare(
+      `insert into homepage_posts
+            (content_type, text_content, media_url, admin_id,
+             source_kind, source_id, link, created_at, updated_at)
+            values ('text', ?, null, null, ?, ?, ?, ?, ?)
+       on conflict(source_kind, source_id) do nothing`,
+    )
+    .run(matn, manbaTuri, manbaId, havola, vaqt, vaqt);
+
+  return { ok: true, yangi: songaAylantir(natija.changes) > 0 };
 }
 
 export function boshPostlarSoni(): number {
