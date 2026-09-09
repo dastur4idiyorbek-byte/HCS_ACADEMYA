@@ -59,7 +59,10 @@ export default async function Salomatlik() {
       <Sarlavha matn={t("menyu.salomatlik")} izoh={t("zanjir.indeks_izoh")} />
 
       <div className="space-y-5">
-        <Card variant="urgu">
+        {/* Sahifaning asosiy kartochkasi — shu yerda "oyna" yuzasi
+            ishlatiladi. Bozor Salomatligi loyihaning o'z ko'rsatkichi
+            va sahifadagi eng muhim blok. */}
+        <Card variant="oyna">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle>{t("zanjir.indeks")}</CardTitle>
             <Badge tone="neytral">{sana(xulosa.oxirgi)}</Badge>

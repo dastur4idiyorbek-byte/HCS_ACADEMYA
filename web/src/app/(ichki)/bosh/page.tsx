@@ -72,7 +72,10 @@ export default async function Bosh({
         <p className="text-matn-past mt-1 text-sm">{t("bosh.shior")}</p>
       </header>
 
-      <Card>
+      {/* Oqimning eng tepasidagi kartochka — "oyna" yuzasi shu yerda.
+          Quyidagi postlar oddiy qoladi: bir ekranda o'nlab shisha yuza
+          effektni ham, telefon tezligini ham yo'qotadi. */}
+      <Card variant="oyna">
         <CardTitle>{t("bosh.tavsif_sarlavha")}</CardTitle>
         <p className="mt-2 text-sm leading-relaxed">{t("bosh.tavsif")}</p>
       </Card>

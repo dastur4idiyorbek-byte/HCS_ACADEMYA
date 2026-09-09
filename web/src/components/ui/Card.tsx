@@ -4,8 +4,10 @@ import { cn } from "@/lib/cn";
 
 type CardProps = {
   children: ReactNode;
-  /** `urgu` — muhim kartochka: ramka to'liq apelsin rangida */
-  variant?: "oddiy" | "urgu";
+  /** `urgu` — muhim kartochka: ramka to'liq apelsin rangida.
+   *  `oyna` — shisha yuza: urg'u ramkasi + orqadagi fon nuri
+   *  xiralashadi (`globals.css` dagi `.oyna-yuza`). */
+  variant?: "oddiy" | "urgu" | "oyna";
   className?: string;
 };
 
@@ -18,13 +20,20 @@ type CardProps = {
  * Oddiy kartochkada ramka shaffofroq: ekranda o'nlab kartochka bo'lsa,
  * hammasi to'liq apelsin bo'lib turishi ko'zni charchatadi — urg'u esa
  * urg'u bo'lib qolmaydi.
+ *
+ * `oyna` ham xuddi shu sababdan SANOQLI joyda ishlatiladi. Ikkinchi
+ * sabab texnik: `backdrop-filter` orqadagi hamma narsani qayta
+ * chizadi va bir ekranda o'nlab shisha yuza kuchsiz telefonni
+ * sekinlashtiradi.
  */
 export function Card({ children, variant = "oddiy", className }: CardProps) {
+  const oyna = variant === "oyna";
   return (
     <div
       className={cn(
-        "rounded-kartochka border bg-panel p-4 sm:p-5",
-        variant === "urgu" ? "border-ramka" : "border-ramka-yumshoq",
+        "rounded-kartochka border p-4 sm:p-5",
+        oyna ? "oyna-yuza" : "bg-panel",
+        variant === "oddiy" ? "border-ramka-yumshoq" : "border-ramka",
         className,
       )}
     >
