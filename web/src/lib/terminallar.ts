@@ -1,7 +1,7 @@
 /** Bozor Salomatligi sahifasidagi terminal toifalari (4-prompt, 2-qism).
  *
  * FAQAT HALOL SKRININGDAN O'TGAN COINLAR. Ro'yxat zanjir moduli
- * kuzatadigan 200 coinlik halol ro'yxatning KICHIK TO'PLAMI (kuratilgan
+ * kuzatadigan 80 coinlik halol ro'yxatning KICHIK TO'PLAMI (kuratilgan
  * terminallar): o'z saytimizda haram yoki shubhali coinning grafigini
  * ko'rsatish — mahsulotning o'z va'dasiga zid bo'lardi.
  *
@@ -26,7 +26,7 @@ export type Toifa = {
 };
 
 /** Zanjir moduli kuzatadigan coinlar — `config/default.yaml` dagi
- *  `zanjir.kuzatiladigan_coinlar` (200 halol coin) ICHIDA bo'lishi
+ *  `zanjir.kuzatiladigan_coinlar` (80 halol coin) ICHIDA bo'lishi
  *  shart. `web/tests/zanjir.test.ts` buni tekshiradi. */
 export const TERMINAL_COINLARI = [
   "BTC",

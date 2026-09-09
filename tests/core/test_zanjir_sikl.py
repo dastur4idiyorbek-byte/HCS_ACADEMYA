@@ -117,12 +117,41 @@ def test_oyna_backtest_bilan_bir_xil() -> None:
     assert PASTKI_OYNA == BACKTEST_PASTKI
 
 
-def test_kuzatiladigan_coinlar_200_ta_halol(config) -> None:  # noqa: ANN001
-    """Jonli ro'yxat 200 ta va o'lchangan 12 coinlik to'plamni qamraydi."""
+def test_kuzatiladigan_coinlar_80_ta_halol(config) -> None:  # noqa: ANN001
+    """Jonli ro'yxat 80 ta va o'lchangan 12 coinlik to'plamni qamraydi."""
     from scripts.zanjir_umumiy import OLCHOV_12
 
-    assert len(config.zanjir.kuzatiladigan_coinlar) == 200
+    assert len(config.zanjir.kuzatiladigan_coinlar) == 80
     assert set(OLCHOV_12) <= set(config.zanjir.kuzatiladigan_coinlar)
+
+
+def test_royxat_hujjat_bilan_bir_xil(config) -> None:  # noqa: ANN001
+    """Kod va hujjat ajralib ketmasin.
+
+    `docs/HALOL_ROYXAT.md` har bir coinning NIMA UCHUN shu yerda
+    ekanini saqlaydi: manba, sana, chiqarilganlarning sabablari,
+    tasdiq holati. Kod esa faqat tickerlarni saqlaydi.
+
+    Ikkalasi qo'lda yangilanadigan bo'lsa, bir kun kelib ular
+    ajraladi va hech kim qaysi biri to'g'ri ekanini bilmaydi —
+    "halol" deb yozilgan ro'yxatda esa bu jiddiy narsa. Shuning
+    uchun ular shu yerda mexanik bog'lanadi.
+    """
+    import re
+    from pathlib import Path
+
+    hujjat = Path(__file__).resolve().parents[2] / "docs" / "HALOL_ROYXAT.md"
+    matn = hujjat.read_text(encoding="utf-8")
+
+    bolim = matn.split("## Ro'yxat (80 ta)")[1].split("---")[0]
+    hujjatdagi = re.findall(r"\b[A-Z][A-Z0-9]{0,9}\b", bolim)
+
+    kodagi = config.zanjir.kuzatiladigan_coinlar
+    assert hujjatdagi == kodagi, (
+        "docs/HALOL_ROYXAT.md va schema.py ajralib ketdi. "
+        f"Faqat hujjatda: {sorted(set(hujjatdagi) - set(kodagi))}. "
+        f"Faqat kodda: {sorted(set(kodagi) - set(hujjatdagi))}."
+    )
 
 
 def test_sikl_soat_musbat(config) -> None:  # noqa: ANN001

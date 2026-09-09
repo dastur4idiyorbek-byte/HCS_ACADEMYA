@@ -163,7 +163,7 @@ test("eng oxirgi tekshiruv vaqti olinadi", () => {
  *  uchun uni test qulflaydi.
  *
  *  Terminallar sahifasi KURATILGAN kichik ro'yxat (12 coin) — u
- *  zanjir kuzatadigan 200 coinlik HALOL ro'yxatning ICHIDA bo'lishi
+ *  zanjir kuzatadigan 80 coinlik HALOL ro'yxatning ICHIDA bo'lishi
  *  shart, aynan teng bo'lishi shart emas. */
 test("terminal coinlari zanjir kuzatadigan halol ro'yxat ICHIDA", () => {
   const sxema = readFileSync(

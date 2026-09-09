@@ -95,9 +95,14 @@ Narx olinmasa `0.0` ko'rsatilmaydi — "ma'lumot olinmadi" deyiladi.
 Python o'zgarsa:
 
 ```bash
-.venv/bin/ruff check . && .venv/bin/ruff format --check .
-.venv/bin/pytest -q
+.venv/bin/ruff check .
+.venv/bin/python -m pytest -q
 ```
+
+`ruff format` NI YURITMA. Loyiha undan foydalanmaydi va u 78 ta
+faylni qayta yozib, o'zgarishingizni ko'rinmas qilib yuboradi.
+`pytest` esa `python -m` bilan chaqiriladi — to'g'ridan-to'g'ri
+`.venv/bin/pytest` yo'llarni topmaydi.
 
 Sayt o'zgarsa:
 

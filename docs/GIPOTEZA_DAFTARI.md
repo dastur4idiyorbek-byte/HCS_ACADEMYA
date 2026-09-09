@@ -1525,3 +1525,50 @@ KAMAYTIRADI, lekin qanchaga — noma'lum.
 
 🔴 Bu — o'lchanmagan va o'lchab bo'lmaydigan raqam. Shundayligicha
 qoladi.
+
+---
+
+## Kuzatuv doirasi 200 → 80 (2026-09-09) — yangi 🔴
+
+Jonli ro'yxat 200 tadan 80 taga tushirildi. Sabab halollik:
+o'sha 200 tani hech kim tekshirmagan edi — loyihaning halol
+testi atigi ~30 ta urug' nomni bilardi, qolgan ~170 tasi
+jimgina o'tib ketardi. Orasida ONDO (obligatsiya — foiz),
+ALPACA (leverage), FUN (qimor), XVS/KAVA (qarz berish) bor edi.
+
+Manba, sana va chiqarish sabablari: `docs/HALOL_ROYXAT.md`.
+
+### Nima o'lchangan va nima yo'q
+
+| | |
+|---|---|
+| O'lchangan | **12 coin** — 4 yil, 498 savdo, PF 3.49 |
+| Jonli ishlaydi | **80 coin** |
+
+🔴 **80 coinda tizim qanday ishlashi O'LCHANMAGAN.**
+
+Bu 200 talikda ham shunday edi — ya'ni yangi bo'shliq emas,
+eskisi kichrayди. Lekin u yashirin qolmasin: o'lchangan 12 tasi
+80 talikning ichida, qolgan 68 tasi esa modul ular ustida
+qanday xatti-harakat qilishini hech kim ko'rmagan coinlar.
+
+Nima uchun bu jiddiy: signal soni, o'rtacha R/R va drawdown
+to'plamga bog'liq. Kichik kapitalli coinda zona kengroq,
+likvidlik yupqaroq va Stop tez-tez uriladi. 12 talik to'plamda
+bunday coin deyarli yo'q.
+
+### Bu bilan nima qilinadi
+
+O'lchash kerak: 80 coinda backtest, 12 talik natija bilan
+yonma-yon. Farq katta chiqsa — doira yana toraytiriladi yoki
+kichik kapitalli coinlar uchun alohida qoida kerak bo'ladi.
+
+O'lchanmaguncha PF 3.49 ni "tizimning natijasi" deb aytish
+mumkin emas — u **12 coinlik to'plamning** natijasi.
+
+### Qo'shilmagan 63 ta 🔴
+
+Manba halol deydi, lekin ko'pi juda yangi va kam savdoli.
+Kam likvidlikning modulga ta'siri o'lchanmagan, shuning uchun
+ular kiritilmadi. Likvidlik chegarasi o'lchangach qayta
+ko'riladi.

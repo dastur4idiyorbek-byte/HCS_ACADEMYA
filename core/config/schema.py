@@ -610,51 +610,44 @@ class ZanjirConfig:
     darajalar: DarajalarConfig = field(default_factory=DarajalarConfig)
     chiqish: ChiqishConfig = field(default_factory=ChiqishConfig)
     ai: AiVerificationConfig = field(default_factory=AiVerificationConfig)
-    #: JONLI tizim kuzatadigan coinlar — 200 ta HALOL coin.
+    #: JONLI tizim kuzatadigan coinlar — 80 ta.
     #:
-    #: Ro'yxat ANIQ (statik) — "Top N" kabi o'zgaruvchan son emas.
-    #: Likvid spot juftliklardan (USDT) harom / mashbooh / stablecoin
-    #: ro'yxatlaridan TOZALANGAN (test bilan qulflangan).
+    #: NIMA UCHUN 80. Ilgari bu yerda 200 ta turardi, lekin ularni
+    #: HECH KIM halollikka tekshirmagan edi: loyihaning halol testi
+    #: atigi ~30 ta urug' nomni bilardi, qolgani jimgina o'tib
+    #: ketardi. Orasida ONDO (obligatsiya — foiz), ALPACA (leverage),
+    #: FUN (qimor), XVS/KAVA (qarz berish) kabilar bor edi — ya'ni
+    #: mahsulotning eng asosiy va'dasiga zid coinlar.
     #:
-    #: O'lchov: 12 coinlik asosiy to'plamda o'tkazilgan (4 yil, 498
-    #: savdo, PF 3.49). 200 coin — kengaytirilgan doira; bir vaqtda
-    #: ochiq signal sonini `target_count` emas, Risk Engine chegaralaydi.
+    #: Ro'yxat mustaqil skrining manbasi bilan kesishtirildi va
+    #: faqat IKKALASIDA ham bor 80 tasi qoldi. Manba, sana, chiqarish
+    #: sabablari va tasdiq holati: `docs/HALOL_ROYXAT.md`.
+    #: `tests/core/test_zanjir_sikl.py` shu ikkisi ajralib
+    #: ketmasligini tekshiradi.
+    #:
+    #: ⚠️ Ro'yxat DINIY HUJJAT EMAS — bilimli kishi tasdig'i
+    #: kutilmoqda.
+    #:
+    #: O'LCHANMAGAN: o'lchov 12 coinlik to'plamda o'tkazilgan (4 yil,
+    #: 498 savdo, PF 3.49). 80 coinda tizim qanday ishlashi
+    #: o'lchanmagan — `docs/GIPOTEZA_DAFTARI.md`. O'sha 12 tasi shu
+    #: ro'yxatning ichida.
     kuzatiladigan_coinlar: list[str] = field(
         default_factory=lambda: [
             "BTC", "ETH", "SOL", "ADA", "AVAX", "LINK",
             "DOT", "BCH", "LTC", "NEAR", "ETC", "FIL",
-            "UNI", "APT", "SUI", "ICP", "POL", "XLM",
-            "HBAR", "VET", "KAS", "ATOM", "INJ", "OP",
-            "ARB", "TAO", "TIA", "STX", "IMX", "GRT",
-            "RENDER", "FET", "SEI", "RUNE", "ALGO", "EGLD",
-            "THETA", "S", "JUP", "PYTH", "WLD", "ONDO",
-            "GALA", "SAND", "MANA", "CHZ", "ENJ", "FLOW",
-            "MINA", "AR", "KDA", "CKB", "ZIL", "ONE",
-            "KSM", "CELO", "ZRX", "BAT", "IOTA", "XTZ",
-            "EOS", "QTUM", "NEO", "ZEN", "KAVA", "BAND",
-            "ANKR", "STORJ", "COTI", "DUSK", "VTHO", "SC",
-            "RVN", "LRC", "SKL", "AUDIO", "MASK", "C98",
-            "ALPHA", "BAL", "1INCH", "SUSHI", "YFI", "UMA",
-            "API3", "TRB", "ICX", "ONT", "NKN", "ASTR",
-            "GLMR", "MOVR", "CFX", "WOO", "STRAX", "AGLD",
-            "ILV", "RLC", "SYN", "AIOZ", "METIS", "MAGIC",
-            "SSV", "ACA", "PHA", "OXT", "REQ", "KEY",
-            "DEXE", "ARPA", "BICO", "ALPACA", "XVS", "SXP",
-            "TLM", "ALICE", "ERN", "RARE", "SUPER", "JASMY",
-            "BEAM", "STRK", "ZK", "EIGEN", "RAY", "BSV",
-            "XEC", "TFUEL", "AST", "PRIME", "AERO", "GT",
-            "CORE", "ORDI", "PIXEL", "PORTAL", "ETHFI", "ALT",
-            "MANTA", "JTO", "PEOPLE", "JST", "SUN", "WIN",
-            "DENT", "HOT", "IOST", "STEEM", "HIVE", "YGG",
-            "ACH", "DODO", "REN", "PERP", "LINA", "RIF",
-            "CTSI", "LIT", "NFP", "AI", "ID", "HOOK",
-            "EDU", "ACE", "VANRY", "ARKM", "BLUR", "ZETA",
-            "DYM", "SAGA", "OMNI", "RONIN", "NTRN", "FXS",
-            "BLZ", "LOOM", "MDX", "HARD", "BAKE", "ONG",
-            "MTL", "NMR", "OGN", "AXS", "TWT", "CHR",
-            "COS", "AVA", "REEF", "CVC", "FUN", "IDEX",
-            "KNC", "QKC", "WAN", "PIVX", "NEBL", "XVG",
-            "DGB", "WAVES",
+            "APT", "SUI", "POL", "XLM", "HBAR", "VET",
+            "ATOM", "OP", "ARB", "TAO", "TIA", "STX",
+            "IMX", "GRT", "RENDER", "ALGO", "EGLD", "THETA",
+            "S", "PYTH", "FLOW", "MINA", "AR", "CKB",
+            "ZIL", "ONE", "KSM", "CELO", "BAT", "IOTA",
+            "XTZ", "QTUM", "NEO", "STORJ", "SC", "RVN",
+            "MASK", "API3", "TRB", "ICX", "ONT", "ASTR",
+            "MOVR", "STRAX", "PHA", "REQ", "BICO", "RARE",
+            "JASMY", "STRK", "XEC", "TFUEL", "HOT", "IOST",
+            "STEEM", "HIVE", "ACH", "RIF", "CTSI", "EDU",
+            "DYM", "SAGA", "TWT", "CHR", "AVA", "CVC",
+            "QKC", "DGB",
         ]
     )
     #: Sikl necha soatda bir marta yuradi.
