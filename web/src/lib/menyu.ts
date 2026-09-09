@@ -54,12 +54,29 @@ export const MENYU: MenyuBandi[] = [
     belgi: "📈",
     talab: "lite",
   },
+  // Akademiya — o'quv bo'limining bosh sahifasi. Video va kurs
+  // ro'yxat edi, boshlanish nuqtasi yo'q edi: "qayerdan boshlayman?"
+  // degan savol javobsiz qolardi.
+  {
+    kod: "akademiya",
+    yol: "/akademiya",
+    kalit: "menyu.akademiya",
+    belgi: "🎓",
+    talab: null,
+  },
   {
     kod: "video",
     yol: "/video",
     kalit: "menyu.video",
     belgi: "🎬",
     talab: "pro",
+  },
+  {
+    kod: "bilimlar",
+    yol: "/bilimlar",
+    kalit: "akademiya.bilimlar",
+    belgi: "📄",
+    talab: null,
   },
   {
     kod: "kurs",
@@ -130,7 +147,7 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "akademiya",
     kalit: "pastki.akademiya",
-    sahifalar: ["video", "kurs"],
+    sahifalar: ["akademiya", "video", "bilimlar", "kurs"],
   },
   {
     kod: "produkt",

@@ -28,7 +28,23 @@
     "profil": "Profil / Obunam",
     "admin": "Admin panel",
     "bozor": "Bozor ko'rinishi",
-    "holat": "Bozor holati"
+    "holat": "Bozor holati",
+    "akademiya": "Akademiya"
+  },
+  "akademiya": {
+    "sarlavha": "Akademiya",
+    "izoh": "Bilim oling. Amalda sinang. Natijaga erishing.",
+    "davom_bolim": "Davom ettirish",
+    "davom_sarlavha": "O'rganishni davom ettiring",
+    "davom_tugma": "Davom ettirish",
+    "bilimlar": "Bilimlar",
+    "bilimlar_izoh": "Qisqa maqolalar — nazariya va amaliyot.",
+    "yangi_bilimlar": "Yangi bilimlar",
+    "barchasi": "Barchasi",
+    "dars_soni": "dars",
+    "maqola_soni": "maqola",
+    "daqiqa": "daq",
+    "matn_yoq": "Bu maqolaning matni hali kiritilmagan."
   },
   "holat": {
     "sarlavha": "Bozor holati",

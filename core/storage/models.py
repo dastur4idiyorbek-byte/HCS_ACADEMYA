@@ -157,6 +157,57 @@ class Content(Base, TimestampMixin):
     position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
+    #: Maqola matni (`kind="maqola"`). Video uchun bo'sh qoladi.
+    #:
+    #: NEGA ALOHIDA MAYDON, `description` EMAS: `description` — qisqa
+    #: tavsif va u ro'yxatda ko'rinadi. Maqolaning tanasi esa uzun va
+    #: faqat ochilganda kerak. Ikkalasini bitta maydonga tiqsak,
+    #: ro'yxatda butun maqola chiqib ketardi.
+    body: Mapped[str | None] = mapped_column(Text)
+
+    #: Video uzunligi yoki maqolani o'qish vaqti — SONIYADA.
+    #:
+    #: Nima uchun soniya, "12:45" emas: matn ko'rinishi tildan va
+    #: joydan bog'liq, saralash esa songa muhtoj. Formatlash — chetda.
+    duration_seconds: Mapped[int | None] = mapped_column(Integer)
+
+    #: Toifa yorlig'i ("Risk Management", "Bozor strukturasi").
+    #: ERKIN MATN va bu ataylab: qat'iy ro'yxat qilinsa, yangi mavzu
+    #: qo'shish uchun har safar kod o'zgartirish kerak bo'lardi.
+    category: Mapped[str | None] = mapped_column(String(64))
+
+
+class ContentProgress(Base, TimestampMixin):
+    """Foydalanuvchi qaysi darsda qayerda to'xtagani.
+
+    NEGA KERAK. "Davom ettirish" tugmasi ishlashi uchun tizim kimning
+    qayerda qolganini bilishi shart. Ansiz har safar boshidan
+    boshlanadi va uzun kursni tugatib bo'lmaydi.
+
+    NEGA FOIZ, VAQT EMAS. Vaqt (sekund) aniqroq, lekin u faqat
+    videoga to'g'ri keladi. Maqolada esa "qayergacha o'qildi" degan
+    o'lchov — sahifaning necha foizi. Foiz ikkalasiga ham yaraydi.
+
+    HAR JUFTLIK BITTA QATOR: bitta foydalanuvchi bitta darsda bir
+    marta turadi. Aks holda tarix yig'ilib, "oxirgisi qaysi?" degan
+    savol tug'ilardi — u esa bu yerda kerak emas.
+    """
+
+    __tablename__ = "content_progress"
+    __table_args__ = (
+        UniqueConstraint("user_id", "content_id", name="uq_progress_user_content"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    content_id: Mapped[int] = mapped_column(
+        ForeignKey("content.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: 0 dan 100 gacha.
+    percent: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
 
 class Violation(Base, TimestampMixin):
     """1.3-band: qoidabuzarlik — ogohlantirish va tarifni vaqtincha to'xtatish."""

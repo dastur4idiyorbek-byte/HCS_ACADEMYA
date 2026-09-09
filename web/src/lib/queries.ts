@@ -194,6 +194,19 @@ export type Kontent = {
   position: number;
   /** Saytga yuklangan fayl nomi. `null` — video hali yuklanmagan. */
   videoPath: string | null;
+  /** Maqola matni. Video uchun `null`. */
+  matn: string | null;
+  /** Video uzunligi yoki o'qish vaqti — SONIYADA. */
+  davomiylik: number | null;
+  /** Toifa yorlig'i ("Risk Management"). Erkin matn. */
+  toifa: string | null;
+};
+
+/** Foydalanuvchi qaysi darsda qayerda to'xtagani. */
+export type Ilgarilash = {
+  kontentId: number;
+  foiz: number;
+  yangilangan: string;
 };
 
 export type Narx = {
@@ -565,7 +578,8 @@ export function portfelXomAshyosi(userId: number): {
 export function kontent(): Kontent[] {
   const qatorlar = db()
     .prepare(
-      `select id, kind, title, description, min_tier, position, video_path
+      `select id, kind, title, description, min_tier, position, video_path,
+              body, duration_seconds, category
          from content where is_published = 1
         order by position asc, id asc`,
     )
@@ -578,7 +592,97 @@ export function kontent(): Kontent[] {
     minTier: q.min_tier as Tarif,
     position: Number(q.position),
     videoPath: (q.video_path as string) ?? null,
+    matn: (q.body as string) ?? null,
+    davomiylik: q.duration_seconds === null ? null : Number(q.duration_seconds),
+    toifa: (q.category as string) ?? null,
   }));
+}
+
+// --------------------------------------------------------------------------- //
+//  Akademiya — o'qish/ko'rish holati
+// --------------------------------------------------------------------------- //
+
+/** Foydalanuvchining hamma darslardagi holati.
+ *
+ * NEGA BARCHASI BIR SO'ROVDA. Akademiya sahifasi o'nlab dars
+ * ko'rsatadi; har biriga alohida so'rov yuborilsa, sahifa ochilishi
+ * dars soniga qarab sekinlashardi.
+ */
+export function ilgarilashlar(userId: number): Map<number, Ilgarilash> {
+  const qatorlar = db()
+    .prepare(
+      `select content_id, percent, updated_at
+         from content_progress where user_id = ?`,
+    )
+    .all(userId) as Qator[];
+
+  const natija = new Map<number, Ilgarilash>();
+  for (const q of qatorlar) {
+    const id = Number(q.content_id);
+    natija.set(id, {
+      kontentId: id,
+      foiz: Number(q.percent),
+      yangilangan: q.updated_at as string,
+    });
+  }
+  return natija;
+}
+
+/** Eng oxirgi tegilgan, LEKIN TUGALLANMAGAN dars.
+ *
+ * "Davom ettirish" kartochkasi shuni ko'rsatadi. Tugallangani (100%)
+ * chiqarilmaydi: davom ettiriladigan narsa qolmagan.
+ */
+export function davomEttirish(userId: number): Ilgarilash | null {
+  const qator = db()
+    .prepare(
+      `select content_id, percent, updated_at
+         from content_progress
+        where user_id = ? and percent > 0 and percent < 100
+        order by updated_at desc limit 1`,
+    )
+    .get(userId) as Qator | undefined;
+  if (!qator) return null;
+  return {
+    kontentId: Number(qator.content_id),
+    foiz: Number(qator.percent),
+    yangilangan: qator.updated_at as string,
+  };
+}
+
+/** Holatni yozadi. Foiz FAQAT OLDINGA yuradi.
+ *
+ * NEGA ORQAGA KETMAYDI. Foydalanuvchi videoni orqaga surib ko'rsa
+ * yoki maqolani qaytadan tepasiga ko'tarilsa, brauzer kichikroq foiz
+ * yuborardi va "72%" birdan "10%" ga tushib ketardi. Odam esa buni
+ * ma'lumot yo'qolgani deb tushunadi.
+ */
+export function ilgarilashSaqla(
+  userId: number,
+  kontentId: number,
+  foiz: number,
+  hozir = new Date(),
+): { ok: true } | { ok: false; sabab: string } {
+  if (!Number.isFinite(foiz) || foiz < 0 || foiz > 100) {
+    return { ok: false, sabab: "Foiz 0 va 100 orasida bo'lishi kerak" };
+  }
+  const butun = Math.round(foiz);
+  const vaqt = vaqtSatri(hozir);
+
+  const natija = db()
+    .prepare(
+      `insert into content_progress (user_id, content_id, percent, created_at, updated_at)
+            values (?, ?, ?, ?, ?)
+       on conflict(user_id, content_id) do update
+          set percent = max(content_progress.percent, excluded.percent),
+              updated_at = excluded.updated_at`,
+    )
+    .run(userId, kontentId, butun, vaqt, vaqt);
+
+  if (songaAylantir(natija.changes) === 0) {
+    return { ok: false, sabab: "Saqlanmadi" };
+  }
+  return { ok: true };
 }
 
 export function narxlar(): Narx[] {
@@ -1257,7 +1361,7 @@ export function darslar(): (Kontent & {
   const qatorlar = db()
     .prepare(
       `select id, kind, title, description, min_tier, position, file_id,
-              video_path, is_published
+              video_path, is_published, body, duration_seconds, category
          from content order by position asc, id asc`,
     )
     .all() as Qator[];
@@ -1268,6 +1372,9 @@ export function darslar(): (Kontent & {
     description: (q.description as string) ?? null,
     minTier: q.min_tier as Tarif,
     position: songaAylantir(q.position),
+    matn: (q.body as string) ?? null,
+    davomiylik: q.duration_seconds === null ? null : Number(q.duration_seconds),
+    toifa: (q.category as string) ?? null,
     fileId: (q.file_id as string) ?? null,
     videoPath: (q.video_path as string) ?? null,
     published: Boolean(q.is_published),
