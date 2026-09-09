@@ -56,6 +56,17 @@ class Savdo:
     ushlash_soat: float = 0.0
     #: Nechta TP ga yetdi
     tp_soni: int = 0
+    #: LIMIT hali bajarilmagan — narx `entry` ga tushishini kutmoqda.
+    #:
+    #: 2026-09-09 gacha bu maydon YO'Q edi va backtest savdoni darrov
+    #: `entry` narxida ochardi — narx o'sha paytda entry'dan YUQORIDA
+    #: bo'lsa ham. Ya'ni o'lchov bozor bermagan narxda sotib olgandek
+    #: hisoblardi va limit umuman bajarilmasligi mumkinligini
+    #: e'tiborga olmasdi.
+    kutmoqda: bool = True
+    #: Signal berilgan payt. `kirish_vaqti` dan farq qiladi: limit
+    #: keyinroq bajariladi, muddat esa SIGNALDAN boshlanadi.
+    signal_vaqti: datetime | None = None
 
 
 @dataclass(slots=True)
@@ -70,6 +81,12 @@ class ZanjirNatijasi:
     #: Daraja ham tayyor bo'lgan, lekin PORTFEL chegarasi to'sgan
     #: holatlar (faqat `sigim=True` da to'ldiriladi)
     sigim_radlari: dict[str, int] = field(default_factory=dict)
+    #: LIMIT bajarilmagan signallar — savdo umuman bo'lmagan.
+    #:
+    #: `savdolar` ga KIRMAYDI: bo'lmagan savdoni natijaga qo'shish
+    #: o'lchovni yolg'on qilardi. Lekin sanaladi — aks holda "nega
+    #: savdo kam" degan savolga javob yo'qolardi.
+    bajarilmagan: dict[str, int] = field(default_factory=dict)
     #: ZAIFLIK HISOBOTI: har bir ichki tekshiruv necha marta
     #: HA / YOQ / MALUMOT_YOQ chiqqani.
     #:
@@ -187,9 +204,16 @@ class ZanjirBacktest:
                 # Teskarisi bo'lsa bitta coinda ikkita savdo ochilardi.
                 agar_ochiq = ochiq.get(symbol)
                 if agar_ochiq is not None:
-                    yopildi = self._yangila(agar_ochiq, shamlar[-1], hozir)
-                    if yopildi:
+                    holat = self._yangila(agar_ochiq, shamlar[-1], hozir)
+                    if holat == "yopildi":
                         natija.savdolar.append(agar_ochiq)
+                        del ochiq[symbol]
+                    elif holat == "bekor":
+                        # Savdo BO'LMAGAN — natijaga kirmaydi.
+                        sabab = agar_ochiq.sabab or "limit bajarilmadi"
+                        natija.bajarilmagan[sabab] = (
+                            natija.bajarilmagan.get(sabab, 0) + 1
+                        )
                         del ochiq[symbol]
                     continue
 
@@ -249,7 +273,10 @@ class ZanjirBacktest:
                     zanjir.ishonch(),
                     Savdo(
                         symbol=symbol,
+                        # Limit hali bajarilmagan: `kirish_vaqti`
+                        # narx entry'ga TUSHGANDA qayta yoziladi.
                         kirish_vaqti=hozir,
+                        signal_vaqti=hozir,
                         entry=darajalar.entry,
                         stop=darajalar.stop,
                         tplar=darajalar.tplar,
@@ -263,6 +290,12 @@ class ZanjirBacktest:
         # "yopilgan" savdolardan iborat bo'lardi (omon qolish
         # tanlanmasi).
         for symbol, savdo in ochiq.items():
+            if savdo.kutmoqda:
+                # Limit oyna oxirigacha bajarilmadi — savdo bo'lmagan.
+                natija.bajarilmagan["oyna tugadi — limit kutmoqda"] = (
+                    natija.bajarilmagan.get("oyna tugadi — limit kutmoqda", 0) + 1
+                )
+                continue
             oxirgi = _shamlar(dataset, symbol, z.timeframelar.asosiy, vaqtlar[-1])
             if oxirgi:
                 self._yop(savdo, oxirgi[-1].close, vaqtlar[-1], "oyna tugadi")
@@ -316,9 +349,46 @@ class ZanjirBacktest:
                     continue
             ochiq[savdo.symbol] = savdo
 
-    def _yangila(self, savdo: Savdo, sham: Candle, hozir: datetime) -> bool:
-        """Savdoni bitta sham bilan oldinga suradi. `True` — yopildi."""
+    def _yangila(self, savdo: Savdo, sham: Candle, hozir: datetime) -> str:
+        """Savdoni bitta sham bilan oldinga suradi.
+
+        Returns:
+            `""` — ochiq qoldi, `"yopildi"` — natijaga kiradi,
+            `"bekor"` — limit bajarilmadi, savdo BO'LMAGAN.
+        """
         z = self._config.zanjir.chiqish
+
+        # --- LIMIT KUTMOQDA -----------------------------------------
+        #
+        # 2026-09-09 gacha bu bosqich YO'Q edi: backtest savdoni
+        # darrov `entry` narxida ochardi, narx o'sha paytda entry'dan
+        # yuqorida bo'lsa ham. Ya'ni o'lchov bozor bermagan narxda
+        # sotib olgandek hisoblardi.
+        #
+        # Jonli misol (2026-09-05, LTC): entry 49.02, narx 50.23 edi
+        # va 49.02 ga umuman tushmay TP1 (52.78) ga chiqdi. Backtestda
+        # bu +7.67% lik G'ALABA bo'lib sanalardi — haqiqatda esa hech
+        # narsa sotib olinmagan.
+        #
+        # Qoidalar JONLI KUZATUVCHI bilan bir xil
+        # (`core/services/signal_kuzatuvchi.py`).
+        if savdo.kutmoqda:
+            if sham.low <= savdo.entry:
+                savdo.kutmoqda = False
+                # Muddat SIGNALDAN emas, KIRISHDAN hisoblanadi.
+                savdo.kirish_vaqti = hozir
+            elif savdo.tplar and sham.high >= savdo.tplar[0]:
+                # Narx nishonga KIRILMASDAN yetdi — savdo bo'lmagan.
+                savdo.sabab = "narx TP1 ga kirilmasdan yetdi"
+                return "bekor"
+            else:
+                # Limit muddatsiz kutmasin: signal eskirsa, u endi
+                # o'sha strukturaga tegishli emas.
+                yosh = hozir - (savdo.signal_vaqti or savdo.kirish_vaqti)
+                if yosh >= timedelta(days=z.umumiy_muddat_kun):
+                    savdo.sabab = "limit muddati tugadi"
+                    return "bekor"
+                return ""
 
         # STOP AVVAL tekshiriladi. Bitta sham ichida ham TP, ham Stop
         # tegilgan bo'lsa, qaysi biri oldin bo'lganini BILMAYMIZ —
@@ -326,7 +396,7 @@ class ZanjirBacktest:
         # ko'rsatardi va bu — o'zini aldash.
         if sham.low <= savdo.stop:
             self._yop(savdo, savdo.stop, hozir, "stop")
-            return True
+            return "yopildi"
 
         for i, tp in enumerate(savdo.tplar):
             if sham.high >= tp and savdo.tp_soni <= i:
@@ -336,7 +406,7 @@ class ZanjirBacktest:
 
         if savdo.tp_soni >= len(savdo.tplar):
             self._yop(savdo, savdo.tplar[-1], hozir, "tp")
-            return True
+            return "yopildi"
 
         # Trailing — faqat TP2 dan keyingi qoldiqqa (yuqoridagi izoh)
         if savdo.tp_soni >= 2:
@@ -352,9 +422,9 @@ class ZanjirBacktest:
         )
         if yosh >= muddat:
             self._yop(savdo, sham.close, hozir, "muddat")
-            return True
+            return "yopildi"
 
-        return False
+        return ""
 
     def _yop(self, savdo: Savdo, narx: float, vaqt: datetime, sabab: str) -> None:
         """Natijani XARAJAT bilan hisoblaydi.

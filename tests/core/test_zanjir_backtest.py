@@ -164,14 +164,24 @@ def test_tp1_dan_keyin_stop_breakevenga_kochadi(config) -> None:  # noqa: ANN001
 
 
 def test_muddat_tugasa_yopiladi(config) -> None:  # noqa: ANN001
-    """Pul band bo'lib qolmasin (5-qism, vaqt chegarasi)."""
+    """Pul band bo'lib qolmasin (5-qism, vaqt chegarasi).
+
+    `kutmoqda=False` — savdo ALLAQACHON ochilgan. Muddat KIRISHDAN
+    hisoblanadi: 2026-09-09 dan limit bajarilishi kutiladi va
+    bajarilgan payt `kirish_vaqti` ga yoziladi.
+    """
     dvigatel = ZanjirBacktest(config, "test")
     savdo = Savdo(
-        symbol="BTC", kirish_vaqti=BOSH, entry=100.0, stop=90.0, tplar=(200.0,)
+        symbol="BTC",
+        kirish_vaqti=BOSH,
+        entry=100.0,
+        stop=90.0,
+        tplar=(200.0,),
+        kutmoqda=False,
     )
     kech = BOSH + timedelta(days=100)
     sham = Candle(open_time=kech, open=100, high=105, low=95, close=101, volume=1)
-    assert dvigatel._yangila(savdo, sham, kech)
+    assert dvigatel._yangila(savdo, sham, kech) == "yopildi"
     assert savdo.sabab == "muddat"
 
 
@@ -367,3 +377,89 @@ def test_zaiflik_maxraji_har_xil(config, dataset) -> None:  # noqa: ANN001
 
     assert jami("bozor_holati") >= jami("swing_ketma_ketligi")
     assert jami("swing_ketma_ketligi") >= jami("liquidity_sweep")
+
+
+# --------------------------------------------------------------------- #
+#  LIMIT KUTILADI (2026-09-09)
+# --------------------------------------------------------------------- #
+
+# Bu bosqich backtestda UMUMAN yo'q edi: savdo darrov `entry` narxida
+# ochilardi, narx o'sha paytda entry'dan YUQORIDA bo'lsa ham. Ya'ni
+# o'lchov bozor bermagan narxda sotib olgandek hisoblardi.
+#
+# Jonli misol (2026-09-05, LTC): entry 49.02, narx 50.23 edi va 49.02
+# ga umuman tushmay TP1 (52.78) ga chiqdi. Backtestda bu +7.67% lik
+# G'ALABA bo'lib sanalardi — haqiqatda hech narsa sotib olinmagan.
+
+
+def test_narx_entryga_TUSHMASA_savdo_ochilmaydi(config) -> None:  # noqa: ANN001
+    dvigatel = ZanjirBacktest(config, "test")
+    savdo = Savdo(
+        symbol="BTC", kirish_vaqti=BOSH, signal_vaqti=BOSH,
+        entry=100.0, stop=90.0, tplar=(110.0, 130.0),
+    )
+    # Narx 101 dan pastga tushmadi — limit bajarilmadi.
+    sham = Candle(
+        open_time=BOSH + timedelta(days=1),
+        open=105, high=108, low=101, close=104, volume=1,
+    )
+    assert dvigatel._yangila(savdo, sham, BOSH + timedelta(days=1)) == ""
+    assert savdo.kutmoqda, "savdo bozor bermagan narxda ochildi"
+
+
+def test_narx_entryga_tushsa_savdo_OCHILADI(config) -> None:  # noqa: ANN001
+    dvigatel = ZanjirBacktest(config, "test")
+    savdo = Savdo(
+        symbol="BTC", kirish_vaqti=BOSH, signal_vaqti=BOSH,
+        entry=100.0, stop=90.0, tplar=(110.0, 130.0),
+    )
+    vaqt = BOSH + timedelta(days=1)
+    sham = Candle(open_time=vaqt, open=102, high=104, low=99, close=101, volume=1)
+
+    assert dvigatel._yangila(savdo, sham, vaqt) == ""
+    assert not savdo.kutmoqda
+    # Muddat SIGNALDAN emas, KIRISHDAN hisoblanadi.
+    assert savdo.kirish_vaqti == vaqt
+
+
+def test_limitga_KELMASDAN_TP1_ga_yetsa_BEKOR(config) -> None:  # noqa: ANN001
+    """Aynan LTC holati — savdo BO'LMAGAN, natijaga kirmaydi."""
+    dvigatel = ZanjirBacktest(config, "test")
+    savdo = Savdo(
+        symbol="LTC", kirish_vaqti=BOSH, signal_vaqti=BOSH,
+        entry=49.02, stop=47.99, tplar=(52.78, 54.70),
+    )
+    vaqt = BOSH + timedelta(days=1)
+    # Narx 49.02 ga tushmay 53.0 ga chiqdi.
+    sham = Candle(open_time=vaqt, open=50.2, high=53.0, low=49.5, close=52.5, volume=1)
+
+    assert dvigatel._yangila(savdo, sham, vaqt) == "bekor"
+    assert savdo.natija_pct == 0.0, "bo'lmagan savdo natijaga yozildi"
+
+
+def test_bir_shamda_LIMIT_ham_TP_ham_bolsa_savdo_OCHILADI(config) -> None:  # noqa: ANN001
+    """Narx entry'ga tushgan bo'lsa savdo ochilgan — bekor emas."""
+    dvigatel = ZanjirBacktest(config, "test")
+    savdo = Savdo(
+        symbol="BTC", kirish_vaqti=BOSH, signal_vaqti=BOSH,
+        entry=100.0, stop=90.0, tplar=(110.0,),
+    )
+    vaqt = BOSH + timedelta(days=1)
+    sham = Candle(open_time=vaqt, open=101, high=115, low=99, close=112, volume=1)
+
+    assert dvigatel._yangila(savdo, sham, vaqt) == "yopildi"
+    assert not savdo.kutmoqda
+
+
+def test_limit_MUDDATSIZ_kutmaydi(config) -> None:  # noqa: ANN001
+    """Signal eskirsa, u endi o'sha strukturaga tegishli emas."""
+    dvigatel = ZanjirBacktest(config, "test")
+    savdo = Savdo(
+        symbol="BTC", kirish_vaqti=BOSH, signal_vaqti=BOSH,
+        entry=100.0, stop=90.0, tplar=(110.0,),
+    )
+    kech = BOSH + timedelta(days=100)
+    sham = Candle(open_time=kech, open=105, high=108, low=101, close=104, volume=1)
+
+    assert dvigatel._yangila(savdo, sham, kech) == "bekor"
+    assert savdo.sabab == "limit muddati tugadi"
