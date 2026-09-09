@@ -42,6 +42,16 @@ export const MENYU: MenyuBandi[] = [
     belgi: "💓",
     talab: null,
   },
+  // Bozor holati — sektorlar va coinlar (CoinGecko). Salomatlikdan
+  // KEYIN turadi: salomatlik loyihaning o'z ko'rsatkichi, bu esa
+  // tashqi bozor manzarasi.
+  {
+    kod: "holat",
+    yol: "/bozor-holati",
+    kalit: "menyu.holat",
+    belgi: "🗺",
+    talab: null,
+  },
   {
     kod: "bozor",
     yol: "/bozor",
@@ -128,7 +138,7 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "bozor",
     kalit: "pastki.bozor",
-    sahifalar: ["salomatlik", "bozor"],
+    sahifalar: ["salomatlik", "holat", "bozor"],
   },
   {
     kod: "akademiya",

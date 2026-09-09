@@ -106,6 +106,19 @@ export const COINGECKO_ID: Record<string, string> = {
   DGB: "digibyte",
 };
 
+/** Saytda ko'rsatiladigan coinlar — tartibi bilan.
+ *
+ * NEGA SHU YERDAN. Ro'yxatning asli `core/config/schema.py` da, lekin
+ * u `config/default.yaml` ga chiqmagani uchun sayt uni o'qiy olmaydi.
+ * Nusxa ko'chirib yozish esa ikkinchi manba yaratardi.
+ *
+ * Yuqoridagi jadval shu ro'yxatning O'ZI: `bozor.test.ts` ikki
+ * tomonlama tekshiradi — jadvalda yetishmayotgan coin ham,
+ * ortiqchasi ham testni yiqitadi. Ya'ni bu massiv `schema.py` bilan
+ * bir xil bo'lishi kafolatlangan.
+ */
+export const HALOL_COINLAR: string[] = Object.keys(COINGECKO_ID);
+
 /** `id` si CoinGecko'da TEKSHIRILMAGAN tickerlar.
  *
  * Bular xotiradan yozilgan va noaniq: coin nomini o'zgartirgan
