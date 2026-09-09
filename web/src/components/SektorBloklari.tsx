@@ -1,36 +1,40 @@
 import { cn } from "@/lib/cn";
-import { foizRangi, qisqaSon, treemap, type SektorHolati } from "@/lib/bozor";
+import { foizRangi, qisqaSon, type SektorHolati } from "@/lib/bozor";
 
-/** Sektorlar — tepada treemap, pastda ro'yxat.
+/** Sektorlar — kartochkalar va ro'yxat.
  *
- * NEGA IKKALASI. Ular ikki xil savolga javob beradi: xarita "bugun
- * qaysi sektor qizib turibdi?" degan bir qarashlik savolga, ro'yxat
- * esa "aniq qancha?" degan savolga. Bittasini tashlab ketsak, o'sha
- * savol javobsiz qolardi.
+ * NEGA TREEMAP EMAS (u bor edi va OLIB TASHLANDI). Treemap butunni
+ * bo'laklarga bo'ladi: har bir to'rtburchak "butunning shuncha
+ * qismi" degan ma'noni beradi. CoinGecko toifalari esa bo'lak emas —
+ * ular ustma-ust tushadi va bitta coin o'nlab toifada bo'ladi.
  *
- * SERVER KOMPONENTI: bu yerda tanlov yo'q — saralash ham, ko'rinish
- * almashtirish ham. Klientga JavaScript yubormaymiz.
+ * Amalda bu shunday ko'rindi: "Smart Contract Platform" $2.33T va
+ * "Layer 1" $2.29T — deyarli bir xil coinlar, ikki marta sanalgan.
+ * Butun bozor esa $2.71T. Ya'ni bo'laklar yig'indisi butundan katta
+ * chiqardi va xarita YOLG'ON gapirardi.
+ *
+ * Kartochka bunday da'vo qilmaydi: u faqat "shu sektorning kapitali
+ * shuncha" deydi va ustma-ust tushishi mumkinligi izohda yozilgan.
  */
-
-function foni(foiz: number | null): string {
-  if (foiz === null) {
-    return "color-mix(in srgb, var(--rang-panel) 80%, transparent)";
-  }
-  const kuch = Math.min(Math.abs(foiz) / 8, 1);
-  const asos =
-    foiz > 0.1
-      ? "var(--rang-yaxshi)"
-      : foiz < -0.1
-        ? "var(--rang-past-toq)"
-        : "var(--rang-panel)";
-  return `color-mix(in srgb, ${asos} ${Math.round(16 + kuch * 64)}%, var(--rang-panel))`;
-}
 
 const RANG = {
   yaxshi: "text-yaxshi",
   past: "text-past",
   neytral: "text-matn-past",
 } as const;
+
+function Ozgarish({ foiz }: { foiz: number | null }) {
+  if (foiz === null) return <span className="text-matn-past">—</span>;
+  const rol = foizRangi(foiz);
+  return (
+    <span className={cn("raqam whitespace-nowrap", RANG[rol])}>
+      <span aria-hidden className="mr-0.5 text-[9px]">
+        {rol === "yaxshi" ? "▲" : rol === "past" ? "▼" : "•"}
+      </span>
+      {Math.abs(foiz).toFixed(2)}%
+    </span>
+  );
+}
 
 export function SektorBloklari({
   sektorlar,
@@ -41,47 +45,28 @@ export function SektorBloklari({
 }) {
   if (sektorlar.length === 0) return null;
 
-  const kataklar = treemap(
-    sektorlar.map((s) => ({ kalit: s.id, ogirlik: s.kapital ?? 0 })),
-  );
-  const boyicha = new Map(sektorlar.map((s) => [s.id, s]));
-
   return (
     <div className="space-y-4">
-      {kataklar.length > 0 && (
-        <div className="relative h-[18rem] w-full sm:h-[22rem]">
-          {kataklar.map((k) => {
-            const s = boyicha.get(k.kalit);
-            if (!s) return null;
-            const torgina = k.en < 9 || k.boy < 11;
-            return (
-              <div
-                key={k.kalit}
-                title={s.nom}
-                style={{
-                  left: `${k.x}%`,
-                  top: `${k.y}%`,
-                  width: `${k.en}%`,
-                  height: `${k.boy}%`,
-                  background: foni(s.ozgarish24),
-                }}
-                className="rounded-kichik absolute flex flex-col items-center justify-center overflow-hidden border border-white/10 p-1 text-center"
-              >
-                <span className="text-sarlavha line-clamp-2 text-[10px] leading-tight font-semibold sm:text-[11px]">
-                  {s.nom}
-                </span>
-                {!torgina && (
-                  <span className="raqam mt-0.5 text-[10px] leading-tight">
-                    {s.ozgarish24 === null
-                      ? "—"
-                      : `${s.ozgarish24 > 0 ? "+" : ""}${s.ozgarish24.toFixed(1)}%`}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* Kartochkalar — telefonda yon tomonga siljiydi, kengroq
+          ekranda to'rt ustunga yotadi. */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+        {sektorlar.slice(0, 8).map((s) => (
+          <div
+            key={s.id}
+            className="rounded-kartochka hover:border-ramka border border-white/10 bg-white/[0.02] p-3 transition-colors"
+          >
+            <p className="text-sarlavha truncate text-[13px] font-semibold">
+              {s.nom}
+            </p>
+            <p className="raqam mt-1.5 text-base leading-none">
+              {s.kapital === null ? "—" : `$${qisqaSon(s.kapital)}`}
+            </p>
+            <p className="mt-1.5 text-xs">
+              <Ozgarish foiz={s.ozgarish24} />
+            </p>
+          </div>
+        ))}
+      </div>
 
       <div className="-mx-4 overflow-x-auto sm:mx-0">
         <table className="w-full min-w-[26rem] text-[13px]">
@@ -116,22 +101,8 @@ export function SektorBloklari({
                 <td className="raqam px-3 py-2 text-right whitespace-nowrap">
                   {s.kapital === null ? "—" : `$${qisqaSon(s.kapital)}`}
                 </td>
-                <td
-                  className={cn(
-                    "raqam px-3 py-2 text-right whitespace-nowrap",
-                    RANG[foizRangi(s.ozgarish24)],
-                  )}
-                >
-                  {s.ozgarish24 === null ? (
-                    "—"
-                  ) : (
-                    <>
-                      <span aria-hidden className="mr-0.5 text-[9px]">
-                        {s.ozgarish24 > 0.1 ? "▲" : s.ozgarish24 < -0.1 ? "▼" : "•"}
-                      </span>
-                      {Math.abs(s.ozgarish24).toFixed(2)}%
-                    </>
-                  )}
+                <td className="px-3 py-2 text-right">
+                  <Ozgarish foiz={s.ozgarish24} />
                 </td>
               </tr>
             ))}

@@ -11,7 +11,6 @@ import {
   qisqaSon,
   sarala,
   treemap,
-  xaritaUlushi,
   type CoinHolati,
 } from "../src/lib/bozor.ts";
 import { COINGECKO_ID, TEKSHIRILMAGAN } from "../src/lib/coingecko-id.ts";
@@ -173,17 +172,6 @@ test("arzon coin narxi nolga aylanmaydi", () => {
 // --------------------------------------------------------------------- //
 //  Xarita va grafik
 // --------------------------------------------------------------------- //
-
-/** Kapital farqi juda katta. To'g'ridan-to'g'ri ulushda BTC butun
- *  ekranni egallardi, shuning uchun kvadrat ildiz olinadi. */
-test("xarita ulushi kichik coinni ko'rinmas qilmaydi", () => {
-  const katta = xaritaUlushi(9_000, 10_000);
-  const kichik = xaritaUlushi(100, 10_000);
-  assert.ok(kichik > 100 / 10_000, "kichik coin ulushi kattalashishi kerak");
-  assert.ok(katta < 1);
-  assert.equal(xaritaUlushi(null, 10_000), 0);
-  assert.equal(xaritaUlushi(500, 0), 0);
-});
 
 test("bitta nuqtadan grafik chiqmaydi", () => {
   assert.equal(chiziqNuqtalari([], 100, 30), null);

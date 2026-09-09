@@ -2,22 +2,23 @@ import { BolimTugmalari } from "@/components/BolimTugmalari";
 import { BozorTepasi } from "@/components/BozorTepasi";
 import { CoinKorinishi } from "@/components/CoinKorinishi";
 import { SektorBloklari } from "@/components/SektorBloklari";
-import { Terminallar } from "@/components/Terminallar";
+import { Blokcheynlar } from "@/components/Blokcheynlar";
+import { NarxGrafigi } from "@/components/NarxGrafigi";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import {
+  blokcheynHolatlari,
   coinHolatlari,
   globalHolat,
   qorquvOchkozlik,
   sektorHolatlari,
 } from "@/lib/bozor-server";
 import { altcoinMavsumi } from "@/lib/bozor";
+import { sektorlarniSaralash } from "@/lib/sektorlar";
 import { HALOL_COINLAR } from "@/lib/coingecko-id";
 import { tarjimon } from "@/lib/i18n";
-import { sutkalikOzgarish } from "@/lib/jonli-server";
 import { zanjirHolatlari } from "@/lib/queries";
 import { kirim } from "@/lib/session";
-import { TERMINAL_COINLARI, binanceJuftligi } from "@/lib/terminallar";
 import {
   BLOK_NOMLARI,
   salomatlikIndeksi,
@@ -63,29 +64,21 @@ export default async function BozorHolati() {
   const indeks = salomatlikIndeksi(xulosa);
   const tasnif = salomatlikTasnifi(indeks);
 
-  const [bozor, sektorlar, global, qorquv, sutka] = await Promise.all([
+  const [bozor, sektorlar, global, qorquv, zanjirlar] = await Promise.all([
     coinHolatlari(HALOL_COINLAR),
     sektorHolatlari(HALOL_COINLAR),
     globalHolat(),
     qorquvOchkozlik(),
-    sutkalikOzgarish(TERMINAL_COINLARI.map((c) => binanceJuftligi(c))),
+    blokcheynHolatlari(HALOL_COINLAR),
   ]);
-
-  const ozgarishlar: Record<string, number> = {};
-  for (const coin of TERMINAL_COINLARI) {
-    const qator = sutka.find((q) => q.juftlik === binanceJuftligi(coin));
-    if (qator) ozgarishlar[coin] = qator.ozgarishPct;
-  }
 
   const narxi = bozor.filter((c) => c.narx !== null);
   const halolKapital = narxi.reduce((s, c) => s + (c.kapital ?? 0), 0);
 
-  // Xaritada eng yirik 24 tasi. Hammasi (200 dan ortiq) chiqarilsa
-  // katakchalar ko'rinmas nuqtaga aylanadi va xarita "bir qarashda
-  // ko'rish" xususiyatini yo'qotadi.
-  const asosiySektorlar = [...sektorlar]
-    .sort((a, b) => (b.kapital ?? 0) - (a.kapital ?? 0))
-    .slice(0, 24);
+  // Faqat QO'LDA tanlangan sektorlar. Sabab `lib/sektorlar.ts` da:
+  // CoinGecko toifalarining ko'pi sektor emas ("Made in USA",
+  // "CoinList Launchpad") va ular ustma-ust tushadi.
+  const asosiySektorlar = sektorlarniSaralash(sektorlar);
 
   return (
     <>
@@ -95,7 +88,8 @@ export default async function BozorHolati() {
         bolimlar={[
           { langar: "salomatlik", nom: t("holat.bolim_salomatlik") },
           { langar: "sektorlar", nom: t("holat.bolim_sektorlar") },
-          { langar: "terminallar", nom: t("holat.bolim_terminallar") },
+          { langar: "blokcheynlar", nom: t("holat.bolim_blokcheynlar") },
+          { langar: "grafik", nom: t("holat.bolim_grafik") },
           { langar: "coinlar", nom: t("holat.bolim_coinlar") },
         ]}
       />
@@ -193,11 +187,31 @@ export default async function BozorHolati() {
           )}
         </Card>
 
-        {/* 3. Terminallar */}
-        <Card id="terminallar" className="scroll-mt-20">
-          <CardTitle>{t("zanjir.terminallar")}</CardTitle>
+        {/* 3. Blokcheynlar — TVL. Coinlar jadvalidagi kapital bilan
+            takrorlanmaydi: bu narxdan mustaqil ko'rsatkich. */}
+        {zanjirlar.length > 0 && (
+          <Card id="blokcheynlar" className="scroll-mt-20">
+            <CardTitle>{t("holat.blokcheynlar")}</CardTitle>
+            <CardHint className="mt-1 mb-4">{t("holat.blokcheyn_izoh")}</CardHint>
+            <Blokcheynlar
+              zanjirlar={zanjirlar}
+              coinlar={bozor}
+              yorliq={{ tvl: t("holat.tvl") }}
+            />
+          </Card>
+        )}
+
+        {/* 4. Real narx grafigi. Ilgari bu yerda coin "chiplari"
+            ro'yxati turardi va grafik faqat bosilganda ochilardi —
+            foydalanuvchi uni ko'rmasdi. Endi grafik darrov turadi. */}
+        <Card id="grafik" className="scroll-mt-20">
+          <CardTitle>{t("holat.grafik")}</CardTitle>
           <div className="mt-3">
-            <Terminallar til={til} ozgarishlar={ozgarishlar} />
+            <NarxGrafigi
+              coinlar={bozor}
+              xatoMatni={t("signal.grafik_xato")}
+              qidirMatni={t("holat.qidir")}
+            />
           </div>
         </Card>
 

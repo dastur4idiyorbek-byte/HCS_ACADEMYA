@@ -214,6 +214,7 @@ export function keshniTozala(): void {
   sektorKesh = null;
   globalKesh = null;
   qorquvKesh = null;
+  zanjirKesh = null;
 }
 
 /** Butun bozorning umumiy ko'rsatkichlari — CoinGecko `/global`.
@@ -302,5 +303,58 @@ export async function qorquvOchkozlik(): Promise<QorquvIndeksi | null> {
         : "",
   };
   qorquvKesh = { qiymat: natija, vaqt: hozir };
+  return natija;
+}
+
+/** Blokcheynlar va ulardagi bog'langan mablag' (TVL) — DefiLlama.
+ *
+ * NEGA TVL. Blokcheyn uchun "kapital" degan raqam coinning narxidan
+ * keladi va u coinlar jadvalida allaqachon bor — takror bo'lardi.
+ * TVL boshqa narsani aytadi: shu tarmoqda qancha pul HAQIQATAN
+ * ishlayapti. Bu — narxdan mustaqil ko'rsatkich.
+ *
+ * NEGA DEFILLAMA: bepul, kalitsiz va sohada standart manba.
+ *
+ * FAQAT HALOL RO'YXATDAGI TARMOQLAR. DefiLlama yuzlab tarmoqni
+ * beradi; biz faqat o'z ro'yxatimizdagi coinga tegishlilarini
+ * ko'rsatamiz. Aks holda saytda skriningdan o'tmagan tarmoq nomi
+ * paydo bo'lardi.
+ */
+export type BlokcheynHolati = {
+  nom: string;
+  ticker: string;
+  tvl: number | null;
+};
+
+let zanjirKesh: Kesh<BlokcheynHolati[]> | null = null;
+
+export async function blokcheynHolatlari(
+  halolTickerlar: string[],
+): Promise<BlokcheynHolati[]> {
+  const hozir = Date.now();
+  if (zanjirKesh && hozir - zanjirKesh.vaqt < KESH_MS) return zanjirKesh.qiymat;
+
+  const javob = await soragich("https://api.llama.fi/v2/chains");
+  if (!Array.isArray(javob)) return zanjirKesh?.qiymat ?? [];
+
+  const halol = new Set(halolTickerlar);
+  const natija: BlokcheynHolati[] = [];
+
+  for (const qator of javob) {
+    if (typeof qator !== "object" || qator === null) continue;
+    const q = qator as Record<string, unknown>;
+    const belgi =
+      typeof q.tokenSymbol === "string" ? q.tokenSymbol.toUpperCase() : null;
+    if (belgi === null || !halol.has(belgi)) continue;
+
+    natija.push({
+      nom: typeof q.name === "string" ? q.name : belgi,
+      ticker: belgi,
+      tvl: son(q.tvl),
+    });
+  }
+
+  natija.sort((a, b) => (b.tvl ?? 0) - (a.tvl ?? 0));
+  zanjirKesh = { qiymat: natija, vaqt: hozir };
   return natija;
 }

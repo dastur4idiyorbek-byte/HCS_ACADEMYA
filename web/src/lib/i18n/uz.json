@@ -66,8 +66,13 @@
     "altcoin": "Altcoin mavsumi",
     "bolim_salomatlik": "Salomatlik",
     "bolim_sektorlar": "Sektorlar",
-    "bolim_terminallar": "Terminallar",
-    "bolim_coinlar": "Coinlar"
+    "bolim_coinlar": "Coinlar",
+    "blokcheynlar": "Blokcheynlar",
+    "blokcheyn_izoh": "Tarmoqda bog'langan mablag' (TVL) — narxdan mustaqil ko'rsatkich. Faqat halol ro'yxatdagi tarmoqlar.",
+    "tvl": "Bog'langan mablag'",
+    "grafik": "Real narx grafigi",
+    "bolim_blokcheynlar": "Blokcheynlar",
+    "bolim_grafik": "Grafik"
   },
   "pastki": {
     "bosh": "Bosh",

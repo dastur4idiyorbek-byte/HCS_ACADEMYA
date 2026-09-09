@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { test } from "node:test";
 
 import {
@@ -12,11 +10,6 @@ import {
   type Blok,
   type CoinZanjiri,
 } from "../src/lib/zanjir.ts";
-import {
-  TERMINAL_COINLARI,
-  TOIFALAR,
-  tradingviewJuftligi,
-} from "../src/lib/terminallar.ts";
 
 function blok(
   kuch: number,
@@ -152,70 +145,4 @@ test("eng oxirgi tekshiruv vaqti olinadi", () => {
     }),
   ]);
   assert.equal(xulosa.oxirgi?.toISOString(), "2026-09-04T12:00:00.000Z");
-});
-
-// --------------------------------------------------------------------- //
-//  Terminallar — FAQAT HALOL COINLAR
-// --------------------------------------------------------------------- //
-
-/** O'z saytimizda haram yoki shubhali coinning grafigini ko'rsatish
- *  mahsulotning o'z va'dasiga zid bo'lardi. Ro'yxat kodda, shuning
- *  uchun uni test qulflaydi.
- *
- *  Terminallar sahifasi KURATILGAN kichik ro'yxat (12 coin) — u
- *  zanjir kuzatadigan 80 coinlik HALOL ro'yxatning ICHIDA bo'lishi
- *  shart, aynan teng bo'lishi shart emas. */
-test("terminal coinlari zanjir kuzatadigan halol ro'yxat ICHIDA", () => {
-  const sxema = readFileSync(
-    path.join(import.meta.dirname, "..", "..", "core", "config", "schema.py"),
-    "utf8",
-  );
-  const moslik =
-    /kuzatiladigan_coinlar[\s\S]*?default_factory=lambda: \[([\s\S]*?)\]/.exec(
-      sxema,
-    );
-  assert.ok(moslik, "schema.py da kuzatiladigan_coinlar topilmadi");
-
-  const halolRoyxat = new Set(
-    moslik[1]
-      .split(",")
-      .map((s) => s.trim().replace(/["']/g, ""))
-      .filter(Boolean),
-  );
-
-  for (const coinNomi of TERMINAL_COINLARI) {
-    assert.ok(
-      halolRoyxat.has(coinNomi),
-      `${coinNomi} halol ro'yxatda yo'q — sayt haram yoki shubhali coin ko'rsatishi mumkin`,
-    );
-  }
-});
-
-test("har bir toifadagi coin terminal ro'yxatida bor", () => {
-  for (const toifa of TOIFALAR) {
-    for (const guruh of toifa.guruhlar) {
-      for (const coinNomi of guruh.coinlar) {
-        assert.ok(
-          (TERMINAL_COINLARI as readonly string[]).includes(coinNomi),
-          `${toifa.kod}/${guruh.nom}: ${coinNomi} halol ro'yxatda yo'q`,
-        );
-      }
-    }
-  }
-});
-
-test("har bir coin kamida bitta toifada ko'rinadi", () => {
-  for (const toifa of TOIFALAR) {
-    const toifadagilar = new Set(toifa.guruhlar.flatMap((g) => g.coinlar));
-    for (const coinNomi of TERMINAL_COINLARI) {
-      assert.ok(
-        toifadagilar.has(coinNomi),
-        `${coinNomi} "${toifa.kod}" toifasida yo'q — sahifada yo'qolib qolardi`,
-      );
-    }
-  }
-});
-
-test("TradingView juftligi to'g'ri yasaladi", () => {
-  assert.equal(tradingviewJuftligi("btc"), "BINANCE:BTCUSDT");
 });

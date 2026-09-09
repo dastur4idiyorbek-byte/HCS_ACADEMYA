@@ -66,8 +66,13 @@
     "altcoin": "Сезон альткоинов",
     "bolim_salomatlik": "Здоровье",
     "bolim_sektorlar": "Секторы",
-    "bolim_terminallar": "Терминалы",
-    "bolim_coinlar": "Монеты"
+    "bolim_coinlar": "Монеты",
+    "blokcheynlar": "Блокчейны",
+    "blokcheyn_izoh": "Заблокированные средства в сети (TVL) — показатель, не зависящий от цены. Только сети из халяльного списка.",
+    "tvl": "Заблокировано",
+    "grafik": "График цены",
+    "bolim_blokcheynlar": "Блокчейны",
+    "bolim_grafik": "График"
   },
   "pastki": {
     "bosh": "Главная",

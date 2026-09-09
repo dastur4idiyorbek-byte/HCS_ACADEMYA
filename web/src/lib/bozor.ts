@@ -73,17 +73,6 @@ export function foizRangi(
   return "neytral";
 }
 
-/** Issiqlik xaritasidagi to'rtburchak o'lchami — kapital ulushi.
- *
- * Kvadrat ildiz olinadi: kapital farqi juda katta (BTC boshqalardan
- * yuzlab marta yirik) va to'g'ridan-to'g'ri ulushda BTC butun
- * ekranni egallab, qolgani ko'rinmas nuqtaga aylanardi.
- */
-export function xaritaUlushi(kapital: number | null, jami: number): number {
-  if (kapital === null || kapital <= 0 || jami <= 0) return 0;
-  return Math.sqrt(kapital / jami);
-}
-
 /** Katta sonni qisqartiradi: 1 234 567 890 -> "1.23B".
  *
  * `null` uchun chiziqcha qaytadi — "0" emas. Bu butun loyihadagi
