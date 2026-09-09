@@ -113,6 +113,90 @@ export function narxMatn(narx: number | null): string {
   return `$${narx.toFixed(8)}`;
 }
 
+/** Treemap katakchasi — foizda (0-100), CSS uchun tayyor. */
+export type Katak = {
+  kalit: string;
+  x: number;
+  y: number;
+  en: number;
+  boy: number;
+};
+
+/** Issiqlik xaritasi joylashuvi — qatorlab treemap.
+ *
+ * NEGA ODDIY QATOR EMAS. Kripto saytlaridagi issiqlik xaritasi
+ * to'rtburchaklarni MAYDONI bo'yicha joylashtiradi: BTC katta
+ * to'rtburchak, kichik coin kichik. Bir qatorga terib chiqilsa
+ * (`flex-wrap`) maydon emas, faqat kenglik farq qiladi va xarita
+ * "bir qarashda manzara" xususiyatini yo'qotadi.
+ *
+ * USUL. Elementlar kattaligi bo'yicha tartiblanadi va qatorlarga
+ * bo'linadi. Qator "to'ldi" deb hisoblanadi, qachonki keyingi
+ * elementni qo'shish o'sha qatordagi to'rtburchaklarning shaklini
+ * yomonlashtirsa (juda cho'zilib ketsa). Bu — `squarify`
+ * algoritmining soddalashtirilgan, lekin xuddi shu g'oyadagi
+ * varianti: maqsad har bir to'rtburchakni kvadratga yaqin ushlash.
+ *
+ * Qaytadigan qiymat FOIZDA: chaqiruvchi uni to'g'ridan-to'g'ri
+ * `style` ga qo'yadi va o'lchamni o'zi hisoblamaydi.
+ */
+export function treemap(
+  elementlar: { kalit: string; ogirlik: number }[],
+  nisbat = 1.6,
+): Katak[] {
+  const musbat = elementlar
+    .filter((e) => e.ogirlik > 0)
+    .sort((a, b) => b.ogirlik - a.ogirlik);
+  if (musbat.length === 0) return [];
+
+  const kataklar: Katak[] = [];
+
+  let y = 0;
+  let i = 0;
+
+  while (i < musbat.length) {
+    // Qolgan balandlik bo'yicha qator to'planadi.
+    const qoldiq = musbat.slice(i).reduce((s, e) => s + e.ogirlik, 0);
+    const qolganBoy = 100 - y;
+
+    const qator: typeof musbat = [];
+    let qatorOgirlik = 0;
+    let engYaxshi = Number.POSITIVE_INFINITY;
+
+    for (let j = i; j < musbat.length; j++) {
+      const yangiOgirlik = qatorOgirlik + musbat[j].ogirlik;
+      const boy = (yangiOgirlik / qoldiq) * qolganBoy;
+      // Qator ichidagi ENG YOMON shakl: eng kichik element qanchalik
+      // cho'zilgan. Shu ko'rsatkich yomonlashsa, qator to'lgan.
+      const engKichik = musbat[j].ogirlik;
+      const en = (engKichik / yangiOgirlik) * 100;
+      const yomonlik = Math.max(en / boy, boy / en);
+
+      if (qator.length > 0 && yomonlik > engYaxshi * nisbat) break;
+
+      qator.push(musbat[j]);
+      qatorOgirlik = yangiOgirlik;
+      engYaxshi = Math.min(engYaxshi, yomonlik);
+    }
+
+    const boy = (qatorOgirlik / qoldiq) * qolganBoy;
+    let x = 0;
+    for (const element of qator) {
+      const en = (element.ogirlik / qatorOgirlik) * 100;
+      kataklar.push({ kalit: element.kalit, x, y, en, boy });
+      x += en;
+    }
+
+    y += boy;
+    i += qator.length;
+    // Qavariq holatlarda (juda kichik qoldiq) tsikl to'xtamay
+    // qolmasin: bitta element ham olinmasa, majburan olinadi.
+    if (qator.length === 0) i++;
+  }
+
+  return kataklar;
+}
+
 /** Mini grafik uchun SVG `points` qatori.
  *
  * Bo'sh yoki bitta nuqtali qatordan grafik chiqmaydi — `null`
@@ -137,4 +221,20 @@ export function chiziqNuqtalari(
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(" ");
+}
+
+/** To'ldirilgan mini grafik uchun yopiq SVG yo'li.
+ *
+ * NEGA TO'LDIRILGAN. Kripto saytlarida mini grafik ingichka chiziq
+ * emas, ostidan bo'yalgan maydon bo'ladi — kichik o'lchamda chiziq
+ * ko'zga ilinmaydi, maydon esa yo'nalishni darrov ko'rsatadi.
+ */
+export function chiziqMaydoni(
+  qiymatlar: number[],
+  eni: number,
+  boyi: number,
+): string | null {
+  const nuqtalar = chiziqNuqtalari(qiymatlar, eni, boyi);
+  if (nuqtalar === null) return null;
+  return `M0,${boyi} L${nuqtalar.split(" ").join(" L")} L${eni},${boyi} Z`;
 }

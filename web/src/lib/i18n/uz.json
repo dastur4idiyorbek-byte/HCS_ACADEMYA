@@ -27,7 +27,6 @@
     "portfel": "Mening portfelim",
     "profil": "Profil / Obunam",
     "admin": "Admin panel",
-    "salomatlik": "Bozor Salomatligi",
     "bozor": "Bozor ko'rinishi",
     "holat": "Bozor holati"
   },
@@ -54,7 +53,14 @@
     "kapital": "Kapital",
     "hajm": "Hajm 24s",
     "yetti_kun": "7 kunlik",
-    "malumot_yoq": "Bozor ma'lumoti olinmadi. Manba javob bermayapti — biroz keyin qayta urinib ko'ring."
+    "malumot_yoq": "Bozor ma'lumoti olinmadi. Manba javob bermayapti — biroz keyin qayta urinib ko'ring.",
+    "hajm24": "24s hajm",
+    "btc_ulushi": "BTC ulushi",
+    "halol_kapital": "Halol doira",
+    "bozor_manba": "butun bozor",
+    "halol_manba": "halol ro'yxat",
+    "qidir": "Coin qidirish...",
+    "topilmadi": "Bunday coin ro'yxatda yo'q."
   },
   "pastki": {
     "bosh": "Bosh",

@@ -212,4 +212,55 @@ export async function sektorHolatlari(
 export function keshniTozala(): void {
   coinKesh = null;
   sektorKesh = null;
+  globalKesh = null;
+}
+
+/** Butun bozorning umumiy ko'rsatkichlari — CoinGecko `/global`.
+ *
+ * NEGA KERAK. Har bir kripto saytining tepasida shu qator turadi:
+ * jami kapital, 24 soatlik hajm, BTC ulushi. U sahifani "kripto
+ * sayti" qilib ko'rsatadigan birinchi belgilardan biri va
+ * foydalanuvchi uni boshqa saytlardan tanib oladi.
+ *
+ * DIQQAT: bu raqamlar BUTUN BOZORDAN, bizning 80 talikdan emas.
+ * Sahifada ikkalasi yonma-yon turadi va qaysi biri nima ekani
+ * yozib qo'yiladi.
+ */
+export type GlobalHolat = {
+  jamiKapital: number | null;
+  hajm24: number | null;
+  ozgarish24: number | null;
+  btcUlushi: number | null;
+  ethUlushi: number | null;
+};
+
+let globalKesh: Kesh<GlobalHolat> | null = null;
+
+export async function globalHolat(): Promise<GlobalHolat | null> {
+  const hozir = Date.now();
+  if (globalKesh && hozir - globalKesh.vaqt < KESH_MS) return globalKesh.qiymat;
+
+  const javob = await soragich(`${asos()}/global`);
+  const d = (javob as { data?: Record<string, unknown> } | null)?.data;
+  if (!d) return globalKesh?.qiymat ?? null;
+
+  const usd = (kalit: string): number | null => {
+    const obyekt = d[kalit] as Record<string, unknown> | undefined;
+    return son(obyekt?.usd);
+  };
+  const ulush = (belgi: string): number | null => {
+    const obyekt = d.market_cap_percentage as Record<string, unknown> | undefined;
+    return son(obyekt?.[belgi]);
+  };
+
+  const natija: GlobalHolat = {
+    jamiKapital: usd("total_market_cap"),
+    hajm24: usd("total_volume"),
+    ozgarish24: son(d.market_cap_change_percentage_24h_usd),
+    btcUlushi: ulush("btc"),
+    ethUlushi: ulush("eth"),
+  };
+
+  globalKesh = { qiymat: natija, vaqt: hozir };
+  return natija;
 }

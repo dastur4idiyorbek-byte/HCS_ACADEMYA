@@ -23,28 +23,16 @@ export type MenyuBandi = {
 
 export const MENYU: MenyuBandi[] = [
   { kod: "bosh", yol: "/bosh", kalit: "menyu.bosh", belgi: "🏠", talab: null },
-  // Bozor Salomatligi Bosh sahifadan keyin turadi: u tizimning markaziy
-  // ko'rsatkichi. "Nega signal yo'q?" endi ALOHIDA band emas — uning
-  // mazmuni shu sahifaning ikkinchi yarmi, chunki ikkalasi bitta
-  // savolning ikki yarmi: "bozor qanday?" va "shuning uchun bugun nima
-  // bo'ldi?".
-  // Bozor ko'rinishi — haftalik va kunlik qarash. SIGNAL EMAS:
-  // loyiha egasining sharti bo'yicha asosiy tahlil 4 soatlikda
-  // qoladi, bu sahifa esa umumiy manzarani ko'rsatadi.
-  // Bozor Salomatligi — YANGI modulning agregat ko'rsatkichi
-  // (4-prompt, 2-qism). U FAQAT KO'RSATADI: sahifadagi hech bir
-  // raqam modulga qaytib kirmaydi va signal qaroriga ta'sir
-  // qilmaydi. Eski tizimda aynan shu chegara buzilgan edi.
-  {
-    kod: "salomatlik",
-    yol: "/salomatlik",
-    kalit: "menyu.salomatlik",
-    belgi: "💓",
-    talab: null,
-  },
-  // Bozor holati — sektorlar va coinlar (CoinGecko). Salomatlikdan
-  // KEYIN turadi: salomatlik loyihaning o'z ko'rsatkichi, bu esa
-  // tashqi bozor manzarasi.
+  // Bozor holati — BIR sahifada: Bozor Salomatligi indeksi, sektorlar,
+  // terminallar va coinlar. Ilgari bu uchga bo'lingan edi, lekin
+  // uchalasi bitta savolning bo'laklari: "bozor hozir qanday?".
+  //
+  // Sahifa FAQAT KO'RSATADI: undagi hech bir raqam modulga qaytib
+  // kirmaydi va signal qaroriga ta'sir qilmaydi. Eski tizimda aynan
+  // shu chegara buzilgan edi.
+  //
+  // Eski `/salomatlik` manzili yo'naltirishga aylandi — tashqi
+  // havolalar 404 bermasin.
   {
     kod: "holat",
     yol: "/bozor-holati",
@@ -132,13 +120,12 @@ export type PastkiTab = {
 
 export const PASTKI_TABLAR: PastkiTab[] = [
   { kod: "bosh", kalit: "pastki.bosh", sahifalar: ["bosh"] },
-  // "bozor" tabining asosiy sahifasi — /salomatlik. Sabab yuqorida:
-  // Bozor Salomatligi tizimning markaziy ko'rsatkichi, pastki tab uni
-  // ikkinchi darajaga tushirib qo'ymasin.
+  // "bozor" tabi Bozor holatiga ochiladi — Salomatlik indeksi endi
+  // o'sha sahifaning eng tepasida turadi.
   {
     kod: "bozor",
     kalit: "pastki.bozor",
-    sahifalar: ["salomatlik", "holat", "bozor"],
+    sahifalar: ["holat", "bozor"],
   },
   {
     kod: "akademiya",

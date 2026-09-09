@@ -4,11 +4,13 @@ import path from "node:path";
 import { test } from "node:test";
 
 import {
+  chiziqMaydoni,
   chiziqNuqtalari,
   foizRangi,
   narxMatn,
   qisqaSon,
   sarala,
+  treemap,
   xaritaUlushi,
   type CoinHolati,
 } from "../src/lib/bozor.ts";
@@ -204,4 +206,78 @@ test("grafik nuqtalari chegaradan chiqmaydi", () => {
     assert.ok(x >= 0 && x <= 120, `x chegaradan chiqdi: ${x}`);
     assert.ok(y >= 0 && y <= 40, `y chegaradan chiqdi: ${y}`);
   }
+});
+
+// --------------------------------------------------------------------- //
+//  Treemap
+// --------------------------------------------------------------------- //
+
+/** Katakchalar bir-birining ustiga chiqmasligi va maydon ulushi
+ *  og'irlikka mos bo'lishi — xaritaning butun ma'nosi shunda. */
+test("treemap maydonlari og'irlikka mos", () => {
+  const kataklar = treemap([
+    { kalit: "A", ogirlik: 50 },
+    { kalit: "B", ogirlik: 30 },
+    { kalit: "C", ogirlik: 20 },
+  ]);
+  assert.equal(kataklar.length, 3);
+
+  const jamiMaydon = kataklar.reduce((s, k) => s + k.en * k.boy, 0);
+  const a = kataklar.find((k) => k.kalit === "A")!;
+  const c = kataklar.find((k) => k.kalit === "C")!;
+
+  // A ning maydoni C nikidan ~2.5 barobar katta bo'lishi kerak.
+  const nisbat = (a.en * a.boy) / (c.en * c.boy);
+  assert.ok(nisbat > 2.2 && nisbat < 2.8, `nisbat: ${nisbat}`);
+  // Butun maydon to'ldirilgan (100 x 100), kichik xatolik bilan.
+  assert.ok(Math.abs(jamiMaydon - 10_000) < 50, `jami: ${jamiMaydon}`);
+});
+
+test("treemap katakchalari chegaradan chiqmaydi", () => {
+  const kataklar = treemap(
+    Array.from({ length: 24 }, (_, i) => ({
+      kalit: `K${i}`,
+      ogirlik: (24 - i) ** 2,
+    })),
+  );
+  for (const k of kataklar) {
+    assert.ok(k.x >= -0.01 && k.x + k.en <= 100.01, `x: ${k.x} + ${k.en}`);
+    assert.ok(k.y >= -0.01 && k.y + k.boy <= 100.01, `y: ${k.y} + ${k.boy}`);
+  }
+});
+
+/** Kattaroq element HAR DOIM kattaroq maydon olsin — aks holda
+ *  xarita yolg'on gapiradi. */
+test("kattaroq og'irlik kattaroq maydon oladi", () => {
+  const kataklar = treemap([
+    { kalit: "kichik", ogirlik: 5 },
+    { kalit: "katta", ogirlik: 95 },
+  ]);
+  const kichik = kataklar.find((k) => k.kalit === "kichik")!;
+  const katta = kataklar.find((k) => k.kalit === "katta")!;
+  assert.ok(katta.en * katta.boy > kichik.en * kichik.boy);
+});
+
+test("nol va manfiy og'irlik xaritaga tushmaydi", () => {
+  const kataklar = treemap([
+    { kalit: "A", ogirlik: 10 },
+    { kalit: "B", ogirlik: 0 },
+    { kalit: "C", ogirlik: -5 },
+  ]);
+  assert.deepEqual(
+    kataklar.map((k) => k.kalit),
+    ["A"],
+  );
+});
+
+test("bo'sh ro'yxatdan xarita chiqmaydi", () => {
+  assert.deepEqual(treemap([]), []);
+});
+
+test("to'ldirilgan grafik yopiq yo'l qaytaradi", () => {
+  const yol = chiziqMaydoni([1, 3, 2], 100, 30);
+  assert.ok(yol !== null);
+  assert.ok(yol.startsWith("M0,30"), yol);
+  assert.ok(yol.endsWith("Z"), yol);
+  assert.equal(chiziqMaydoni([7], 100, 30), null);
 });
