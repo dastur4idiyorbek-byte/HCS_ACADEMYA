@@ -5919,3 +5919,89 @@ Endi ishga tushish yetishmagan ustunlarni o'zi qo'shadi (faqat NULL
 qabul qiladigan yoki server qiymati borini) va bu test bilan
 qulflandi. `NOT NULL` va qiymatsiz ustun uchun ogohlantirish
 yoziladi — o'shanda migratsiyani qo'lda yugurtirish kerak.
+
+---
+
+## 96. BOSH SAHIFA — VIDJETLAR VA AVTOMATIK POSTLAR (2026-09-10)
+
+### Uch qatlam
+
+    LOGOTIP  ->  vidjetlar (SIZ va BUGUN)  ->  oqim  ->  loyiha haqida
+
+Logotip eng tepada — loyiha egasining talabi. Tanishtiruv MATNI esa
+pastga ko'chdi: birinchi tashrifda u to'g'ri, ellikinchisida to'siq.
+Yangi odamda oqim bo'sh bo'ladi va u baribir pastgacha yetadi.
+
+### Vidjetlar foydalanuvchiniki
+
+To'qqizta vidjet bor, boshlanishiga oltitasi qo'yiladi
+(`SUKUT_VIDJETLAR`). Tanlov `user_widgets` jadvalida, tartibi bilan.
+Bo'sh tanlov "hech narsa tanlamagan" degani, "hech narsa ko'rsatma"
+emas — farqni `korinadiganVidjetlar()` hal qiladi.
+
+Tanlov **butunlay qayta yoziladi** (delete + insert, bitta
+tranzaksiyada): tartib ham, tarkib ham bir vaqtda o'zgaradi va
+farqni hisoblab yurish shu qadar kichik ro'yxat uchun ortiqcha.
+
+Ko'chirish **↑↓ tugmalari bilan**, sudrab emas: sahifaning asosiy
+foydalanuvchisi telefonda va sudrash u yerda scroll bilan
+urishadi.
+
+### Avtomatik postlar — YOZUVCHIDAN emas, BAZADAN
+
+Dars posti darsni saqlash oqimida yoziladi: o'sha yerda "yangi dars
+qo'shildi" degan aniq nuqta bor.
+
+Signal uchun bunday nuqta **yo'q** — signalni ham sayt
+(`signalYarat`), ham bot (Python) yozadi. Ikkala yo'lga chaqiruv
+qo'ysak, bir mantiqning ikki nusxasi paydo bo'lardi va vaqt o'tib
+ular bir-biridan farq qila boshlardi.
+
+Shuning uchun `web/src/lib/avtomatik-post.ts` savolni teskari
+qo'yadi: **"tarqatilgan, lekin posti yo'q signal bormi?"** Javob
+signal qaysi tilda yozilganiga bog'liq emas.
+
+Takrorlanmaslik kafolati **bazada**: `uq_post_manba` unique indeksi
+(`source_kind` + `source_id`). Ikki foydalanuvchi bir vaqtda bosh
+sahifani ochsa ham, ikkinchi yozuv jimgina tushib qoladi. Kod
+unutishi mumkin, baza unutmaydi.
+
+**Faqat TARQATILGAN signal.** Signal avval obunachilarga boradi.
+Tarqatilmasidan oldin ochiq oqimda e'lon qilinsa, pul to'lamagan
+odam to'laganidan oldin bilib olardi.
+
+**Post matnida coin nomi YO'Q.** Dars uchun sarlavha "sotiladigan
+qiymat": nomni bilgan odam darsni ko'rmaydi. Signal boshqacha — bu
+spot, faqat sotib olish, ya'ni "hozir BTC" degan gap signalning
+O'ZI. Tugma `/signallar/{id}` ga olib boradi va u yerda qulf
+ekrani chiqadi.
+
+**Uch kunlik oyna.** Qoida yoqilgan kunda bazada o'nlab eski signal
+turibdi; oynasiz birinchi ochilishda oqim o'shalar bilan to'lardi.
+Oynadan chiqib ketgani yozilmaydi va bu yo'qotish emas: post —
+"hozir yangi signal bor" degan xabar.
+
+### Haftalik hisobot
+
+O'tgan **tugagan** ISO hafta bo'yicha (dushanba–yakshanba, UTC).
+Joriy hafta hisobga olinmaydi — u tugamagan, hisoboti ham to'liq
+bo'lmaydi. `source_id` = `yil * 100 + hafta`, ya'ni bitta hafta —
+bitta hisobot.
+
+Matnda faqat **sanoq**: nechta yopildi, nechtasi nishonga yetdi,
+nechtasi stopga tushdi va o'rtacha natija (nechta signaldan
+hisoblangani bilan). "G'alaba foizi" kabi yig'ma ko'rsatkich
+ataylab yo'q — bir haftalik namunada u aldaydi.
+
+Signalsiz hafta uchun post yozilmaydi: "0 ta signal" har hafta
+takrorlansa, oqim mazmunsiz qatorlar bilan to'lardi.
+
+### Qachon ishlaydi
+
+Bosh sahifa ochilganda, faqat birinchi sahifada. Alohida fon
+vazifasi (cron) qurilmadi: postlar faqat bosh sahifada ko'rinadi,
+ya'ni hech kim qaramayotgan paytda yozilishi shart emas — va cron
+yana bitta ishlab turishi kerak bo'lgan qism bo'lardi.
+
+Yig'uvchi chaqiruv **hech qachon xato otmaydi**. Post yozilmagani —
+kichik yo'qotish, bosh sahifaning ochilmagani — katta.

@@ -5,6 +5,7 @@ import { Vidjet, type VidjetMalumoti } from "@/components/Vidjetlar";
 import { VidjetSozlash } from "@/components/VidjetSozlash";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
+import { avtomatikPostlarniYangila } from "@/lib/avtomatik-post";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import {
@@ -21,7 +22,11 @@ import {
 import { globalHolat, qorquvOchkozlik } from "@/lib/bozor-server";
 import { kirim } from "@/lib/session";
 import { korinadiganVidjetlar, type VidjetKod } from "@/lib/vidjetlar";
-import { salomatlikIndeksi, salomatlikTasnifi, xulosaHisobla } from "@/lib/zanjir";
+import {
+  salomatlikIndeksi,
+  salomatlikTasnifi,
+  xulosaHisobla,
+} from "@/lib/zanjir";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +39,12 @@ const SAHIFA = 20;
  * "tugaydigan" sahifa. Endi u Telegram kanali kabi oqim — eng yangi
  * post tepada.
  *
- * TANISHTIRUV OQIMNING BIRINCHI POSTLARI. Logotip, tavsif, diniy
- * asos va ijtimoiy tarmoqlar oqimdan CHIQARILMADI — ular doim
- * tepada turadi va pastida xronologik postlar davom etadi (loyiha
- * egasining tanlovi).
+ * LOGOTIP ENG TEPADA — loyiha egasining talabi: sahifa bizning
+ * belgimiz bilan boshlanadi.
+ *
+ * TANISHTIRUV MATNI esa oqimdan CHIQARILMADI, lekin pastga ko'chdi:
+ * tavsif, diniy asos va ijtimoiy tarmoqlar oqim oxirida turadi
+ * (loyiha egasining tanlovi).
  *
  * Ular BAZAGA tushmaydi va admin panelda ko'rinmaydi. Sabab: diniy
  * iqtibosning aniq lafzi bilimdon kishi tasdiqlaguncha placeholder
@@ -117,6 +124,21 @@ export default async function Bosh({
     vidjetlar.map((v) => [v.kod, t(v.kalit)]),
   );
 
+  // Signal va haftalik hisobot postlari SHU YERDA tug'iladi.
+  //
+  // Ular yozuvchidan emas, BAZADAN olinadi: "tarqatilgan, lekin posti
+  // yo'q signal bormi?" Sabab `lib/avtomatik-post.ts` da — signalni
+  // ham sayt, ham bot (Python) yozadi va ikkala yo'lga chaqiruv
+  // qo'ysak, bir mantiqning ikki nusxasi paydo bo'lardi.
+  //
+  // O'qishdan OLDIN chaqiriladi: shu ochilishda yozilgan post shu
+  // ochilishdayoq ko'rinsin.
+  //
+  // Faqat BIRINCHI sahifada. "Ko'proq yuklash" bosilganda eskiroq
+  // postlar so'raladi — o'sha payt yangi post yozish oqimning
+  // tepasini o'zgartirardi va foydalanuvchi buni ko'rmasdi ham.
+  if (!oxirgi) avtomatikPostlarniYangila();
+
   const oxirgiId = Number(oxirgi);
   // Bittasini ORTIQCHA so'raymiz: shundan keyin yana post bormi —
   // ikkinchi so'rovsiz bilinadi.
@@ -131,9 +153,32 @@ export default async function Bosh({
     // Matn oqimi TOR qoladi: umumiy kenglik boshqaruv paneli uchun
     // kengaytirildi, uzun matn qatori esa o'qishni qiyinlashtiradi.
     <div className="mx-auto max-w-3xl space-y-5">
+      {/* ---- LOGOTIP — eng tepada ----
+          Loyiha egasining talabi: sahifa bizning belgimiz bilan
+          boshlanadi. Ilgari u oqimning oxirida turardi va qayta
+          kirgan odam uni umuman ko'rmasdi.
+
+          Tanishtiruv MATNI esa pastda qoldi: har safar kirgan odamga
+          "biz kimmiz" ni qayta o'qitish shart emas, lekin belgi —
+          sahifa kimniki ekanini bir qarashda aytadi. */}
+      <header className="flex flex-col items-center pt-2 pb-4 text-center">
+        <Image
+          src="/logo.jpg"
+          alt="HCS — Halol Crypto Savdo"
+          width={96}
+          height={96}
+          className="rounded-kartochka"
+          priority
+        />
+        <h1 className="text-sarlavha mt-4 text-2xl font-bold tracking-wide sm:text-3xl">
+          HALOL CRYPTO SAVDO
+        </h1>
+        <p className="text-matn-past mt-1 text-sm">{t("bosh.shior")}</p>
+      </header>
+
       {/* ---- 1-QATLAM: SIZ va BUGUN ---- */}
-      {/* NEGA TANISHTIRUV EMAS. Ilgari sahifa logotip va to'rtta
-          tanishtiruv kartochkasidan boshlanardi. Birinchi tashrifda
+      {/* NEGA TANISHTIRUV EMAS. Ilgari sahifa logotipdan keyin
+          to'rtta tanishtiruv kartochkasi bilan davom etardi. Birinchi tashrifda
           bu to'g'ri, ellikinchisida esa to'siq: har safar kirgan odam
           ular ustidan o'tib, keyin yangilikka yetardi.
 
@@ -222,58 +267,45 @@ export default async function Bosh({
           Oqimning OXIRIDA. Yangi odamda oqim bo'sh bo'ladi va u
           baribir shu yerga darrov yetadi; qayta kirgan odam esa
           har safar ular ustidan o'tishga majbur emas. */}
-      <div className="border-ramka-yumshoq space-y-5 border-t pt-8">      <header className="flex flex-col items-center py-6 text-center">
-        <Image
-          src="/logo.jpg"
-          alt="HCS — Halol Crypto Savdo"
-          width={96}
-          height={96}
-          className="rounded-kartochka"
-          priority
-        />
-        <h1 className="text-sarlavha mt-4 text-2xl font-bold tracking-wide sm:text-3xl">
-          HALOL CRYPTO SAVDO
-        </h1>
-        <p className="text-matn-past mt-1 text-sm">{t("bosh.shior")}</p>
-      </header>
-
-      {/* Oqimning eng tepasidagi kartochka — "oyna" yuzasi shu yerda.
+      <div className="border-ramka-yumshoq space-y-5 border-t pt-8">
+        {/* Oqimning eng tepasidagi kartochka — "oyna" yuzasi shu yerda.
           Quyidagi postlar oddiy qoladi: bir ekranda o'nlab shisha yuza
           effektni ham, telefon tezligini ham yo'qotadi. */}
-      <Card variant="oyna">
-        <CardTitle>{t("bosh.tavsif_sarlavha")}</CardTitle>
-        <p className="mt-2 text-sm leading-relaxed">{t("bosh.tavsif")}</p>
-      </Card>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Card>
-          <CardTitle>{t("bosh.kimga_sarlavha")}</CardTitle>
-          <p className="mt-2 text-sm leading-relaxed">{t("bosh.kimga")}</p>
+        <Card variant="oyna">
+          <CardTitle>{t("bosh.tavsif_sarlavha")}</CardTitle>
+          <p className="mt-2 text-sm leading-relaxed">{t("bosh.tavsif")}</p>
         </Card>
 
-        <Card>
-          <CardTitle>{t("bosh.nega_halol_sarlavha")}</CardTitle>
-          <p className="mt-2 text-sm leading-relaxed">{t("bosh.nega_halol")}</p>
-        </Card>
-      </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Card>
+            <CardTitle>{t("bosh.kimga_sarlavha")}</CardTitle>
+            <p className="mt-2 text-sm leading-relaxed">{t("bosh.kimga")}</p>
+          </Card>
 
-      {/* Diniy asos — matn ATAYLAB yozilmagan.
+          <Card>
+            <CardTitle>{t("bosh.nega_halol_sarlavha")}</CardTitle>
+            <p className="mt-2 text-sm leading-relaxed">
+              {t("bosh.nega_halol")}
+            </p>
+          </Card>
+        </div>
+
+        {/* Diniy asos — matn ATAYLAB yozilmagan.
           Iqtibosning aniq lafzi bilimdon kishi tasdiqlagandan keyin
           kiritiladi. Bu joy dizayn jihatdan tayyor: matn almashtirilsa
           kifoya, boshqa hech narsa o'zgarmaydi. */}
-      <Card variant="urgu">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>☪️ {t("bosh.diniy_sarlavha")}</CardTitle>
-          <Badge tone="ortacha">{t("bosh.diniy_holat")}</Badge>
-        </div>
-        <p className="text-matn-past mt-3 text-sm leading-relaxed italic">
-          {t("bosh.diniy_placeholder")}
-        </p>
-        <CardHint className="mt-3">{t("bosh.diniy_izoh")}</CardHint>
-      </Card>
+        <Card variant="urgu">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>☪️ {t("bosh.diniy_sarlavha")}</CardTitle>
+            <Badge tone="ortacha">{t("bosh.diniy_holat")}</Badge>
+          </div>
+          <p className="text-matn-past mt-3 text-sm leading-relaxed italic">
+            {t("bosh.diniy_placeholder")}
+          </p>
+          <CardHint className="mt-3">{t("bosh.diniy_izoh")}</CardHint>
+        </Card>
 
-      <Tarmoqlar havolalar={tarmoqlar} til={til} />
-
+        <Tarmoqlar havolalar={tarmoqlar} til={til} />
       </div>
     </div>
   );
@@ -298,7 +330,11 @@ function PostKartochka({
   return (
     <article className="border-ramka-yumshoq bg-panel rounded-kartochka border p-4">
       <p className="text-matn-past text-xs">
-        {belgi && <span aria-hidden className="mr-1.5">{belgi}</span>}
+        {belgi && (
+          <span aria-hidden className="mr-1.5">
+            {belgi}
+          </span>
+        )}
         {sana(post.yaratilgan)}
       </p>
 
