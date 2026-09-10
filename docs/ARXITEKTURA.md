@@ -5949,17 +5949,16 @@ urishadi.
 
 ### Avtomatik postlar — YOZUVCHIDAN emas, BAZADAN
 
-Dars posti darsni saqlash oqimida yoziladi: o'sha yerda "yangi dars
-qo'shildi" degan aniq nuqta bor.
-
-Signal uchun bunday nuqta **yo'q** — signalni ham sayt
-(`signalYarat`), ham bot (Python) yozadi. Ikkala yo'lga chaqiruv
-qo'ysak, bir mantiqning ikki nusxasi paydo bo'lardi va vaqt o'tib
-ular bir-biridan farq qila boshlardi.
+Ilgari dars posti darsni saqlash oqimidan yozilardi. Bu **olib
+tashlandi**: signalni ham, kontentni ham sayt ham, bot (Python) ham
+yozadi. Har bir yozuvchiga chaqiruv qo'ysak, bir mantiqning ikki
+nusxasi paydo bo'lardi va vaqt o'tib ular bir-biridan farq qila
+boshlardi — botdan qo'shilgan dars esa oqimda umuman ko'rinmasdi.
 
 Shuning uchun `web/src/lib/avtomatik-post.ts` savolni teskari
-qo'yadi: **"tarqatilgan, lekin posti yo'q signal bormi?"** Javob
-signal qaysi tilda yozilganiga bog'liq emas.
+qo'yadi: **"tarqatilgan, lekin posti yo'q signal bormi?"**,
+**"chop etilgan, lekin posti yo'q dars bormi?"** Javob yozuv qaysi
+tilda yozilganiga bog'liq emas.
 
 Takrorlanmaslik kafolati **bazada**: `uq_post_manba` unique indeksi
 (`source_kind` + `source_id`). Ikki foydalanuvchi bir vaqtda bosh
@@ -6016,6 +6015,49 @@ yolg'iz ikonkaning ma'nosini har kim o'zicha tushunardi.
 turibdi; oynasiz birinchi ochilishda oqim o'shalar bilan to'lardi.
 Oynadan chiqib ketgani yozilmaydi va bu yo'qotish emas: post —
 "hozir yangi signal bor" degan xabar.
+
+### Dars va maqola
+
+Ikkalasi ham `content` jadvalida, `kind` bilan ajraladi. Post
+manbasi va tugma manzili shundan kelib chiqadi:
+
+| kind | manba | tugma qayerga |
+|---|---|---|
+| `video` | `dars` | `/video` (ro'yxat) |
+| `maqola` | `maqola` | `/bilimlar/{id}` (o'z sahifasi) |
+
+**Faqat chop etilgani.** Chop etilmagan dars hali tayyor emas.
+
+**Bu yerda coin nomi masalasi yo'q**: dars nomi "sotiladigan
+qiymat" — uni bilgan odam darsni ko'rgan bo'lib qolmaydi. Shuning
+uchun post matni sarlavhaning o'zi va qulf yorlig'i qo'yilmaydi.
+Qulflangan darsga olib boradigan tugma ham yashirilmaydi: bosilganda
+qulf ekrani chiqadi va odam nima yetishmayotganini biladi.
+
+**Oyna `created_at` bo'yicha**, `updated_at` emas: eski darsning
+sarlavhasini tuzatish uni oqimda "yangi" qilib ko'rsatardi.
+
+### Maqola admin paneldan qo'shiladi
+
+`content` jadvalida maqola maydonlari (`body`, `duration_seconds`,
+`category`) bor edi, lekin ularni to'ldiradigan forma yo'q edi —
+ya'ni "Bilimlar" bo'limi hech qachon to'lmasdi.
+
+Endi admin panelida **ikki alohida forma**: video va maqola. Bitta
+formaga "tur" tanlovi qo'yilmadi — video formasida `file_id` kerak,
+maqolada esa matn, va bitta formada yarim maydon doim ortiqcha
+turardi.
+
+Maqola matni **oddiy matn**, HTML muharriri emas: sahifa uni
+`whitespace-pre-wrap` bilan chizadi. HTML qabul qilinsa, admin
+panelidan sahifaga kod tushish yo'li ochilardi.
+
+Davomiylik formada **daqiqada** so'raladi (odam shunday o'ylaydi),
+bazada **soniyada** saqlanadi (saralash va formatlash uchun).
+
+Matnsiz maqola **saqlanmaydi**: aks holda ro'yxatda sarlavha
+ko'rinib, ochilganda bo'sh sahifa chiqardi va buni faqat o'quvchi
+sezardi.
 
 ### Haftalik hisobot
 

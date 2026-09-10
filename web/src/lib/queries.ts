@@ -1346,12 +1346,23 @@ export function signalOchir(id: number): boolean {
 // --------------------------------------------------------------------------- //
 
 export type DarsKirish = {
+  /** `video` — dars, `maqola` — o'qiladigan bilim. Bitta jadval,
+   *  chunki ikkalasi ham "o'quv birligi": tarif, tartib, chop etish
+   *  qoidalari bir xil. Farqi — tanasi (`matn`) va ochiladigan
+   *  sahifasi. */
+  kind: "video" | "maqola";
   title: string;
   description: string | null;
   minTier: Tarif;
   position: number;
   fileId: string | null;
   published: boolean;
+  /** Maqola tanasi. Video uchun `null`. */
+  matn?: string | null;
+  /** Video uzunligi yoki o'qish vaqti — SONIYADA. */
+  davomiylik?: number | null;
+  /** Toifa yorlig'i — erkin matn. */
+  toifa?: string | null;
 };
 
 export function darslar(): (Kontent & {
@@ -1490,17 +1501,37 @@ export function darsSaqla(
     return { ok: false, sabab: `Noma'lum tarif: ${kirish.minTier}` };
   }
 
+  if (kirish.kind !== "video" && kirish.kind !== "maqola") {
+    return { ok: false, sabab: `Noma'lum tur: ${kirish.kind}` };
+  }
+  // Maqolaning TANASI bo'lishi shart. Ansiz "Bilimlar" ro'yxatida
+  // sarlavha ko'rinadi, ochilganda esa bo'sh sahifa chiqadi — va
+  // buni faqat o'quvchi sezadi.
+  const matn = kirish.matn?.trim() || null;
+  if (kirish.kind === "maqola" && !matn) {
+    return { ok: false, sabab: "Maqola matni yozilishi shart" };
+  }
+
   const baza = db();
   const vaqtNow = vaqtSatri(hozir);
   const tavsif = kirish.description?.trim() || null;
   const fileId = kirish.fileId?.trim() || null;
+  const toifa = kirish.toifa?.trim() || null;
+  const davomiylik =
+    kirish.davomiylik !== null &&
+    kirish.davomiylik !== undefined &&
+    Number.isFinite(kirish.davomiylik) &&
+    kirish.davomiylik > 0
+      ? Math.trunc(kirish.davomiylik)
+      : null;
 
   if (id !== null) {
     baza
       .prepare(
         `update content
             set title = ?, description = ?, min_tier = ?, position = ?,
-                file_id = coalesce(?, file_id), is_published = ?, updated_at = ?
+                file_id = coalesce(?, file_id), is_published = ?,
+                body = ?, duration_seconds = ?, category = ?, updated_at = ?
           where id = ?`,
       )
       .run(
@@ -1510,6 +1541,9 @@ export function darsSaqla(
         kirish.position,
         fileId,
         kirish.published ? 1 : 0,
+        matn,
+        davomiylik,
+        toifa,
         vaqtNow,
         id,
       );
@@ -1519,34 +1553,31 @@ export function darsSaqla(
   const natija = baza
     .prepare(
       `insert into content (kind, title, description, file_id, min_tier, position,
-                            is_published, created_at, updated_at)
-       values ('video', ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            is_published, body, duration_seconds, category,
+                            created_at, updated_at)
+       values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
+      kirish.kind,
       title,
       tavsif,
       fileId,
       kirish.minTier,
       kirish.position,
       kirish.published ? 1 : 0,
+      matn,
+      davomiylik,
+      toifa,
       vaqtNow,
       vaqtNow,
     );
-  const yangiId = songaAylantir(natija.lastInsertRowid);
 
-  // OQIMDA AVTOMATIK POST. Faqat YANGI dars uchun va faqat CHOP
-  // ETILGANDA: chop etilmagan dars hali tayyor emas, u haqda xabar
-  // berish erta bo'lardi.
-  //
-  // Tahrirlashda post yozilmaydi — yuqoridagi shox `return` bilan
-  // tugaydi. Baribir ikki marta chaqirilsa, baza `uq_post_manba`
-  // indeksi bilan to'sadi va `avtomatikPost` buni xato deb emas,
-  // "allaqachon bor" deb qaytaradi.
-  if (kirish.published) {
-    avtomatikPost("dars", yangiId, title, "/video", hozir);
-  }
-
-  return { ok: true, id: yangiId };
+  // OQIMDAGI POST BU YERDA YOZILMAYDI. U `lib/avtomatik-post.ts`
+  // da, bazadan olinadi: "chop etilgan, lekin posti yo'q dars
+  // bormi?". Sabab signallardagi bilan bir xil — kontentni bot ham
+  // (Python) yozadi va bu yerga chaqiruv qo'ysak, faqat saytdan
+  // qo'shilgani e'lon qilinardi.
+  return { ok: true, id: songaAylantir(natija.lastInsertRowid) };
 }
 
 export function darsOchir(id: number): boolean {
@@ -1732,9 +1763,10 @@ function boshPostgaAylantir(q: Qator): BoshPost {
     mediaTuri: media ? postMediaTuri(media) : null,
     yaratilgan: vaqt(q.created_at as string),
     manbaTuri: (q.source_kind as string) ?? "qolda",
-    manbaId: q.source_id === null || q.source_id === undefined
-      ? null
-      : songaAylantir(q.source_id),
+    manbaId:
+      q.source_id === null || q.source_id === undefined
+        ? null
+        : songaAylantir(q.source_id),
     havola: (q.link as string | null) ?? null,
   };
 }
@@ -1767,7 +1799,6 @@ export function boshPostlar(nechta = 20, oxirgiId?: number): BoshPost[] {
   ) as Qator[];
   return qatorlar.map(boshPostgaAylantir);
 }
-
 
 // --------------------------------------------------------------------------- //
 //  Bosh sahifa vidjetlari

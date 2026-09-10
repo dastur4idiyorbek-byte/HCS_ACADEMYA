@@ -452,7 +452,15 @@
     "rasm_yuklandi": "✅ Rasm biriktirildi",
     "rasm_yuklanmadi": "⚠️ Rasm yuklanmadi",
     "rasm_ochir": "Rasmni olib tashlash",
-    "rasmlar_izoh": "TradingView'da chizib, skrinshot qilib yuklang. Rasm signal kartochkasida, kalkulyator bilan birga ko'rinadi."
+    "rasmlar_izoh": "TradingView'da chizib, skrinshot qilib yuklang. Rasm signal kartochkasida, kalkulyator bilan birga ko'rinadi.",
+    "yangi_maqola": "Yangi maqola",
+    "maqola_izoh": "Maqola matni shu yerda yoziladi va \"Bilimlar\" bo'limida ochiladi. Video yuklash kerak emas.",
+    "maqola_matni": "Maqola matni",
+    "toifa": "Toifa",
+    "toifa_misol": "Risk boshqaruvi",
+    "oqish_vaqti": "O'qish vaqti",
+    "davomiylik": "Davomiyligi",
+    "daqiqa": "daqiqa"
   },
   "bosh": {
     "shior": "Halol kripto spot savdo signallari",

@@ -179,16 +179,26 @@ export async function darsSaqlash(forma: FormData): Promise<void> {
   await adminTekshir();
   const xomId = String(forma.get("id") ?? "").trim();
 
+  // Davomiylik formada DAQIQADA so'raladi (odam shunday o'ylaydi),
+  // bazada esa SONIYADA saqlanadi (saralash va formatlash uchun).
+  const daqiqa = Number(String(forma.get("davomiylik") ?? "").trim());
+
   darsSaqla(xomId ? Number(xomId) : null, {
+    kind: forma.get("kind") === "maqola" ? "maqola" : "video",
     title: String(forma.get("title") ?? ""),
     description: String(forma.get("description") ?? "").trim() || null,
     minTier: String(forma.get("min_tier") ?? "pro") as Tarif,
     position: Number(String(forma.get("position") ?? "0")) || 0,
     fileId: String(forma.get("file_id") ?? "").trim() || null,
     published: forma.get("published") === "on",
+    matn: String(forma.get("matn") ?? "").trim() || null,
+    davomiylik: Number.isFinite(daqiqa) && daqiqa > 0 ? daqiqa * 60 : null,
+    toifa: String(forma.get("toifa") ?? "").trim() || null,
   });
   revalidatePath("/admin/darslar");
   revalidatePath("/video");
+  revalidatePath("/bilimlar");
+  revalidatePath("/akademiya");
 }
 
 export async function darsOchirish(forma: FormData): Promise<void> {

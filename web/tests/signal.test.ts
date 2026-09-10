@@ -22,7 +22,14 @@ const {
 } = await import("../src/lib/queries.ts");
 const { savdoQoidalari } = await import("../src/lib/config.ts");
 
-const YAXSHI = { symbol: "BTC", entry: 100, stop: 97, tp1: 106, tp2: 115, note: null };
+const YAXSHI = {
+  symbol: "BTC",
+  entry: 100,
+  stop: 97,
+  tp1: 106,
+  tp2: 115,
+  note: null,
+};
 
 // --------------------------------------------------------------------------- //
 //  Signal: symbol shakli — ASOSIY AKTIV, juftlik emas
@@ -64,7 +71,9 @@ test("to'g'ri signal yoziladi va tarqatilmagan bo'lib qoladi", () => {
   assert.ok(natija.ok);
 
   const qator = db()
-    .prepare("select symbol, status, broadcast_at, note, source from signals where id = ?")
+    .prepare(
+      "select symbol, status, broadcast_at, note, source from signals where id = ?",
+    )
     .get(natija.id) as Record<string, unknown>;
   assert.equal(qator.symbol, "BTC");
   assert.equal(qator.status, "pending");
@@ -90,8 +99,16 @@ test("Stop kirishdan past bo'lishi SHART", () => {
 });
 
 test("TP lar o'sib borishi shart", () => {
-  assert.equal(signalYarat({ ...YAXSHI, tp1: 99 }).ok, false, "TP1 kirishdan yuqori bo'lsin");
-  assert.equal(signalYarat({ ...YAXSHI, tp2: 105 }).ok, false, "TP2 TP1 dan yuqori bo'lsin");
+  assert.equal(
+    signalYarat({ ...YAXSHI, tp1: 99 }).ok,
+    false,
+    "TP1 kirishdan yuqori bo'lsin",
+  );
+  assert.equal(
+    signalYarat({ ...YAXSHI, tp2: 105 }).ok,
+    false,
+    "TP2 TP1 dan yuqori bo'lsin",
+  );
 });
 
 test("manfiy va son bo'lmagan qiymatlar rad etiladi", () => {
@@ -108,7 +125,10 @@ test("noto'g'ri symbol rad etiladi", () => {
   for (const yomon of ["", "B", "BTC USDT", "BTC'; drop table signals;--"]) {
     assert.equal(signalYarat({ ...YAXSHI, symbol: yomon }).ok, false, yomon);
   }
-  assert.ok((db().prepare("select count(*) c from signals").get() as { c: number }).c >= 0);
+  assert.ok(
+    (db().prepare("select count(*) c from signals").get() as { c: number }).c >=
+      0,
+  );
 });
 
 // --------------------------------------------------------------------------- //
@@ -120,7 +140,14 @@ test("noto'g'ri symbol rad etiladi", () => {
 test("qoidaga sig'magan signal YOZILADI, lekin ogohlantiriladi", () => {
   const q = savdoQoidalari();
   // R/R ataylab past: TP2 juda yaqin
-  const zaif = { symbol: "ETHUSDT", entry: 100, stop: 90, tp1: 104, tp2: 105, note: null };
+  const zaif = {
+    symbol: "ETHUSDT",
+    entry: 100,
+    stop: 90,
+    tp1: 104,
+    tp2: 105,
+    note: null,
+  };
   const natija = signalYarat(zaif);
 
   assert.ok(natija.ok, "yozilishi kerak");
@@ -139,7 +166,9 @@ test("qoidaga to'liq mos signalda ogohlantirish yo'q", () => {
 test("juda keng Stop ogohlantiriladi", () => {
   const q = savdoQoidalari();
   const keng = { ...YAXSHI, stop: 100 - (q.maxStopPct + 5) };
-  assert.ok(signalOgohlantirishlari(keng).some((o) => o.includes("Stop masofasi")));
+  assert.ok(
+    signalOgohlantirishlari(keng).some((o) => o.includes("Stop masofasi")),
+  );
 });
 
 // --------------------------------------------------------------------------- //
@@ -148,6 +177,7 @@ test("juda keng Stop ogohlantiriladi", () => {
 
 test("dars qo'shiladi, tahrirlanadi va o'chiriladi", () => {
   const yaratildi = darsSaqla(null, {
+    kind: "video",
     title: "Sinov darsi",
     description: "Tavsif",
     minTier: "pro",
@@ -163,6 +193,7 @@ test("dars qo'shiladi, tahrirlanadi va o'chiriladi", () => {
   assert.equal(dars?.fileId, null, "video hali biriktirilmagan");
 
   darsSaqla(yaratildi.id, {
+    kind: "video",
     title: "Yangilangan",
     description: null,
     minTier: "premium",
@@ -184,6 +215,7 @@ test("dars qo'shiladi, tahrirlanadi va o'chiriladi", () => {
  *  sarlavhani tuzatgan admin darsni ham buzib qo'yardi. */
 test("bo'sh file_id mavjud videoni o'chirmaydi", () => {
   const y = darsSaqla(null, {
+    kind: "video",
     title: "Videoli dars",
     description: null,
     minTier: "pro",
@@ -194,6 +226,7 @@ test("bo'sh file_id mavjud videoni o'chirmaydi", () => {
   assert.ok(y.ok);
 
   darsSaqla(y.id, {
+    kind: "video",
     title: "Nomi o'zgardi",
     description: null,
     minTier: "pro",
@@ -209,6 +242,7 @@ test("bo'sh file_id mavjud videoni o'chirmaydi", () => {
 
 test("sarlavhasiz dars rad etiladi", () => {
   const n = darsSaqla(null, {
+    kind: "video",
     title: "   ",
     description: null,
     minTier: "pro",
@@ -318,7 +352,11 @@ test("juda kichik yoki noto'g'ri miqdor rad etiladi", () => {
   const s = signalYarat({ ...YAXSHI, symbol: "KICHIK" });
   assert.ok(s.ok);
   for (const yomon of [0, -50, Number.NaN]) {
-    assert.equal(pozitsiyaQayd(1, s.id, yomon).ok, false, `o'tkazib yubordi: ${yomon}`);
+    assert.equal(
+      pozitsiyaQayd(1, s.id, yomon).ok,
+      false,
+      `o'tkazib yubordi: ${yomon}`,
+    );
   }
   assert.equal(pozitsiyaOl(1, s.id), null);
 });

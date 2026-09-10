@@ -28,9 +28,19 @@ export default async function Darslar() {
           ℹ️ {t("admin.dars_video_izoh")}
         </p>
 
+        {/* IKKI ALOHIDA FORMA, bitta "tur" tanlovi emas. Video
+            formasida file_id kerak, maqolada esa matn — bitta
+            formaga qo'shilsa, yarim maydon doim ortiqcha turardi va
+            "buni to'ldirish kerakmi?" degan savol tug'ilardi. */}
         <Card variant="urgu">
           <CardTitle>➕ {t("admin.yangi_dars")}</CardTitle>
-          <DarsFormasi t={t} />
+          <DarsFormasi t={t} turi="video" />
+        </Card>
+
+        <Card variant="urgu">
+          <CardTitle>➕ {t("admin.yangi_maqola")}</CardTitle>
+          <CardHint className="mt-1">{t("admin.maqola_izoh")}</CardHint>
+          <DarsFormasi t={t} turi="maqola" />
         </Card>
 
         {royxat.length === 0 ? (
@@ -41,12 +51,14 @@ export default async function Darslar() {
           royxat.map((d) => (
             <Card key={d.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle>{d.title}</CardTitle>
+                <CardTitle>
+                  {d.kind === "maqola" ? "📄" : "🎬"} {d.title}
+                </CardTitle>
                 <span className="flex flex-wrap items-center gap-2">
                   <Badge tone={d.published ? "yaxshi" : "neytral"}>
                     {d.published ? t("admin.chop_etilgan") : "—"}
                   </Badge>
-                  {d.videoPath ? (
+                  {d.kind === "maqola" ? null : d.videoPath ? (
                     <Badge tone="yaxshi">{t("admin.video_saytda")}</Badge>
                   ) : d.fileId ? (
                     <Badge tone="neytral">{t("admin.video_botda")}</Badge>
@@ -61,18 +73,24 @@ export default async function Darslar() {
                   fayl esa daqiqalab yuklanadi. Bittaga qo'shilsa,
                   sarlavhani tuzatish uchun ham videoni kutish kerak
                   bo'lardi. */}
-              <VideoYuklash
-                darsId={d.id}
-                bormi={Boolean(d.videoPath)}
-                matnlar={{
-                  yukla: t("admin.video_yukla"),
-                  almashtir: t("admin.video_almashtir"),
-                  yuklanmoqda: t("admin.video_yuklanmoqda"),
-                  tarmoq_xatosi: t("admin.video_tarmoq_xatosi"),
-                }}
-              />
+              {d.kind !== "maqola" && (
+                <VideoYuklash
+                  darsId={d.id}
+                  bormi={Boolean(d.videoPath)}
+                  matnlar={{
+                    yukla: t("admin.video_yukla"),
+                    almashtir: t("admin.video_almashtir"),
+                    yuklanmoqda: t("admin.video_yuklanmoqda"),
+                    tarmoq_xatosi: t("admin.video_tarmoq_xatosi"),
+                  }}
+                />
+              )}
 
-              <DarsFormasi t={t} dars={d} />
+              <DarsFormasi
+                t={t}
+                dars={d}
+                turi={d.kind === "maqola" ? "maqola" : "video"}
+              />
             </Card>
           ))
         )}
@@ -81,14 +99,28 @@ export default async function Darslar() {
   );
 }
 
-function DarsFormasi({ t, dars }: { t: (k: string) => string; dars?: Dars }) {
+function DarsFormasi({
+  t,
+  dars,
+  turi,
+}: {
+  t: (k: string) => string;
+  dars?: Dars;
+  turi: "video" | "maqola";
+}) {
   const id = dars ? String(dars.id) : "";
-  const pre = (nom: string) => `${id || "yangi"}-${nom}`;
+  // Yangi maqola va yangi dars formalari BIR SAHIFADA turadi —
+  // prefiks turni ham o'z ichiga oladi, aks holda ikkala formada
+  // bir xil `id` chiqib, yorliq bosilganda noto'g'ri maydonga
+  // o'tardi.
+  const pre = (nom: string) => `${id || `yangi-${turi}`}-${nom}`;
+  const maqola = turi === "maqola";
 
   return (
     <>
       <form action={darsSaqlash} className="mt-3 space-y-3">
         <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="kind" value={turi} />
 
         <div>
           <label
@@ -170,20 +202,85 @@ function DarsFormasi({ t, dars }: { t: (k: string) => string; dars?: Dars }) {
           </label>
         </div>
 
-        <div>
-          <label
-            className="text-matn-past mb-1 block text-xs uppercase"
-            htmlFor={pre("file")}
-          >
-            {t("admin.file_id")}
-          </label>
-          <input
-            id={pre("file")}
-            name="file_id"
-            placeholder={dars?.fileId ?? ""}
-            className="border-ramka-yumshoq rounded-tugma bg-fon w-full border px-3 py-2 text-sm"
-          />
+        {/* Toifa va o'qish vaqti — IKKALA turga ham. Video uchun
+            "davomiylik", maqola uchun "o'qish vaqti": bir xil maydon,
+            chunki ikkalasi ham "buni ko'rishga qancha vaqt ketadi"
+            degan savolga javob. */}
+        <div className="flex flex-wrap items-end gap-3">
+          <span className="min-w-[12rem] flex-1">
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("toifa")}
+            >
+              {t("admin.toifa")}
+            </label>
+            <input
+              id={pre("toifa")}
+              name="toifa"
+              defaultValue={dars?.toifa ?? ""}
+              placeholder={t("admin.toifa_misol")}
+              className="border-ramka-yumshoq rounded-tugma bg-fon w-full border px-3 py-2 text-sm"
+            />
+          </span>
+
+          <span>
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("vaqt")}
+            >
+              {maqola ? t("admin.oqish_vaqti") : t("admin.davomiylik")}
+            </label>
+            <input
+              id={pre("vaqt")}
+              name="davomiylik"
+              inputMode="numeric"
+              defaultValue={
+                dars?.davomiylik ? String(Math.round(dars.davomiylik / 60)) : ""
+              }
+              placeholder={t("admin.daqiqa")}
+              className="border-ramka-yumshoq rounded-tugma bg-fon raqam w-24 border px-3 py-2 text-sm"
+            />
+          </span>
         </div>
+
+        {maqola ? (
+          <div>
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("matn")}
+            >
+              {t("admin.maqola_matni")}
+            </label>
+            {/* Oddiy matn maydoni — HTML muharriri emas. Maqola
+                sahifasi matnni `whitespace-pre-wrap` bilan chizadi,
+                ya'ni qator va bo'sh qatorlar saqlanadi. HTML qabul
+                qilinsa, admin panelidan sahifaga kod tushish yo'li
+                ochilardi. */}
+            <textarea
+              id={pre("matn")}
+              name="matn"
+              rows={10}
+              required
+              defaultValue={dars?.matn ?? ""}
+              className="border-ramka-yumshoq rounded-tugma bg-fon w-full border px-3 py-2 text-sm leading-relaxed"
+            />
+          </div>
+        ) : (
+          <div>
+            <label
+              className="text-matn-past mb-1 block text-xs uppercase"
+              htmlFor={pre("file")}
+            >
+              {t("admin.file_id")}
+            </label>
+            <input
+              id={pre("file")}
+              name="file_id"
+              placeholder={dars?.fileId ?? ""}
+              className="border-ramka-yumshoq rounded-tugma bg-fon w-full border px-3 py-2 text-sm"
+            />
+          </div>
+        )}
 
         <button
           type="submit"

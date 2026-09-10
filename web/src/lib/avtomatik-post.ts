@@ -283,6 +283,83 @@ export function signalPostlari(hozir = new Date()): number {
   return yozildi;
 }
 
+// --------------------------------------------------------------------------- //
+//  Dars va maqola
+// --------------------------------------------------------------------------- //
+
+/** Kontent turi -> post manbasi va tugma manzili.
+ *
+ * Video darslar bitta ro'yxat sahifasida turadi (`/video`), maqola
+ * esa o'z sahifasiga ochiladi (`/bilimlar/{id}`) — shuning uchun
+ * havola ham har xil.
+ */
+const KONTENT_TURLARI = {
+  // Video darsi o'z sahifasiga emas, ro'yxatga ochiladi — shuning
+  // uchun id ishlatilmaydi.
+  video: { manba: "dars" as const, havola: () => "/video" },
+  maqola: {
+    manba: "maqola" as const,
+    havola: (id: number) => `/bilimlar/${id}`,
+  },
+};
+
+/** Chop etilgan, lekin posti yo'q dars va maqolalar uchun post yozadi.
+ *
+ * FAQAT CHOP ETILGANI (`is_published`). Chop etilmagan dars hali
+ * tayyor emas — u haqda xabar berish erta bo'lardi.
+ *
+ * POST MATNI — SARLAVHANING O'ZI. Bu yerda coin nomi masalasi yo'q:
+ * dars nomi "sotiladigan qiymat", ya'ni uni bilgan odam darsni
+ * ko'rgan bo'lib qolmaydi. Qulflangan darsga olib boradigan tugma
+ * ham YASHIRILMAYDI — bosilganda qulf ekrani chiqadi va odam nima
+ * yetishmayotganini biladi.
+ *
+ * OYNA `created_at` BO'YICHA. Post — "yangi dars qo'shildi" degan
+ * xabar. Dars uch kundan ko'proq oldin yaratilgan bo'lsa, u endi
+ * yangi emas; `updated_at` ni olsak, eski darsning sarlavhasini
+ * tuzatish uni oqimda "yangi" qilib ko'rsatardi.
+ *
+ * Qaytadi: nechta yangi post yozilgani.
+ */
+export function kontentPostlari(hozir = new Date()): number {
+  const chegara = vaqtSatri(
+    new Date(hozir.getTime() - SIGNAL_OYNASI_KUN * KUN),
+  );
+  let yozildi = 0;
+
+  for (const [tur, sozlama] of Object.entries(KONTENT_TURLARI)) {
+    const qatorlar = db()
+      .prepare(
+        `select c.id, c.title from content c
+           left join homepage_posts p
+             on p.source_kind = ? and p.source_id = c.id
+          where c.kind = ?
+            and c.is_published = 1
+            and p.id is null
+            and c.created_at >= ?
+          order by c.id
+          limit ?`,
+      )
+      .all(sozlama.manba, tur, chegara, BIR_MARTALIK_CHEGARA) as {
+      id: unknown;
+      title: unknown;
+    }[];
+
+    for (const q of qatorlar) {
+      const id = songaAylantir(q.id);
+      const natija = avtomatikPost(
+        sozlama.manba,
+        id,
+        String(q.title ?? ""),
+        sozlama.havola(id),
+        hozir,
+      );
+      if (natija.yangi) yozildi += 1;
+    }
+  }
+  return yozildi;
+}
+
 /** O'tgan haftaning yakuni — bitta post.
  *
  * SIGNAL BO'LMAGAN HAFTA UCHUN POST YOZILMAYDI. "Bu hafta 0 ta
@@ -351,19 +428,29 @@ export function haftalikHisobot(hozir = new Date()): boolean {
  */
 export function avtomatikPostlarniYangila(hozir = new Date()): {
   signal: number;
+  kontent: number;
   hisobot: boolean;
 } {
   let signal = 0;
+  let kontent = 0;
   let hisobot = false;
+  // HAR BIRI ALOHIDA `try`: bittasining nosozligi qolganlarini
+  // to'xtatmasin. Umumiy `try` bo'lsa, signal so'rovidagi xato
+  // hisobotni ham yo'qotardi.
   try {
     signal = signalPostlari(hozir);
   } catch {
     signal = 0;
   }
   try {
+    kontent = kontentPostlari(hozir);
+  } catch {
+    kontent = 0;
+  }
+  try {
     hisobot = haftalikHisobot(hozir);
   } catch {
     hisobot = false;
   }
-  return { signal, hisobot };
+  return { signal, kontent, hisobot };
 }

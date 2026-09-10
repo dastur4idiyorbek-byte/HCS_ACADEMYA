@@ -10,6 +10,7 @@ process.env.DATABASE_URL = `sqlite+aiosqlite:///${vaqtinchalik}`;
 
 const {
   SIGNAL_MANBALARI,
+  kontentPostlari,
   signalgaAloqador,
   isoHafta,
   haftaBoshi,
@@ -21,7 +22,8 @@ const {
   avtomatikPostlarniYangila,
 } = await import("../src/lib/avtomatik-post.ts");
 const { db, vaqtSatri } = await import("../src/lib/db.ts");
-const { boshPostlar } = await import("../src/lib/queries.ts");
+const { boshPostlar, darsSaqla, darsOchir } =
+  await import("../src/lib/queries.ts");
 
 /** Avtomatik postlar — signal va haftalik hisobot.
  *
@@ -173,6 +175,9 @@ function tozala() {
       where source_kind in ('signal','tp1','tp2','hisobot')`,
   );
   db().exec(`delete from signals where symbol = 'TEST'`);
+  db().exec(
+    `delete from homepage_posts where source_kind in ('dars','maqola')`,
+  );
 }
 
 test("tarqatilgan signal uchun post yoziladi — bir marta", () => {
@@ -388,4 +393,94 @@ test("har bir signal turining belgisi bor", () => {
   for (const m of SIGNAL_MANBALARI) {
     assert.match(chizuvchi, new RegExp(`\\n\\s*${m}: "`), `${m} belgisi yo'q`);
   }
+});
+
+// --------------------------------------------------------------------------- //
+//  Dars va maqola
+// --------------------------------------------------------------------------- //
+
+const DARS = {
+  kind: "video" as const,
+  description: null,
+  minTier: "pro" as const,
+  position: 0,
+  fileId: null,
+  published: true,
+};
+
+test("chop etilgan dars va maqola uchun post yoziladi", () => {
+  tozala();
+  const dars = darsSaqla(null, { ...DARS, title: "Sinov darsi" }, HOZIR);
+  const maqola = darsSaqla(
+    null,
+    {
+      ...DARS,
+      kind: "maqola",
+      title: "Sinov maqolasi",
+      matn: "Uzun matn.",
+      toifa: "Risk",
+      davomiylik: 300,
+    },
+    HOZIR,
+  );
+  assert.equal(dars.ok && maqola.ok, true);
+  if (!dars.ok || !maqola.ok) return;
+
+  assert.equal(kontentPostlari(HOZIR), 2);
+  assert.equal(kontentPostlari(HOZIR), 0, "postlar takrorlandi");
+
+  const royxat = boshPostlar(50);
+  const d = royxat.find((p) => p.manbaTuri === "dars" && p.manbaId === dars.id);
+  const m = royxat.find(
+    (p) => p.manbaTuri === "maqola" && p.manbaId === maqola.id,
+  );
+  assert.ok(d, "dars posti yo'q");
+  assert.ok(m, "maqola posti yo'q");
+  // Dars nomi "sotiladigan qiymat" — u ochiq turadi (signaldan farqi)
+  assert.equal(d.matn, "Sinov darsi");
+  assert.equal(d.havola, "/video");
+  // Maqola O'Z sahifasiga ochiladi
+  assert.equal(m.havola, `/bilimlar/${maqola.id}`);
+
+  darsOchir(dars.id!);
+  darsOchir(maqola.id!);
+  tozala();
+});
+
+/** Chop etilmagan dars hali tayyor emas — e'lon qilish erta. */
+test("chop etilmagan dars uchun post YOZILMAYDI", () => {
+  tozala();
+  const n = darsSaqla(
+    null,
+    { ...DARS, title: "Tayyor emas", published: false },
+    HOZIR,
+  );
+  assert.equal(n.ok, true);
+  assert.equal(kontentPostlari(HOZIR), 0);
+  if (n.ok) darsOchir(n.id!);
+  tozala();
+});
+
+test("eski dars oqimni to'ldirmaydi", () => {
+  tozala();
+  const n = darsSaqla(
+    null,
+    { ...DARS, title: "Eski dars" },
+    new Date("2026-08-01T10:00:00Z"),
+  );
+  assert.equal(n.ok, true);
+  assert.equal(kontentPostlari(HOZIR), 0);
+  if (n.ok) darsOchir(n.id!);
+  tozala();
+});
+
+/** Bo'sh maqola — "Bilimlar" da sarlavha ko'rinadi, ochilganda esa
+ *  bo'sh sahifa chiqadi va buni faqat o'quvchi sezadi. */
+test("matnsiz maqola saqlanmaydi", () => {
+  const n = darsSaqla(
+    null,
+    { ...DARS, kind: "maqola", title: "Bo'sh maqola" },
+    HOZIR,
+  );
+  assert.equal(n.ok, false);
 });
