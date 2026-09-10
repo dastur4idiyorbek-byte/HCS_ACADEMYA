@@ -508,12 +508,21 @@ export function Ikonka({
   /** Ekran o'qigich uchun matn. Berilmasa, ikonka yashiriladi. */
   nomi?: string;
 } & Omit<SVGProps<SVGSVGElement>, "nom">) {
+  // STANDART O'LCHAM faqat chaqiruvchi o'zi bermagan bo'lsa.
+  //
+  // NEGA SHART KERAK. `cn()` — oddiy birlashtiruvchi, u Tailwind
+  // sinflarini SOLISHTIRMAYDI (`tailwind-merge` emas). Ya'ni
+  // "h-5 w-5" va "h-4 w-4" ikkalasi ham chiqib ketardi va qaysi biri
+  // g'olib bo'lishini sinf tartibi emas, CSS faylidagi tartib hal
+  // qilardi — natijada kichik ikonka so'ralgan joyda ham katta
+  // ikonka chizilardi. Xato jimgina: konsolda hech narsa yozilmaydi.
+  const olchamBor = /(^|\s)(h|w|size)-/.test(className ?? "");
   return (
     <svg
       viewBox="0 0 24 24"
       role={nomi ? "img" : undefined}
       aria-hidden={nomi ? undefined : true}
-      className={cn("h-5 w-5 shrink-0", className)}
+      className={cn(olchamBor ? null : "h-5 w-5", "shrink-0", className)}
       {...S}
       {...qolgan}
     >
