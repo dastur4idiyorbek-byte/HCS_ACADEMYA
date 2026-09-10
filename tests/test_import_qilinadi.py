@@ -45,6 +45,38 @@ PAKETLAR = ("core", "bot", "scripts")
 ISTISNOLAR: frozenset[str] = frozenset()
 
 
+def _ixtiyoriy_kutubxonalar() -> frozenset[str]:
+    """`requirements-ml.txt` dagi kutubxona nomlari.
+
+    NIMA UCHUN KERAK. Bu kutubxonalar (numpy, pandas, xgboost)
+    ATAYLAB serverga ham, test muhitiga ham o'rnatilmaydi — ular
+    ~100 MB joy egallaydi va faqat model o'rgatishda kerak
+    (`requirements-ml.txt` ning o'zidagi izohga qarang). Model
+    skriptlari esa `scripts/` ichida turadi va bu test ularni ham
+    import qiladi.
+
+    Ro'yxat FAYLDAN o'qiladi, qo'lda yozilmaydi: yangi kutubxona
+    qo'shilsa, bu yer o'zi biladi.
+
+    BU TESHIK EMAS. Faqat SHU nomlar yo'qligi kechiriladi. Boshqa
+    har qanday `ModuleNotFoundError` — o'chirilgan fayldan qolgan
+    import, nomi o'zgargan modul — avvalgidek testni yiqitadi.
+    """
+    fayl = ILDIZ / "requirements-ml.txt"
+    if not fayl.is_file():
+        return frozenset()
+    nomlar = set()
+    for qator in fayl.read_text().splitlines():
+        toza = qator.split("#", 1)[0].strip()
+        if not toza or toza.startswith("-"):
+            continue
+        nomlar.add(toza.split("==")[0].split(">=")[0].split("[")[0].strip())
+    return frozenset(nomlar)
+
+
+IXTIYORIY = _ixtiyoriy_kutubxonalar()
+
+
 def modullar() -> list[str]:
     """`core`, `bot`, `scripts` ichidagi barcha modul nomlari."""
     topilgan: list[str] = []
@@ -75,4 +107,9 @@ def test_modul_import_qilinadi(nom: str) -> None:
     o'chirilgan fayldan qolgan import, nomi o'zgargan funksiya,
     yoki aylanma bog'liqlik.
     """
-    importlib.import_module(nom)
+    try:
+        importlib.import_module(nom)
+    except ModuleNotFoundError as xato:
+        if xato.name in IXTIYORIY:
+            pytest.skip(f"`{xato.name}` o'rnatilmagan (requirements-ml.txt)")
+        raise
