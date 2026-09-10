@@ -347,3 +347,142 @@ async def test_oxirgi_signallar_har_coindan_bittadan_beradi(tmp_path) -> None:  
     # Uchtasidan ENG OXIRGISI — eng katta id
     assert oxirgi["TEST"].tp1 == 112.0
     await db.dispose()
+
+
+# --------------------------------------------------------------------------- #
+#  AVTOMATIK SIGNAL TO'XTATILGAN (2026-09-10)
+# --------------------------------------------------------------------------- #
+
+#: Zanjirni oxirigacha olib boradigan soxta natija.
+#:
+#: NIMA UCHUN QO'LDA QURILADI. `SoxtaProvayder` ning shamlari
+#: Struktura blokida uziladi va SIGNAL YOZISH joyiga umuman
+#: yetib bormaydi. Ya'ni oddiy sikl testi bu qarorni
+#: TEKSHIRMAGAN bo'lardi — u har doim o'tardi, tekshiruv
+#: o'chirilgan bo'lsa ham. Shuning uchun zanjir shu yerda
+#: majburan "to'liq" qilinadi.
+
+
+class _SoxtaZanjir:
+    toliq = True
+    uzildi_blokda = None
+    bloklar = ()
+
+    def ishonch(self) -> float:
+        return 0.9
+
+    def matn(self) -> str:
+        return "sinov"
+
+
+class _SoxtaNatija:
+    def __init__(self, zona) -> None:  # noqa: ANN001
+        self.zanjir = _SoxtaZanjir()
+        self.zona_natija = type("ZonaNatija", (), {"zona": zona})()
+
+
+def _zanjirni_toliq_qil(monkeypatch, zona) -> None:  # noqa: ANN001
+    """Zanjir, darajalar va SI — hammasi "o'tdi" deb qaytsin."""
+    from core.position.entry_stop_tp import Darajalar
+
+    monkeypatch.setattr(
+        "core.services.zanjir_sikl.zanjir_yur_alternativ",
+        lambda _kirish: _SoxtaNatija(zona),
+    )
+    monkeypatch.setattr("core.services.zanjir_sikl._blok_holatlari", lambda _z: ())
+    monkeypatch.setattr("core.services.zanjir_sikl.swinglar", lambda _s: ())
+    monkeypatch.setattr(
+        "core.services.zanjir_sikl.darajalar_qur",
+        # `yaroqli` — hisoblanadigan xossa: `rad_sababi is None`.
+        lambda *_a, **_k: Darajalar(entry=100.0, stop=97.0, tplar=(104.0, 110.0)),
+    )
+
+    async def _tasdiq(_kirish, _sozlama):  # noqa: ANN001, ANN202
+        return type("AiNatija", (), {"tasdiqlandi": True, "sabab": ""})()
+
+    monkeypatch.setattr("core.services.zanjir_sikl.ai_tekshir", _tasdiq)
+
+
+@pytest.mark.asyncio
+async def test_avtomatik_signal_ochiq_bolsa_signal_YOZILMAYDI(  # noqa: ANN201
+    config, monkeypatch  # noqa: ANN001
+):
+    """Bayroq o'chiq — zanjir to'liq o'tsa ham signal yozilmaydi.
+
+    2026-09-10 dagi qaror: to'rtta mustaqil o'lchov signallar zarar
+    keltirishini ko'rsatdi, shuning uchun avtomatik yo'l to'sildi.
+
+    Bu test o'sha qarorning QOROVULI: kimdir `SignalRepository.create`
+    ni tekshiruvdan oldinga surib qo'ysa, shu yerda yiqiladi.
+    """
+    import dataclasses
+
+    _zanjirni_toliq_qil(monkeypatch, zona=object())
+
+    chaqirildi: list[str] = []
+
+    async def _create(_self, **kwargs):  # noqa: ANN001, ANN202
+        chaqirildi.append(kwargs["symbol"])
+        return type("Yozuv", (), {"id": 1})()
+
+    monkeypatch.setattr(
+        "core.services.zanjir_sikl.SignalRepository.create", _create, raising=True
+    )
+
+    z = dataclasses.replace(
+        config.zanjir, kuzatiladigan_coinlar=["BTC", "ETH"], avtomatik_signal=False
+    )
+    sikl = ZanjirSikl(dataclasses.replace(config, zanjir=z), SoxtaProvayder(), SoxtaBaza())
+    natija = await sikl.yur()
+
+    assert chaqirildi == [], f"signal yozildi: {chaqirildi}"
+    assert natija.yangi_signallar == []
+    # Va bu JIM o'tmasin — sanoq yuritilsin.
+    assert natija.avtomatik_ochiq == 2, natija.matn()  # noqa: PLR2004
+    assert "AVTOMATIK SIGNAL O'CHIQ" in natija.matn().upper()
+
+
+@pytest.mark.asyncio
+async def test_bayroq_yoqilsa_signal_yoziladi(config, monkeypatch) -> None:  # noqa: ANN001
+    """Yuqoridagi test BEKORGA o'tmasin.
+
+    Aynan shu soxta ma'lumot bilan, bayroq YOQILGANDA signal
+    yozilishi kerak. Aks holda birinchi test hech narsani
+    tekshirmagan bo'lardi — zanjir baribir uzilib ketardi.
+    """
+    import dataclasses
+
+    _zanjirni_toliq_qil(monkeypatch, zona=object())
+
+    chaqirildi: list[str] = []
+
+    async def _create(_self, **kwargs):  # noqa: ANN001, ANN202
+        chaqirildi.append(kwargs["symbol"])
+        return type("Yozuv", (), {"id": len(chaqirildi)})()
+
+    monkeypatch.setattr(
+        "core.services.zanjir_sikl.SignalRepository.create", _create, raising=True
+    )
+
+    z = dataclasses.replace(
+        config.zanjir, kuzatiladigan_coinlar=["BTC", "ETH"], avtomatik_signal=True
+    )
+    sikl = ZanjirSikl(dataclasses.replace(config, zanjir=z), SoxtaProvayder(), SoxtaBaza())
+    natija = await sikl.yur()
+
+    assert chaqirildi == ["BTC", "ETH"], f"signal yozilmadi: {natija.matn()}"
+    assert len(natija.yangi_signallar) == 2  # noqa: PLR2004
+    assert natija.avtomatik_ochiq == 0
+
+
+def test_avtomatik_signal_OCHIQ_turibdi(config) -> None:  # noqa: ANN001
+    """Qaror KODDA qulflangan bo'lsin.
+
+    Bayroq tasodifan yoqib qo'yilsa — masalan sozlama fayli
+    tahrirlansa — shu test aytadi. Qayta yoqishdan oldin o'lchov
+    musbat natija berishi kerak.
+    """
+    assert config.zanjir.avtomatik_signal is False, (
+        "Avtomatik signal yoqilgan. O'lchov musbat natija berdimi? "
+        "docs/BACKTEST_NATIJA_2026-09-10_model2.md ga qarang."
+    )

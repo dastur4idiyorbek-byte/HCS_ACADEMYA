@@ -665,6 +665,39 @@ class ZanjirConfig:
     #: filtr, va uni taxminan qo'yish aynan eski tizimning xatosi
     #: bo'lardi. Backtest topguncha 0.0 turadi.
     eng_kam_ishonch: float = 0.0
+    #: Sikl SIGNAL YOZADIMI.
+    #:
+    #: ⛔ 2026-09-10 DAN BERI O'CHIQ — loyiha egasining qarori.
+    #:
+    #: NIMA UCHUN. To'rtta mustaqil o'lchov bir xil javob berdi:
+    #:
+    #:   1. Ablatsiya — birorta ichki tekshiruvni olib tashlash
+    #:      natijani na yaxshiladi, na yomonlashtirdi;
+    #:   2. Zanjirsiz backtest PF 0.84, to'liq zanjir bilan 0.83;
+    #:   3. Chegara supurgisi — R:R 1.2 dan 3.0 ga ko'tarilganda
+    #:      g'alaba foizi deyarli aynan mutanosib tushdi, ya'ni
+    #:      kirish nuqtalari tasodifiy;
+    #:   4. XGBoost — 16 486 qatorda ham foydali chegara topilmadi
+    #:      (`docs/BACKTEST_NATIJA_2026-09-10_model2.md`).
+    #:
+    #: Ya'ni signallar o'lchov bo'yicha ZARAR keltiradi. Obunachiga
+    #: zarar keltiradigan signal yuborish — mahsulotning eng asosiy
+    #: va'dasiga zid.
+    #:
+    #: NIMA TO'XTAYDI: faqat SIGNAL YOZISH. Sikl o'zi 4 soatda
+    #: yugurishda davom etadi va har bir coin holatini
+    #: `zanjir_holatlari` ga yozadi — ya'ni "nega signal yo'q"
+    #: voronkasi, admin monitori va kelajakdagi o'lchovlar uchun
+    #: yozuv YO'QOLMAYDI. Mavjud ochiq signallar ham odatdagidek
+    #: kuzatiladi (TP/Stop belgilanadi).
+    #:
+    #: Admin panelidan QO'LDA signal yozish ishlashda davom etadi —
+    #: bu bayroq faqat AVTOMATIK yo'lni to'sadi.
+    #:
+    #: QAYTA YOQISH: shu qiymatni `True` qilish yetarli. Lekin
+    #: undan oldin o'lchov MUSBAT natija berishi kerak — aks holda
+    #: to'xtatishning ma'nosi yo'q.
+    avtomatik_signal: bool = False
 
 
 @dataclass(frozen=True, slots=True)

@@ -104,6 +104,21 @@ export function BlokZanjiri({ coin }: { coin: CoinZanjiri }) {
         );
       })}
 
+      {/* AVTOMATIK SIGNAL TO'XTATILGAN.
+          Zanjir hamma tekshiruvdan o'tdi, lekin signal yozilmadi —
+          bu tizimning xatosi emas, loyihaning QARORI. Buni aytmasak
+          ekran "4/4 o'tdi, ammo hech narsa yo'q" bo'lib qolardi va
+          buzuq ko'rinardi. */}
+      {coin.natija === "toxtatilgan" && (
+        <div
+          className="blok-katak border-ortacha bg-ortacha/15 text-ortacha rounded-tugma flex min-w-[5.5rem] items-center justify-center border px-2.5 py-2 text-sm font-bold"
+          style={{ animationDelay: `${BLOK_NOMLARI.length * 160}ms` }}
+        >
+          <Ikonka nom="qulf" className="mr-1.5 h-4 w-4" />
+          TO&apos;XTATILGAN
+        </div>
+      )}
+
       {/* Signal chiqqan bo'lsa — zanjirning oxirida belgisi */}
       {coin.natija === "signal" && (
         <div

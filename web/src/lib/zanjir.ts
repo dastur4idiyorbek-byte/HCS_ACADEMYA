@@ -85,6 +85,9 @@ export type Xulosa = {
   toliq: number;
   /** Signal chiqqanlar */
   signal: number;
+  /** Hamma tekshiruvdan o'tdi, lekin avtomatik signal o'chiq
+   *  bo'lgani uchun yozilmadi (`zanjir.avtomatik_signal`). */
+  toxtatilgan: number;
   /** O'rtacha nechta blok bog'landi (0-4) */
   ortachaBloklar: number;
   /** Blok nomi -> nechta coin shu yerda uzildi */
@@ -134,6 +137,12 @@ export function xulosaHisobla(coinlar: CoinZanjiri[]): Xulosa {
     jami: olchanganlar.length,
     toliq: coinlar.filter((c) => c.toliq).length,
     signal: coinlar.filter((c) => c.natija === "signal").length,
+    // HAMMA TEKSHIRUVDAN O'TDI, LEKIN SIGNAL YOZILMADI.
+    // Bu — modulning xulosasi emas, loyihaning qarori
+    // (`zanjir.avtomatik_signal`, 2026-09-10 dan beri o'chiq).
+    // Uzilishlar bilan aralashtirilmaydi: aks holda voronka
+    // "zanjir ushladi" deb yolg'on ko'rsatardi.
+    toxtatilgan: coinlar.filter((c) => c.natija === "toxtatilgan").length,
     ortachaBloklar: boglanganlar.length
       ? boglanganlar.reduce((a, b) => a + b, 0) / boglanganlar.length
       : 0,

@@ -235,6 +235,24 @@ class Scheduler:
     async def _sikl_yoqildi_xabari(self) -> None:
         """Bot ko'tarilganda adminga "modul yoqildi" deb aytadi."""
         z = self._config.zanjir
+        if not z.avtomatik_signal:
+            # TO'XTATILGAN HOLAT JIM O'TMASIN. Admin har safar
+            # bot ko'tarilganda buni ko'rishi kerak — aks holda
+            # "nega signal kelmayapti" degan savol tug'ilardi va
+            # javob kodning ichida qolib ketardi.
+            await self._adminlarga(
+                "⛔ <b>Avtomatik signal TO'XTATILGAN</b>\n\n"
+                f"Zanjir moduli har <b>{z.sikl_soat} soatda</b> "
+                f"<b>{len(z.kuzatiladigan_coinlar)}</b> ta coinni "
+                "tekshirishda davom etadi va natijani yozadi — "
+                "lekin SIGNAL YOZILMAYDI.\n\n"
+                "Sabab: to'rtta mustaqil o'lchov signallar zarar "
+                "keltirishini ko'rsatdi "
+                "(<code>docs/BACKTEST_NATIJA_2026-09-10_model2.md</code>).\n\n"
+                "Mavjud ochiq signallar odatdagidek kuzatiladi.\n"
+                "Admin panelidan QO'LDA signal yozish ishlaydi."
+            )
+            return
         matn = (
             "🤖 <b>Zanjir moduli ishga tushdi</b>\n\n"
             f"Har <b>{z.sikl_soat} soatda</b> tekshiradi\n"
@@ -282,6 +300,14 @@ class Scheduler:
         if self._sikl is None:
             return
         natija = await self._sikl.yur()
+        if natija.avtomatik_ochiq:
+            # HAMMA TEKSHIRUVDAN O'TDI, LEKIN YOZILMADI.
+            # Admin buni bilishi kerak: bu tizim hech narsa
+            # topmagani emas — topdi, biz to'xtatdik.
+            await self._adminlarga(
+                f"⛔ <b>{natija.avtomatik_ochiq} ta coin hamma tekshiruvdan o'tdi</b>\n"
+                "Avtomatik signal o'chiq — yozilmadi."
+            )
         if not natija.yangi_signallar:
             return
 

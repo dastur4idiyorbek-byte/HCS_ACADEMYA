@@ -61,6 +61,9 @@ class SiklNatijasi:
     ochiq_sababli_otkazildi: int = 0
     #: Darajalari oldingi signal bilan bir xil chiqqan coinlar
     takror_zona: int = 0
+    #: Hamma tekshiruvdan o'tgan, LEKIN avtomatik signal o'chiq
+    #: bo'lgani uchun yozilmagan coinlar (`zanjir.avtomatik_signal`).
+    avtomatik_ochiq: int = 0
     yangi_signallar: list[tuple[str, int]] = field(default_factory=list)
     uzilishlar: dict[str, int] = field(default_factory=dict)
     daraja_radlari: dict[str, int] = field(default_factory=dict)
@@ -78,6 +81,11 @@ class SiklNatijasi:
         if self.takror_zona:
             qatorlar.append(
                 f"O'sha zona takrorlandi: {self.takror_zona} coin o'tkazildi"
+            )
+        if self.avtomatik_ochiq:
+            qatorlar.append(
+                f"⛔ Avtomatik signal O'CHIQ: {self.avtomatik_ochiq} coin "
+                "hamma tekshiruvdan o'tdi, lekin yozilmadi"
             )
         for nom, soni in sorted(self.uzilishlar.items(), key=lambda x: -x[1]):
             qatorlar.append(f"   zanjir uzildi — {nom}: {soni}")
@@ -321,6 +329,29 @@ class ZanjirSikl:
         if not ai_natija.tasdiqlandi:
             natija.uzilishlar["SI"] = natija.uzilishlar.get("SI", 0) + 1
             return holat("ai_rad", ai_natija.sabab)
+
+        # ⛔ AVTOMATIK SIGNAL TO'XTATILGAN (2026-09-10).
+        #
+        # Bu tekshiruv ATAYLAB ZANJIRNING ENG OXIRIDA turadi —
+        # boshida emas. Sabab: yuqoridagi hamma narsa (bloklar,
+        # darajalar, SI) baribir hisoblanadi va natijasi
+        # `zanjir_holatlari` ga yoziladi. Ya'ni tizim "nimani
+        # signal qilgan bo'lardi" degan yozuvni YIG'ISHDA DAVOM
+        # ETADI, faqat uni obunachiga chiqarmaydi.
+        #
+        # Bu — kelajakdagi o'lchov uchun muhim: to'xtatish davri
+        # ham ma'lumot beradi.
+        #
+        # `daraja_radlari` emas, ALOHIDA hisoblagich: bu tizimning
+        # xulosasi emas, BIZNING qarorimiz. Ikkalasini aralashtirish
+        # voronkani yolg'on ko'rsatardi.
+        if not z.avtomatik_signal:
+            natija.avtomatik_ochiq += 1
+            logger.info(
+                "ZANJIR SIGNAL TO'XTATILGAN: %s (ishonch %.2f) — yozilmadi",
+                symbol, zanjir.ishonch(),
+            )
+            return holat("toxtatilgan", "avtomatik signal o'chirilgan")
 
         async with self._db.session() as session:
             yozuv = await SignalRepository(session).create(
