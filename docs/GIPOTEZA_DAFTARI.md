@@ -1703,3 +1703,30 @@ past.
 🔴 "Chegarani to'g'ri topsak ishlaydi" degan gipoteza RAD ETILDI.
 
 Tafsilot: `BACKTEST_NATIJA_2026-09-10_chegara.md`.
+
+
+---
+
+## XGBoost 1-yugurish: noto'g'ri savol berildi (2026-09-10)
+
+Model `yutdi = natija_pct > 0` yorlig'i bilan o'rgatildi va bu
+savolga 68% aniqlik bilan javob berdi — lekin PF 0.59.
+
+"Musbat tugadi" va "foydali" BIR XIL EMAS: mayda +0.2% lik
+g'alabalar to'liq stopni (-4%) qoplamaydi. Model to'g'ri narsani
+o'rgandi, biz undan noto'g'ri narsani so'radik.
+
+Tuzatildi: ikkinchi model kutilayotgan FOIZNI bashorat qiladi.
+
+🔴 Shuning uchun 1-yugurishning "model ishlamaydi" degan xulosasi
+BEKOR — o'lchov noto'g'ri qurilgan edi.
+
+### Ustunlar muhimligi — bu qism KUCHDA qoladi
+
+`narx_entry_farq_pct` (19.3%) — eng ko'p ishlatilgan ustun, va u
+hozirgi signal qoidalarida UMUMAN yo'q.
+
+`zanjir_toliq` — "deyarli ishlatilmaganlar" ro'yxatida. Bu —
+zanjir saralamasligining UCHINCHI mustaqil tasdig'i.
+
+Tafsilot: `BACKTEST_NATIJA_2026-09-10_model.md`.

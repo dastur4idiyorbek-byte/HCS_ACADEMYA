@@ -66,9 +66,24 @@ MUHIMLIK_YOLI = Path("reports/zanjir_muhimlik.csv")
 #: bo'lardi.
 TASHLANADI = ("symbol", "vaqt", "yorliq", "natija_pct", "yutdi")
 
-#: Model shu ehtimoldan yuqori bergan qatorni "ol" deb hisoblaymiz.
-#: Bir necha qiymat sinaladi — qaysi biri eng ko'p pul beradi.
-CHEGARALAR = (0.35, 0.40, 0.45, 0.50, 0.55, 0.60)
+#: EHTIMOL chegaralari — "yutadimi" modeli uchun.
+EHTIMOL_CHEGARALARI = (0.35, 0.45, 0.55, 0.65)
+
+#: KUTILAYOTGAN FOYDA chegaralari (foizda) — "qancha beradi" modeli
+#: uchun. Nol ham bor: "model musbat deb bashorat qilgan hammasi".
+FOYDA_CHEGARALARI = (0.0, 0.5, 1.0, 1.5, 2.0)
+
+#: Umumiy XGBoost sozlamalari. Kuchli tartibga solish — 16 mingta
+#: qator va 50 ustunda model shovqinni yodlab olishi oson.
+ASOS_SOZLAMA = {
+    "max_depth": 4,
+    "eta": 0.05,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "lambda": 5.0,
+    "min_child_weight": 20,
+    "nthread": 2,
+}
 
 
 def _argumentlar() -> argparse.Namespace:
@@ -172,34 +187,52 @@ def main() -> None:
         # scikit-learn o'rnatilishini TALAB qiladi. Bu yana bir
         # og'ir kutubxona, bizga esa faqat o'rgatish va bashorat
         # kerak. Asosiy API ikkalasini ham beradi.
-        motor = xgb.train(
-            {
-                "objective": "binary:logistic",
-                "eval_metric": "logloss",
-                "max_depth": 4,
-                "eta": 0.05,
-                "subsample": 0.8,
-                "colsample_bytree": 0.8,
-                # Kuchli tartibga solish — 16 mingta qator va 50
-                # ustunda model shovqinni yodlab olishi oson.
-                "lambda": 5.0,
-                "min_child_weight": 20,
-                "nthread": 2,
-            },
-            xgb.DMatrix(Xo, label=yo_),
+        oq = xgb.DMatrix(Xo, label=yo_)
+        im = xgb.DMatrix(Xi)
+
+        # 1-MODEL: "yutadimi" (musbat tugaydimi).
+        motor_ehtimol = xgb.train(
+            {**ASOS_SOZLAMA, "objective": "binary:logistic", "eval_metric": "logloss"},
+            oq,
             num_boost_round=300,
         )
-        ehtimol = motor.predict(xgb.DMatrix(Xi))
+        ehtimol = motor_ehtimol.predict(im)
+
+        # 2-MODEL: "QANCHA beradi" — natija foizini bashorat qiladi.
+        #
+        # NIMA UCHUN IKKINCHI MODEL KERAK (2026-09-10 da o'lchandi).
+        # Birinchi model "musbat tugadimi" degan savolga 68% aniqlik
+        # bilan javob berdi — lekin PF 0.59 chiqdi.
+        #
+        # Sabab: "musbat" va "foydali" BIR XIL EMAS. Model +0.2%
+        # lik mayda g'alabalarni to'plab, to'liq stopni (-4%)
+        # qoplay olmadi. Ya'ni u o'rgangan narsa TO'G'RI edi,
+        # lekin biz undan NOTO'G'RI narsani so'ragan edik.
+        #
+        # Bu model to'g'ridan-to'g'ri kutilayotgan foizni bashorat
+        # qiladi, ya'ni mayda g'alaba katta zararni qoplamasligini
+        # O'ZI hisobga oladi.
+        motor_foyda = xgb.train(
+            {**ASOS_SOZLAMA, "objective": "reg:squarederror", "eval_metric": "rmse"},
+            xgb.DMatrix(Xo, label=natija.iloc[:boshi]),
+            num_boost_round=300,
+        )
+        kutilgan = motor_foyda.predict(im)
 
         imtihon_natija = natija.iloc[boshi:oxir].reset_index(drop=True)
         imtihon_tayanch = tayanch.iloc[boshi:oxir].reset_index(drop=True)
 
         qatorlar = [_xulosa(imtihon_natija[imtihon_tayanch], "TAYANCH (hozirgi qoidalar)")]
-        for chegara in CHEGARALAR:
+        for chegara in EHTIMOL_CHEGARALARI:
             tanlov = pd.Series(ehtimol >= chegara)
             if tanlov.sum() == 0:
                 continue
-            qatorlar.append(_xulosa(imtihon_natija[tanlov], f"model >= {chegara:.2f}"))
+            qatorlar.append(_xulosa(imtihon_natija[tanlov], f"yutadimi >= {chegara:.2f}"))
+        for chegara in FOYDA_CHEGARALARI:
+            tanlov = pd.Series(kutilgan >= chegara)
+            if tanlov.sum() == 0:
+                continue
+            qatorlar.append(_xulosa(imtihon_natija[tanlov], f"kutilgan foyda >= {chegara:.1f}%"))
 
         print(f"--- {oyna + 1}-oyna: o'rgatish {boshi}, imtihon {imtihon_hajmi} qator")
         _jadval_chop(qatorlar)
@@ -210,7 +243,9 @@ def main() -> None:
         # ishlatilmaganlari umuman yo'q. Ular 0 bilan to'ldiriladi,
         # aks holda "ro'yxatda yo'q" va "muhimligi nol" farqi
         # yo'qolardi va o'rtacha noto'g'ri chiqardi.
-        ballar = motor.get_score(importance_type="gain")
+        # Muhimlik FOYDA modelidan olinadi: bizni "musbat tugadimi"
+        # emas, "qancha beradi" qiziqtiradi.
+        ballar = motor_foyda.get_score(importance_type="gain")
         barcha_muhimlik.append(
             pd.Series({nom: ballar.get(nom, 0.0) for nom in ustunlar})
         )
