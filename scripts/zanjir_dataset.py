@@ -99,6 +99,20 @@ def _tekshiruv_qiymati(holat: Holat) -> float:
     return -1.0
 
 
+def _ustun_nomi(nom: str) -> str:
+    """Tekshiruv nomini CSV ustuni nomiga aylantiradi.
+
+    `:` ALOHIDA e'tiborga olinadi: alternativ yo'l g'olib chiqqanda
+    blokka `alternativ:<nom>` degan yangi tekshiruv QO'SHILADI
+    (`alternative_chain.py`). Ya'ni ustun nomida ikki nuqta paydo
+    bo'ladi va u ba'zi jadval dasturlarida ustunni bo'lib yuboradi.
+    """
+    toza = nom.lower()
+    for belgi in (" ", "/", ":", "-", "."):
+        toza = toza.replace(belgi, "_")
+    return toza
+
+
 def _zanjir_ustunlari(zanjir) -> dict[str, float]:  # noqa: ANN001
     """Bloklar va 16 ta ichki tekshiruv — model uchun ustun."""
     ustunlar: dict[str, float] = {
@@ -111,7 +125,7 @@ def _zanjir_ustunlari(zanjir) -> dict[str, float]:  # noqa: ANN001
         ustunlar[f"blok{i}_otdi"] = 1.0 if blok.otdi else 0.0
         ustunlar[f"blok{i}_olchanmadi"] = 1.0 if blok.olchanmadi else 0.0
         for tekshiruv in blok.tekshiruvlar:
-            nom = tekshiruv.nom.lower().replace(" ", "_").replace("/", "_")
+            nom = _ustun_nomi(tekshiruv.nom)
             ustunlar[f"t_{nom}"] = _tekshiruv_qiymati(tekshiruv.holat)
     return ustunlar
 
@@ -283,6 +297,55 @@ def _yakunini_top(  # noqa: ANN202, PLR0913
     return "nomalum", 0.0
 
 
+#: Ustuni yo'q qatorga qo'yiladigan qiymat — "o'lchanmadi".
+#: `_tekshiruv_qiymati` bilan bir xil ma'no.
+YOQ_QIYMAT = -1.0
+
+#: Har doim birinchi turadigan ustunlar — model uchun emas, ODAM uchun.
+BOSH_USTUNLAR = ("symbol", "vaqt")
+
+
+def _csv_yoz(qatorlar: list[Qator], yol: Path) -> list[str]:
+    """Jadvalni yozadi va ustun nomlarini qaytaradi.
+
+    HAR BIR QATORDA USTUNLAR TO'PLAMI HAR XIL BO'LISHI MUMKIN —
+    va bu birinchi yugurishda butun ishni yiqitdi.
+
+    Sabab: alternativ yo'l g'olib chiqqanda blokka `alternativ:<nom>`
+    degan YANGI tekshiruv qo'shiladi (`alternative_chain.py`, 184-qator).
+    Ya'ni ba'zi qatorlarda qo'shimcha ustun bo'ladi, ba'zilarida yo'q.
+
+    `csv.DictWriter` birinchi qatorning kalitlarini olib, keyingi
+    qatorda ortiqcha kalit ko'rsa `ValueError` bilan yiqiladi.
+
+    Yechim: BARCHA qatorlarning ustunlari birlashtiriladi, yetishmagani
+    esa `-1` bilan to'ldiriladi — ya'ni "bu tekshiruv umuman
+    ishlamadi", `MALUMOT_YOQ` bilan bir xil ma'no.
+    """
+    hammasi: set[str] = set()
+    for q in qatorlar:
+        hammasi.update(q.ustunlar)
+    # Tartib QAT'IY: ikki yugurish bir xil ustun tartibini bersin,
+    # aks holda ikkita CSV ni solishtirib bo'lmasdi.
+    qolgan = sorted(hammasi - set(BOSH_USTUNLAR))
+    ustun_nomlari = [*BOSH_USTUNLAR, *qolgan, "yorliq", "natija_pct", "yutdi"]
+
+    with yol.open("w", newline="", encoding="utf-8") as f:
+        yozuvchi = csv.DictWriter(f, fieldnames=ustun_nomlari)
+        yozuvchi.writeheader()
+        for q in qatorlar:
+            satr: dict[str, float | str] = {
+                nom: q.ustunlar.get(nom, YOQ_QIYMAT) for nom in qolgan
+            }
+            for nom in BOSH_USTUNLAR:
+                satr[nom] = q.ustunlar.get(nom, "")
+            satr["yorliq"] = q.yorliq
+            satr["natija_pct"] = round(q.natija_pct, 4)
+            satr["yutdi"] = 1 if q.natija_pct > 0 else 0
+            yozuvchi.writerow(satr)
+    return ustun_nomlari
+
+
 async def main() -> None:
     argumentlar = umumiy_argumentlar(__doc__ or "").parse_args()
     config, dataset, symbols = await malumot_tayyorla(argumentlar)
@@ -295,16 +358,7 @@ async def main() -> None:
         return
 
     CHIQISH.parent.mkdir(parents=True, exist_ok=True)
-    ustun_nomlari = list(qatorlar[0].ustunlar) + ["yorliq", "natija_pct", "yutdi"]
-    with CHIQISH.open("w", newline="", encoding="utf-8") as f:
-        yozuvchi = csv.DictWriter(f, fieldnames=ustun_nomlari)
-        yozuvchi.writeheader()
-        for q in qatorlar:
-            satr: dict[str, float | str] = dict(q.ustunlar)
-            satr["yorliq"] = q.yorliq
-            satr["natija_pct"] = round(q.natija_pct, 4)
-            satr["yutdi"] = 1 if q.natija_pct > 0 else 0
-            yozuvchi.writerow(satr)
+    ustun_nomlari = _csv_yoz(qatorlar, CHIQISH)
 
     yakunlar: dict[str, int] = {}
     for q in qatorlar:
