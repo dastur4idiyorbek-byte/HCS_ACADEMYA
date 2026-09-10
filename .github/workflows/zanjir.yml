@@ -3,6 +3,8 @@ name: Zanjir o'lchovi
 # Yangi tahlil modulining uchta o'lchovi (2-prompt, 8-qism):
 #   dataset       — XGBoost uchun jadval yig'adi (CSV). Model
 #                   O'RGATILMAYDI — bu faqat xom material.
+#   model         — XGBoost ni o'rgatadi va walk-forward bilan
+#                   imtihon qiladi. `dataset` dan KEYIN yuritiladi.
 #   alternativ    — JONLI TIZIM yuritadigan zanjir (4 blok + alternativ
 #                   yo'llar). Jonli sikl aynan shuni chaqiradi, ya'ni
 #                   "bizning tizim qanday ishlaydi" degan savolga
@@ -22,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       olchov:
-        description: "dataset | alternativ | backtest | ablatsiya | walk-forward | chegara | sigim | blok | zaiflik | hisob | hammasi"
+        description: "dataset | model | alternativ | backtest | ablatsiya | walk-forward | chegara | sigim | blok | zaiflik | hisob | hammasi"
         default: "hammasi"
       days:
         description: "Necha kun tahlil qilinsin"
@@ -117,6 +119,24 @@ jobs:
             ${{ inputs.end_date != '' && format('--end-date {0}', inputs.end_date) || '' }} \
             --offline \
             | tee natija_dataset.txt
+
+      # XGBOOST — o'rgatish va walk-forward imtihoni.
+      #
+      # Kutubxonalar SHU YERDA o'rnatiladi, `requirements.txt` da
+      # emas: numpy/pandas ~100 MB va serverda kerak emas
+      # (`docs/ARXITEKTURA.md`, 9-bo'lim).
+      #
+      # Dataset AVVAL yig'iladi — model uchun xom material shu.
+      - name: Model (XGBoost)
+        if: inputs.olchov == 'model'
+        run: |
+          pip install -r requirements-ml.txt
+          python -m scripts.zanjir_dataset \
+            --days "${{ inputs.days }}" \
+            --symbols "${{ inputs.symbols }}" \
+            ${{ inputs.end_date != '' && format('--end-date {0}', inputs.end_date) || '' }} \
+            --offline
+          python -m scripts.zanjir_model | tee natija_model.txt
 
       # JONLI TIZIMNING O'LCHOVI. `zanjir_sikl.py` aynan shu zanjirni
       # (`zanjir_yur_alternativ`) yuritadi — boshqa qadam o'lchansa,

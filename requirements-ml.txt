@@ -1,0 +1,15 @@
+# XGBoost o'lchovi uchun — FAQAT GitHub Actions'da o'rnatiladi.
+#
+# NIMA UCHUN ALOHIDA FAYL. `requirements.txt` da numpy/pandas
+# ATAYLAB yo'q (`docs/ARXITEKTURA.md`, 9-bo'lim): ular ~100 MB
+# joy egallaydi va serverda kerak emas.
+#
+# Bu yerdagi kutubxonalar faqat MODEL O'RGATISH uchun. Jonli
+# tizim o'rgatilgan modelni JSON dan o'qiydi va uni SOF PYTHON
+# bilan hisoblaydi — daraxtlar oddiy if-else shartlardan iborat.
+# Ya'ni serverga bu kutubxonalar KIRMAYDI.
+-r requirements.txt
+
+numpy==2.2.1
+pandas==2.2.3
+xgboost==2.1.3
