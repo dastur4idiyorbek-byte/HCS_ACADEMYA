@@ -9,8 +9,14 @@ rem  Bu fayl ustiga IKKI MARTA BOSING. Boshqa hech narsa yozish shart emas.
 rem  U o'zi muhit quradi, kutubxonalarni o'rnatadi va backtestni ishga
 rem  tushiradi. Natija `natija.txt` fayliga yoziladi.
 rem
-rem  PowerShell'ning `activate` ni bloklashi (ijro siyosati) shu yerda
-rem  chetlab o'tilgan: Python to'g'ridan-to'g'ri chaqiriladi.
+rem  2026-09-10 — TUZATILDI. Ilgari bu fayl `scripts.backtest` ni va
+rem  `--output` bayrog'ini chaqirardi: ikkalasi ham MAVJUD EMAS edi
+rem  (skript nomi `scripts.zanjir_alternativ`, natija esa ekranga
+rem  chiqadi). Ya'ni fayl bosilganda xato berardi.
+rem
+rem  NEGA `zanjir_alternativ`: jonli sikl aynan shu zanjirni yuritadi
+rem  (`zanjir_yur_alternativ`). Boshqa skript o'lchansa, o'lchov jonli
+rem  tizimga tegishli bo'lmasdi.
 rem ===========================================================================
 
 cd /d "%~dp0"
@@ -54,12 +60,16 @@ if not exist ".venv\Scripts\python.exe" (
 set DAYS=%1
 if "%DAYS%"=="" set DAYS=730
 
-echo  Backtest boshlandi: %DAYS% kun.
+rem 12 coinlik to'plam — oldingi o'lchovlar shu hajmda yuritilgan.
+rem O'zgartirilsa, natijani eskisi bilan solishtirib bo'lmaydi.
+set COINLAR=BTC,ETH,SOL,ADA,AVAX,LINK,DOT,ATOM,LTC,NEAR,ETC,FIL
+
+echo  Backtest boshlandi: %DAYS% kun, 12 coin.
 echo  Birinchi marta ma'lumot yuklanadi — 10-20 daqiqa ketishi mumkin.
 echo  Bu oynani YOPMANG.
 echo.
 
-.venv\Scripts\python.exe -m scripts.backtest --compare --days %DAYS% --output natija.txt
+.venv\Scripts\python.exe -m scripts.zanjir_alternativ --days %DAYS% --symbols %COINLAR% > natija.txt 2>&1
 
 echo.
 if exist "natija.txt" (
@@ -67,6 +77,8 @@ if exist "natija.txt" (
     echo   TAYYOR. Natija: natija.txt
     echo   Shu faylni Claude'ga tashlang.
     echo  ================================================
+    echo.
+    type natija.txt
 ) else (
     echo  [XATO] Natija fayli yaratilmadi — yuqoridagi xabarni o'qing.
 )
