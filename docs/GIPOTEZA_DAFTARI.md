@@ -1655,3 +1655,26 @@ natijani +3.2% dan −13.4% ga o'zgartiradi. Namuna juda kichik.
 
 O'lchash kerak: uzunroq davr (4 yil), asosiy zanjir bilan
 solishtirish, walk-forward.
+
+
+---
+
+## 🔴 TO'XTASH QOIDASI ISHGA TUSHDI (2026-09-10)
+
+Hamma o'lchangan variant PF 1.0 dan past yoki unga teng:
+
+| Variant | Savdo | PF |
+|---|---|---|
+| alternativ zanjir (jonli) | 66 | 1.03 |
+| to'liq zanjir (4 blok) | 153 | 0.83 |
+| zanjirsiz — faqat darajalar | 310 | 0.84 |
+
+**Zanjir hech narsa qo'shmayapti**: to'liq zanjir (0.83) va
+zanjirsiz (0.84) bir xil. Ya'ni Struktura, Tasdiqlash, Zona
+Sifati va Fundamental bloklari signal SONINI kamaytiradi, lekin
+SIFATINI oshirmaydi.
+
+Bu — modulning butun mantiqiga tegadigan xulosa va u
+o'lchanmaguncha "zanjir ishlaydi" degan gap aytilmaydi.
+
+Tafsilot: `BACKTEST_NATIJA_2026-09-10_toxtash.md`.
