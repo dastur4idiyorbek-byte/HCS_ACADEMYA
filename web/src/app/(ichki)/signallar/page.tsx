@@ -40,7 +40,7 @@ export default async function Signallar() {
   if (!tarifQamraydi(tarif, "lite")) {
     return (
       <>
-        <Sarlavha matn={t("signal.sarlavha")} />
+        <Sarlavha matn={t("signal.sarlavha")} belgi="signallar" />
         <Qulf til={til} kerakliTarif="lite" botUsername={env().botUsername} />
       </>
     );
@@ -58,7 +58,7 @@ export default async function Signallar() {
   if (royxat.length === 0) {
     return (
       <>
-        <Sarlavha matn={t("signal.sarlavha")} />
+        <Sarlavha matn={t("signal.sarlavha")} belgi="signallar" />
         <Card>
           <CardTitle className="flex items-center gap-2">
             <Ikonka nom="kutilmoqda" />
@@ -71,7 +71,7 @@ export default async function Signallar() {
 
   return (
     <>
-      <Sarlavha matn={t("signal.sarlavha")} />
+      <Sarlavha matn={t("signal.sarlavha")} belgi="signallar" />
 
       <div className="space-y-6">
         <Guruh sarlavha={t("signal.faol")} bosh>

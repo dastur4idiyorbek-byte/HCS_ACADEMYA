@@ -28,7 +28,7 @@ export default async function Portfel({
   if (!tarifQamraydi(tarif, "lite")) {
     return (
       <>
-        <Sarlavha matn={t("portfel.sarlavha")} />
+        <Sarlavha matn={t("portfel.sarlavha")} belgi="pul" />
         <Qulf til={til} kerakliTarif="lite" botUsername={env().botUsername} />
       </>
     );
@@ -62,7 +62,11 @@ export default async function Portfel({
 
   return (
     <>
-      <Sarlavha matn={t("portfel.sarlavha")} izoh={t("portfel.izoh")} />
+      <Sarlavha
+        matn={t("portfel.sarlavha")}
+        izoh={t("portfel.izoh")}
+        belgi="pul"
+      />
 
       <div className="space-y-5">
         {/* Balans TAHRIRLANADI. Avval u faqat o'qish uchun edi va

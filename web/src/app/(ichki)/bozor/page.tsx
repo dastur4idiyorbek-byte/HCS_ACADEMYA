@@ -18,7 +18,7 @@ export default async function Bozor() {
 
   return (
     <div className="space-y-4">
-      <Sarlavha matn={t("menyu.bozor")} />
+      <Sarlavha matn={t("menyu.bozor")} belgi="terminal" />
       <Yangilanmoqda
         sarlavha={t("menyu.bozor")}
         izoh={t("umumiy.yangilanmoqda")}

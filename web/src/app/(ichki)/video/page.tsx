@@ -19,7 +19,7 @@ export default async function Video() {
   if (!tarifQamraydi(tarif, "pro")) {
     return (
       <>
-        <Sarlavha matn={t("kontent.video")} />
+        <Sarlavha matn={t("kontent.video")} belgi="video" />
         <Qulf til={til} kerakliTarif="pro" botUsername={botUsername} />
       </>
     );

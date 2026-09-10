@@ -33,7 +33,11 @@ export default async function Narxlar() {
 
   return (
     <>
-      <Sarlavha matn={t("admin.narxlar")} izoh={t("admin.narx_izoh")} />
+      <Sarlavha
+        matn={t("admin.narxlar")}
+        izoh={t("admin.narx_izoh")}
+        belgi="narx"
+      />
 
       <div className="space-y-5">
         {TARIFLAR.map((tier) => (

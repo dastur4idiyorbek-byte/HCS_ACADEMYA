@@ -27,6 +27,7 @@ export default async function Bilimlar() {
       <Sarlavha
         matn={t("akademiya.bilimlar")}
         izoh={t("akademiya.bilimlar_izoh")}
+        belgi="maqolalar"
       />
 
       {maqolalar.length === 0 ? (

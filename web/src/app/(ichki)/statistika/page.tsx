@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Qulf } from "@/components/ui/Qulf";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { cn } from "@/lib/cn";
 import { env } from "@/lib/env";
@@ -28,7 +29,7 @@ export default async function Statistika({
   if (!tarifQamraydi(tarif, "lite")) {
     return (
       <>
-        <Sarlavha matn={t("statistika.sarlavha")} />
+        <Sarlavha matn={t("statistika.sarlavha")} belgi="statistika" />
         <Qulf til={til} kerakliTarif="lite" botUsername={env().botUsername} />
       </>
     );
@@ -108,7 +109,10 @@ export default async function Statistika({
           </div>
 
           <Card>
-            <CardTitle>{t("statistika.sarlavha")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="statistika" />
+              {t("statistika.sarlavha")}
+            </CardTitle>
             <dl className="mt-3 space-y-2">
               <Qator
                 nom={t("statistika.yopilgan")}

@@ -22,7 +22,11 @@ export default async function Darslar() {
 
   return (
     <>
-      <Sarlavha matn={t("admin.darslar")} izoh={t("admin.dars_izoh")} />
+      <Sarlavha
+        matn={t("admin.darslar")}
+        izoh={t("admin.dars_izoh")}
+        belgi="video"
+      />
 
       <div className="space-y-5">
         <p className="border-ortacha/60 text-ortacha rounded-kichik border px-3 py-2 text-sm">

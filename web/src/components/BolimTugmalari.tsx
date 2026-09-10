@@ -1,5 +1,7 @@
 "use client";
 
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
+
 /** Sahifa ichidagi bo'limlarga o'tish tugmalari.
  *
  * NEGA KERAK. Bozor holati uzun sahifa: salomatlik, sektorlar,
@@ -18,7 +20,7 @@
 export function BolimTugmalari({
   bolimlar,
 }: {
-  bolimlar: { langar: string; nom: string }[];
+  bolimlar: { langar: string; nom: string; belgi?: IkonkaNomi }[];
 }) {
   return (
     <nav
@@ -29,8 +31,9 @@ export function BolimTugmalari({
         <a
           key={b.langar}
           href={`#${b.langar}`}
-          className="rounded-kichik border-ramka-yumshoq hover:border-ramka hover:bg-panel-yorqin shrink-0 border bg-white/[0.02] px-4 py-2.5 text-[13px] whitespace-nowrap transition-colors"
+          className="rounded-kichik border-ramka-yumshoq hover:border-ramka hover:bg-panel-yorqin flex shrink-0 items-center gap-2 border bg-white/[0.02] px-4 py-2.5 text-[13px] whitespace-nowrap transition-colors"
         >
+          {b.belgi && <Ikonka nom={b.belgi} className="text-ramka h-4 w-4" />}
           {b.nom}
         </a>
       ))}

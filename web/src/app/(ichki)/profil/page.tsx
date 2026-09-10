@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { TilTanlov } from "@/components/TilTanlov";
 import { botHavolasi, env } from "@/lib/env";
@@ -30,6 +31,7 @@ export default async function Profil() {
       <Sarlavha
         matn={t("profil.sarlavha")}
         ong={admin ? <Badge tone="ortacha">ADMIN</Badge> : undefined}
+        belgi="kabinet"
       />
 
       <div className="space-y-5">
@@ -45,7 +47,10 @@ export default async function Profil() {
 
         <Card variant="urgu">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle>{t("profil.obuna")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="premium" />
+              {t("profil.obuna")}
+            </CardTitle>
             {faol ? (
               <Badge tone="yaxshi">{obuna.tier.toUpperCase()}</Badge>
             ) : (
@@ -92,7 +97,10 @@ export default async function Profil() {
 
         {narxRoyxati.length > 0 && (
           <Card>
-            <CardTitle>{t("profil.narxlar")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="narx" />
+              {t("profil.narxlar")}
+            </CardTitle>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -128,7 +136,10 @@ export default async function Profil() {
         )}
 
         <Card>
-          <CardTitle>{t("profil.sozlamalar")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="sozlamalar" />
+            {t("profil.sozlamalar")}
+          </CardTitle>
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <TilTanlov joriy={til} />
             <form action="/api/auth/chiqish" method="post">

@@ -26,6 +26,7 @@ export default async function Admin() {
             <Badge tone="ortacha">{tolovlar.length}</Badge>
           ) : undefined
         }
+        belgi="pul"
       />
 
       <div className="space-y-5">

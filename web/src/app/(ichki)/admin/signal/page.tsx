@@ -55,7 +55,11 @@ export default async function YangiSignal({
 
   return (
     <>
-      <Sarlavha matn={t("admin.signal")} izoh={t("admin.signal_izoh")} />
+      <Sarlavha
+        matn={t("admin.signal")}
+        izoh={t("admin.signal_izoh")}
+        belgi="signallar"
+      />
 
       <div className="space-y-5">
         {yaratilgan && (

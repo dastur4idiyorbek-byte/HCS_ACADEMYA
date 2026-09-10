@@ -55,7 +55,11 @@ export default async function Akademiya() {
 
   return (
     <>
-      <Sarlavha matn={t("akademiya.sarlavha")} izoh={t("akademiya.izoh")} />
+      <Sarlavha
+        matn={t("akademiya.sarlavha")}
+        izoh={t("akademiya.izoh")}
+        belgi="akademiya"
+      />
 
       {/* 1. Davom ettirish — faqat boshlangan dars bo'lsa */}
       {davomDars && davomi && (

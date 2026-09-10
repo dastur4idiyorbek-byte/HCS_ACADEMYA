@@ -28,7 +28,7 @@ export default async function AdminLayout({
   if (!admin) {
     return (
       <>
-        <Sarlavha matn={t("admin.sarlavha")} />
+        <Sarlavha matn={t("admin.sarlavha")} belgi="admin" />
         <Card>
           <p className="text-past text-sm">{t("admin.faqat_admin")}</p>
         </Card>

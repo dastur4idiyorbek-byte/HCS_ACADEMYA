@@ -17,7 +17,11 @@ export default async function Havolalar() {
 
   return (
     <>
-      <Sarlavha matn={t("admin.havolalar")} izoh={t("admin.havola_izoh")} />
+      <Sarlavha
+        matn={t("admin.havolalar")}
+        izoh={t("admin.havola_izoh")}
+        belgi="havolalar"
+      />
 
       <div className="space-y-5">
         <Card variant="urgu">

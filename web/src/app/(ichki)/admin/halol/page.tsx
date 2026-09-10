@@ -32,7 +32,11 @@ export default async function Halol() {
 
   return (
     <>
-      <Sarlavha matn={t("admin.halol")} izoh={t("admin.halol_izoh")} />
+      <Sarlavha
+        matn={t("admin.halol")}
+        izoh={t("admin.halol_izoh")}
+        belgi="diniy"
+      />
 
       <div className="space-y-5">
         <Card variant="urgu">

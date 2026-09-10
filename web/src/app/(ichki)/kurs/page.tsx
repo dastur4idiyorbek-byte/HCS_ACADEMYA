@@ -14,6 +14,7 @@ export default async function Kurs() {
       <Sarlavha
         matn={t("kontent.kurs")}
         ong={<Badge tone="ortacha">{t("kontent.tez_kunda")}</Badge>}
+        belgi="kurs"
       />
       <Card variant="urgu">
         <CardTitle className="flex items-center gap-2">
