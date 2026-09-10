@@ -155,7 +155,7 @@
     "faol": "Kirish mumkin",
     "kech": "Kech qolindi",
     "yopiq": "Yopilgan",
-    "yoq": "Hozircha signal yo'q. Bu xato emas — shartlar bajarilmasa tizim sukut saqlaydi.",
+    "yoq": "Hozircha avtomatik signal yo'q. Bu xato emas: o'lchov natijalariga ko'ra avtomatik signal vaqtincha to'xtatilgan. Admin qo'lda yozgan signallar shu yerda ko'rinadi.",
     "nega_yoq": "Nega signal yo'q?",
     "entry": "Kirish",
     "stop": "Stop",
@@ -445,7 +445,6 @@
     "post_nashr": "Nashr etish",
     "post_royxat": "Postlar",
     "post_yoq": "Hali post yozilmagan.",
-    "zanjir": "Zanjir",
     "rasm_kirish": "Kirish grafigi",
     "rasm_natija": "Natija grafigi",
     "rasm_yukla": "Rasmni yuklash",
@@ -568,6 +567,8 @@
     "tafsilot": "Salomatlik tafsiloti",
     "tasnif_past": "Past",
     "tasnif_ortacha": "O'rtacha",
-    "tasnif_yaxshi": "Yaxshi"
+    "tasnif_yaxshi": "Yaxshi",
+    "toxtatilgan": "To'xtatilgan",
+    "signal_toxtatildi": "Avtomatik signal 2026-09-10 dan beri TO'XTATILGAN. Zanjir har 4 soatda coinlarni tekshirishda davom etadi va natijani shu yerda ko'rsatadi, lekin signal yozilmaydi — to'rtta mustaqil o'lchov signallarning zarar keltirishini ko'rsatdi. Qaror va raqamlar loyiha hujjatlarida ochiq."
   }
 }

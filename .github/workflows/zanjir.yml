@@ -19,6 +19,12 @@ name: Zanjir o'lchovi
 #
 # Nima uchun Actions'da: bu muhitdan Binance'ga chiqish yopiq, va
 # 730 kunlik yuklash mahalliy mashinada ham uzoq davom etadi.
+#
+# ⛔ 2026-09-10: signal moduli yopildi (ARXITEKTURA.md, 100-bo'lim).
+# BU ISH OQIMI O'CHIRILMADI va o'chirilmaydi — o'lchov mashinasi
+# kelajakdagi g'oya uchun tayyor turishi kerak. U FAQAT `workflow_dispatch`
+# bilan, ya'ni odam tugmani bosganda ishga tushadi. Jadval (`schedule`)
+# ATAYLAB YO'Q: hech narsa o'z-o'zidan yugurmaydi.
 
 on:
   workflow_dispatch:

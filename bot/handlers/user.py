@@ -225,7 +225,6 @@ async def show_portfolio(
 
     builder = InlineKeyboardBuilder()
     builder.button(text=t("portfel.sarlavha", language), callback_data="portfel:pozitsiyalar")
-    builder.button(text=t("portfel.natijam", language), callback_data="portfel:natija")
     builder.button(
         text=t("portfel.balans_ozgartirish", language), callback_data="portfel:balans"
     )

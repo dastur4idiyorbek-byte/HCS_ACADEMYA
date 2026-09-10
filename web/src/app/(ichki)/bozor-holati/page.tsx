@@ -166,13 +166,33 @@ export default async function BozorHolati() {
                 qiymat={String(xulosa.jami)}
               />
               <Raqam nom={t("zanjir.toliq")} qiymat={String(xulosa.toliq)} />
-              <Raqam nom={t("zanjir.signal")} qiymat={String(xulosa.signal)} />
+              {/* SIGNAL O'RNIGA TO'XTATILGAN.
+                  Avtomatik signal o'chirilgandan keyin bu raqam DOIM
+                  nol bo'ladi. "Signal: 0" deb turish tizim hech narsa
+                  topmadi degan ma'noni berardi — aslida topdi, biz
+                  yozmadik. Ikkalasi butunlay boshqa gap. */}
+              <Raqam
+                nom={
+                  xulosa.toxtatilgan > 0
+                    ? t("zanjir.toxtatilgan")
+                    : t("zanjir.signal")
+                }
+                qiymat={String(
+                  xulosa.toxtatilgan > 0 ? xulosa.toxtatilgan : xulosa.signal,
+                )}
+              />
               <Raqam
                 nom={t("zanjir.ortacha")}
                 qiymat={`${xulosa.ortachaBloklar.toFixed(1)} / ${BLOK_NOMLARI.length}`}
               />
             </dl>
-            <CardHint className="mt-4">{t("zanjir.bir_tomonlama")}</CardHint>
+            {/* Nima uchun signal yo'qligi SHU YERDA aytiladi.
+                Ansiz odam "zanjir ishlayapti, lekin signal yo'q" deb
+                tizimni buzuq deb o'ylardi. */}
+            <CardHint className="mt-4">
+              {t("zanjir.signal_toxtatildi")}
+            </CardHint>
+            <CardHint className="mt-2">{t("zanjir.bir_tomonlama")}</CardHint>
           </Card>
         )}
 

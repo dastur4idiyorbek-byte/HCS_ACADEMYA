@@ -3,13 +3,10 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
-import { kotirovka } from "@/lib/config";
 import { env } from "@/lib/env";
 import { HOLAT_IKONKASI, foiz, holatNomi, narx } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
-import { narxlarniOl } from "@/lib/jonli-server";
-import { dashboardQur, type Dashboard } from "@/lib/portfel";
-import { portfelXomAshyosi, pozitsiyalar, tarifQamraydi } from "@/lib/queries";
+import { pozitsiyalar, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { balansSaqlash } from "./amallar";
@@ -38,27 +35,6 @@ export default async function Portfel({
   const ochiq = royxat.filter((p) => p.closedAt === null);
   const yopiq = royxat.filter((p) => p.closedAt !== null);
   const jamiPnl = yopiq.reduce((s, p) => s + (p.pnlUsd ?? 0), 0);
-
-  // Portfel moduli (3-prompt). Hisob `lib/portfel.ts` da va u Python
-  // nusxasiga etalon fayl orqali bog'langan — botdagi bilan bir xil
-  // raqam chiqishini test ushlab turadi.
-  const xom = foydalanuvchi
-    ? portfelXomAshyosi(foydalanuvchi.id)
-    : { qismlar: [], ochiqlar: [], bolaklar: [] };
-  const narxlar = await narxlarniOl(
-    xom.ochiqlar.map((p) => `${p.symbol}${kotirovka()}`),
-  );
-  const dashboard = dashboardQur(
-    xom.qismlar,
-    xom.ochiqlar.map((p) => ({
-      ...p,
-      // Narx olinmasa `null` qoladi: "+$0.00" ko'rsatish "biz
-      // bilmaymiz" ni "savdo nolda" ga aylantirardi.
-      joriyNarx: narxlar[`${p.symbol}${kotirovka()}`] ?? null,
-    })),
-    xom.bolaklar,
-    foydalanuvchi?.declaredBalanceUsd ?? 0,
-  );
 
   return (
     <>
@@ -114,8 +90,6 @@ export default async function Portfel({
           <CardHint className="mt-2">{t("portfel.balans_bosh")}</CardHint>
         </Card>
 
-        <Natija d={dashboard} t={t} />
-
         {royxat.length === 0 ? (
           <Card>
             <p className="text-matn-past text-sm">{t("portfel.yoq")}</p>
@@ -165,96 +139,6 @@ export default async function Portfel({
         )}
       </div>
     </>
-  );
-}
-
-/** "Mening natijam" — botdagi ekranning sayt ko'rinishi.
- *
- * RAQAM SHU YERDA HISOBLANMAYDI: `dashboardQur` tayyor holda beradi.
- * Ansiz uchinchi hisob paydo bo'lardi. */
-function Natija({ d, t }: { d: Dashboard; t: (k: string) => string }) {
-  const baholangan = d.ochiqSoni - d.baholanmaganSoni;
-
-  return (
-    <Card>
-      <CardTitle>{t("portfel.natijam")}</CardTitle>
-
-      {d.bosh ? (
-        <p className="text-matn-past mt-2 text-sm">
-          {t("portfel.natijam_bosh")}
-        </p>
-      ) : (
-        <>
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            {d.qatorlar.map((q) => (
-              <div key={q.nom}>
-                <dt className="text-matn-past text-xs uppercase">{q.nom}</dt>
-                <dd
-                  className={`raqam font-semibold ${
-                    q.usd > 0
-                      ? "text-yaxshi"
-                      : q.usd < 0
-                        ? "text-past"
-                        : "text-matn-past"
-                  }`}
-                >
-                  {q.usd >= 0 ? "+" : "−"}${narx(Math.abs(q.usd))}
-                  <span className="text-matn-past ml-1 text-xs font-normal">
-                    ({foiz(q.pct)})
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-
-          {baholangan > 0 && (
-            <p className="text-matn-past mt-3 text-sm">
-              {t("portfel.ochiq_natija")}:{" "}
-              <span
-                className={`raqam font-semibold ${
-                  d.unrealizedUsd >= 0 ? "text-yaxshi" : "text-past"
-                }`}
-              >
-                {d.unrealizedUsd >= 0 ? "+" : "−"}$
-                {narx(Math.abs(d.unrealizedUsd))}
-              </span>{" "}
-              <em>({t("portfel.ochiq_natija_izoh")})</em>
-            </p>
-          )}
-
-          {/* "Narx olinmadi" ni YASHIRMAYMIZ — u nol emas. */}
-          {d.baholanmaganSoni > 0 && (
-            <p className="text-matn-past mt-1 text-sm">
-              {d.baholanmaganSoni} {t("portfel.narx_yoq")}
-            </p>
-          )}
-        </>
-      )}
-
-      {d.bandBolaklar.length + d.boshBolaklar.length > 0 && (
-        <div className="border-ramka-yumshoq mt-4 border-t pt-3">
-          <p className="text-matn-past text-xs uppercase">
-            {t("portfel.bolaklar")}
-          </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
-            {d.bandBolaklar.length > 0 && (
-              <Badge tone="neytral">
-                <Ikonka nom="qulf" className="inline h-4 w-4 align-[-3px]" />{" "}
-                {t("portfel.bolak_band")}: {d.bandBolaklar.join(", ")}
-              </Badge>
-            )}
-            {d.boshBolaklar.length > 0 && (
-              <Badge tone="yaxshi">
-                {t("portfel.bolak_bosh")}: {d.boshBolaklar.length}
-              </Badge>
-            )}
-            <span className="text-matn-past raqam">
-              {t("portfel.xavf_ostida")}: {foiz(d.xavfPct)}
-            </span>
-          </div>
-        </div>
-      )}
-    </Card>
   );
 }
 

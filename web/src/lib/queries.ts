@@ -8,7 +8,6 @@ import {
 import { asosiyAktiv } from "./kalkulyator.ts";
 import { postMediaTuri } from "./media.ts";
 import type { Blok as ZanjirBlok, CoinZanjiri } from "./zanjir.ts";
-import type { Bolak, OchiqPozitsiya, YopilganQism } from "./portfel.ts";
 
 /** Botning bazasidan o'qish/yozish.
  *
@@ -484,79 +483,6 @@ export function pozitsiyalar(userId: number): Pozitsiya[] {
     tradeDate: String(q.trade_date),
     closedAt: vaqt(q.closed_at as string),
   }));
-}
-
-/** Portfel moduli uchun xom ma'lumot (3-prompt).
- *
- * FAQAT O'QIYDI. Hisob `web/src/lib/portfel.ts` da bo'ladi va u
- * Python nusxasiga etalon fayl orqali bog'langan. Bu yerda SQL
- * bo'ladi, formula emas — aks holda hisob uchinchi joyda paydo
- * bo'lardi.
- */
-export function portfelXomAshyosi(userId: number): {
-  qismlar: YopilganQism[];
-  ochiqlar: OchiqPozitsiya[];
-  bolaklar: Bolak[];
-} {
-  const qismlar = (
-    db()
-      .prepare(
-        `select p.signal_id, e.natija_usd, e.yopilgan_vaqt
-           from position_exits e
-           join user_positions p on p.id = e.position_id
-          where p.user_id = ?
-          order by e.yopilgan_vaqt`,
-      )
-      .all(userId) as Qator[]
-  ).map((q) => ({
-    signalId: Number(q.signal_id),
-    yopilganVaqt: vaqt(q.yopilgan_vaqt as string) ?? new Date(0),
-    natijaUsd: Number(q.natija_usd),
-  }));
-
-  // Ochiq pozitsiyaning SOTILMAGAN qismi: umumiy miqdordan
-  // bosqichlarda sotilgan ulush ayriladi. Ansiz TP1 dan keyingi
-  // pozitsiya to'liq hajmda ko'rinardi.
-  const ochiqlar = (
-    db()
-      .prepare(
-        `select p.id, p.signal_id, p.amount_usd, p.entry_price, s.symbol,
-                coalesce((select sum(e.ulush_pct) from position_exits e
-                           where e.position_id = p.id), 0) as sotilgan_pct
-           from user_positions p
-           join signals s on s.id = p.signal_id
-          where p.user_id = ? and p.closed_at is null`,
-      )
-      .all(userId) as Qator[]
-  )
-    .map((q) => ({
-      signalId: Number(q.signal_id),
-      symbol: String(q.symbol),
-      entry: Number(q.entry_price),
-      ochiqMiqdorUsd:
-        (Number(q.amount_usd) * Math.max(0, 100 - Number(q.sotilgan_pct))) /
-        100,
-      // Narx SAHIFADA qo'shiladi (`narxlarniOl`). Bu yerda null —
-      // "narx olinmadi", ya'ni unrealized hisobiga kirmaydi.
-      joriyNarx: null as number | null,
-    }))
-    .filter((p) => p.ochiqMiqdorUsd > 0);
-
-  const bolaklar = (
-    db()
-      .prepare(
-        `select raqam, hajm_usd, band_kapital_usd, band_xavf_usd
-           from capital_blocks where user_id = ? order by raqam`,
-      )
-      .all(userId) as Qator[]
-  ).map((q) => ({
-    raqam: Number(q.raqam),
-    hajm: Number(q.hajm_usd),
-    bandKapital: Number(q.band_kapital_usd),
-    bandXavf: Number(q.band_xavf_usd),
-  }));
-
-  return { qismlar, ochiqlar, bolaklar };
 }
 
 // --------------------------------------------------------------------------- //

@@ -70,7 +70,7 @@
     "kirish_sababi": "{reason}",
     "faol_signallar": "📡 Signallar",
     "yangilandi": "{emoji} {symbol} — {status}",
-    "royxat_bosh": "📡 <b>Signallar</b>\n\nHozircha faol signal yo'q.\n\nBozor mos kelganda signal o'zi keladi — kutib o'tirishingiz shart emas.",
+    "royxat_bosh": "📡 <b>Signallar</b>\n\nHozircha faol signal yo'q.\n\nAvtomatik signal vaqtincha TO'XTATILGAN — o'lchovlar uning zarar keltirishini ko'rsatdi. Admin qo'lda yozgan signallar shu yerda paydo bo'ladi.",
     "royxat_sarlavha": "📡 <b>Signallar</b>\n",
     "holat_tp1_hit": "🎯 TP1 olindi — yarmini sotish tavsiya etiladi",
     "holat_tp2_hit": "🏁 TP2 olindi — signal yopildi",

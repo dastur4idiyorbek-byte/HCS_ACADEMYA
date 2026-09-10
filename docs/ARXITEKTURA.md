@@ -5689,6 +5689,11 @@ bo'lardi.
 
 ## 94. PORTFEL VA XAVF BOSHQARUVI MODULI (2026-09-04)
 
+> ⛔ **BU MODUL 2026-09-10 DA OLIB TASHLANDI.** Sabab va tafsilot:
+> 100-bo'lim. Quyidagi tavsif TARIX sifatida qoldirilgan — u nima
+> uchun qurilgani va qanday ishlagani yozilgan. Kelajakda shunga
+> o'xshash narsa kerak bo'lsa, noldan o'ylab topilmaydi.
+
 Tahlil moduli **qayerga kirishni** aytadi. Bu modul **qancha pul
 bilan kirishni va qachon chiqishni** aytadi. Ikkalasi bir-biriga
 bog'lanmaydi.
@@ -6268,3 +6273,60 @@ Backtest qayta yugurtirilmagan. Signal soni kamayadi —
 qanchaga, noma'lum. PF sezilarli o'zgarmasligi kerak: bekor
 qilingan signallar backtestda ham savdo sifatida sanalmagan.
 `docs/GIPOTEZA_DAFTARI.md` ga yozildi.
+
+
+## 100. SIGNAL MODULI YOPILDI, BOT SODDALASHTIRILDI (2026-09-10)
+
+`docs/ML_ISHIMIZ_XULOSASI.md` dagi to'rtta mustaqil o'lchov bir xil
+xulosaga keldi: mavjud ma'lumotda foydali savdo qoidasi topilmadi.
+Avtomatik signal 99-bo'limdan keyin to'xtatilgan edi
+(`zanjir.avtomatik_signal = False`); bu bo'lim o'sha qarorni
+YAKUNLAYDI.
+
+### Nima olib tashlandi
+
+| Nima | Nega |
+|---|---|
+| `core/portfolio/` (4 fayl) | signal oqimiga qurilgan qatlam — signal yo'q, u ham ishlamaydi |
+| `core/storage/portfel_repository.py` | yuqoridagisiz yetim qoldi |
+| `web/src/lib/portfel.ts` + etalon fayllar | o'sha hisobning sayt nusxasi |
+| Botdagi «Mening natijam» (`portfel:natija`) | shu modulning ekrani |
+| Saytdagi bo'lak/band va PNL bloki | shu modulning ekrani |
+| `/admin/zanjir` — «Jonli Blok Zanjiri» | admin monitori, endi signal chiqarmaydi |
+
+### Nima QOLDI
+
+Obuna va to'lov, rollar va Telegram Login, halol skrining, akademiya
+va video, bildirishnomalar, **admin paneldan qo'lda signal yozish**,
+«Mening portfelim» (pozitsiyalar ro'yxati va umumiy natija).
+
+**Zanjir sikli ham qoldi va yugurishda davom etadi.** U har 4 soatda
+coinlarni tekshiradi va natijani `zanjir_holatlari` ga yozadi — faqat
+signal yozmaydi. Ya'ni "nega signal yo'q" voronkasi, Bozor Salomatligi
+indeksi va kelajakdagi o'lchovlar uchun yozuv YO'QOLMAYDI.
+
+### Halol ko'rinish — jim to'xtatish emas
+
+To'xtatilgan holat ekranda ATAYLAB ko'rinadi:
+
+* `/bozor-holati` da «Signal» raqami o'rniga «To'xtatilgan» turadi va
+  ostida nima uchun ekani yozilgan. Ansiz odam "zanjir 4/4 o'tdi,
+  lekin signal yo'q" deb tizimni buzuq deb o'ylardi;
+* saytda va botda "signal yo'q" xabari qayta yozildi. Eski matn
+  ("bozor mos kelganda signal o'zi keladi") endi **aldardi** —
+  shartlar bajarilmoqda, biz signal yozishni to'xtatdik;
+* bot ko'tarilganda va har siklda adminga xabar boradi.
+
+### ML skriptlari — saqlanadi, lekin o'zi yugurmaydi
+
+`scripts/zanjir_dataset.py`, `scripts/zanjir_model.py`,
+`requirements-ml.txt` va `.github/workflows/zanjir.yml` **o'chirilmadi**.
+Ish oqimi faqat `workflow_dispatch` bilan ishga tushadi — ya'ni odam
+tugmani bosmaguncha yugurmaydi. Kelajakda yangi g'oya kelganda bu
+o'lchov mashinasi tayyor turadi.
+
+### Hujjatlar
+
+Birorta o'lchov hujjati o'chirilmadi. Ular loyihaning eng qimmatli
+qismi: nima sinalgani, qanday o'lchangani va nima chiqqani yozilgan.
+Keyingi g'oya shu yerdan boshlanadi, noldan emas.

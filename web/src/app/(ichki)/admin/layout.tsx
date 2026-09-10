@@ -43,7 +43,6 @@ export default async function AdminLayout({
           { yol: "/admin", nom: t("admin.asosiy"), belgi: "pul" },
           { yol: "/admin/postlar", nom: t("admin.postlar"), belgi: "elonlar" },
           { yol: "/admin/signal", nom: t("admin.signal"), belgi: "signallar" },
-          { yol: "/admin/zanjir", nom: t("admin.zanjir"), belgi: "zanjir" },
           { yol: "/admin/darslar", nom: t("admin.darslar"), belgi: "video" },
           {
             yol: "/admin/havolalar",
