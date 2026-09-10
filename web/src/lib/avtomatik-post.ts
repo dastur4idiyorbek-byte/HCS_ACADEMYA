@@ -139,14 +139,14 @@ export function hisobotMatni(
 //  Bazaga tegadigan qism
 // --------------------------------------------------------------------------- //
 
-/** Signal tarqatilgandan keyin shuncha kun ichida post yoziladi.
+/** Signal hodisasidan keyin shuncha kun ichida post yoziladi.
  *
  * NEGA OYNA BOR. Bu qoida yoqilgan kunda bazada allaqachon o'nlab
  * eski signal turibdi. Oynasiz birinchi ochilishda oqim o'sha
  * eskilar bilan to'lib ketardi.
  *
  * Oynadan chiqib ketgan signal posti YOZILMAYDI va bu yo'qotish
- * emas: post — "hozir yangi signal bor" degan xabar, uch kundan
+ * emas: post — "hozir shunday bo'ldi" degan xabar, uch kundan
  * keyin uning ma'nosi qolmaydi.
  */
 const SIGNAL_OYNASI_KUN = 3;
@@ -155,50 +155,131 @@ const SIGNAL_OYNASI_KUN = 3;
  *  (masalan import qilingan tarix) oqim to'lib ketmasin. */
 const BIR_MARTALIK_CHEGARA = 5;
 
-/** Tarqatilgan, lekin posti yo'q signallar uchun post yozadi.
+/** Signalga aloqador post turlari — hammasi QULF ortida.
  *
- * FAQAT TARQATILGANI (`broadcast_at` to'la). Sabab: signal avval
- * OBUNACHILARGA boradi. Tarqatilmasidan oldin bosh sahifada e'lon
- * qilsak, pul to'lamagan odam to'lagandan oldin bilib olardi.
+ * Bosh sahifa shu ro'yxatga qarab qulf belgisini va "obuna bo'ling"
+ * chaqirig'ini chizadi. Ro'yxat SHU YERDA turadi, chizuvchida emas:
+ * yangi tur qo'shilib, chizuvchida unutilsa, qulflangan xabar ochiq
+ * post kabi ko'rinardi.
+ */
+export const SIGNAL_MANBALARI = ["signal", "tp1", "tp2"] as const;
+export type SignalManbasi = (typeof SIGNAL_MANBALARI)[number];
+
+export function signalgaAloqador(manbaTuri: string): boolean {
+  return (SIGNAL_MANBALARI as readonly string[]).includes(manbaTuri);
+}
+
+/** POST MATNIDA COIN NOMI YO'Q — ATAYLAB.
  *
- * POST MATNIDA COIN NOMI YO'Q — ATAYLAB. Dars uchun sarlavha
- * "sotiladigan qiymat": nomni bilgan odam darsni ko'rmaydi. Signal
- * boshqacha: bu spot, faqat sotib olish. "Hozir BTC" — signalning
- * O'ZI, tafsilotisiz ham ishlatib bo'ladi. Shuning uchun ochiq
- * oqimda faqat "signal bor" deyiladi, qolgani qulf ortida.
+ * Dars uchun sarlavha "sotiladigan qiymat": nomni bilgan odam darsni
+ * ko'rmaydi. Signal boshqacha — bu spot, faqat sotib olish, ya'ni
+ * "hozir BTC" degan gapning o'zi signalning MOHIYATI. Ochiq oqimda
+ * faqat "shunday hodisa bo'ldi" deyiladi, qolgani qulf ortida.
+ *
+ * Matn bazaga bir marta yoziladi, ya'ni bitta tilda. Tugma va
+ * "obuna bo'ling" chaqirig'i esa har bir foydalanuvchi uchun
+ * ALOHIDA chiziladi — u tarjima qilinadi va obunachiga boshqacha
+ * ko'rinadi.
+ */
+const MATNLAR: Record<SignalManbasi, string> = {
+  signal: "Yangi signal keldi.",
+  tp1: "Signal birinchi nishonga yetdi (TP1).",
+  tp2: "Signal yakuniy nishonga yetdi (TP2).",
+};
+
+/** Signal posti yoziladigan bitta hodisa turi.
+ *
+ * `shart` — signals jadvalidagi qo'shimcha shart.
+ * `hodisa` — `signal_events` dagi yozuv nomi (aniq VAQT shundan
+ *   olinadi). `null` bo'lsa, tarqatish vaqti ishlatiladi.
+ */
+type Hodisa = {
+  manba: SignalManbasi;
+  shart: string;
+  hodisa: string | null;
+};
+
+const HODISALAR: Hodisa[] = [
+  // Tarqatilgan signal. FAQAT TARQATILGANI: signal avval
+  // OBUNACHILARGA boradi. Tarqatilmasidan oldin bosh sahifada e'lon
+  // qilsak, pul to'lamagan odam to'lagandan oldin bilib olardi.
+  { manba: "signal", shart: "1 = 1", hodisa: null },
+  // TP hodisalari. Ular ham faqat tarqatilgan signal uchun: hech kimga
+  // yuborilmagan signalning natijasi bilan maqtanish ma'nosiz.
+  { manba: "tp1", shart: "s.tp1_reached = 1", hodisa: "tp1_hit" },
+  { manba: "tp2", shart: "s.status = 'tp2_hit'", hodisa: "tp2_hit" },
+];
+
+/** Hodisa qachon bo'lganini topadi.
+ *
+ * ANIQ VAQT `signal_events` da: `apply_event` har bir o'zgarishni
+ * o'sha yerga yozadi va hodisa nomi holat qiymati bilan bir xil
+ * (`tp1_hit`, `tp2_hit`).
+ *
+ * `signals.updated_at` ZAXIRA yo'l. U yolg'on chiqishi mumkin: TP1
+ * dan keyin TP2 bo'lsa, `updated_at` ikkinchisiniki bo'ladi va TP1
+ * "hozir bo'ldi" deb ko'rinardi. Shuning uchun u faqat audit izi
+ * yo'q bo'lganda ishlatiladi.
+ */
+const HODISA_VAQTI = `
+  coalesce(
+    (select max(e.created_at) from signal_events e
+      where e.signal_id = s.id and e.event = ?),
+    s.updated_at)`;
+
+/** Bitta hodisa turi bo'yicha yetishmayotgan postlarni yozadi.
  *
  * Qaytadi: nechta yangi post yozilgani.
  */
-export function signalPostlari(hozir = new Date()): number {
+function hodisaPostlari(h: Hodisa, hozir: Date): number {
   const chegara = vaqtSatri(
     new Date(hozir.getTime() - SIGNAL_OYNASI_KUN * KUN),
   );
+  const vaqtIfoda = h.hodisa === null ? "s.broadcast_at" : HODISA_VAQTI;
+  // TARTIB SQL dagi `?` lar tartibi bilan bir xil bo'lishi SHART:
+  // avval `p.source_kind`, keyin (bo'lsa) hodisa nomi, so'ng chegara
+  // va limit. Aralashsa, so'rov xato bermaydi — jimgina noto'g'ri
+  // javob qaytaradi.
+  const parametrlar: (string | number)[] = [h.manba];
+  if (h.hodisa !== null) parametrlar.push(h.hodisa);
+  parametrlar.push(chegara, BIR_MARTALIK_CHEGARA);
+
   const qatorlar = db()
     .prepare(
-      `select s.id
-         from signals s
+      `select s.id from signals s
          left join homepage_posts p
-           on p.source_kind = 'signal' and p.source_id = s.id
+           on p.source_kind = ? and p.source_id = s.id
         where s.broadcast_at is not null
-          and s.broadcast_at >= ?
           and p.id is null
+          and ${h.shart}
+          and ${vaqtIfoda} >= ?
         order by s.id
         limit ?`,
     )
-    .all(chegara, BIR_MARTALIK_CHEGARA) as { id: unknown }[];
+    .all(...parametrlar) as { id: unknown }[];
 
   let yozildi = 0;
   for (const q of qatorlar) {
     const id = songaAylantir(q.id);
     const natija = avtomatikPost(
-      "signal",
+      h.manba,
       id,
-      "Yangi signal e'lon qilindi. Tafsilotlari obunachilar uchun.",
+      MATNLAR[h.manba],
       `/signallar/${id}`,
       hozir,
     );
     if (natija.yangi) yozildi += 1;
   }
+  return yozildi;
+}
+
+/** Signal hodisalari uchun yetishmayotgan postlarni yozadi:
+ *  yangi signal, TP1 va yakuniy nishon.
+ *
+ * Qaytadi: nechta yangi post yozilgani. */
+export function signalPostlari(hozir = new Date()): number {
+  let yozildi = 0;
+  for (const h of HODISALAR) yozildi += hodisaPostlari(h, hozir);
   return yozildi;
 }
 

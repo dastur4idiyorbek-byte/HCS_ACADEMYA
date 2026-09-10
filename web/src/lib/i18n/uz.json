@@ -471,7 +471,11 @@
     "oqim_yoq": "Hali post yo'q. Yangiliklar shu yerda paydo bo'ladi.",
     "koproq": "Ko'proq yuklash",
     "oqim_oxiri": "Oqimning boshiga yetdingiz.",
-    "ochish": "Ochish"
+    "ochish": "Ochish",
+    "signal_belgi": "Signal · qulflangan",
+    "signal_qulf": "Bu signal obunachilar uchun. Ko'rish uchun obuna bo'ling.",
+    "signal_obuna": "Obuna bo'lish",
+    "signal_ochish": "Signalni ochish"
   },
   "vidjet": {
     "bolim": "Bugungi holat",

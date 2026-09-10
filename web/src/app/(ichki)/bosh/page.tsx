@@ -5,7 +5,10 @@ import { Vidjet, type VidjetMalumoti } from "@/components/Vidjetlar";
 import { VidjetSozlash } from "@/components/VidjetSozlash";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
-import { avtomatikPostlarniYangila } from "@/lib/avtomatik-post";
+import {
+  avtomatikPostlarniYangila,
+  signalgaAloqador,
+} from "@/lib/avtomatik-post";
 import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import {
@@ -237,7 +240,18 @@ export default async function Bosh({
         ) : (
           <div className="space-y-5">
             {postlar.map((p) => (
-              <PostKartochka key={p.id} post={p} tugmaMatn={t("bosh.ochish")} />
+              <PostKartochka
+                key={p.id}
+                post={p}
+                obunachi={tarifQamraydi(tarif, "lite")}
+                yorliq={{
+                  ochish: t("bosh.ochish"),
+                  signal: t("bosh.signal_belgi"),
+                  qulf: t("bosh.signal_qulf"),
+                  obuna: t("bosh.signal_obuna"),
+                  signalOchish: t("bosh.signal_ochish"),
+                }}
+              />
             ))}
           </div>
         )}
@@ -315,27 +329,48 @@ export default async function Bosh({
 const MANBA_BELGISI: Record<string, string> = {
   dars: "🎬",
   maqola: "📄",
-  signal: "📈",
+  signal: "🔒📈",
+  tp1: "🔒🎯",
+  tp2: "🔒🏁",
   hisobot: "📊",
 };
 
 function PostKartochka({
   post,
-  tugmaMatn,
+  obunachi,
+  yorliq,
 }: {
   post: BoshPost;
-  tugmaMatn: string;
+  obunachi: boolean;
+  yorliq: {
+    ochish: string;
+    signal: string;
+    qulf: string;
+    obuna: string;
+    signalOchish: string;
+  };
 }) {
   const belgi = MANBA_BELGISI[post.manbaTuri];
+  // Signalga aloqador postlar QULF ortida. Ro'yxat `avtomatik-post.ts`
+  // da — bu yerda takrorlanmaydi, aks holda yangi tur qo'shilganda
+  // qulflangan xabar ochiq post kabi ko'rinardi.
+  const qulf = signalgaAloqador(post.manbaTuri);
   return (
     <article className="border-ramka-yumshoq bg-panel rounded-kartochka border p-4">
-      <p className="text-matn-past text-xs">
+      <p className="text-matn-past flex flex-wrap items-center gap-2 text-xs">
         {belgi && (
-          <span aria-hidden className="mr-1.5">
+          <span aria-hidden className="text-sm">
             {belgi}
           </span>
         )}
-        {sana(post.yaratilgan)}
+        {/* Qulf yorlig'i MATN bilan. Faqat ikonka qo'yilsa, uning
+            ma'nosini har kim o'zicha tushunardi. */}
+        {qulf && (
+          <span className="border-ramka rounded-tugma border px-2 py-0.5 font-semibold">
+            {yorliq.signal}
+          </span>
+        )}
+        <span>{sana(post.yaratilgan)}</span>
       </p>
 
       {post.matn && (
@@ -366,13 +401,31 @@ function PostKartochka({
       {/* Avtomatik postning tugmasi. Qulflangan darsga olib borsa
           ham YASHIRILMAYDI: bosilganda qulf ekrani chiqadi va odam
           nima yetishmayotganini biladi. Saytning qolgan qismida ham
-          shu qoida — dars nomi sotiladigan qiymat. */}
+          shu qoida — dars nomi sotiladigan qiymat.
+
+          SIGNAL POSTIDA tugma foydalanuvchiga QARAB o'zgaradi.
+          Obunachi signalning o'ziga o'tadi; obunasi yo'q odam esa
+          tarif sahifasiga — signal sahifasi unga baribir ochilmaydi
+          va "ochish" tugmasi bo'sh va'da bo'lardi.
+
+          Post MATNI bazada bitta tilda yozilgan, bu chaqiriq esa
+          har foydalanuvchi uchun alohida chiziladi va tarjima
+          qilinadi. */}
+      {qulf && !obunachi && (
+        <p className="text-matn-past mt-2 text-sm">{yorliq.qulf}</p>
+      )}
+
       {post.havola && (
         <a
-          href={post.havola}
+          href={qulf && !obunachi ? "/profil" : post.havola}
           className="border-ramka rounded-tugma hover:bg-panel-yorqin mt-3 inline-block border px-4 py-2 text-sm transition"
         >
-          {tugmaMatn} →
+          {qulf
+            ? obunachi
+              ? yorliq.signalOchish
+              : yorliq.obuna
+            : yorliq.ochish}{" "}
+          →
         </a>
       )}
     </article>

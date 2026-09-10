@@ -5966,15 +5966,51 @@ Takrorlanmaslik kafolati **bazada**: `uq_post_manba` unique indeksi
 sahifani ochsa ham, ikkinchi yozuv jimgina tushib qoladi. Kod
 unutishi mumkin, baza unutmaydi.
 
-**Faqat TARQATILGAN signal.** Signal avval obunachilarga boradi.
-Tarqatilmasidan oldin ochiq oqimda e'lon qilinsa, pul to'lamagan
-odam to'laganidan oldin bilib olardi.
+### Uchta signal hodisasi
+
+    signal  ->  tarqatildi
+    tp1     ->  birinchi nishonga yetdi
+    tp2     ->  yakuniy nishonga yetdi
+
+Hodisaning ANIQ VAQTI `signal_events` dan olinadi: `apply_event`
+har bir o'zgarishni o'sha yerga yozadi va hodisa nomi holat qiymati
+bilan bir xil (`tp1_hit`, `tp2_hit`).
+
+`signals.updated_at` faqat ZAXIRA yo'l. U yolg'on chiqishi mumkin:
+TP1 dan bir hafta keyin TP2 bo'lsa, `updated_at` ikkinchisiniki
+bo'ladi va TP1 "hozir bo'ldi" deb ko'rinardi.
+
+**Faqat TARQATILGAN signal** — uchala hodisa uchun ham. Signal avval
+obunachilarga boradi. Tarqatilmasidan oldin ochiq oqimda e'lon
+qilinsa, pul to'lamagan odam to'laganidan oldin bilib olardi. Hech
+kimga yuborilmagan signalning natijasi bilan maqtanish esa umuman
+ma'nosiz.
 
 **Post matnida coin nomi YO'Q.** Dars uchun sarlavha "sotiladigan
 qiymat": nomni bilgan odam darsni ko'rmaydi. Signal boshqacha — bu
 spot, faqat sotib olish, ya'ni "hozir BTC" degan gap signalning
-O'ZI. Tugma `/signallar/{id}` ga olib boradi va u yerda qulf
-ekrani chiqadi.
+O'ZI.
+
+### Qulf har bir foydalanuvchi uchun alohida chiziladi
+
+Post MATNI bazada bitta tilda yozilgan va hammaga bir xil. Qulf
+belgisi, "obuna bo'ling" chaqirig'i va tugma esa OQIM CHIZILAYOTGANDA
+hisoblanadi:
+
+| kim | tugma | qayerga |
+|---|---|---|
+| obunachi | "Signalni ochish" | `/signallar/{id}` |
+| bepul | "Obuna bo'lish" | `/profil` |
+
+Bepul foydalanuvchini signal sahifasiga yuborish bo'sh va'da
+bo'lardi — u yerda baribir qulf ekrani chiqadi.
+
+Qulflangan turlar ro'yxati (`SIGNAL_MANBALARI`) **modulda** turadi,
+chizuvchida emas: yangi tur qo'shilib, chizuvchida unutilsa,
+qulflangan xabar ochiq post kabi ko'rinardi. Test buni qulflaydi.
+
+Yorliq faqat ikonka emas, **matn bilan** ("Signal · qulflangan"):
+yolg'iz ikonkaning ma'nosini har kim o'zicha tushunardi.
 
 **Uch kunlik oyna.** Qoida yoqilgan kunda bazada o'nlab eski signal
 turibdi; oynasiz birinchi ochilishda oqim o'shalar bilan to'lardi.

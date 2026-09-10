@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 
 import { bazadanNusxa } from "./nusxa.ts";
@@ -7,6 +9,8 @@ const vaqtinchalik = bazadanNusxa("hcs-avtopost-");
 process.env.DATABASE_URL = `sqlite+aiosqlite:///${vaqtinchalik}`;
 
 const {
+  SIGNAL_MANBALARI,
+  signalgaAloqador,
   isoHafta,
   haftaBoshi,
   otganHafta,
@@ -148,9 +152,25 @@ function signalQos(k: {
   return Number(n.lastInsertRowid);
 }
 
+/** Signal hodisasi — aniq VAQT shu jadvaldan olinadi. */
+function hodisaQos(signalId: number, hodisa: string, vaqt: Date) {
+  const v = vaqtSatri(vaqt);
+  db()
+    .prepare(
+      `insert into signal_events (signal_id, event, price, created_at, updated_at)
+       values (?, ?, 100, ?, ?)`,
+    )
+    .run(signalId, hodisa, v, v);
+}
+
 function tozala() {
   db().exec(
-    `delete from homepage_posts where source_kind in ('signal','hisobot')`,
+    `delete from signal_events where signal_id in
+       (select id from signals where symbol = 'TEST')`,
+  );
+  db().exec(
+    `delete from homepage_posts
+      where source_kind in ('signal','tp1','tp2','hisobot')`,
   );
   db().exec(`delete from signals where symbol = 'TEST'`);
 }
@@ -247,4 +267,125 @@ test("yig'uvchi chaqiruv xato otmaydi", () => {
   assert.equal(typeof natija.signal, "number");
   assert.equal(typeof natija.hisobot, "boolean");
   tozala();
+});
+
+// --------------------------------------------------------------------------- //
+//  TP hodisalari — "nishonga yetdi" postlari
+// --------------------------------------------------------------------------- //
+
+test("TP1 va yakuniy nishon uchun alohida post yoziladi", () => {
+  tozala();
+  const id = signalQos({
+    broadcast: new Date("2026-09-08T09:00:00Z"),
+    status: "tp2_hit",
+    closed: new Date("2026-09-09T08:00:00Z"),
+    natija: 6,
+    tp1: true,
+  });
+  hodisaQos(id, "tp1_hit", new Date("2026-09-09T07:00:00Z"));
+  hodisaQos(id, "tp2_hit", new Date("2026-09-09T08:00:00Z"));
+
+  // Uchtasi: yangi signal + TP1 + yakuniy nishon
+  assert.equal(signalPostlari(HOZIR), 3);
+  assert.equal(signalPostlari(HOZIR), 0, "postlar takrorlandi");
+
+  const turlari = boshPostlar(50)
+    .filter((p) => p.manbaId === id)
+    .map((p) => p.manbaTuri)
+    .sort();
+  assert.deepEqual(turlari, ["signal", "tp1", "tp2"]);
+  tozala();
+});
+
+/** Hech kimga yuborilmagan signalning natijasi bilan maqtanish
+ *  ma'nosiz — va u obunachilar ko'rmagan savdo bo'lardi. */
+test("tarqatilmagan signalning TP si ham e'lon qilinmaydi", () => {
+  tozala();
+  const id = signalQos({
+    broadcast: null,
+    status: "tp2_hit",
+    closed: new Date("2026-09-09T08:00:00Z"),
+    tp1: true,
+  });
+  hodisaQos(id, "tp1_hit", new Date("2026-09-09T07:00:00Z"));
+  assert.equal(signalPostlari(HOZIR), 0);
+  tozala();
+});
+
+/** Hodisa VAQTI audit izidan olinadi, `updated_at` dan emas. Aks
+ *  holda bir hafta oldin TP1 ga tekkan signal bugun TP2 ga tekkanda
+ *  "TP1 hozir bo'ldi" degan post chiqardi. */
+test("eski TP hodisasi uchun post yozilmaydi", () => {
+  tozala();
+  const id = signalQos({
+    broadcast: new Date("2026-09-08T09:00:00Z"),
+    status: "tp2_hit",
+    closed: new Date("2026-09-09T08:00:00Z"),
+    tp1: true,
+  });
+  hodisaQos(id, "tp1_hit", new Date("2026-08-20T07:00:00Z")); // ancha oldin
+  hodisaQos(id, "tp2_hit", new Date("2026-09-09T08:00:00Z"));
+
+  signalPostlari(HOZIR);
+  const turlari = boshPostlar(50)
+    .filter((p) => p.manbaId === id)
+    .map((p) => p.manbaTuri)
+    .sort();
+  assert.deepEqual(turlari, ["signal", "tp2"], "eski TP1 posti yozilib qoldi");
+  tozala();
+});
+
+test("TP postlarida ham coin nomi YO'Q", () => {
+  tozala();
+  const id = signalQos({
+    broadcast: new Date("2026-09-08T09:00:00Z"),
+    status: "tp2_hit",
+    closed: new Date("2026-09-09T08:00:00Z"),
+    tp1: true,
+  });
+  hodisaQos(id, "tp1_hit", new Date("2026-09-09T07:00:00Z"));
+  hodisaQos(id, "tp2_hit", new Date("2026-09-09T08:00:00Z"));
+  signalPostlari(HOZIR);
+
+  for (const p of boshPostlar(50).filter((x) => x.manbaId === id)) {
+    assert.doesNotMatch(
+      p.matn ?? "",
+      /TEST/,
+      `${p.manbaTuri} da coin nomi bor`,
+    );
+  }
+  tozala();
+});
+
+// --------------------------------------------------------------------------- //
+//  Qulf
+// --------------------------------------------------------------------------- //
+
+test("signalga aloqador turlar qulflangan deb belgilanadi", () => {
+  for (const m of SIGNAL_MANBALARI) assert.equal(signalgaAloqador(m), true);
+  for (const m of ["qolda", "dars", "maqola", "hisobot"]) {
+    assert.equal(signalgaAloqador(m), false, `${m} noto'g'ri qulflandi`);
+  }
+});
+
+/** Har bir qulflangan turning O'Z belgisi bo'lsin.
+ *
+ * Ro'yxatga qo'shilib, chizuvchida unutilsa, post belgisiz chiqardi
+ * va uning signalga aloqadorligi ko'rinmasdi. */
+test("har bir signal turining belgisi bor", () => {
+  const chizuvchi = readFileSync(
+    path.join(
+      import.meta.dirname,
+      "..",
+      "src",
+      "app",
+      "(ichki)",
+      "bosh",
+      "page.tsx",
+    ),
+    "utf8",
+  );
+  for (const m of SIGNAL_MANBALARI) {
+    assert.match(chizuvchi, new RegExp(`\\n\\s*${m}: "`), `${m} belgisi yo'q`);
+  }
 });

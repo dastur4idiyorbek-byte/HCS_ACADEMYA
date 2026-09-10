@@ -1701,7 +1701,7 @@ export type BoshPost = {
   mediaTuri: "image" | "audio" | null;
   yaratilgan: Date | null;
   /** `qolda` — admin yozgan. Qolgani avtomatik: `dars`, `maqola`,
-   *  `signal`, `hisobot`. */
+   *  `signal`, `tp1`, `tp2`, `hisobot`. */
   manbaTuri: string;
   /** Avtomatik post qaysi yozuv haqida. Qo'lda yozilganda `null`. */
   manbaId: number | null;
@@ -1833,7 +1833,7 @@ export function vidjetTanloviSaqla(
 //  Avtomatik postlar
 // --------------------------------------------------------------------------- //
 
-/** Avtomatik post — dars, maqola, signal yoki hisobot yaratilganda.
+/** Avtomatik post — dars, maqola, signal hodisasi yoki hisobot uchun.
  *
  * BIR MANBA — BIR POST. Takrorlanishni BAZA to'sadi (`uq_post_manba`
  * unique indeksi), kod emas: kod unutishi mumkin, baza unutmaydi.
@@ -1842,7 +1842,7 @@ export function vidjetTanloviSaqla(
  * oqimi) buni xato deb hisoblab, butun amalni bekor qilmasligi kerak.
  */
 export function avtomatikPost(
-  manbaTuri: "dars" | "maqola" | "signal" | "hisobot",
+  manbaTuri: "dars" | "maqola" | "signal" | "tp1" | "tp2" | "hisobot",
   manbaId: number,
   matn: string,
   havola: string,
