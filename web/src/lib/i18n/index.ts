@@ -85,6 +85,9 @@ export function kalkulyatorMatnlari(t: (kalit: string) => string) {
     kalk_qolda: t("signal.kalk_qolda"),
     kalk_kutilmoqda: t("signal.kalk_kutilmoqda"),
     kalk_eng_yomon: t("signal.kalk_eng_yomon"),
+    // TP qatorini boshqarish — faqat mustaqil kalkulyatorda ko'rinadi.
+    tp_qosh: t("signal.kalk_tp_qosh"),
+    tp_olib: t("signal.kalk_tp_olib"),
   };
 }
 

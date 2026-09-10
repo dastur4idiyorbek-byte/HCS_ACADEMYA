@@ -90,6 +90,18 @@ export const MENYU: MenyuBandi[] = [
     talab: null,
     tezKunda: true,
   },
+  // KALKULYATOR — HAMMAGA OCHIQ (`talab: null`).
+  //
+  // Nega obuna talab qilinmaydi: bu yerda loyihaning hech qanday
+  // tahlili yo'q. Foydalanuvchi o'z raqamlarini yozadi, hisob esa
+  // brauzerda bo'ladi — sotiladigan narsa emas, foydali asbob.
+  {
+    kod: "kalkulyator",
+    yol: "/kalkulyator",
+    kalit: "kalk.menyu",
+    belgi: "kalkulyator",
+    talab: null,
+  },
   {
     kod: "statistika",
     yol: "/statistika",
@@ -156,7 +168,7 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "produkt",
     kalit: "pastki.produkt",
-    sahifalar: ["signallar", "statistika"],
+    sahifalar: ["signallar", "kalkulyator", "statistika"],
   },
   {
     kod: "kabinet",

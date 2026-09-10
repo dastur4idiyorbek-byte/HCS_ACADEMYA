@@ -286,3 +286,34 @@ test("olingan TP belgisi natijada saqlanadi", () => {
     [true, false],
   );
 });
+
+// --------------------------------------------------------------------------- //
+//  OCO ulushlari — loyiha egasining talabi (2026-09-10)
+// --------------------------------------------------------------------------- //
+
+test("TP1 ga 50% berilsa, qolgan 50% keyingi nishonlarga o'tadi", () => {
+  // Talab shu so'zlar bilan aytilgan: "agar 1 pga 50 qolsa keyingi
+  // tpga 50 qolish kerak". Ikki nishonda javob bitta:
+  assert.deepEqual(ulushlarniTengla([50, 50], 0, 50), [50, 50]);
+  assert.deepEqual(ulushlarniTengla([70, 30], 0, 50), [50, 50]);
+
+  // Uch nishonda qolgan 50% qolganlariga NISBATAN bo'linadi.
+  // Teng turgan bo'lsa — teng, ya'ni 25/25.
+  assert.deepEqual(ulushlarniTengla([33.33, 33.33, 33.34], 0, 50), [50, 25, 25]);
+
+  // Yig'indi HAR DOIM 100 — kalkulyatorning butun ma'nosi shunda.
+  for (const boshlangich of [
+    [50, 50],
+    [33.33, 33.33, 33.34],
+    [25, 25, 25, 25],
+  ]) {
+    for (const qiymat of [0, 10, 50, 99.9, 100]) {
+      const natija = ulushlarniTengla(boshlangich, 0, qiymat);
+      const jami = natija.reduce((s, x) => s + x, 0);
+      assert.ok(
+        Math.abs(jami - 100) < 1e-6,
+        `${boshlangich.length} ta nishon, TP1=${qiymat} -> jami ${jami}`,
+      );
+    }
+  }
+});

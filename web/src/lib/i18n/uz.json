@@ -226,7 +226,9 @@
     "rasm_natija": "Yakuniy natija",
     "kutilmoqda": "Limit kutilmoqda — narx hali kirish nuqtasiga yetmadi",
     "kutilmoqda_izoh": "Bu signal aynan shu narxga tushishini kutish uchun berilgan. Hozircha hech narsa qilish kerak emas: narx kirish nuqtasiga yetganda signal faollashadi.",
-    "qoldi": "Kirish nuqtasigacha"
+    "qoldi": "Kirish nuqtasigacha",
+    "kalk_tp_qosh": "TP qo'shish",
+    "kalk_tp_olib": "Oxirgisini olib tashlash"
   },
   "statistika": {
     "sarlavha": "Statistika",
@@ -570,5 +572,14 @@
     "tasnif_yaxshi": "Yaxshi",
     "toxtatilgan": "To'xtatilgan",
     "signal_toxtatildi": "Avtomatik signal 2026-09-10 dan beri TO'XTATILGAN. Zanjir har 4 soatda coinlarni tekshirishda davom etadi va natijani shu yerda ko'rsatadi, lekin signal yozilmaydi — to'rtta mustaqil o'lchov signallarning zarar keltirishini ko'rsatdi. Qaror va raqamlar loyiha hujjatlarida ochiq."
+  },
+  "kalk": {
+    "sarlavha": "Trading kalkulyatori",
+    "izoh": "Raqamlarni o'zingiz yozasiz. Tizim hech narsa tavsiya qilmaydi va hech qayerga yozmaydi — hisob brauzeringizda bo'ladi.",
+    "aktiv": "Coin (masalan BTC)",
+    "oco_sarlavha": "OCO — Stop va nishonlar",
+    "oco_izoh": "Ulush foizlari O'ZI moslashadi: TP1 ga 50% yozsangiz, qolgan 50% keyingi nishonlarga bo'linadi. Yig'indi doim 100% bo'lib qoladi.",
+    "menyu": "Kalkulyator",
+    "hisob": "Hisob-kitob"
   }
 }

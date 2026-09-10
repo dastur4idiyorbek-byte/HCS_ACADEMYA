@@ -30,6 +30,17 @@ type Matnli = { narx: string; ulush: string };
 const uslub =
   "border-ramka-yumshoq rounded-tugma bg-fon raqam w-full border px-3 py-2 text-sm";
 
+/** Boshlang'ich narx maydoni.
+ *
+ * NOL — BO'SH MAYDON, "0" EMAS. Mustaqil kalkulyatorda narxlar
+ * berilmaydi: foydalanuvchi ularni o'zi yozadi. Maydonda "0" turib
+ * qolsa, uni avval o'chirish kerak bo'lardi — va "0" narx ko'rinishida
+ * turib, hisobni jimgina buzardi. Signal sahifasida bu holat
+ * uchramaydi: u yerda narxlar doim musbat. */
+function boshlangichNarx(n: number): string {
+  return n > 0 ? narxMatni(n) : "";
+}
+
 export function Kalkulyator({
   symbol,
   kotirovka = "USDT",
@@ -38,6 +49,7 @@ export function Kalkulyator({
   tpNarxlari,
   olinganTplar,
   boshlangichSumma,
+  tpBoshqaruvi = false,
   matnlar,
 }: {
   symbol: string;
@@ -56,6 +68,14 @@ export function Kalkulyator({
   /** Boshlang'ich summa — TIZIM TAKLIFI (balans va Stop masofasidan).
    *  Berilmasa 1000 qo'yiladi: bu faqat balans kiritilmagan holat. */
   boshlangichSumma?: number | null;
+  /** TP qatorini qo'shish/olib tashlash tugmalari ko'rinsinmi.
+   *
+   *  SIGNAL SAHIFASIDA — YO'Q. U yerda TP soni signalning O'ZIDAN
+   *  keladi va uni o'zgartirish "boshqa signalni hisoblash" bo'lardi.
+   *
+   *  MUSTAQIL KALKULYATORDA — HA. U yerda savdo foydalanuvchiniki,
+   *  ya'ni nechta nishon qo'yishni ham o'zi hal qiladi. */
+  tpBoshqaruvi?: boolean;
   matnlar: Record<string, string>;
 }) {
   const aktiv = asosiyAktiv(symbol, kotirovka);
@@ -71,12 +91,12 @@ export function Kalkulyator({
   // `String(entry)` EMAS: bazadagi son `0.8294354680460917` boʻlib
   // chiqishi mumkin va maydonda shundayligicha turardi — uni oʻqib ham,
   // tahrirlab ham boʻlmaydi.
-  const [kirish, setKirish] = useState(() => narxMatni(entry));
-  const [stopMatn, setStopMatn] = useState(() => narxMatni(stop));
+  const [kirish, setKirish] = useState(() => boshlangichNarx(entry));
+  const [stopMatn, setStopMatn] = useState(() => boshlangichNarx(stop));
   const [tplar, setTplar] = useState<Matnli[]>(() => {
     const ulushlar = tengUlushlar(tpNarxlari.length);
     return tpNarxlari.map((n, i) => ({
-      narx: narxMatni(n),
+      narx: boshlangichNarx(n),
       ulush: String(ulushlar[i]),
     }));
   });
@@ -126,6 +146,30 @@ export function Kalkulyator({
         narx: t.narx,
         ulush: j === i ? qiymat : String(yangilari[j]),
       }));
+    });
+
+  /** Yangi TP qatori — ulushlar QAYTA TENG bo'linadi.
+   *
+   * NEGA TENG: yangi nishonga qancha ulush berishni bilmaymiz, va
+   * uni nolga qo'yish "bu TP da hech narsa sotilmaydi" degan
+   * ma'noni berardi — foydalanuvchi esa aynan sotish uchun qo'shdi.
+   * Teng bo'lish — eng kam taxminli boshlang'ich. Uni keyin bitta
+   * raqam yozib o'zgartirsa, qolganlari o'zi moslashadi. */
+  const tpQosh = () =>
+    setTplar((oldingi) => {
+      const narxlar = [...oldingi.map((t) => t.narx), ""];
+      const yangilari = tengUlushlar(narxlar.length);
+      return narxlar.map((narx, i) => ({ narx, ulush: String(yangilari[i]) }));
+    });
+
+  /** Oxirgi TP ni olib tashlaydi. Bitta TP doim qoladi: nishonsiz
+   *  kalkulyator hech narsa hisoblamaydi. */
+  const tpOlib = () =>
+    setTplar((oldingi) => {
+      if (oldingi.length <= 1) return oldingi;
+      const qolgan = oldingi.slice(0, -1);
+      const yangilari = tengUlushlar(qolgan.length);
+      return qolgan.map((t, i) => ({ narx: t.narx, ulush: String(yangilari[i]) }));
     });
 
   // Nol uchun belgi qo'yilmaydi: breakeven Stopda "+$0.00" degan yozuv
@@ -217,6 +261,26 @@ export function Kalkulyator({
             </label>
           </div>
         ))}
+
+        {tpBoshqaruvi && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={tpQosh}
+              className="border-ramka-yumshoq rounded-tugma hover:bg-panel-yorqin border px-3 py-1.5 text-sm"
+            >
+              + {matnlar.tp_qosh}
+            </button>
+            <button
+              type="button"
+              onClick={tpOlib}
+              disabled={tplar.length <= 1}
+              className="border-ramka-yumshoq rounded-tugma hover:bg-panel-yorqin border px-3 py-1.5 text-sm disabled:opacity-40"
+            >
+              − {matnlar.tp_olib}
+            </button>
+          </div>
+        )}
       </div>
 
       {hisob && (
