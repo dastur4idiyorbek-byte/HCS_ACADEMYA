@@ -528,6 +528,40 @@ class SignalRepository:
         )
         return list((await self._session.execute(stmt)).scalars())
 
+    async def oxirgi_signallar(self) -> dict[str, SignalRecord]:
+        """Har bir coin uchun ENG OXIRGI signal.
+
+        NIMA UCHUN KERAK. Zanjir sikli 4 soatda bir marta yuradi va
+        struktura o'sha vaqtda odatda O'ZGARMAYDI — zona ham, swing
+        nuqtalari ham o'sha. Ya'ni sikl bir xil darajalar bilan
+        yangi signal yozaverardi.
+
+        Ochiq signal tekshiruvi buni to'smasdi: signal YOPILGAN
+        (masalan bekor qilingan) bo'lsa, coin darrov yana "bo'sh"
+        bo'lib qolardi va keyingi siklda o'sha signal qaytadan
+        tug'ilardi.
+
+        Ro'yxat kichik (kuzatiladigan coinlar soni), shuning uchun
+        hammasi bitta so'rovda olinadi va Python tomonida
+        guruhlanadi — har coin uchun alohida so'rov yubormaslik
+        uchun.
+        """
+        # `id` HAM tartibga qo'shiladi. `created_at` bir soniya
+        # aniqligida yoziladi va bitta sikl ichida bir necha signal
+        # AYNAN bir xil vaqtga tushishi mumkin — o'shanda faqat
+        # `created_at` bo'yicha tartib noaniq bo'lardi va "oxirgi"
+        # deb tasodifiy yozuv qaytardi. Test aynan shu holatni
+        # ushladi.
+        stmt = select(SignalRecord).order_by(
+            SignalRecord.created_at.desc(), SignalRecord.id.desc()
+        )
+        natija: dict[str, SignalRecord] = {}
+        for yozuv in (await self._session.execute(stmt)).scalars():
+            kalit = yozuv.symbol.upper()
+            if kalit not in natija:
+                natija[kalit] = yozuv
+        return natija
+
     async def recent(self, limit: int = 10) -> list[SignalRecord]:
         stmt = select(SignalRecord).order_by(SignalRecord.created_at.desc()).limit(limit)
         return list((await self._session.execute(stmt)).scalars())

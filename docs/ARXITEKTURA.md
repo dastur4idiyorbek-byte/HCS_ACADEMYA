@@ -6202,3 +6202,69 @@ qo'yardi — o'sha yerda ular bitta tugmaga yig'iladi.
 U tasdiq kutayotgan joy va **ko'rinib** turishi kerak. Tugma ortiga
 yashirilsa, "TASDIQLASH KUTILMOQDA" yorlig'ini hech kim ko'rmasdi.
 Shuning uchun u ijtimoiy tarmoqlar bilan birga oqim oxirida qoldi.
+
+---
+
+## 99. JONLI TIZIM O'LIK SIGNAL BERARDI — IKKI XATO (2026-09-10)
+
+Loyiha egasi signallar ro'yxatini ko'rsatdi: **~90 foizi "Bekor
+qilingan"**, va bitta coin bitta foiz bilan o'nlab marta
+takrorlangan. Uning taxmini to'g'ri chiqdi — muammo kirish
+darajasida edi.
+
+### 1-xato: nishon allaqachon ortda
+
+`darajalar_qur` TP larni **entry**dan yuqoridagi swinglardan
+quradi, **joriy narxdan** emas. Narx zonadan ancha yuqorida
+bo'lsa, TP1 narxning orqasida qolishi mumkin.
+
+Nima bo'lardi:
+
+    entry = 104 (zona yuqori cheti)
+    TP1   = 112
+    narx  = 120        <-- TP1 dan YUQORI
+
+Signal LIMIT bo'lib yoziladi, kuzatuvchi esa **birinchi
+shamdayoq** "narx TP1 ga kirilmasdan yetdi" deb bekor qiladi.
+Ya'ni signal tug'ilganda uning yagona yakuni allaqachon ma'lum
+edi.
+
+Bu holat kod bilan qayta ishlab chiqarildi, keyin
+`darajalar_qur` ichida rad etish qo'shildi. **Bu yangi filtr
+emas** — bajarilishi mumkin bo'lmagan signalni rad etish;
+bajariladigan birorta signal ham bundan yo'qolmaydi.
+
+Rad etish `darajalar_qur` ning O'ZIDA, chaqiruvchida emas:
+jonli sikl ham, backtest ham shu funksiyani chaqiradi va qoida
+ikkalasida bir xil bo'lishi shart.
+
+### 2-xato: o'sha zona qayta-qayta signal berardi
+
+Sikl 4 soatda bir marta yuradi, struktura esa odatda o'shancha
+vaqtda o'zgarmaydi: zona ham, swing nuqtalari ham o'sha.
+
+"Bitta coinda ikkita signal bo'lmaydi" tekshiruvi buni
+to'smasdi — u faqat **OCHIQ** signalga qarardi. Signal yopilgan
+bo'lsa (masalan bekor qilingan), coin darrov yana "bo'sh"
+bo'lardi va keyingi siklda o'sha signal qaytadan tug'ilardi.
+Kuniga olti marta.
+
+Endi sikl har coinning oxirgi signalini oladi va darajalar
+(entry + TP1) aynan o'sha bo'lsa, signal yozmaydi. **Yangi
+zona — yangi signal**: faqat aynan takror to'siladi.
+
+### Test topgan uchinchi zaiflik
+
+`oxirgi_signallar()` avval faqat `created_at` bo'yicha
+tartiblardi. `created_at` bir soniya aniqligida yoziladi va
+bitta sikl ichida bir necha signal aynan bir xil vaqtga
+tushishi mumkin — o'shanda "oxirgi" deb **tasodifiy** yozuv
+qaytardi. Test aynan shu holatni ushladi; tartibga `id` ham
+qo'shildi.
+
+### O'lchanmagan qism
+
+Backtest qayta yugurtirilmagan. Signal soni kamayadi —
+qanchaga, noma'lum. PF sezilarli o'zgarmasligi kerak: bekor
+qilingan signallar backtestda ham savdo sifatida sanalmagan.
+`docs/GIPOTEZA_DAFTARI.md` ga yozildi.

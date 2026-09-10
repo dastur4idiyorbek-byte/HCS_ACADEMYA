@@ -59,6 +59,8 @@ class SiklNatijasi:
 
     tekshirildi: int = 0
     ochiq_sababli_otkazildi: int = 0
+    #: Darajalari oldingi signal bilan bir xil chiqqan coinlar
+    takror_zona: int = 0
     yangi_signallar: list[tuple[str, int]] = field(default_factory=list)
     uzilishlar: dict[str, int] = field(default_factory=dict)
     daraja_radlari: dict[str, int] = field(default_factory=dict)
@@ -72,6 +74,10 @@ class SiklNatijasi:
         if self.ochiq_sababli_otkazildi:
             qatorlar.append(
                 f"Ochiq signali bor: {self.ochiq_sababli_otkazildi} coin o'tkazildi"
+            )
+        if self.takror_zona:
+            qatorlar.append(
+                f"O'sha zona takrorlandi: {self.takror_zona} coin o'tkazildi"
             )
         for nom, soni in sorted(self.uzilishlar.items(), key=lambda x: -x[1]):
             qatorlar.append(f"   zanjir uzildi — {nom}: {soni}")
@@ -100,7 +106,14 @@ class ZanjirSikl:
         natija = SiklNatijasi()
 
         async with self._db.session() as session:
-            ochiq = {y.symbol.upper() for y in await SignalRepository(session).open_signals()}
+            repo = SignalRepository(session)
+            ochiq = {y.symbol.upper() for y in await repo.open_signals()}
+            # Har coinning ENG OXIRGI signali — "o'sha zona qayta
+            # signal bo'lmasin" tekshiruvi uchun (pastda).
+            oxirgi = {
+                symbol: (y.entry, y.tp1)
+                for symbol, y in (await repo.oxirgi_signallar()).items()
+            }
 
         btc = await self._shamlar("BTC", z.timeframelar.asosiy, ASOSIY_OYNA)
 
@@ -125,7 +138,9 @@ class ZanjirSikl:
                 )
                 continue
             try:
-                holat = await self._bitta_coin(symbol, btc, natija)
+                holat = await self._bitta_coin(
+                    symbol, btc, natija, oxirgi.get(symbol)
+                )
             except Exception as xato:  # noqa: BLE001 — bitta coin butun siklni to'xtatmasin
                 natija.xatolar[symbol] = f"{type(xato).__name__}: {xato}"
                 logger.exception("Zanjir sikli: %s tekshirilmadi", symbol)
@@ -165,7 +180,11 @@ class ZanjirSikl:
             logger.exception("Zanjir holatlari yozilmadi (ekran eskiroq bo'ladi)")
 
     async def _bitta_coin(
-        self, symbol: str, btc: list[Candle], natija: SiklNatijasi
+        self,
+        symbol: str,
+        btc: list[Candle],
+        natija: SiklNatijasi,
+        oxirgi_darajalar: tuple[float, float | None] | None = None,
     ) -> CoinHolati | None:
         """Bitta coinni tekshiradi va EKRAN uchun holatini qaytaradi.
 
@@ -252,6 +271,25 @@ class ZanjirSikl:
             natija.daraja_radlari[sabab] = natija.daraja_radlari.get(sabab, 0) + 1
             return holat("daraja_rad", darajalar.rad_sababi or sabab)
 
+        # O'SHA ZONA IKKINCHI MARTA SIGNAL BO'LMAYDI.
+        #
+        # Sikl 4 soatda bir marta yuradi, struktura esa odatda
+        # o'shancha vaqtda o'zgarmaydi: zona ham, swing nuqtalari
+        # ham o'sha. Ochiq signal tekshiruvi buni to'smasdi — signal
+        # YOPILGAN bo'lsa (masalan bekor qilingan), coin darrov yana
+        # "bo'sh" bo'lib qolardi va o'sha signal qaytadan tug'ilardi.
+        #
+        # Jonli oqibati (2026-09-10): bitta coin bitta foiz bilan
+        # ro'yxatda o'nlab marta turardi.
+        #
+        # Bu QAT'IY FILTR EMAS: yangi zona — yangi signal. Faqat
+        # AYNAN o'sha darajalar takrorlanmaydi.
+        if oxirgi_darajalar is not None and _bir_xil_daraja(
+            darajalar, oxirgi_darajalar
+        ):
+            natija.takror_zona += 1
+            return holat("takror_zona", "o'sha darajalar allaqachon signal bo'lgan")
+
         levels = signal_levels(
             entry=darajalar.entry,
             stop=darajalar.stop,
@@ -301,6 +339,35 @@ class ZanjirSikl:
 
     async def _shamlar(self, symbol: str, timeframe: str, oyna: int) -> list[Candle]:
         return await self._provider.fetch_candles(symbol, timeframe, oyna)
+
+
+#: Ikki daraja "bir xil" deb hisoblanadigan nisbiy farq.
+#:
+#: Nol emas: swing nuqtalari bir xil bo'lsa ham, hisob suzuvchi
+#: nuqtada ketadi va oxirgi raqamlarda farq chiqishi mumkin. 0.1% —
+#: har qanday MA'NOLI yangi zonadan ancha kichik.
+TAKROR_CHEGARA = 0.001
+
+
+def _bir_xil_daraja(
+    darajalar, oldingi: tuple[float, float | None]
+) -> bool:  # noqa: ANN001
+    """Yangi darajalar oldingi signalnikiga tengmi.
+
+    ENTRY va TP1 solishtiriladi: ular ikkalasi ham strukturadan
+    keladi va zona o'zgarsa ikkalasi ham o'zgaradi. Stop ni ham
+    qo'shish ortiqcha — u entry va zonadan hosila.
+    """
+    eski_entry, eski_tp1 = oldingi
+    if eski_tp1 is None:
+        return False
+    return _yaqin(darajalar.entry, eski_entry) and _yaqin(darajalar.tplar[0], eski_tp1)
+
+
+def _yaqin(a: float, b: float) -> bool:
+    if b == 0:
+        return a == 0
+    return abs(a - b) / abs(b) < TAKROR_CHEGARA
 
 
 def _blok_holatlari(zanjir) -> tuple[BlokHolati, ...]:  # noqa: ANN001

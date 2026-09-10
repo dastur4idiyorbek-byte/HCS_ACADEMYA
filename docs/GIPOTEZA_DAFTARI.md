@@ -1572,3 +1572,54 @@ Manba halol deydi, lekin ko'pi juda yangi va kam savdoli.
 Kam likvidlikning modulga ta'siri o'lchanmagan, shuning uchun
 ular kiritilmadi. Likvidlik chegarasi o'lchangach qayta
 ko'riladi.
+
+---
+
+## Jonli tizim 2026-09-10 gacha o'lik signal berardi 🔴
+
+**Nima bo'lgan.** Loyiha egasi signallar ro'yxatini ko'rsatdi:
+~90 foizi "Bekor qilingan", va bitta coin bitta foiz bilan
+o'nlab marta takrorlangan (IMX +3.03%, STRK +10.22%).
+
+Ikkita alohida xato:
+
+**1. Nishon allaqachon ortda edi.** `darajalar_qur` TP larni
+ENTRY dan yuqoridagi swinglardan quradi, joriy narxdan emas.
+Narx zonadan ancha yuqorida bo'lsa, TP1 narxning ORQASIDA
+qolardi. Signal LIMIT bo'lib yozilardi, kuzatuvchi esa birinchi
+shamdayoq "narx TP1 ga kirilmasdan yetdi" deb bekor qilardi.
+
+Ya'ni signal tug'ilganda uning yagona yakuni allaqachon
+ma'lum edi.
+
+**2. O'sha zona qayta-qayta signal berardi.** Sikl 4 soatda bir
+marta yuradi, struktura esa odatda o'shancha vaqtda o'zgarmaydi.
+Ochiq signal tekshiruvi buni to'smasdi: signal yopilgan bo'lsa,
+coin darrov yana "bo'sh" bo'lardi.
+
+### O'LCHANMAGAN QISM
+
+Bu ikkisi tuzatildi, lekin **backtest qayta yugurtirilmagan**.
+Nima o'zgarishi kutiladi:
+
+* signal soni kamayadi — qanchaga, NOMA'LUM;
+* PF sezilarli o'zgarmasligi kerak: bekor qilingan signallar
+  backtestda ham savdo sifatida SANALMAGAN (`bajarilmagan`
+  ro'yxatiga tushardi), ya'ni ular PF ga kirmagan;
+* voronka sanoqlari ("nega signal yo'q") o'zgaradi — yangi rad
+  sababi qo'shildi.
+
+🔴 Shu o'lchov qilinmaguncha "signal soni X ga kamaydi" degan
+raqam aytilmaydi.
+
+### Nima TUZATILMADI
+
+Narx entry'dan qancha YUQORIDA bo'lishi mumkinligiga chegara
+YO'Q. `decide_entry_plan` faqat pastki tomonni tekshiradi
+(`ZONA_BUZILDI_PCT`). Ya'ni entry'dan 8% yuqorida turgan narx
+uchun ham LIMIT signal beriladi va u ehtimol bajarilmaydi.
+
+Bu ATAYLAB qo'shilmadi: yuqori chegara qo'yish — signal sonini
+kamaytiradigan YANGI FILTR, loyiha egasining qoidasi esa
+"yangi qat'iy filtr qo'shma". Chegara kerakmi degan savolga
+backtest javob berishi kerak, taxmin emas.

@@ -152,6 +152,39 @@ def test_stop_STRUKTURADAN_olinadi() -> None:
     assert d.entry == 100.0
 
 
+def test_tp1_narxdan_past_bolsa_rad_etiladi() -> None:
+    """SIGNAL O'LIK TUG'ILMASIN.
+
+    TP lar ENTRY dan yuqoridagi swinglardan quriladi, joriy narxdan
+    emas. Narx zonadan ancha yuqorida bo'lsa, birinchi nishon
+    narxning ORQASIDA qolishi mumkin.
+
+    O'shanda signal LIMIT bo'lib yoziladi, kuzatuvchi esa BIRINCHI
+    shamdayoq "narx TP1 ga kirilmasdan yetdi" deb bekor qiladi —
+    ya'ni signal tug'ilganda uning yagona yakuni allaqachon ma'lum
+    edi.
+
+    2026-09-10 da loyiha egasining ekranida signallar ro'yxatining
+    ~90 foizi aynan shunday "Bekor qilingan" edi.
+    """
+    nuqtalar = [
+        Swing(SwingTuri.PAST, 98.0, BOSH, 1),
+        Swing(SwingTuri.YUQORI, 112.0, BOSH, 2),
+        Swing(SwingTuri.YUQORI, 125.0, BOSH, 3),
+    ]
+    zona = Zona(100.0, 104.0, "fib")
+
+    # Narx 120 — TP1 (112) allaqachon ortda qolgan
+    d = darajalar_qur(zona, nuqtalar, 120.0)
+    assert not d.yaroqli
+    assert "nishon allaqachon ortda" in (d.rad_sababi or "")
+
+    # Narx 105 — TP1 hali oldinda, signal YAROQLI
+    ok = darajalar_qur(zona, nuqtalar, 105.0)
+    assert ok.yaroqli, ok.rad_sababi
+    assert ok.tplar[0] == 112.0
+
+
 def test_narx_zonadan_pastda_rad_etiladi() -> None:
     d = darajalar_qur(Zona(95.0, 105.0, "fib"), _nuqtalar(), 90.0)
     assert not d.yaroqli

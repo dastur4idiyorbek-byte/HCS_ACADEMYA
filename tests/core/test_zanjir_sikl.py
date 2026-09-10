@@ -273,3 +273,77 @@ async def test_holat_yozilmasa_ham_sikl_TUGAYDI(config) -> None:  # noqa: ANN001
             )
         ]
     )  # xato ko'tarilmasligi kerak
+
+
+# --------------------------------------------------------------------------- #
+#  O'sha zona ikkinchi marta signal bo'lmaydi (2026-09-10)
+# --------------------------------------------------------------------------- #
+
+
+def test_bir_xil_daraja_takrorlanmaydi() -> None:
+    """Sikl 4 soatda bir marta yuradi, struktura esa o'zgarmaydi.
+
+    Ochiq signal tekshiruvi buni to'smasdi: signal YOPILGAN bo'lsa
+    (masalan bekor qilingan), coin darrov yana "bo'sh" bo'lib
+    qolardi va o'sha signal qaytadan tug'ilardi.
+
+    2026-09-10 da loyiha egasining ekranida bitta coin bitta foiz
+    bilan o'nlab marta turardi.
+    """
+    from core.position.entry_stop_tp import Darajalar
+    from core.services.zanjir_sikl import _bir_xil_daraja
+
+    d = Darajalar(entry=100.0, stop=95.0, tplar=(110.0, 120.0))
+
+    # AYNAN o'sha darajalar — takror
+    assert _bir_xil_daraja(d, (100.0, 110.0))
+    # Suzuvchi nuqta xatosi ham takror deb hisoblanadi
+    assert _bir_xil_daraja(d, (100.00001, 110.00002))
+
+
+def test_yangi_zona_signal_berishga_ruxsat_etiladi() -> None:
+    """Bu QAT'IY FILTR EMAS: zona o'zgarsa, signal beriladi."""
+    from core.position.entry_stop_tp import Darajalar
+    from core.services.zanjir_sikl import _bir_xil_daraja
+
+    d = Darajalar(entry=100.0, stop=95.0, tplar=(110.0, 120.0))
+
+    assert not _bir_xil_daraja(d, (103.0, 110.0)), "entry o'zgardi — yangi signal"
+    assert not _bir_xil_daraja(d, (100.0, 115.0)), "TP1 o'zgardi — yangi signal"
+    # Oldingi signalda TP1 yo'q (eski yozuv) — to'smaydi
+    assert not _bir_xil_daraja(d, (100.0, None))
+
+
+@pytest.mark.asyncio
+async def test_oxirgi_signallar_har_coindan_bittadan_beradi(tmp_path) -> None:  # noqa: ANN001
+    """Repozitoriy har coin uchun ENG YANGI yozuvni qaytaradi."""
+    from core.domain.enums import SignalSource
+    from core.domain.models import signal_levels
+    from core.storage import Database
+    from core.storage.repositories import SignalRepository
+
+    db = Database(f"sqlite+aiosqlite:///{tmp_path}/sinov.db")
+    await db.init_models()
+
+    async with db.session() as session:
+        repo = SignalRepository(session)
+        for tp1 in (110.0, 111.0, 112.0):
+            await repo.create(
+                symbol="TEST",
+                levels=signal_levels(entry=100.0, stop=95.0, tp1=tp1, tp2=tp1 + 10),
+                source=SignalSource.ZANJIR,
+            )
+        await repo.create(
+            symbol="BOSHQA",
+            levels=signal_levels(entry=50.0, stop=45.0, tp1=60.0, tp2=70.0),
+            source=SignalSource.ZANJIR,
+        )
+        await session.commit()
+
+    async with db.session() as session:
+        oxirgi = await SignalRepository(session).oxirgi_signallar()
+
+    assert set(oxirgi) == {"TEST", "BOSHQA"}
+    # Uchtasidan ENG OXIRGISI — eng katta id
+    assert oxirgi["TEST"].tp1 == 112.0
+    await db.dispose()

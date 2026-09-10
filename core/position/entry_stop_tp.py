@@ -136,6 +136,30 @@ def darajalar_qur(
     if not tplar:
         return _rad(zona, "qarshi struktura nuqtasi topilmadi")
 
+    # NISHON ALLAQACHON ORTDA — signal o'lik tug'iladi.
+    #
+    # TP lar ENTRY dan yuqoridagi swinglardan quriladi, joriy
+    # narxdan emas. Narx zonadan ancha yuqorida bo'lsa, birinchi
+    # nishon narxning ORQASIDA qolishi mumkin.
+    #
+    # Nima bo'lardi: signal LIMIT bo'lib yoziladi, kuzatuvchi esa
+    # BIRINCHI shamdayoq "narx TP1 ga kirilmasdan yetdi" deb bekor
+    # qiladi. Ya'ni signal tug'ilganda uning yagona yakuni
+    # allaqachon ma'lum edi.
+    #
+    # Jonli oqibati (2026-09-10, loyiha egasining ekrani): signallar
+    # ro'yxatining ~90 foizi "Bekor qilingan" edi va bir xil coin
+    # bir xil foiz bilan o'nlab marta takrorlanardi.
+    #
+    # Bu YANGI FILTR EMAS — bajarilishi MUMKIN BO'LMAGAN signalni
+    # rad etish. Bajariladigan birorta signal ham bundan yo'qolmaydi.
+    if tplar[0] <= joriy_narx:
+        return _rad(
+            zona,
+            f"TP1 ({tplar[0]:.6g}) joriy narxdan ({joriy_narx:.6g}) past — "
+            "nishon allaqachon ortda",
+        )
+
     nisbat = (tplar[0] - entry) / (entry - stop)
     if nisbat < eng_kam_nisbat:
         return _rad(zona, f"TP1/Stop nisbati past ({nisbat:.2f})")
