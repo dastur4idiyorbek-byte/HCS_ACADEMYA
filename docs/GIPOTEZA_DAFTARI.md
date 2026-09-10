@@ -1597,20 +1597,20 @@ marta yuradi, struktura esa odatda o'shancha vaqtda o'zgarmaydi.
 Ochiq signal tekshiruvi buni to'smasdi: signal yopilgan bo'lsa,
 coin darrov yana "bo'sh" bo'lardi.
 
-### O'LCHANMAGAN QISM
+### O'LCHANDI (2026-09-10)
 
-Bu ikkisi tuzatildi, lekin **backtest qayta yugurtirilmagan**.
-Nima o'zgarishi kutiladi:
+Actions 93303020009, 12 coin, 730 kun, A/B bitta yugurishda:
 
-* signal soni kamayadi — qanchaga, NOMA'LUM;
-* PF sezilarli o'zgarmasligi kerak: bekor qilingan signallar
-  backtestda ham savdo sifatida SANALMAGAN (`bajarilmagan`
-  ro'yxatiga tushardi), ya'ni ular PF ga kirmagan;
-* voronka sanoqlari ("nega signal yo'q") o'zgaradi — yangi rad
-  sababi qo'shildi.
+| konfiguratsiya | signal | foydali | PF | jami% |
+|---|---|---|---|---|
+| nishon qoidasi YO'Q | 66 | 34.8% | 1.03 | +3.2% |
+| nishon qoidasi BILAN | 64 | 29.7% | 0.90 | −13.4% |
 
-🔴 Shu o'lchov qilinmaguncha "signal soni X ga kamaydi" degan
-raqam aytilmaydi.
+**Qoida savdo soniga atigi 2 ta ta'sir qildi.** Ya'ni u aynan
+o'sha "bekor qilinadigan" oqimni kesdi va boshqa hech narsaga
+tegmadi — kutilgan natija tasdiqlandi.
+
+Tafsilot: `BACKTEST_NATIJA_2026-09-10_nishon.md`.
 
 ### Nima TUZATILMADI
 
@@ -1623,3 +1623,35 @@ Bu ATAYLAB qo'shilmadi: yuqori chegara qo'yish — signal sonini
 kamaytiradigan YANGI FILTR, loyiha egasining qoidasi esa
 "yangi qat'iy filtr qo'shma". Chegara kerakmi degan savolga
 backtest javob berishi kerak, taxmin emas.
+
+
+---
+
+## 🔴 PF 3.49 / 3.50 RAQAMLARI ISHLATILMAYDI
+
+2026-09-04 gacha barcha o'lchovlarda backtest savdoni **darrov
+`entry` narxida ochardi** — narx o'sha yerga umuman tushmagan
+bo'lsa ham. Ya'ni o'lchov bozor bermagan narxda sotib olgandek
+hisoblardi. Bu 2026-09-09 da tuzatildi (`zanjir_engine.py`).
+
+Oqibati (12 coin, 730 kun, bir xil to'plam):
+
+| | Savdo | Foydali | PF |
+|---|---|---|---|
+| 2026-09-04 (limit tekshiruvisiz) | 277 | 68.2% | **3.50** |
+| 2026-09-10 (limit tekshiruvi bilan) | 66 | 34.8% | **1.03** |
+
+277 "savdo"ning ~211 tasi hech qachon ochilmasdi.
+
+Shuning uchun **PF 3.49, PF 3.50, "+770%" va ularga tayangan
+har qanday xulosa bekor qilinadi.** Ular hujjatlarda tarix
+sifatida qoladi, lekin tizimning natijasi deb aytilmaydi.
+
+### Hozirgi haqiqiy holat
+
+PF ≈ 1.0, 66 savdo. Bu — **ustunlik o'lchanmadi** degani, "tizim
+ishlaydi" ham, "ishlamaydi" ham emas: 66 savdoda ikkita savdo
+natijani +3.2% dan −13.4% ga o'zgartiradi. Namuna juda kichik.
+
+O'lchash kerak: uzunroq davr (4 yil), asosiy zanjir bilan
+solishtirish, walk-forward.
