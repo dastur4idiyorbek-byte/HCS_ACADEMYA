@@ -150,6 +150,7 @@ class ZanjirBacktest:
         sigim: bool = False,
         eng_kam_kuch: int = 1,
         alternativ: bool = False,
+        nishon_tekshiruvi: bool = True,
     ) -> None:
         self._config = config
         self._nom = nom
@@ -166,6 +167,10 @@ class ZanjirBacktest:
         # ALTERNATIV ZANJIR: `zanjir_yur_alternativ` — zaif (1/N)
         # blokni alternativ yo'llar bilan qutqaradi.
         self._alternativ = alternativ
+        # NISHON TEKSHIRUVI: "TP1 joriy narxdan yuqorimi".
+        # Sukut YOQIQ — jonli tizim shunday ishlaydi. O'chirish faqat
+        # o'lchov uchun: qoidaning natijaga ta'sirini ko'rish.
+        self._nishon_tekshiruvi = nishon_tekshiruvi
         # ABLATSIYA uchun: nomi shu to'plamda bo'lgan ichki tekshiruv
         # `MALUMOT_YOQ` ga aylantiriladi, ya'ni maxrajdan chiqadi.
         self._ochirilgan = ochirilgan_tekshiruvlar
@@ -263,6 +268,7 @@ class ZanjirBacktest:
                     eng_kop_tp=z.darajalar.tp_eng_kop,
                     eng_kam_oraliq_pct=z.darajalar.tp_eng_kam_oraliq_pct,
                     likvidlik_bufer_pct=z.darajalar.stop_likvidlik_bufer_pct,
+                    nishon_narxdan_yuqori=self._nishon_tekshiruvi,
                 )
                 if not darajalar.yaroqli:
                     sabab = _sabab_turi(darajalar.rad_sababi)

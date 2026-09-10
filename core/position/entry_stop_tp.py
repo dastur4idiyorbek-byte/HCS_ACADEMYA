@@ -104,6 +104,7 @@ def darajalar_qur(
     eng_kop_tp: int = TP_ENG_KOP,
     eng_kam_oraliq_pct: float = TP_ENG_KAM_ORALIQ_PCT,
     likvidlik_bufer_pct: float = STOP_LIKVIDLIK_BUFER_PCT,
+    nishon_narxdan_yuqori: bool = True,
 ) -> Darajalar:
     """Zona va struktura nuqtalaridan darajalarni quradi.
 
@@ -153,7 +154,11 @@ def darajalar_qur(
     #
     # Bu YANGI FILTR EMAS — bajarilishi MUMKIN BO'LMAGAN signalni
     # rad etish. Bajariladigan birorta signal ham bundan yo'qolmaydi.
-    if tplar[0] <= joriy_narx:
+    #
+    # `nishon_narxdan_yuqori=False` — qoida O'CHIQ. Faqat O'LCHOV
+    # uchun: qoidasiz va qoida bilan natijani yonma-yon ko'rish.
+    # Jonli tizim va backtest sukut bo'yicha YOQIQ ishlatadi.
+    if nishon_narxdan_yuqori and tplar[0] <= joriy_narx:
         return _rad(
             zona,
             f"TP1 ({tplar[0]:.6g}) joriy narxdan ({joriy_narx:.6g}) past — "
