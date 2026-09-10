@@ -33,9 +33,18 @@ def _sxema(db_yoli: Path) -> dict:
             if not nom.startswith(("alembic", "sqlite_"))
         )
         for nom in jadvallar:
+            # PRAGMA table_info: (cid, name, type, notnull, dflt_value, pk).
+            #
+            # STANDART QIYMAT (`dflt_value`, 4-o'rin) SHU YERDA BO'LISHI
+            # SHART. Ilgari uning o'rniga `pk` (5-o'rin) solishtirilardi
+            # va test 12 ta ustunning ajralib ketganini ko'rmay o'tgan:
+            # modelda `server_default` bor, migratsiyada yo'q edi.
+            # SQLAlchemy bunday ustunni INSERT ga qo'shmaydi — qiymatni
+            # baza qo'yadi deb hisoblaydi — va serverdagi yozuv
+            # `NOT NULL constraint failed` bilan yiqilardi.
             natija[nom] = {
                 "ustunlar": {
-                    qator[1]: (qator[2], bool(qator[3]), qator[5])
+                    qator[1]: (qator[2], bool(qator[3]), qator[4], qator[5])
                     for qator in ulanish.execute(f"PRAGMA table_info('{nom}')")
                 },
                 "indekslar": sorted(

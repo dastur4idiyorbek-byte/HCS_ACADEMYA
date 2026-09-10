@@ -22,6 +22,24 @@ const {
 } = await import("../src/lib/queries.ts");
 const { savdoQoidalari } = await import("../src/lib/config.ts");
 
+// SINOV FOYDALANUVCHISI SHU YERDA YARATILADI.
+//
+// Pozitsiya va balans testlari `id = 1` li odamni talab qiladi.
+// Ilgari u hech qayerda yaratilmasdi — ishlab chiqish bazasida
+// tasodifan mavjud edi, xolos. CI esa bazani `scripts.seed` bilan
+// noldan quradi, u yerda foydalanuvchi yo'q va o'sha to'rt test
+// `FOREIGN KEY constraint failed` bilan yiqilardi.
+//
+// `or ignore` — ishlab chiqish bazasida qator allaqachon bor,
+// unda bu qator hech narsa qilmaydi.
+db()
+  .prepare(
+    `insert or ignore into users
+       (id, telegram_id, username, role, language, is_blocked)
+     values (1, 5000001, 'sinov', 'user', 'uz', 0)`,
+  )
+  .run();
+
 const YAXSHI = {
   symbol: "BTC",
   entry: 100,

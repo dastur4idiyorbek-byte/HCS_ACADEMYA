@@ -23,6 +23,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -206,7 +207,9 @@ class ContentProgress(Base, TimestampMixin):
         ForeignKey("content.id", ondelete="CASCADE"), index=True, nullable=False
     )
     #: 0 dan 100 gacha.
-    percent: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    percent: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
 
 
 class UserWidget(Base, TimestampMixin):
@@ -239,7 +242,9 @@ class UserWidget(Base, TimestampMixin):
     #: Vidjet kodi — `web/src/lib/vidjetlar.ts` dagi ro'yxatdan.
     widget: Mapped[str] = mapped_column(String(32), nullable=False)
     #: Kichik raqam tepada turadi.
-    position: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    position: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
 
 
 class Violation(Base, TimestampMixin):
@@ -352,11 +357,15 @@ class SignalRecord(Base, TimestampMixin):
     #: WEAKENING ga o'zgartiradi — ikkala holatda ham "TP1 olingan edi"
     #: fakti YO'QOLADI. U esa natijani hisoblashda kerak: TP1 da
     #: pozitsiyaning bir qismi allaqachon sotilgan.
-    tp1_reached: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tp1_reached: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
     #: Nechta TP ga yetilgan. `tp1_reached` "kamida bittasi" degan
     #: savolga javob beradi va u saqlanadi — eski yozuvlar va
     #: hisobotlar unga tayanadi.
-    reached_tps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    reached_tps: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
 
     # 3.8-band: "yolg'on signal" — faol bo'lgach 1 soat ichida Stop
     is_false_signal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -583,9 +592,13 @@ class CapitalBlock(Base, TimestampMixin):
     #: Bo'lakning hajmi — balans / bo'lak soni
     hajm_usd: Mapped[float] = mapped_column(Float, nullable=False)
     #: Ochiq pozitsiyalarga ketgan pul
-    band_kapital_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    band_kapital_usd: Mapped[float] = mapped_column(
+        Float, default=0.0, server_default="0", nullable=False
+    )
     #: O'sha pozitsiyalarda XAVF ostidagi pul (Stop ursa yo'qoladi)
-    band_xavf_usd: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    band_xavf_usd: Mapped[float] = mapped_column(
+        Float, default=0.0, server_default="0", nullable=False
+    )
 
     __table_args__ = (UniqueConstraint("user_id", "raqam", name="user_bolak"),)
 
@@ -623,7 +636,9 @@ class PositionExit(Base, TimestampMixin):
     #: Foyda (musbat) yoki zarar (manfiy)
     natija_usd: Mapped[float] = mapped_column(Float, nullable=False)
     #: `tp`, `stop`, `stop (TP1 dan keyin)`, `muddat`
-    sabab: Mapped[str] = mapped_column(String(64), default="", nullable=False)
+    sabab: Mapped[str] = mapped_column(
+        String(64), default="", server_default="", nullable=False
+    )
     yopilgan_vaqt: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
 
     __table_args__ = (
@@ -666,7 +681,7 @@ class HomepagePost(Base, TimestampMixin):
     #: Post qayerdan kelgan: `qolda` yoki avtomatik (`dars`, `maqola`,
     #: `signal`, `hisobot`).
     source_kind: Mapped[str] = mapped_column(
-        String(16), default="qolda", nullable=False
+        String(16), default="qolda", server_default="qolda", nullable=False
     )
     #: Avtomatik post qaysi yozuv haqida. Qo'lda yozilganda `None`.
     source_id: Mapped[int | None] = mapped_column(Integer)
@@ -730,16 +745,22 @@ class ZanjirHolati(Base, TimestampMixin):
     #: Bloklar JSON ro'yxati: nom, kuch, maxraj, o'tdimi, o'lchanmadimi, to'siq
     bloklar_json: Mapped[str] = mapped_column(Text, nullable=False)
     #: To'rtala blok bog'landimi
-    toliq: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    toliq: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
     #: Zanjir qaysi blokda uzildi (`None` — uzilmagan)
     uzildi_blokda: Mapped[str | None] = mapped_column(String(64))
-    ishonch: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    ishonch: Mapped[float] = mapped_column(
+        Float, default=0.0, server_default="0", nullable=False
+    )
 
     #: `signal`, `zanjir_uzildi`, `ishonch_past`, `daraja_rad`,
     #: `ochiq_signal`, `xato` — yugurishning yakuni
     natija: Mapped[str] = mapped_column(String(32), nullable=False)
     #: Yakunning tafsiloti (masalan qaysi daraja qoidasi rad etdi)
-    izoh: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    izoh: Mapped[str] = mapped_column(
+        Text, default="", server_default="", nullable=False
+    )
     #: Signal chiqqan bo'lsa — uning raqami
     signal_id: Mapped[int | None] = mapped_column(
         ForeignKey("signals.id", ondelete="SET NULL")

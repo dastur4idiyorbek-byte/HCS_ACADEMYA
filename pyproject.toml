@@ -5,6 +5,20 @@ description = "HALOL CRYPTO SAVDO — halol kripto spot savdo signallari va avto
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
+# LOYIHA ILDIZI import yo'liga qo'shiladi.
+#
+# Ansiz `pytest` (to'g'ridan-to'g'ri chaqirilganda) `core` ni
+# TOPA OLMAYDI va conftest yuklanishidayoq yiqiladi:
+#
+#     ModuleNotFoundError: No module named 'core.config'
+#
+# `python -m pytest` esa ishlaydi, chunki `-m` joriy jildni
+# yo'lga o'zi qo'shadi. Ya'ni bir xil kod ikki xil chaqiruvda
+# ikki xil natija berardi — va GitHub Actions aynan ishlamaydigan
+# variantni ishlatardi (`.github/workflows/testlar.yml`).
+#
+# Bu qator ikkala yo'lni ham ishlatadi.
+pythonpath = ["."]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

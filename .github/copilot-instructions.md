@@ -101,8 +101,11 @@ Python o'zgarsa:
 
 `ruff format` NI YURITMA. Loyiha undan foydalanmaydi va u 78 ta
 faylni qayta yozib, o'zgarishingizni ko'rinmas qilib yuboradi.
-`pytest` esa `python -m` bilan chaqiriladi — to'g'ridan-to'g'ri
-`.venv/bin/pytest` yo'llarni topmaydi.
+
+`pytest` ni ikkala usulda ham chaqirsa bo'ladi: `pyproject.toml`
+dagi `pythonpath = ["."]` loyiha ildizini yo'lga qo'shadi. Ilgari
+faqat `python -m pytest` ishlardi va GitHub Actions aynan
+ishlamaydigan variantni ishlatib turardi.
 
 Sayt o'zgarsa:
 
