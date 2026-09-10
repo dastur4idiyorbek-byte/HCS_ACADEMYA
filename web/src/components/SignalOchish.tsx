@@ -7,6 +7,7 @@ import { Himoya } from "@/components/Himoya";
 import { Kalkulyator } from "@/components/Kalkulyator";
 import { SignalKartochka } from "@/components/SignalKartochka";
 import { birjaJuftligi } from "@/lib/kalkulyator";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Signallar RO'YXATIDA grafik va kalkulyatorni ochadigan tugma.
  *
@@ -83,7 +84,8 @@ export function SignalOchish({
         >
           ›
         </span>
-        📈 {matnlar.ochish}
+        <Ikonka nom="signallar" className="inline h-4 w-4 align-[-3px]" />{" "}
+        {matnlar.ochish}
       </button>
 
       {ochiq && (

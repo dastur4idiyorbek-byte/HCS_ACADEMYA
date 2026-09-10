@@ -5,6 +5,7 @@ import { sana } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import { zanjirHolatlari } from "@/lib/queries";
 import { kirim } from "@/lib/session";
+import { Ikonka } from "@/components/ui/Ikonka";
 import {
   salomatlikIndeksi,
   xulosaHisobla,
@@ -13,7 +14,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** ⛓️ Jonli Blok Zanjiri — admin monitori (4-prompt, 3-qism).
+/** Jonli Blok Zanjiri — admin monitori (4-prompt, 3-qism).
  *
  * Eski "👨‍🍳 Jonli Oshxona" eski tahlil moduli bilan birga o'chirilgan
  * edi (`pipeline_events` jadvali ham). Bu — o'sha ekranning YANGI
@@ -38,7 +39,10 @@ export default async function AdminZanjir() {
   if (coinlar.length === 0) {
     return (
       <Card>
-        <CardTitle>⛓️ {t("zanjir.sarlavha")}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Ikonka nom="zanjir" />
+          {t("zanjir.sarlavha")}
+        </CardTitle>
         <p className="text-matn-past mt-2 text-sm">{t("zanjir.hali_yoq")}</p>
         <CardHint className="mt-2">{t("zanjir.hali_yoq_izoh")}</CardHint>
       </Card>
@@ -49,7 +53,10 @@ export default async function AdminZanjir() {
     <div className="space-y-5">
       <Card variant="urgu">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>⛓️ {t("zanjir.sarlavha")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="zanjir" />
+            {t("zanjir.sarlavha")}
+          </CardTitle>
           <Badge tone="neytral">{sana(xulosa.oxirgi)}</Badge>
         </div>
 

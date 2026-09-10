@@ -5,6 +5,7 @@ import {
   type BlokKorinishi,
   type CoinZanjiri,
 } from "@/lib/zanjir";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Bitta coinning to'rt blokli zanjiri — animatsion (4-prompt, 3-qism).
  *
@@ -35,12 +36,23 @@ const USLUB: Record<BlokKorinishi, string> = {
   tekshirilmagan: "border-ramka-yumshoq/50 bg-transparent text-matn-past/50",
 };
 
-const BELGI: Record<BlokKorinishi, string> = {
-  toliq: "🟩",
-  qisman: "🟨",
-  uzilgan: "🟥",
-  olchanmadi: "⬜",
-  tekshirilmagan: "·",
+/** Blok holati -> nuqta rangi.
+ *
+ * NEGA RANGLI NUQTA, EMOJI EMAS. Ilgari bu yerda 🟩🟨🟥 turardi va
+ * ular tizim ranglari edi: bizning "yaxshi/o'rtacha/past" rangimizga
+ * mos kelmasdi va yonidagi ramka bilan urishardi. Nuqta esa
+ * `currentColor` ni oladi — katakning rangi qanday bo'lsa, nuqta
+ * ham shunday.
+ *
+ * Rang YOLG'IZ ma'no tashimaydi: har katakda blok NOMI ham yozilgan
+ * va ramka uslubi ham farq qiladi (uzilganda to'la, o'lchanmaganda
+ * uzuq chiziq). Rang ko'rmaydigan odam ham o'qiy oladi. */
+const NUQTA: Record<BlokKorinishi, string> = {
+  toliq: "bg-current",
+  qisman: "bg-current opacity-70",
+  uzilgan: "bg-current",
+  olchanmadi: "border border-current bg-transparent",
+  tekshirilmagan: "bg-current opacity-40",
 };
 
 export function BlokZanjiri({ coin }: { coin: CoinZanjiri }) {
@@ -81,8 +93,11 @@ export function BlokZanjiri({ coin }: { coin: CoinZanjiri }) {
               <div className="raqam mt-0.5 text-sm font-bold">
                 {blok && !blok.olchanmadi ? `${blok.kuch}/${blok.maxraj}` : "—"}
               </div>
-              <div aria-hidden className="text-xs">
-                {BELGI[korinish]}
+              <div className="mt-1 flex justify-center">
+                <span
+                  aria-hidden
+                  className={`h-2 w-2 rounded-full ${NUQTA[korinish]}`}
+                />
               </div>
             </div>
           </div>
@@ -95,7 +110,8 @@ export function BlokZanjiri({ coin }: { coin: CoinZanjiri }) {
           className="blok-katak border-yaxshi bg-yaxshi/20 text-yaxshi rounded-tugma flex min-w-[5.5rem] items-center justify-center border px-2.5 py-2 text-sm font-bold"
           style={{ animationDelay: `${BLOK_NOMLARI.length * 160}ms` }}
         >
-          ✅ SIGNAL
+          <Ikonka nom="faol" className="mr-1.5 h-4 w-4" />
+          SIGNAL
         </div>
       )}
     </div>

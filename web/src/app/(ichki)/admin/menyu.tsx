@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import { cn } from "@/lib/cn";
 
 /** Admin bo'limlari orasida o'tish. Gorizontal, chunki ular ko'p emas
@@ -11,7 +12,7 @@ export function AdminYonMenyu({
   bandlar,
   sarlavha,
 }: {
-  bandlar: { yol: string; nom: string; belgi: string }[];
+  bandlar: { yol: string; nom: string; belgi: IkonkaNomi }[];
   sarlavha: string;
 }) {
   const yol = usePathname();
@@ -31,7 +32,7 @@ export function AdminYonMenyu({
                 : "border-ramka-yumshoq hover:bg-panel-yorqin",
             )}
           >
-            <span aria-hidden>{b.belgi}</span>
+            <Ikonka nom={b.belgi} className="h-4 w-4" />
             {b.nom}
           </Link>
         );

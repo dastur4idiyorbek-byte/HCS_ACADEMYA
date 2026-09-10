@@ -11,7 +11,7 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { kechKirishChegarasi, kotirovka, tpUlushlari } from "@/lib/config";
 import { botHavolasi, env } from "@/lib/env";
-import { HOLAT_BELGISI, holatNomi, narx, pul } from "@/lib/format";
+import { holatNomi, narx, pul } from "@/lib/format";
 import { hajmTaklifi } from "@/lib/hajm";
 import { kalkulyatorMatnlari, kartochkaMatnlari, tarjimon } from "@/lib/i18n";
 import { birjaJuftligi } from "@/lib/kalkulyator";
@@ -27,6 +27,7 @@ import { signalRasmlari } from "@/lib/signal-rasm";
 import { kirim } from "@/lib/session";
 
 import { kirdim } from "../amallar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export default async function SignalSahifasi({
   return (
     <>
       <Sarlavha
-        matn={`${HOLAT_BELGISI[signal.status]} ${signal.symbol}`}
+        matn={signal.symbol}
         izoh={holatNomi(signal.status, til)}
         ong={
           signal.score !== null ? (
@@ -106,7 +107,7 @@ export default async function SignalSahifasi({
             stop={stop}
             tplar={signal.tplar}
             ulushlar={tpUlushlari(signal.tplar.length)}
-            buyurtmaMatni={`${signal.entryOrderType === "market" ? "⚡" : "📌"} ${t(buyurtma)}`}
+            buyurtmaMatni={`${t(buyurtma)}`}
             berilgan={signal.createdAt}
             rasmlar={signalRasmlari(signal, t)}
             matnlar={kartochkaMatnlari(t)}
@@ -114,7 +115,8 @@ export default async function SignalSahifasi({
         </Himoya>
 
         <p className="text-matn-past px-1 text-xs leading-relaxed">
-          🔒 {t("signal.himoya_izoh")}
+          <Ikonka nom="qulf" className="inline h-4 w-4 align-[-3px]" />{" "}
+          {t("signal.himoya_izoh")}
         </p>
 
         {/* TP1 olingan: ikki xil odam, ikki xil xabar.
@@ -122,7 +124,10 @@ export default async function SignalSahifasi({
             Kirmagan odamga — to'xtatuvchi yozuv. */}
         {signal.tp1Reached && (
           <Card variant="urgu">
-            <CardTitle>🛡 {t("signal.breakeven_sarlavha")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="himoya" />
+              {t("signal.breakeven_sarlavha")}
+            </CardTitle>
             <p className="mt-2 text-sm leading-relaxed">
               {t("signal.breakeven_izoh")}
             </p>
@@ -138,7 +143,8 @@ export default async function SignalSahifasi({
         {!yangiKirish && !pozitsiya && (
           <div className="border-past/60 bg-past/10 rounded-kartochka border p-4">
             <p className="text-past text-sm font-semibold">
-              ⛔ {t("signal.faol_emas")}
+              <Ikonka nom="bekor" className="inline h-4 w-4 align-[-3px]" />{" "}
+              {t("signal.faol_emas")}
             </p>
             <p className="text-matn-past mt-1 text-sm leading-relaxed">
               {t("signal.faol_emas_izoh")}
@@ -173,7 +179,10 @@ export default async function SignalSahifasi({
             topmaydi — chalkashlik aynan shu yerdan boshlanardi. */}
         {foydalanuvchi && yangiKirish && balans === null && (
           <Card variant="urgu">
-            <CardTitle>💰 {t("portfel.balans_kerak")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="pul" />
+              {t("portfel.balans_kerak")}
+            </CardTitle>
             <CardHint>{t("portfel.balans_kerak_izoh")}</CardHint>
             <div className="mt-3">
               <Button href="/portfel">{t("portfel.balans_yangi")}</Button>
@@ -183,12 +192,16 @@ export default async function SignalSahifasi({
 
         {taklif && (
           <Card>
-            <CardTitle>🧮 {t("signal.taklif_sarlavha")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="kalkulyator" />
+              {t("signal.taklif_sarlavha")}
+            </CardTitle>
             <p className="raqam text-sarlavha mt-1 text-3xl font-bold">
               ${pul(taklif.hajm)}
             </p>
             <p className="text-matn-past raqam mt-1 text-sm">
-              📉 {t("signal.taklif_xavf")}: −${pul(taklif.xavf)}
+              <Ikonka nom="stop" className="inline h-4 w-4 align-[-3px]" />{" "}
+              {t("signal.taklif_xavf")}: −${pul(taklif.xavf)}
             </p>
             <CardHint className="mt-2">
               {t("signal.taklif_izoh").replace(
@@ -214,7 +227,10 @@ export default async function SignalSahifasi({
         </div>
 
         <Card>
-          <CardTitle>📈 {t("signal.grafik")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="grafik" />
+            {t("signal.grafik")}
+          </CardTitle>
           <div className="mt-3">
             <Grafik
               symbol={`BINANCE:${birjaJuftligi(signal.symbol, kotirovka())}`}
@@ -241,10 +257,13 @@ export default async function SignalSahifasi({
 
         {foydalanuvchi && (
           <Card>
-            <CardTitle>🖐 {t("signal.kirdim_sarlavha")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="pul" />
+              {t("signal.kirdim_sarlavha")}
+            </CardTitle>
             {pozitsiya ? (
               <p className="text-yaxshi mt-2 text-sm">
-                ✅{" "}
+                <Ikonka nom="tasdiq" className="inline h-4 w-4 align-[-3px]" />{" "}
                 {t("signal.kirdim_bor").replace(
                   "{amount}",
                   pul(pozitsiya.amountUsd),
@@ -296,12 +315,17 @@ export default async function SignalSahifasi({
             )}
             {kirdiMi && !pozitsiya && (
               <p className="text-yaxshi mt-2 text-sm">
-                ✅ {t("signal.kirdim_ok")}
+                <Ikonka nom="tasdiq" className="inline h-4 w-4 align-[-3px]" />{" "}
+                {t("signal.kirdim_ok")}
               </p>
             )}
             {xato && (
               <p className="border-past/60 text-past rounded-kichik mt-2 border px-3 py-2 text-sm">
-                ⚠️ {xato}
+                <Ikonka
+                  nom="ogohlantirish"
+                  className="inline h-4 w-4 align-[-3px]"
+                />{" "}
+                {xato}
               </p>
             )}
           </Card>

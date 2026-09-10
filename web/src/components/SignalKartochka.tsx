@@ -2,6 +2,7 @@ import { JonliNarx } from "@/components/JonliNarx";
 import { Card } from "@/components/ui/Card";
 import { foiz, narx, sana } from "@/lib/format";
 import { birjaJuftligi } from "@/lib/kalkulyator";
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 
 /** Signal kartochkasi — BOTDAGI SHABLONNING AYNAN O'ZI.
  *
@@ -102,9 +103,13 @@ export function SignalKartochka({
           </div>
 
           <div className="border-ramka/50 mt-3 space-y-1.5 border-t border-b py-3">
-            <Qator belgi="💠" nom={matnlar.kirish} qiymat={narx(entry)} />
             <Qator
-              belgi="🛑"
+              belgi="kirish_zonasi"
+              nom={matnlar.kirish}
+              qiymat={narx(entry)}
+            />
+            <Qator
+              belgi="stop"
               nom={matnlar.stop}
               qiymat={narx(stop)}
               ozgarish={oz(stop)}
@@ -113,7 +118,7 @@ export function SignalKartochka({
             {tplar.map((tp, i) => (
               <Qator
                 key={`tp${i + 1}`}
-                belgi="🎯"
+                belgi="tp"
                 nom={`TP${i + 1}`}
                 qiymat={narx(tp)}
                 ozgarish={oz(tp)}
@@ -127,7 +132,11 @@ export function SignalKartochka({
           yuboriladi va o'zgarmaydi, sayt esa jonli ko'rsata oladi. */}
           <dl className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <dt className="text-matn-past text-xs uppercase">
-              📊 {matnlar.hozir}
+              <Ikonka
+                nom="statistika"
+                className="inline h-3.5 w-3.5 align-[-2px]"
+              />{" "}
+              {matnlar.hozir}
             </dt>
             <dd>
               <JonliNarx
@@ -139,7 +148,8 @@ export function SignalKartochka({
 
           <dl className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <dt className="text-matn-past text-xs uppercase">
-              ⚖️ {matnlar.nisbat}
+              <Ikonka nom="tahlillar" className="inline h-4 w-4 align-[-3px]" />{" "}
+              {matnlar.nisbat}
             </dt>
             <dd className="raqam text-sarlavha font-semibold">
               {nisbat === null ? "—" : `1 : ${nisbat.toFixed(2)}`}
@@ -147,10 +157,11 @@ export function SignalKartochka({
           </dl>
 
           <p className="text-matn-past mt-3 text-xs leading-relaxed">
-            🔸 {matnlar.stop_izoh}
+            {matnlar.stop_izoh}
           </p>
           <p className="text-matn-past raqam mt-1 text-xs">
-            🗓 {sana(berilgan)} UTC
+            <Ikonka nom="muddat" className="inline h-4 w-4 align-[-3px]" />{" "}
+            {sana(berilgan)} UTC
           </p>
         </div>
       </div>
@@ -166,7 +177,7 @@ function Qator({
   ulush,
   tone,
 }: {
-  belgi: string;
+  belgi: IkonkaNomi;
   nom: string;
   qiymat: string;
   ozgarish?: number;
@@ -177,7 +188,7 @@ function Qator({
     tone === "past" ? "text-past" : tone === "yaxshi" ? "text-yaxshi" : "";
   return (
     <div className="flex items-baseline gap-2 text-sm">
-      <span aria-hidden>{belgi}</span>
+      <Ikonka nom={belgi} className="h-4 w-4 self-center" />
       <span className="text-matn-past w-14 shrink-0">{nom}</span>
       {/* Narx o'ngga tekislanadi: to'rt qator bir ustunda tursin —
           botdagi monoshirift blok bilan bir xil o'qiladi. */}

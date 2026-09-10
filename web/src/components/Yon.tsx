@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 
@@ -22,7 +23,7 @@ export function Yon({
   bandlar: {
     yol: string;
     nom: string;
-    belgi: string;
+    belgi: IkonkaNomi;
     qulf: boolean;
     tezKunda: boolean;
   }[];
@@ -48,16 +49,14 @@ export function Yon({
                 : "hover:bg-panel-yorqin border-transparent",
             )}
           >
-            <span aria-hidden className="w-5 text-center text-base">
-              {b.belgi}
-            </span>
+            <Ikonka nom={b.belgi} />
             <span className="flex-1">{b.nom}</span>
             {b.tezKunda && (
-              <span className="text-matn-past text-[10px] uppercase">
-                soon
-              </span>
+              <span className="text-matn-past text-[10px] uppercase">soon</span>
             )}
-            {b.qulf && !b.tezKunda && <span aria-hidden>🔒</span>}
+            {b.qulf && !b.tezKunda && (
+              <Ikonka nom="qulf" className="text-matn-past h-4 w-4" />
+            )}
           </Link>
         );
       })}

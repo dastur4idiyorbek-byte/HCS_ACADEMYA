@@ -5,7 +5,7 @@ import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { kotirovka } from "@/lib/config";
 import { env } from "@/lib/env";
-import { HOLAT_BELGISI, foiz, holatNomi, narx } from "@/lib/format";
+import { HOLAT_IKONKASI, foiz, holatNomi, narx } from "@/lib/format";
 import { tarjimon } from "@/lib/i18n";
 import { narxlarniOl } from "@/lib/jonli-server";
 import { dashboardQur, type Dashboard } from "@/lib/portfel";
@@ -13,6 +13,7 @@ import { portfelXomAshyosi, pozitsiyalar, tarifQamraydi } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { balansSaqlash } from "./amallar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,11 @@ export default async function Portfel({
 
           {xato && (
             <p className="border-past/60 text-past rounded-kichik mt-2 border px-3 py-2 text-sm">
-              ⚠️ {xato}
+              <Ikonka
+                nom="ogohlantirish"
+                className="inline h-4 w-4 align-[-3px]"
+              />{" "}
+              {xato}
             </p>
           )}
           <CardHint className="mt-2">{t("portfel.balans_bosh")}</CardHint>
@@ -216,7 +221,7 @@ function Natija({ d, t }: { d: Dashboard; t: (k: string) => string }) {
           {/* "Narx olinmadi" ni YASHIRMAYMIZ — u nol emas. */}
           {d.baholanmaganSoni > 0 && (
             <p className="text-matn-past mt-1 text-sm">
-              ❓ {d.baholanmaganSoni} {t("portfel.narx_yoq")}
+              {d.baholanmaganSoni} {t("portfel.narx_yoq")}
             </p>
           )}
         </>
@@ -230,7 +235,8 @@ function Natija({ d, t }: { d: Dashboard; t: (k: string) => string }) {
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm">
             {d.bandBolaklar.length > 0 && (
               <Badge tone="neytral">
-                🔒 {t("portfel.bolak_band")}: {d.bandBolaklar.join(", ")}
+                <Ikonka nom="qulf" className="inline h-4 w-4 align-[-3px]" />{" "}
+                {t("portfel.bolak_band")}: {d.bandBolaklar.join(", ")}
               </Badge>
             )}
             {d.boshBolaklar.length > 0 && (
@@ -260,7 +266,7 @@ function Qator({
   return (
     <div className="border-ramka-yumshoq bg-panel rounded-kartochka border p-3.5">
       <div className="flex items-center gap-2">
-        <span aria-hidden>{HOLAT_BELGISI[p.signalStatus]}</span>
+        <Ikonka nom={HOLAT_IKONKASI[p.signalStatus]} />
         <span className="text-sarlavha flex-1 font-semibold">{p.symbol}</span>
         <Badge
           tone={

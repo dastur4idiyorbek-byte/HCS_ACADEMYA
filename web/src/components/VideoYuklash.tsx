@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Admin panelda video faylni yuklash.
  *
@@ -99,7 +100,8 @@ export function VideoYuklash({
 
       {xato && (
         <p className="border-past/60 text-past rounded-kichik mt-2 border px-3 py-2 text-sm">
-          ⚠️ {xato}
+          <Ikonka nom="ogohlantirish" className="inline h-4 w-4 align-[-3px]" />{" "}
+          {xato}
         </p>
       )}
     </div>

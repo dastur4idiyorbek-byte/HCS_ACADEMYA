@@ -6,6 +6,7 @@ import { type Havola, IKONKALAR, barchaHavolalar } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { havolaOchirish, havolaSaqlash } from "../amallar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,14 @@ export default async function Havolalar() {
 
   return (
     <>
-      <Sarlavha
-        matn={`🔗 ${t("admin.havolalar")}`}
-        izoh={t("admin.havola_izoh")}
-      />
+      <Sarlavha matn={t("admin.havolalar")} izoh={t("admin.havola_izoh")} />
 
       <div className="space-y-5">
         <Card variant="urgu">
-          <CardTitle>➕ {t("admin.yangi_havola")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="qosh" />
+            {t("admin.yangi_havola")}
+          </CardTitle>
           <HavolaFormasi t={t} />
         </Card>
 

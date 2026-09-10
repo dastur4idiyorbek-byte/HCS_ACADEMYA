@@ -1,4 +1,5 @@
 import type { SignalHolati } from "@/lib/queries";
+import type { IkonkaNomi } from "@/components/ui/Ikonka";
 
 /** Kripto narxlari juda har xil kattalikda: BTC ~60000, SHIB ~0.000008.
  *  Qat'iy 2 xona qo'ysak, arzon coinlar "0.00" bo'lib ko'rinadi. */
@@ -34,7 +35,10 @@ export function sana(d: Date | null): string {
   return d.toISOString().slice(0, 16).replace("T", " ");
 }
 
-/** Botdagi `_STATUS_EMOJI` bilan bir xil — har belgi BITTA ma'noda. */
+/** Botdagi `_STATUS_EMOJI` bilan bir xil — har belgi BITTA ma'noda.
+ *
+ * TELEGRAM UCHUN qoladi: bot SVG chiza olmaydi, u faqat emoji
+ * yubora oladi. Saytda esa `HOLAT_IKONKASI` ishlatiladi. */
 export const HOLAT_BELGISI: Record<SignalHolati, string> = {
   pending: "⏳",
   active: "🟢",
@@ -44,6 +48,26 @@ export const HOLAT_BELGISI: Record<SignalHolati, string> = {
   weakening: "⚠️",
   cancelled: "⛔",
   timed_out: "⏱",
+};
+
+/** Saytdagi ko'rinish — HCS ikonka to'plamidan.
+ *
+ * NEGA EMOJIDAN AJRATILDI. Emoji har platformada boshqacha
+ * chiziladi va rangi tizimniki: bizning ko'k-turkuaz palitramizga
+ * bo'ysunmaydi. Botda esa boshqa yo'l yo'q — shuning uchun ikkita
+ * jadval, ikkisi ham BIR XIL ma'noni beradi.
+ *
+ * `weakening` va `timed_out` uchun ogohlantirish/soat: ikkalasi ham
+ * "signal yakunlanmadi, lekin nimadir noto'g'ri ketdi" degani. */
+export const HOLAT_IKONKASI: Record<SignalHolati, IkonkaNomi> = {
+  pending: "kutilmoqda",
+  active: "faol",
+  tp1_hit: "tp",
+  tp2_hit: "tp",
+  stopped: "stop",
+  weakening: "zaiflashmoqda",
+  cancelled: "bekor",
+  timed_out: "kutilmoqda",
 };
 
 export const HOLAT_NOMI: Record<SignalHolati, string> = {

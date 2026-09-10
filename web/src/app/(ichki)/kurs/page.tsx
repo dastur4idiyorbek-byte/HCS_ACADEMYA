@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/Badge";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { tarjimon } from "@/lib/i18n";
@@ -15,7 +16,10 @@ export default async function Kurs() {
         ong={<Badge tone="ortacha">{t("kontent.tez_kunda")}</Badge>}
       />
       <Card variant="urgu">
-        <CardTitle>🎓 {t("kontent.tez_kunda")}</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Ikonka nom="kurs" />
+          {t("kontent.tez_kunda")}
+        </CardTitle>
         <CardHint>{t("kontent.kurs_izoh")}</CardHint>
       </Card>
     </>

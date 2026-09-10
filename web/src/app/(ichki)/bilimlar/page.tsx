@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { oqishVaqti } from "@/lib/akademiya";
@@ -45,7 +46,12 @@ export default async function Bilimlar() {
               >
                 <CardTitle>
                   {m.title}
-                  {qulf && <span aria-hidden> 🔒</span>}
+                  {qulf && (
+                    <Ikonka
+                      nom="qulf"
+                      className="ml-1 inline h-4 w-4 align-[-3px]"
+                    />
+                  )}
                 </CardTitle>
                 {m.description && (
                   <p className="text-matn-past mt-2 text-sm leading-relaxed">

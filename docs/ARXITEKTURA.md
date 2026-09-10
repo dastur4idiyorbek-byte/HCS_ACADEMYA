@@ -6083,3 +6083,71 @@ yana bitta ishlab turishi kerak bo'lgan qism bo'lardi.
 
 Yig'uvchi chaqiruv **hech qachon xato otmaydi**. Post yozilmagani —
 kichik yo'qotish, bosh sahifaning ochilmagani — katta.
+
+---
+
+## 97. HCS IKONKA TIZIMI (2026-09-10)
+
+Sayt emoji bilan ishlardi: 🏠 🎬 📈 🔒 🎯. Loyiha egasi butun
+to'plamni brend uslubida chizib berdi va u kodga ko'chirildi —
+`web/src/components/ui/Ikonka.tsx`.
+
+### Nima uchun emoji tashlandi
+
+**Har platformada boshqacha.** Emoji shriftni tizim beradi:
+Androidda bir xil, iPhone'da boshqacha, Windows'da uchinchi xil.
+Dizayn bir joyda chiroyli, ikkinchisida buzuq chiqardi.
+
+**Rangi bizniki emas.** Emoji o'z rangi bilan keladi va uni
+o'zgartirib bo'lmaydi. Bizning ko'k-turkuaz palitramizga
+bo'ysunmasdi, qorong'i fonda ba'zilari umuman ko'rinmasdi, va faol
+tab bilan nofaol tab bir xil ko'rinardi.
+
+SVG esa `currentColor` ni meros oladi: ikonka qaysi matn rangida
+tursa, o'sha rangda chiziladi — faol yorqin, nofaol xira,
+qo'shimcha kodsiz.
+
+### Qoidalar
+
+Hammasi **24×24 to'rda**, chiziq (`stroke`) bilan, yumaloq uchli.
+Yangi ikonka shu qoidaga bo'ysunishi shart — aks holda to'plam "bir
+joydan yig'ilgan" ko'rinishini yo'qotadi.
+
+Nom **ma'no bo'yicha** (`sektorlar`), shakl bo'yicha emas
+(`layers`): ertaga sektor ikonkasi boshqa shaklga o'zgarsa, uni
+chaqirgan yigirmata joy o'zgarmasligi kerak.
+
+O'lcham **CSS dan** (`className="h-5 w-5"`), `width`/`height`
+atributidan emas — aks holda o'lcham ikki joyda yozilib, ular
+bir-biriga zid bo'lardi.
+
+`aria-hidden` — **standart** holat: ikonka deyarli doim matn yonida
+turadi va ekran o'qigich uni ikkinchi marta aytishi kerak emas.
+Yolg'iz turgan ikonkaga `nomi` beriladi va u `<title>` ga aylanadi.
+
+### Bitta ISTISNO — Telegram
+
+`lib/format.ts` dagi `HOLAT_BELGISI` emoji bo'lib qoladi: bot SVG
+chiza olmaydi, u faqat emoji yubora oladi. Sayt uchun esa yonida
+`HOLAT_IKONKASI` turadi. Ikkita jadval, ikkisi ham BIR XIL ma'noni
+beradi — bu takrorlanish emas, ikki xil muhitning talabi.
+
+### Test emojini qaytarib qo'ymaydi
+
+`tests/ikonka.test.ts` butun `src/` ni skanerlaydi va interfeys
+kodida emoji topilsa yiqiladi (izohlar va Telegram jadvali
+hisobga olinmaydi). Ansiz bitta shoshilinch tuzatish to'plamni asta
+buzib borardi.
+
+Test yana ikkita narsani qulflaydi: menyudagi har bir bandning
+ikonkasi mavjudligini va pastki navdagi jadval to'liqligini —
+`Record<string, ...>` har qanday kalitni qabul qiladi, ya'ni TypeScript
+u yerda yordam bermaydi va yetishmagan tab telefonda BO'SH JOY
+bilan chiqardi.
+
+### Zanjir bloklaridagi rangli kvadratchalar
+
+🟩🟨🟥 o'rniga `currentColor` oladigan nuqta. Rang YOLG'IZ ma'no
+tashimaydi: har katakda blok nomi yozilgan va ramka uslubi ham farq
+qiladi (uzilganda to'la, o'lchanmaganda uzuq chiziq) — rang
+ko'rmaydigan odam ham o'qiy oladi.

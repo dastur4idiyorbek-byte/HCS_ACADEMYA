@@ -1,6 +1,7 @@
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
-import { type Havola, type Ikonka } from "@/lib/queries";
+import { type Havola, type Ikonka as HavolaTuri } from "@/lib/queries";
 import { type Til, tarjimon } from "@/lib/i18n";
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 
 /** Ijtimoiy tarmoq havolalari — bosh sahifa pastida.
  *
@@ -8,11 +9,16 @@ import { type Til, tarjimon } from "@/lib/i18n";
  * uchun yangi kanal qo'shish uchun kodga tegish shart emas.
  */
 
-const BELGI: Record<Ikonka, string> = {
-  telegram: "✈️",
-  instagram: "📷",
-  youtube: "▶️",
-  web: "🔗",
+/** Havola turi -> HCS ikonkasi.
+ *
+ * `Ikonka` nomi bazadagi TUR uchun ham ishlatilgan (`queries.ts`),
+ * shuning uchun u bu yerda `HavolaTuri` deb chaqiriladi — ikkita
+ * "Ikonka" bitta faylda chalkashtirardi. */
+const BELGI: Record<HavolaTuri, IkonkaNomi> = {
+  telegram: "telegram",
+  instagram: "instagram",
+  youtube: "youtube",
+  web: "havolalar",
 };
 
 export function Tarmoqlar({
@@ -41,7 +47,7 @@ export function Tarmoqlar({
                 rel="noopener noreferrer"
                 className="border-ramka-yumshoq rounded-tugma hover:bg-panel-yorqin hover:border-ramka flex items-center gap-2 border px-3 py-2 text-sm transition"
               >
-                <span aria-hidden>{BELGI[h.icon]}</span>
+                <Ikonka nom={BELGI[h.icon]} className="h-4 w-4" />
                 {h.title}
               </a>
             </li>

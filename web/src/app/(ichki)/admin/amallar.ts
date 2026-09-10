@@ -52,7 +52,7 @@ export async function tasdiqla(forma: FormData): Promise<void> {
     await xabarYubor(
       env().botToken,
       natija.telegramId,
-      `✅ To'lovingiz tasdiqlandi. Obuna ${sana} (UTC) gacha amal qiladi.`,
+      `To'lovingiz tasdiqlandi. Obuna ${sana} (UTC) gacha amal qiladi.`,
     );
   }
   revalidatePath("/admin");
@@ -69,7 +69,7 @@ export async function radEt(forma: FormData): Promise<void> {
     await xabarYubor(
       env().botToken,
       natija.telegramId,
-      `❌ To'lovingiz rad etildi.\nSabab: ${sabab}`,
+      `To'lovingiz rad etildi.\nSabab: ${sabab}`,
     );
   }
   revalidatePath("/admin");

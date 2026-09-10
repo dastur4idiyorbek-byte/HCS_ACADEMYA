@@ -1,3 +1,4 @@
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Card, CardTitle } from "@/components/ui/Card";
 
 /** Vaqtinchalik holat — bo'lim yangi tahlil moduli bilan qaytadi.
@@ -19,7 +20,7 @@ export function Yangilanmoqda({
     <Card>
       <CardTitle>{sarlavha}</CardTitle>
       <div className="text-matn-past py-8 text-center text-sm">
-        <div className="mb-2 text-3xl">🛠</div>
+        <Ikonka nom="admin" className="text-matn-past mx-auto mb-2 h-8 w-8" />
         <p>{izoh}</p>
       </div>
     </Card>

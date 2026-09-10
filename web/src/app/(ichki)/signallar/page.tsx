@@ -17,7 +17,7 @@ import {
 import { hajmTaklifi } from "@/lib/hajm";
 import { birjaJuftligi } from "@/lib/kalkulyator";
 import { env } from "@/lib/env";
-import { HOLAT_BELGISI, holatNomi, narx } from "@/lib/format";
+import { HOLAT_IKONKASI, holatNomi, narx } from "@/lib/format";
 import { kalkulyatorMatnlari, tarjimon } from "@/lib/i18n";
 import {
   kirishMumkin,
@@ -27,6 +27,7 @@ import {
 } from "@/lib/queries";
 import { signalRasmlari } from "@/lib/signal-rasm";
 import { kirim } from "@/lib/session";
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,10 @@ export default async function Signallar() {
       <>
         <Sarlavha matn={t("signal.sarlavha")} />
         <Card>
-          <CardTitle>🤫 {t("signal.yoq")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="kutilmoqda" />
+            {t("signal.yoq")}
+          </CardTitle>
         </Card>
       </>
     );
@@ -85,9 +89,7 @@ export default async function Signallar() {
                   href={`/signallar/${s.id}`}
                   className="hover:bg-panel-yorqin rounded-tugma -m-1.5 flex items-center gap-3 p-1.5 transition"
                 >
-                  <span aria-hidden className="text-lg">
-                    {HOLAT_BELGISI[s.status]}
-                  </span>
+                  <Ikonka nom={HOLAT_IKONKASI[s.status]} className="h-6 w-6" />
                   <span className="min-w-0 flex-1">
                     <span className="text-sarlavha block font-semibold">
                       {s.symbol}
@@ -132,7 +134,7 @@ export default async function Signallar() {
                 kotirovka={kotirovka()}
                 tp1Ulush={tp1Ulushi()}
                 ulushlar={tpUlushlari(s.tplar.length)}
-                buyurtmaMatni={`${s.entryOrderType === "market" ? "⚡" : "📌"} ${t(
+                buyurtmaMatni={`${t(
                   s.entryOrderType === "market"
                     ? "signal.market"
                     : "signal.limit",
@@ -166,7 +168,7 @@ export default async function Signallar() {
                 href={`/signallar/${s.id}`}
                 className="border-ramka-yumshoq rounded-kartochka hover:bg-panel-yorqin flex items-center gap-3 border p-3 transition"
               >
-                <span aria-hidden>{HOLAT_BELGISI[s.status]}</span>
+                <Ikonka nom={HOLAT_IKONKASI[s.status]} />
                 <span className="min-w-0 flex-1">
                   <span className="text-sarlavha block text-sm font-semibold">
                     {s.symbol}
@@ -189,7 +191,7 @@ export default async function Signallar() {
             {arxiv.slice(0, 20).map((s) => (
               <KechQator
                 key={s.id}
-                belgi={HOLAT_BELGISI[s.status]}
+                belgi={HOLAT_IKONKASI[s.status]}
                 symbol={s.symbol}
                 holat={holatNomi(s.status, til)}
                 natija={s.resultPct}
@@ -243,14 +245,14 @@ function KechQator({
   holat,
   natija,
 }: {
-  belgi: string;
+  belgi: IkonkaNomi;
   symbol: string;
   holat: string;
   natija?: number | null;
 }) {
   return (
     <div className="border-ramka-yumshoq rounded-kartochka flex items-center gap-3 border p-3 opacity-70">
-      <span aria-hidden>{belgi}</span>
+      <Ikonka nom={belgi} />
       <span className="flex-1 text-sm font-medium">{symbol}</span>
       <span className="text-matn-past text-xs">{holat}</span>
       {natija !== undefined && natija !== null && (

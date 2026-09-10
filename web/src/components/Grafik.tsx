@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** TradingView grafigi — rasmiy bepul embed widget.
  *
@@ -84,7 +85,8 @@ export function Grafik({
       {xato && (
         <div className="flex h-full items-center justify-center p-4">
           <p className="text-matn-past max-w-md text-center text-sm leading-relaxed">
-            📉 {xatoMatni}
+            <Ikonka nom="grafik" className="inline h-4 w-4 align-[-3px]" />{" "}
+            {xatoMatni}
           </p>
         </div>
       )}

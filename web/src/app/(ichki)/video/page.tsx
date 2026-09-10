@@ -1,6 +1,7 @@
 import { VideoPleyer } from "@/components/VideoPleyer";
 import { Qulf } from "@/components/ui/Qulf";
 import { Button } from "@/components/ui/Button";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { botHavolasi, env } from "@/lib/env";
@@ -42,7 +43,10 @@ export default async function Video() {
         <div className="space-y-3">
           {darslar.map((d) => (
             <Card key={d.id}>
-              <CardTitle>🎬 {d.title}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Ikonka nom="video" />
+                {d.title}
+              </CardTitle>
               {d.description && <CardHint>{d.description}</CardHint>}
 
               {/* Video saytga yuklangan bo'lsa — shu yerda o'ynaydi.
@@ -55,7 +59,11 @@ export default async function Video() {
                     belgi={`HCS · ${foydalanuvchi?.telegramId ?? "—"}`}
                   />
                   <p className="text-matn-past mt-2 text-xs leading-relaxed">
-                    🔒 {t("kontent.himoya_izoh")}
+                    <Ikonka
+                      nom="qulf"
+                      className="inline h-4 w-4 align-[-3px]"
+                    />{" "}
+                    {t("kontent.himoya_izoh")}
                   </p>
                 </div>
               ) : (

@@ -1,3 +1,4 @@
+import type { IkonkaNomi } from "@/components/ui/Ikonka";
 import type { Tarif } from "@/lib/queries";
 
 /** Menyu bandlari — bitta manba.
@@ -12,7 +13,10 @@ export type MenyuBandi = {
   kod: string;
   yol: string;
   kalit: string;
-  belgi: string;
+  /** HCS ikonka tizimidagi nom (`components/ui/Ikonka.tsx`).
+   *  Emoji EMAS: emoji har platformada boshqacha chiziladi va
+   *  bizning palitramizga bo'ysunmaydi. */
+  belgi: IkonkaNomi;
   /** `null` — hammaga ochiq */
   talab: Tarif | null;
   /** Faqat adminlarga ko'rinadi */
@@ -22,7 +26,7 @@ export type MenyuBandi = {
 };
 
 export const MENYU: MenyuBandi[] = [
-  { kod: "bosh", yol: "/bosh", kalit: "menyu.bosh", belgi: "🏠", talab: null },
+  { kod: "bosh", yol: "/bosh", kalit: "menyu.bosh", belgi: "bosh", talab: null },
   // Bozor holati — BIR sahifada: Bozor Salomatligi indeksi, sektorlar,
   // terminallar va coinlar. Ilgari bu uchga bo'lingan edi, lekin
   // uchalasi bitta savolning bo'laklari: "bozor hozir qanday?".
@@ -37,21 +41,21 @@ export const MENYU: MenyuBandi[] = [
     kod: "holat",
     yol: "/bozor-holati",
     kalit: "menyu.holat",
-    belgi: "🗺",
+    belgi: "bozor_holati",
     talab: null,
   },
   {
     kod: "bozor",
     yol: "/bozor",
     kalit: "menyu.bozor",
-    belgi: "🌍",
+    belgi: "terminal",
     talab: null,
   },
   {
     kod: "signallar",
     yol: "/signallar",
     kalit: "menyu.signallar",
-    belgi: "📈",
+    belgi: "signallar",
     talab: "lite",
   },
   // Akademiya — o'quv bo'limining bosh sahifasi. Video va kurs
@@ -61,28 +65,28 @@ export const MENYU: MenyuBandi[] = [
     kod: "akademiya",
     yol: "/akademiya",
     kalit: "menyu.akademiya",
-    belgi: "🎓",
+    belgi: "akademiya",
     talab: null,
   },
   {
     kod: "video",
     yol: "/video",
     kalit: "menyu.video",
-    belgi: "🎬",
+    belgi: "video",
     talab: "pro",
   },
   {
     kod: "bilimlar",
     yol: "/bilimlar",
     kalit: "akademiya.bilimlar",
-    belgi: "📄",
+    belgi: "maqolalar",
     talab: null,
   },
   {
     kod: "kurs",
     yol: "/kurs",
     kalit: "menyu.kurs",
-    belgi: "🎓",
+    belgi: "kurs",
     talab: null,
     tezKunda: true,
   },
@@ -90,28 +94,28 @@ export const MENYU: MenyuBandi[] = [
     kod: "statistika",
     yol: "/statistika",
     kalit: "menyu.statistika",
-    belgi: "📊",
+    belgi: "statistika",
     talab: "lite",
   },
   {
     kod: "portfel",
     yol: "/portfel",
     kalit: "menyu.portfel",
-    belgi: "💼",
+    belgi: "pul",
     talab: "lite",
   },
   {
     kod: "profil",
     yol: "/profil",
     kalit: "menyu.profil",
-    belgi: "👤",
+    belgi: "kabinet",
     talab: null,
   },
   {
     kod: "admin",
     yol: "/admin",
     kalit: "menyu.admin",
-    belgi: "🛠",
+    belgi: "admin",
     talab: null,
     adminUchun: true,
   },

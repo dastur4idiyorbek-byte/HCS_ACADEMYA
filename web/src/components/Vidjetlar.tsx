@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { qisqaSon } from "@/lib/bozor";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { cn } from "@/lib/cn";
 import type { VidjetKod } from "@/lib/vidjetlar";
 
@@ -55,7 +56,9 @@ function Qobiq({
 }) {
   const ichi = (
     <>
-      <p className="text-matn-past text-[11px] tracking-wide uppercase">{nom}</p>
+      <p className="text-matn-past text-[11px] tracking-wide uppercase">
+        {nom}
+      </p>
       <div className="mt-1.5">{children}</div>
     </>
   );
@@ -64,7 +67,10 @@ function Qobiq({
     "rounded-kartochka border border-white/10 bg-white/[0.02] p-3.5 min-h-[5.5rem] flex flex-col";
 
   return yol ? (
-    <Link href={yol} className={cn(sinf, "hover:border-ramka transition-colors")}>
+    <Link
+      href={yol}
+      className={cn(sinf, "hover:border-ramka transition-colors")}
+    >
       {ichi}
     </Link>
   ) : (
@@ -109,7 +115,10 @@ export function Vidjet({
   if (qulf) {
     return (
       <Qobiq nom={nom} yol="/profil">
-        <p className="text-matn-past text-sm">🔒 {yorliq.qulf}</p>
+        <p className="text-matn-past flex items-center gap-1.5 text-sm">
+          <Ikonka nom="qulf" className="h-4 w-4" />
+          {yorliq.qulf}
+        </p>
       </Qobiq>
     );
   }
@@ -157,7 +166,9 @@ export function Vidjet({
           ) : (
             <>
               <Katta>{malumot.altcoin}</Katta>
-              <p className="text-matn-past mt-1 text-xs">{yorliq.halol_manba}</p>
+              <p className="text-matn-past mt-1 text-xs">
+                {yorliq.halol_manba}
+              </p>
             </>
           )}
         </Qobiq>

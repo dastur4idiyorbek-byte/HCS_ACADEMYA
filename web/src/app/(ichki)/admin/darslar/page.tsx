@@ -7,6 +7,7 @@ import { type Tarif, darslar } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { darsOchirish, darsSaqlash } from "../amallar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function Darslar() {
 
   return (
     <>
-      <Sarlavha matn={`🎬 ${t("admin.darslar")}`} izoh={t("admin.dars_izoh")} />
+      <Sarlavha matn={t("admin.darslar")} izoh={t("admin.dars_izoh")} />
 
       <div className="space-y-5">
         <p className="border-ortacha/60 text-ortacha rounded-kichik border px-3 py-2 text-sm">
@@ -33,12 +34,18 @@ export default async function Darslar() {
             formaga qo'shilsa, yarim maydon doim ortiqcha turardi va
             "buni to'ldirish kerakmi?" degan savol tug'ilardi. */}
         <Card variant="urgu">
-          <CardTitle>➕ {t("admin.yangi_dars")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="qosh" />
+            {t("admin.yangi_dars")}
+          </CardTitle>
           <DarsFormasi t={t} turi="video" />
         </Card>
 
         <Card variant="urgu">
-          <CardTitle>➕ {t("admin.yangi_maqola")}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Ikonka nom="qosh" />
+            {t("admin.yangi_maqola")}
+          </CardTitle>
           <CardHint className="mt-1">{t("admin.maqola_izoh")}</CardHint>
           <DarsFormasi t={t} turi="maqola" />
         </Card>
@@ -51,8 +58,9 @@ export default async function Darslar() {
           royxat.map((d) => (
             <Card key={d.id}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle>
-                  {d.kind === "maqola" ? "📄" : "🎬"} {d.title}
+                <CardTitle className="flex items-center gap-2">
+                  <Ikonka nom={d.kind === "maqola" ? "maqolalar" : "video"} />
+                  {d.title}
                 </CardTitle>
                 <span className="flex flex-wrap items-center gap-2">
                   <Badge tone={d.published ? "yaxshi" : "neytral"}>

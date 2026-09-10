@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { tarjimon } from "@/lib/i18n";
 
 import { signalRasmiBiriktir } from "../amallar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Signal grafigini yuklash — admin (4-prompt, 4-qism).
  *
@@ -132,7 +133,9 @@ function Maydon({
             <input type="hidden" name="id" value={signalId} />
             <input type="hidden" name="maydon" value={maydon} />
             <input type="hidden" name="nom" value={nom} />
-            <Button type="submit">✓</Button>
+            <Button type="submit">
+              <Ikonka nom="tasdiq" className="h-4 w-4" />
+            </Button>
           </form>
         )}
 

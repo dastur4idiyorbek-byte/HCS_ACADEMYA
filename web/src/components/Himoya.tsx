@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { Ikonka } from "@/components/ui/Ikonka";
 import { cn } from "@/lib/cn";
 import { suvBelgisiUslubi } from "@/lib/himoya";
 
@@ -101,7 +102,8 @@ export function Himoya({
       {yashirin && (
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <p className="border-ramka bg-fon rounded-kartochka border px-4 py-3 text-center text-sm">
-            🔒 {ogohlantirish}
+            <Ikonka nom="qulf" className="inline h-4 w-4 align-[-3px]" />{" "}
+            {ogohlantirish}
           </p>
         </div>
       )}

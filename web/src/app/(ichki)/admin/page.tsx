@@ -8,6 +8,7 @@ import { kutilayotganTolovlar } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { radEt, tasdiqla } from "./amallar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -72,9 +73,7 @@ export default async function Admin() {
                       />
                     </a>
                   ) : (
-                    <CardHint className="mt-2">
-                      📎 {t("admin.chek_yoq")}
-                    </CardHint>
+                    <CardHint className="mt-2">{t("admin.chek_yoq")}</CardHint>
                   )}
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -84,7 +83,11 @@ export default async function Admin() {
                         type="submit"
                         className="bg-ramka rounded-tugma px-3 py-2 text-xs font-semibold text-[#0a2450] hover:brightness-110"
                       >
-                        ✅ {t("admin.tasdiqla")}
+                        <Ikonka
+                          nom="tasdiq"
+                          className="inline h-4 w-4 align-[-3px]"
+                        />{" "}
+                        {t("admin.tasdiqla")}
                       </button>
                     </form>
 
@@ -103,7 +106,7 @@ export default async function Admin() {
                         type="submit"
                         className="border-past/70 text-past rounded-tugma border px-3 py-2 text-xs font-semibold"
                       >
-                        ✕
+                        <Ikonka nom="yopish" className="h-4 w-4" />
                       </button>
                     </form>
                   </div>

@@ -7,6 +7,7 @@ import { sana } from "@/lib/format";
 
 import { boshPostOchir } from "../amallar";
 import { PostYuklagich } from "./yuklagich";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,11 @@ export default async function AdminPostlar({
         <CardHint className="mt-1">{t("admin.post_izoh")}</CardHint>
         {xato && (
           <p className="text-past mt-3 text-sm" role="alert">
-            ⚠️ {xato}
+            <Ikonka
+              nom="ogohlantirish"
+              className="inline h-4 w-4 align-[-3px]"
+            />{" "}
+            {xato}
           </p>
         )}
         <PostYuklagich til={til} />

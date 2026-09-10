@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { Ikonka } from "@/components/ui/Ikonka";
 import { cn } from "@/lib/cn";
 
 type Sahifa = {
@@ -61,7 +62,12 @@ export function BolimTablari({ tablar }: { tablar: Tab[] }) {
               )}
             >
               {s.nom}
-              {s.qulf && <span aria-hidden> 🔒</span>}
+              {s.qulf && (
+                <Ikonka
+                  nom="qulf"
+                  className="ml-1 inline h-3.5 w-3.5 align-[-2px]"
+                />
+              )}
               {s.tezKunda && (
                 <span className="text-matn-past ml-1 text-[10px] uppercase">
                   soon

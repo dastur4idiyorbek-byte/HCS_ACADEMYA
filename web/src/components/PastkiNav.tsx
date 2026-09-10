@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import { cn } from "@/lib/cn";
 
 /** Pastki navigatsiya — 5 bo'lim (mobil ilova uslubi).
  *
  * Faqat mobil qurilmalarda ko'rinadi (`lg:hidden`): desktopda yon
- * panel butun menyuni ko'rsatadi. Ikonkalar emoji emas, SVG — emoji
- * platformaga qarab har xil ko'rinadi, SVG esa hamma joyda bir xil
- * va `currentColor` orqali aktiv/nofaol rangni meros oladi.
+ * panel butun menyuni ko'rsatadi. Ikonkalar HCS to'plamidan
+ * (`ui/Ikonka.tsx`) — emoji platformaga qarab har xil ko'rinadi,
+ * SVG esa hamma joyda bir xil va `currentColor` orqali aktiv/nofaol
+ * rangni meros oladi.
  *
  * Har bir tab o'z ASOSIY sahifasiga (`sahifalar[0]`) olib boradi.
  * Tabning HAMMA sahifasi qulf bo'lsa, ikonka burchagida kichik qulf
@@ -18,49 +20,20 @@ import { cn } from "@/lib/cn";
  * faqat rangga tayanilmaydi.
  */
 
-const STROKE = {
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-} as const;
-
-/** Lucide uslubidagi SVG ikonkalar — viewBox 24×24. */
-const IKONKALAR: Record<string, React.ReactNode> = {
-  bosh: (
-    <svg viewBox="0 0 24 24" aria-hidden {...STROKE}>
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  ),
-  bozor: (
-    <svg viewBox="0 0 24 24" aria-hidden {...STROKE}>
-      <path d="M3 3v18h18" />
-      <path d="m19 9-5 5-4-4-3 3" />
-    </svg>
-  ),
-  akademiya: (
-    <svg viewBox="0 0 24 24" aria-hidden {...STROKE}>
-      <path d="M22 10 12 5 2 10l10 5z" />
-      <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" />
-      <path d="M22 10v6" />
-    </svg>
-  ),
-  produkt: (
-    <svg viewBox="0 0 24 24" aria-hidden {...STROKE}>
-      <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
-      <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
-      <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
-      <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
-    </svg>
-  ),
-  kabinet: (
-    <svg viewBox="0 0 24 24" aria-hidden {...STROKE}>
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
+/** Tab kodi -> HCS ikonka tizimidagi nom.
+ *
+ * Ilgari bu yerda ikonkalar O'Z QO'LIDA chizilgan edi. Endi ular
+ * `ui/Ikonka.tsx` da, butun sayt bilan bitta to'plamda: pastki
+ * navdagi "Akademiya" bilan yon paneldagi "Akademiya" bir xil
+ * ko'rinishi kerak, ikki joyda ikki xil chizilsa esa ular asta
+ * ajralib ketardi.
+ */
+const TAB_IKONKASI: Record<string, IkonkaNomi> = {
+  bosh: "bosh",
+  bozor: "bozor_holati",
+  akademiya: "akademiya",
+  produkt: "produkt",
+  kabinet: "kabinet",
 };
 
 export type PastkiSahifa = {
@@ -121,14 +94,15 @@ export function PastkiNav({
                   faol ? "opacity-100" : "opacity-60",
                 )}
               >
-                {IKONKALAR[tab.kod]}
+                <Ikonka
+                  nom={TAB_IKONKASI[tab.kod] ?? "produkt"}
+                  className="h-6 w-6"
+                />
                 {asosiyQulf && (
-                  <span
-                    aria-hidden
-                    className="absolute -right-1 -top-1 text-[9px] leading-none"
-                  >
-                    🔒
-                  </span>
+                  <Ikonka
+                    nom="qulf"
+                    className="bg-fon absolute -top-1 -right-1 h-3 w-3 rounded-full"
+                  />
                 )}
               </span>
               <span className={faol ? "font-semibold" : undefined}>

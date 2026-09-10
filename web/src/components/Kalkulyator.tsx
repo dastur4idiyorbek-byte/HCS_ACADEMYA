@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
+import { Ikonka } from "@/components/ui/Ikonka";
 import {
   ULUSH_JAMI,
   asosiyAktiv,
@@ -142,7 +143,10 @@ export function Kalkulyator({
 
   return (
     <Card>
-      <CardTitle>🧮 {matnlar.sarlavha}</CardTitle>
+      <CardTitle className="flex items-center gap-2">
+        <Ikonka nom="kalkulyator" />
+        {matnlar.sarlavha}
+      </CardTitle>
 
       <div className="mt-4 space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -189,7 +193,7 @@ export function Kalkulyator({
           <div key={i} className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-matn-past mb-1 block text-xs uppercase">
-                {olindi(i) ? `✅ TP${i + 1}` : `TP${i + 1}`}
+                {`TP${i + 1}`}
               </span>
               <input
                 inputMode="decimal"
@@ -234,7 +238,11 @@ export function Kalkulyator({
                 className="flex flex-wrap items-baseline justify-between gap-2 text-sm"
               >
                 <span>
-                  {t.olindi ? "✅" : "🎯"} TP{i + 1}
+                  <Ikonka
+                    nom={t.olindi ? "faol" : "tp"}
+                    className="inline h-4 w-4 align-[-3px]"
+                  />{" "}
+                  TP{i + 1}
                   {t.olindi && (
                     <span className="text-yaxshi text-xs">
                       {" "}
@@ -256,7 +264,8 @@ export function Kalkulyator({
 
             <li className="flex flex-wrap items-baseline justify-between gap-2 border-t border-white/10 pt-2 text-sm">
               <span>
-                🛑 {matnlar.stop_agar}{" "}
+                <Ikonka nom="stop" className="inline h-4 w-4 align-[-3px]" />{" "}
+                {matnlar.stop_agar}{" "}
                 <span className="text-matn-past text-xs">
                   (
                   {((hisob.qolganMiqdor / hisob.umumiyMiqdor) * 100).toFixed(0)}
@@ -282,14 +291,15 @@ export function Kalkulyator({
           {hisob.olinganFoyda > 0 && (
             <div className="border-ramka/50 mt-3 space-y-1 border-t pt-3 text-sm">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="text-matn-past">✅ {matnlar.kalk_qolda}</span>
+                <span className="text-matn-past">{matnlar.kalk_qolda}</span>
                 <span className="raqam text-yaxshi font-semibold">
                   {pul(hisob.olinganFoyda)}
                 </span>
               </div>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="text-matn-past">
-                  🎯 {matnlar.kalk_kutilmoqda}
+                  <Ikonka nom="tp" className="inline h-4 w-4 align-[-3px]" />{" "}
+                  {matnlar.kalk_kutilmoqda}
                 </span>
                 <span className="raqam font-semibold">
                   {pul(hisob.kutilayotganFoyda)}
@@ -297,7 +307,11 @@ export function Kalkulyator({
               </div>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="text-matn-past">
-                  🛡 {matnlar.kalk_eng_yomon}
+                  <Ikonka
+                    nom="himoya"
+                    className="inline h-4 w-4 align-[-3px]"
+                  />{" "}
+                  {matnlar.kalk_eng_yomon}
                 </span>
                 <span
                   className={`raqam font-semibold ${
@@ -311,7 +325,10 @@ export function Kalkulyator({
           )}
 
           <div className="border-ramka/50 mt-3 flex flex-wrap items-baseline justify-between gap-2 border-t pt-3">
-            <span className="text-sm font-semibold">💰 {matnlar.jami}</span>
+            <span className="text-sm font-semibold">
+              <Ikonka nom="pul" className="inline h-4 w-4 align-[-3px]" />{" "}
+              {matnlar.jami}
+            </span>
             <span className="raqam text-sarlavha text-lg font-bold">
               {pul(hisob.jamiFoyda)}{" "}
               <span className="text-matn-past text-sm">

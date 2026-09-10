@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/Button";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { botHavolasi } from "@/lib/env";
 import { type Til, tarjimon } from "@/lib/i18n";
@@ -22,7 +23,10 @@ export function Qulf({
   const t = tarjimon(til);
   return (
     <Card variant="urgu">
-      <CardTitle>🔒 {t("qulf.sarlavha")}</CardTitle>
+      <CardTitle className="flex items-center gap-2">
+        <Ikonka nom="qulf" />
+        {t("qulf.sarlavha")}
+      </CardTitle>
       <CardHint>{t("qulf.izoh")}</CardHint>
       <p className="text-matn-past mt-3 text-sm">
         {t("qulf.kerak")}:{" "}

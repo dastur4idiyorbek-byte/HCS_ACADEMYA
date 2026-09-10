@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { ozgarishFoizi } from "@/lib/jonli";
 import { kechQoldimi } from "@/lib/kirish-holati";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Signal kirish nuqtasidan narx qancha yurgani — jonli.
  *
@@ -32,12 +33,12 @@ export function JonliNarx({
   kirish: number;
   /** Qisqa ko'rinish — faqat foiz (ro'yxat uchun) */
   qisqa?: boolean;
-  /** Narx shu foizdan uzoqlashsa ⚠️ belgisi qo'yiladi.
+  /** Narx shu foizdan uzoqlashsa ogohlantirish belgisi qo'yiladi.
    *  `null` — ogohlantirish kerak emas (masalan kirgan foydalanuvchi). */
   ogohChegara?: number | null;
   /** Belgi ustiga olib borilganda chiqadigan izoh */
   ogohMatn?: string;
-  /** Signal holati. `pending` — limit hali kutilmoqda, ⚠️ CHIQMAYDI:
+  /** Signal holati. `pending` — limit hali kutilmoqda, ogohlantirish CHIQMAYDI:
    *  narx entry'ga tushmagani xavf emas, rejaning o'zi. */
   holat?: string;
 }) {
@@ -88,7 +89,10 @@ export function JonliNarx({
       <span className={`raqam text-xs font-semibold ${rang}`}>
         {kech && (
           <span aria-hidden title={ogohMatn}>
-            ⚠️{" "}
+            <Ikonka
+              nom="ogohlantirish"
+              className="inline h-3.5 w-3.5 align-[-2px]"
+            />{" "}
           </span>
         )}
         {matn}

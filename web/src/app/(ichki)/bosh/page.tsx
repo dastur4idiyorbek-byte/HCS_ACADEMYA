@@ -5,6 +5,7 @@ import { Vidjet, type VidjetMalumoti } from "@/components/Vidjetlar";
 import { VidjetSozlash } from "@/components/VidjetSozlash";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import {
   avtomatikPostlarniYangila,
   signalgaAloqador,
@@ -310,7 +311,10 @@ export default async function Bosh({
           kifoya, boshqa hech narsa o'zgarmaydi. */}
         <Card variant="urgu">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle>☪️ {t("bosh.diniy_sarlavha")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="diniy" />
+              {t("bosh.diniy_sarlavha")}
+            </CardTitle>
             <Badge tone="ortacha">{t("bosh.diniy_holat")}</Badge>
           </div>
           <p className="text-matn-past mt-3 text-sm leading-relaxed italic">
@@ -325,14 +329,18 @@ export default async function Bosh({
   );
 }
 
-/** Avtomatik post turiga qarab belgi. Qo'lda yozilganda belgi yo'q. */
-const MANBA_BELGISI: Record<string, string> = {
-  dars: "🎬",
-  maqola: "📄",
-  signal: "🔒📈",
-  tp1: "🔒🎯",
-  tp2: "🔒🏁",
-  hisobot: "📊",
+/** Avtomatik post turiga qarab ikonka. Qo'lda yozilganda ikonka yo'q.
+ *
+ * Qulf belgisi bu yerda TAKRORLANMAYDI: qulflangan turlar yonida
+ * alohida qulf yorlig'i chiziladi (`signalgaAloqador`). Ikkalasi ham
+ * qo'yilsa, bitta ma'no ikki marta aytilardi. */
+const MANBA_IKONKASI: Record<string, IkonkaNomi> = {
+  dars: "video",
+  maqola: "maqolalar",
+  signal: "signallar",
+  tp1: "tp",
+  tp2: "tp",
+  hisobot: "statistika",
 };
 
 function PostKartochka({
@@ -350,7 +358,7 @@ function PostKartochka({
     signalOchish: string;
   };
 }) {
-  const belgi = MANBA_BELGISI[post.manbaTuri];
+  const belgi = MANBA_IKONKASI[post.manbaTuri];
   // Signalga aloqador postlar QULF ortida. Ro'yxat `avtomatik-post.ts`
   // da — bu yerda takrorlanmaydi, aks holda yangi tur qo'shilganda
   // qulflangan xabar ochiq post kabi ko'rinardi.
@@ -358,15 +366,12 @@ function PostKartochka({
   return (
     <article className="border-ramka-yumshoq bg-panel rounded-kartochka border p-4">
       <p className="text-matn-past flex flex-wrap items-center gap-2 text-xs">
-        {belgi && (
-          <span aria-hidden className="text-sm">
-            {belgi}
-          </span>
-        )}
+        {belgi && <Ikonka nom={belgi} className="h-4 w-4" />}
         {/* Qulf yorlig'i MATN bilan. Faqat ikonka qo'yilsa, uning
             ma'nosini har kim o'zicha tushunardi. */}
         {qulf && (
-          <span className="border-ramka rounded-tugma border px-2 py-0.5 font-semibold">
+          <span className="border-ramka rounded-tugma flex items-center gap-1 border px-2 py-0.5 font-semibold">
+            <Ikonka nom="qulf" className="h-3.5 w-3.5" />
             {yorliq.signal}
           </span>
         )}

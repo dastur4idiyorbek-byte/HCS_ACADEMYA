@@ -7,6 +7,7 @@ import { type HalolHolat, coinQarorlari } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 import { qarorOchir, qarorSaqla } from "../amallar";
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,10 @@ const TON: Record<HalolHolat, BadgeTone> = {
   haram: "past",
 };
 
-const BELGI: Record<HalolHolat, string> = {
-  halal: "✅",
-  mashbooh: "⚠️",
-  haram: "🚫",
+const BELGI: Record<HalolHolat, IkonkaNomi> = {
+  halal: "faol",
+  mashbooh: "ogohlantirish",
+  haram: "bekor",
 };
 
 export default async function Halol() {
@@ -31,7 +32,7 @@ export default async function Halol() {
 
   return (
     <>
-      <Sarlavha matn={`☪️ ${t("admin.halol")}`} izoh={t("admin.halol_izoh")} />
+      <Sarlavha matn={t("admin.halol")} izoh={t("admin.halol_izoh")} />
 
       <div className="space-y-5">
         <Card variant="urgu">
@@ -61,7 +62,11 @@ export default async function Halol() {
               >
                 {HOLATLAR.map((h) => (
                   <option key={h} value={h}>
-                    {BELGI[h]} {t(`admin.${h}`)}
+                    <Ikonka
+                      nom={BELGI[h]}
+                      className="inline h-4 w-4 align-[-3px]"
+                    />{" "}
+                    {t(`admin.${h}`)}
                   </option>
                 ))}
               </select>
@@ -82,7 +87,8 @@ export default async function Halol() {
         </Card>
 
         <p className="border-ortacha/60 text-ortacha rounded-kichik border px-3 py-2 text-sm">
-          ⚠️ {t("admin.halol_ogoh")}
+          <Ikonka nom="ogohlantirish" className="inline h-4 w-4 align-[-3px]" />{" "}
+          {t("admin.halol_ogoh")}
         </p>
 
         {HOLATLAR.map((holat) => {
@@ -92,7 +98,11 @@ export default async function Halol() {
             <Card key={holat}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle>
-                  {BELGI[holat]} {t(`admin.${holat}`)}
+                  <Ikonka
+                    nom={BELGI[holat]}
+                    className="inline h-4 w-4 align-[-3px]"
+                  />{" "}
+                  {t(`admin.${holat}`)}
                 </CardTitle>
                 <Badge tone={TON[holat]}>{guruh.length}</Badge>
               </div>

@@ -14,6 +14,7 @@ import { kirim } from "@/lib/session";
 import { signalBer, signalOchirish } from "../amallar";
 
 import { SignalRasmlari } from "./rasmlar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 export const dynamic = "force-dynamic";
 
@@ -54,15 +55,15 @@ export default async function YangiSignal({
 
   return (
     <>
-      <Sarlavha
-        matn={`📈 ${t("admin.signal")}`}
-        izoh={t("admin.signal_izoh")}
-      />
+      <Sarlavha matn={t("admin.signal")} izoh={t("admin.signal_izoh")} />
 
       <div className="space-y-5">
         {yaratilgan && (
           <Card variant="urgu">
-            <CardTitle>✅ {t("admin.yozildi")}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Ikonka nom="faol" />
+              {t("admin.yozildi")}
+            </CardTitle>
             <CardHint>
               {yaratilgan.symbol} · {t("signal.entry")} {narx(yaratilgan.entry)}
             </CardHint>
@@ -70,7 +71,11 @@ export default async function YangiSignal({
             {ogohlantirishlar.length > 0 && (
               <div className="border-ortacha/60 rounded-kichik mt-3 border p-3">
                 <p className="text-ortacha text-sm font-semibold">
-                  ⚠️ {t("admin.ogohlantirishlar")}
+                  <Ikonka
+                    nom="ogohlantirish"
+                    className="inline h-4 w-4 align-[-3px]"
+                  />{" "}
+                  {t("admin.ogohlantirishlar")}
                 </p>
                 <ul className="text-ortacha mt-2 space-y-1 text-sm">
                   {ogohlantirishlar.map((o) => (
@@ -180,7 +185,7 @@ export default async function YangiSignal({
             soxta signal statistikaga kiradi va uni buzadi: bitta
             "-94%" butun g'alaba foizini yaroqsiz qiladi. */}
         <Card>
-          <CardTitle>🗑 {t("admin.signal_royxat")}</CardTitle>
+          <CardTitle>{t("admin.signal_royxat")}</CardTitle>
           <CardHint>{t("admin.signal_royxat_izoh")}</CardHint>
 
           {barchasi.length === 0 ? (

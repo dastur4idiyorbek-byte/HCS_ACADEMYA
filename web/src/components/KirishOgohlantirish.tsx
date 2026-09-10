@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { kechQoldimi, kutilmoqdami, uzoqlashish } from "@/lib/kirish-holati";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Kech kirish ogohlantirishi — HALI KIRMAGAN foydalanuvchi uchun.
  *
@@ -103,7 +104,10 @@ export function KirishOgohlantirish({
 
   return (
     <div className="border-past/60 bg-past/10 rounded-kartochka border p-4">
-      <p className="text-past text-sm font-semibold">⚠️ {matnlar.sarlavha}</p>
+      <p className="text-past text-sm font-semibold">
+        <Ikonka nom="ogohlantirish" className="inline h-4 w-4 align-[-3px]" />{" "}
+        {matnlar.sarlavha}
+      </p>
       <p className="text-matn-past mt-1 text-sm leading-relaxed">
         {matnlar.izoh}
       </p>

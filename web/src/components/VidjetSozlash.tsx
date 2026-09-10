@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { cn } from "@/lib/cn";
 import { VIDJETLAR, type VidjetKod } from "@/lib/vidjetlar";
+import { Ikonka } from "@/components/ui/Ikonka";
 
 /** Vidjetlarni tanlash va tartiblash.
  *
@@ -38,7 +39,9 @@ export function VidjetSozlash({
 }) {
   const [ochiq, setOchiq] = useState(false);
   const [tanlov, setTanlov] = useState<VidjetKod[]>(boshlangich);
-  const [holat, setHolat] = useState<"tinch" | "yuborilmoqda" | "xato">("tinch");
+  const [holat, setHolat] = useState<"tinch" | "yuborilmoqda" | "xato">(
+    "tinch",
+  );
 
   const tanlanmagan = VIDJETLAR.filter((v) => !tanlov.includes(v.kod));
 
@@ -75,7 +78,8 @@ export function VidjetSozlash({
         onClick={() => setOchiq(true)}
         className="text-matn-past hover:text-sarlavha text-sm transition-colors"
       >
-        ⚙ {yorliq.sozlash}
+        <Ikonka nom="sozlamalar" className="h-4 w-4" />
+        {yorliq.sozlash}
       </button>
     );
   }
@@ -99,7 +103,7 @@ export function VidjetSozlash({
               aria-label="Yuqoriga"
               className="text-matn-past hover:text-sarlavha px-1.5 disabled:opacity-30"
             >
-              ↑
+              <Ikonka nom="tepaga" className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -108,7 +112,7 @@ export function VidjetSozlash({
               aria-label="Quyiga"
               className="text-matn-past hover:text-sarlavha px-1.5 disabled:opacity-30"
             >
-              ↓
+              <Ikonka nom="pastga" className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -116,7 +120,7 @@ export function VidjetSozlash({
               aria-label="Olib tashlash"
               className="text-matn-past hover:text-past px-1.5"
             >
-              ✕
+              <Ikonka nom="yopish" className="h-4 w-4" />
             </button>
           </li>
         ))}

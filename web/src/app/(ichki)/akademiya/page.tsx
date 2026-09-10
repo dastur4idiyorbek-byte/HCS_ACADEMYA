@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import { Card, CardTitle } from "@/components/ui/Card";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { davomiylikMatn, oqishVaqti } from "@/lib/akademiya";
@@ -48,7 +49,9 @@ export default async function Akademiya() {
     : new Map<number, { foiz: number }>();
   const davomi = foydalanuvchi ? davomEttirish(foydalanuvchi.id) : null;
   const davomDars =
-    davomi === null ? null : (hammasi.find((k) => k.id === davomi.kontentId) ?? null);
+    davomi === null
+      ? null
+      : (hammasi.find((k) => k.id === davomi.kontentId) ?? null);
 
   return (
     <>
@@ -60,7 +63,9 @@ export default async function Akademiya() {
           <p className="text-matn-past text-[11px] tracking-wide uppercase">
             {t("akademiya.davom_bolim")}
           </p>
-          <CardTitle className="mt-1">{t("akademiya.davom_sarlavha")}</CardTitle>
+          <CardTitle className="mt-1">
+            {t("akademiya.davom_sarlavha")}
+          </CardTitle>
 
           <div className="mt-4">
             {davomDars.toifa && (
@@ -96,21 +101,21 @@ export default async function Akademiya() {
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <BolimTugma
           yol="/video"
-          belgi="🎬"
+          belgi="video"
           nom={t("menyu.video")}
           soni={videolar.length}
           birlik={t("akademiya.dars_soni")}
         />
         <BolimTugma
           yol="/kurs"
-          belgi="📖"
+          belgi="kurs"
           nom={t("menyu.kurs")}
           soni={null}
           birlik={t("kontent.tez_kunda")}
         />
         <BolimTugma
           yol="/bilimlar"
-          belgi="📄"
+          belgi="maqolalar"
           nom={t("akademiya.bilimlar")}
           soni={maqolalar.length}
           birlik={t("akademiya.maqola_soni")}
@@ -181,7 +186,7 @@ function BolimTugma({
   birlik,
 }: {
   yol: string;
-  belgi: string;
+  belgi: IkonkaNomi;
   nom: string;
   soni: number | null;
   birlik: string;
@@ -191,9 +196,7 @@ function BolimTugma({
       href={yol}
       className="rounded-kartochka border-ramka-yumshoq hover:border-ramka hover:bg-panel-yorqin flex flex-col items-center gap-1.5 border bg-white/[0.02] p-5 text-center transition-colors"
     >
-      <span aria-hidden className="text-2xl">
-        {belgi}
-      </span>
+      <Ikonka nom={belgi} className="text-ramka h-7 w-7" />
       <span className="text-sarlavha font-semibold">{nom}</span>
       <span className="text-matn-past text-xs">
         {soni === null ? birlik : `${soni} ${birlik}`}
@@ -246,7 +249,9 @@ function MaqolaKartochka({
     >
       <p className="text-sarlavha font-semibold">
         {maqola.title}
-        {qulf && <span aria-hidden> 🔒</span>}
+        {qulf && (
+          <Ikonka nom="qulf" className="ml-1 inline h-4 w-4 align-[-3px]" />
+        )}
       </p>
       {maqola.description && (
         <p className="text-matn-past mt-1.5 line-clamp-2 text-xs leading-relaxed">
@@ -278,7 +283,9 @@ function VideoKartochka({
       <div className="flex items-start justify-between gap-2">
         <p className="text-sarlavha font-semibold">
           {video.title}
-          {qulf && <span aria-hidden> 🔒</span>}
+          {qulf && (
+            <Ikonka nom="qulf" className="ml-1 inline h-4 w-4 align-[-3px]" />
+          )}
         </p>
         {uzunlik && (
           <span className="raqam text-matn-past shrink-0 text-xs">

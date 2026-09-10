@@ -40,14 +40,18 @@ export default async function AdminLayout({
     <>
       <AdminYonMenyu
         bandlar={[
-          { yol: "/admin", nom: t("admin.asosiy"), belgi: "💳" },
-          { yol: "/admin/postlar", nom: t("admin.postlar"), belgi: "📢" },
-          { yol: "/admin/signal", nom: t("admin.signal"), belgi: "📈" },
-          { yol: "/admin/zanjir", nom: t("admin.zanjir"), belgi: "⛓️" },
-          { yol: "/admin/darslar", nom: t("admin.darslar"), belgi: "🎬" },
-          { yol: "/admin/havolalar", nom: t("admin.havolalar"), belgi: "🔗" },
-          { yol: "/admin/narxlar", nom: t("admin.narxlar"), belgi: "🏷" },
-          { yol: "/admin/halol", nom: t("admin.halol"), belgi: "☪️" },
+          { yol: "/admin", nom: t("admin.asosiy"), belgi: "pul" },
+          { yol: "/admin/postlar", nom: t("admin.postlar"), belgi: "elonlar" },
+          { yol: "/admin/signal", nom: t("admin.signal"), belgi: "signallar" },
+          { yol: "/admin/zanjir", nom: t("admin.zanjir"), belgi: "zanjir" },
+          { yol: "/admin/darslar", nom: t("admin.darslar"), belgi: "video" },
+          {
+            yol: "/admin/havolalar",
+            nom: t("admin.havolalar"),
+            belgi: "havolalar",
+          },
+          { yol: "/admin/narxlar", nom: t("admin.narxlar"), belgi: "narx" },
+          { yol: "/admin/halol", nom: t("admin.halol"), belgi: "diniy" },
         ]}
         sarlavha={t("admin.bolimlar")}
       />

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { TelegramKirish } from "@/components/TelegramKirish";
+import { Ikonka } from "@/components/ui/Ikonka";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Logo } from "@/components/ui/Logo";
 import { EnvError, env } from "@/lib/env";
@@ -54,7 +55,7 @@ export default async function Kirish({
 
         <div className="mt-6 space-y-2 border-t border-white/10 pt-4">
           <p className="text-matn-past text-xs leading-relaxed">
-            🔐 {t("kirish.xavfsizlik")}
+            <Ikonka nom="xavfsizlik" className="inline h-4 w-4 align-[-3px]" /> {t("kirish.xavfsizlik")}
           </p>
           <p className="text-matn-past text-xs leading-relaxed">
             ⏳ {t("kirish.muddat")}
