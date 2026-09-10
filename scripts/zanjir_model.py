@@ -278,39 +278,95 @@ def main() -> None:
 
 
 def _yakuniy_xulosa(oyna_xulosalari: list[list[dict]]) -> None:
-    """TO'XTASH QOIDASI — model har bir oynada yaxshimi."""
+    """TO'XTASH QOIDASI — model har bir oynada yaxshimi.
+
+    BIR XIL CHEGARA BARCHA OYNADA. Bu — shu funksiyaning eng muhim
+    qoidasi va u bir marta BUZILGAN edi.
+
+    Ilgari bu yerda har bir oynaning ENG YAXSHI chegarasi tanlanardi
+    (`max(modellar, key=...)`). Natija chiroyli chiqardi — "4/4
+    oynada yaxshi" — lekin u YOLG'ON edi: chegara imtihon natijasini
+    KO'RGANDAN KEYIN tanlanardi. Jonli savdoda esa chegara
+    OLDINDAN qo'yiladi va uni keyin o'zgartirib bo'lmaydi.
+
+    2026-09-10 dagi o'lchov aynan shuni ko'rsatdi: har bir oynada
+    "eng yaxshi" chegara BOSHQA-BOSHQA chiqdi (1.5%, 0.0%, 0.0%,
+    2.0%), va bitta ham qat'iy chegara umuman foyda bermadi.
+
+    Endi har bir chegara BARCHA oynalarda alohida sanaladi va
+    xulosa faqat shu jadvaldan chiqariladi.
+
+    IKKINCHI SHART: "tayanchdan yaxshi" YETARLI EMAS. Tayanch
+    o'zi zarar keltirsa, undan kamroq zarar keltirish — baribir
+    zarar. Shuning uchun jami natija MUSBAT ham bo'lishi kerak.
+    """
     print("=" * 79)
-    print("XULOSA")
+    print("XULOSA — BIR XIL CHEGARA BARCHA OYNADA")
     print("=" * 79)
 
-    galabalar = 0
-    for i, qatorlar in enumerate(oyna_xulosalari, start=1):
-        tayanch = qatorlar[0]
-        modellar = [q for q in qatorlar[1:] if q["savdo"] >= 20]  # noqa: PLR2004
-        if not modellar:
-            print(f"{i}-oyna: model yetarli savdo bermadi")
-            continue
-        eng = max(modellar, key=lambda q: q["jami_pct"])
-        belgi = "🟢" if eng["jami_pct"] > tayanch["jami_pct"] else "🔴"
-        galabalar += 1 if eng["jami_pct"] > tayanch["jami_pct"] else 0
-        print(
-            f"{i}-oyna: {belgi} tayanch {tayanch['jami_pct']:+.1f}% "
-            f"({tayanch['savdo']} savdo) | eng yaxshi model «{eng['nom']}» "
-            f"{eng['jami_pct']:+.1f}% ({eng['savdo']} savdo)"
+    jami_oyna = len(oyna_xulosalari)
+    if not jami_oyna:
+        print("Oyna yo'q.")
+        return
+
+    # Chegara nomi -> har bir oynadagi natijasi.
+    nomlar = [q["nom"] for q in oyna_xulosalari[0]]
+    yigindi: dict[str, list[dict]] = {
+        nom: [q for oyna in oyna_xulosalari for q in oyna if q["nom"] == nom]
+        for nom in nomlar
+    }
+
+    tayanch_nomi = nomlar[0]
+    tayanch_jami = sum(q["jami_pct"] for q in yigindi[tayanch_nomi])
+
+    print(f"{'konfiguratsiya':<30}{'savdo':>8}{'jami%':>10}{'musbat oyna':>14}{'tayanchdan':>12}")
+    print("-" * 79)
+
+    gholib: str | None = None
+    for nom in nomlar:
+        qatorlar = yigindi[nom]
+        savdo = sum(q["savdo"] for q in qatorlar)
+        jami = sum(q["jami_pct"] for q in qatorlar)
+        musbat = sum(1 for q in qatorlar if q["jami_pct"] > 0)
+        # HAR BIR oynada tayanchdan yaxshi bo'lishi shart —
+        # o'rtacha hisobda emas. Bitta oynada yutish tasodif.
+        hamma_oynada = all(
+            q["jami_pct"] > t["jami_pct"]
+            for q, t in zip(qatorlar, yigindi[tayanch_nomi], strict=False)
         )
+        belgi = "ha" if hamma_oynada and nom != tayanch_nomi else "-"
+        print(
+            f"{nom:<30}{savdo:>8}{jami:>+10.1f}"
+            f"{f'{musbat}/{jami_oyna}':>14}{belgi:>12}"
+        )
+        if nom != tayanch_nomi and hamma_oynada and jami > 0 and gholib is None:
+            gholib = nom
 
-    jami = len(oyna_xulosalari)
     print()
-    if galabalar == jami and jami >= 3:  # noqa: PLR2004
-        print(f"🟢 Model {jami}/{jami} oynada tayanchdan yaxshi.")
-        print("   KEYINGI QADAM: chegarani tanlab, jonli sinovga tayyorlash.")
-    elif galabalar == 0:
-        print(f"⚫ Model 0/{jami} oynada tayanchdan yaxshi emas.")
+    print(f"Tayanch (hozirgi qoidalar) jami: {tayanch_jami:+.1f}%")
+    print()
+
+    if gholib is not None:
+        print(f"🟢 «{gholib}» BARCHA {jami_oyna} oynada tayanchdan yaxshi va jami MUSBAT.")
+        print("   KEYINGI QADAM: shu chegarani qulflab, jonli sinovga tayyorlash.")
+        return
+
+    # Foyda bermasa ham, tayanchdan yaxshi chiqqani bormi.
+    yaxshiroq = [
+        nom
+        for nom in nomlar[1:]
+        if all(
+            q["jami_pct"] > t["jami_pct"]
+            for q, t in zip(yigindi[nom], yigindi[tayanch_nomi], strict=False)
+        )
+    ]
+    if yaxshiroq:
+        print(f"🟡 «{yaxshiroq[0]}» tayanchdan yaxshi, LEKIN jami natija MANFIY.")
+        print("   Kamroq zarar — foyda emas. Jonli sinovga chiqarilmaydi.")
+    else:
+        print(f"⚫ Bitta ham chegara barcha {jami_oyna} oynada tayanchdan yaxshi emas.")
         print("   Ustunlarimizda kelajak haqida ma'lumot YO'Q.")
         print("   YANGI MA'LUMOT MANBAI kerak — fundamental, on-chain, yangilik.")
-    else:
-        print(f"🟡 Model {galabalar}/{jami} oynada yaxshi — BARQAROR EMAS.")
-        print("   Bu tasodif bo'lishi mumkin. Xulosa chiqarilmaydi.")
 
 
 if __name__ == "__main__":
