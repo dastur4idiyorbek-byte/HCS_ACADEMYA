@@ -1678,3 +1678,28 @@ Bu — modulning butun mantiqiga tegadigan xulosa va u
 o'lchanmaguncha "zanjir ishlaydi" degan gap aytilmaydi.
 
 Tafsilot: `BACKTEST_NATIJA_2026-09-10_toxtash.md`.
+
+
+---
+
+## 🔴 SOZLASH YORDAM BERMAYDI — o'lchandi (2026-09-10)
+
+Actions 93320596666, alternativ zanjir, 12 coin, 730 kun.
+
+Nishon uzoqlashganda g'alaba foizi MUTANOSIB pasayadi:
+
+| TP1/Stop nisbat | g'alaba | PF |
+|---|---|---|
+| 1.2 | 29.7% | 0.90 |
+| 2.0 | 18.9% | 0.78 |
+| 3.0 | 16.7% | 0.89 |
+
+Ustunlik bo'lganida nisbatni oshirish PF ni KO'TARARDI. Bunday
+bo'lmadi — ya'ni **kirishda ustunlik yo'q**.
+
+Stop chegarasida ham eng yaxshisi PF 0.99 (74 savdo) — 1.0 dan
+past.
+
+🔴 "Chegarani to'g'ri topsak ishlaydi" degan gipoteza RAD ETILDI.
+
+Tafsilot: `BACKTEST_NATIJA_2026-09-10_chegara.md`.
