@@ -84,3 +84,55 @@ o'lchanmaguncha. Sayt, akademiya, bozor holati va qo'lda signal
 ishlayveradi.
 
 Qaror loyiha egasiniki. Bu hujjat faqat raqamlarni beradi.
+
+
+---
+
+## 6. "Alternativ zanjir" nomi ALDAYDI — tekshirildi
+
+Loyiha egasi so'radi: alternativ yo'lni olib tashlash kerakmi?
+
+**Raqamlar teskarisini aytadi:** alternativ bilan PF 1.03,
+alternativsiz (asosiy zanjir) PF 0.83. Olib tashlash yomonlashtiradi.
+
+### Nega u KAMROQ signal beradi
+
+Nom "zaif blokni QUTQARADI" degan taassurot beradi, ya'ni signal
+ko'payishi kerakdek. Amalda teskari: 153 -> 66.
+
+Sabab modulning o'z izohida yozilgan
+(`core/analysis/alternatives/alternative_chain.py`):
+
+    Asosiy:     0/N bo'lsa uziladi, 1/N O'TADI.
+    Alternativ: 0/N bo'lsa uziladi, 1/N ZAIF — alternativlar
+                sinab ko'riladi. HAMMASI SINSA BLOK BO'SH — UZILADI.
+
+Ya'ni alternativ zanjir **QATTIQROQ**: asosiy zanjirda 1/N blok
+shundoq o'tib ketardi, alternativda esa u o'zini isbotlashi kerak.
+
+**Bu xato emas** — ataylab shunday qurilgan va izohda yozilgan.
+Lekin nomi chalg'itadi va men ham dastlab noto'g'ri o'qidim.
+
+### Va u ISHLAYAPTI
+
+    asosiy zanjir (1/N shundoq o'tadi)    153 savdo   PF 0.83
+    alternativ (1/N isbotlanishi kerak)    66 savdo   PF 1.03
+
+Qattiqroq shart PF ni 0.83 dan 1.03 ga ko'tardi. Ya'ni saralash
+ISHLAYAPTI — faqat yetarli emas.
+
+---
+
+## 7. Chegara o'lchovida topilgan xato (2026-09-10)
+
+`scripts/zanjir_chegara.py` — "eng yaxshi chegara qaysi" degan
+savolga javob beradigan skript — **ASOSIY zanjirni** o'lchardi,
+alternativni emas. Ya'ni uning javobi jonli tizimga tegishli
+emasdi.
+
+Tuzatildi: endi u ham `alternativ=True` bilan yuradi.
+
+Shu bilan birga sinaladigan nisbatlar ro'yxati kengaytirildi:
+`[1.0, 1.2, 1.5, 2.0]` -> `[1.0, 1.2, 1.5, 2.0, 2.5, 3.0]`.
+Sabab matematik: 35% g'alaba foizida 1.2 nisbat yutqazadi,
+nolga chiqish uchun ~45% kerak.

@@ -55,7 +55,14 @@ STOP_CHEGARALARI = [0.5, 1.0, 1.5, 2.0, 3.0]
 #: `OLCHOVLAR_XULOSASI.md` #8). Uning yangi tizimdagi eng yaxshi
 #: qiymati boshqa bo'lishi mumkin — eski raqamni ko'chirib yozish
 #: "o'lchandi" degani emas.
-NISBAT_CHEGARALARI = [1.0, 1.2, 1.5, 2.0]
+#: 2.5 va 3.0 — 2026-09-10 da QO'SHILDI.
+#:
+#: Sabab MATEMATIK. O'lchovda g'alaba foizi hamma variantda
+#: 33-38% chiqdi. 1.2 nisbatda nolga chiqish uchun ~45% kerak,
+#: ya'ni 35% bilan tizim yutqazishi SHART. Yuqori nisbat esa
+#: past g'alaba foizini qoplashi mumkin — yoki savdoni umuman
+#: yo'q qilishi mumkin. Qaysi biri — o'lchanadi.
+NISBAT_CHEGARALARI = [1.0, 1.2, 1.5, 2.0, 2.5, 3.0]
 
 
 def _variantlar(config):  # noqa: ANN001, ANN202
@@ -108,7 +115,17 @@ async def main() -> None:
     natijalar = []
     for nom, variant in _variantlar(config):
         print(f"  ishlamoqda: {nom} ...")
-        natija = ZanjirBacktest(variant, nom).yur(dataset, symbols, argumentlar.max_steps)
+        # `alternativ=True` — JONLI TIZIM aynan shu zanjirni yuritadi
+        # (`core/services/zanjir_sikl.py` -> `zanjir_yur_alternativ`).
+        #
+        # 2026-09-10 gacha bu yerda ASOSIY zanjir o'lchanardi. Ya'ni
+        # "eng yaxshi chegara qaysi" degan savolga berilgan javob
+        # jonli tizimga TEGISHLI EMAS edi — boshqa zanjirning
+        # chegarasi topilardi. O'lchangan farq katta: asosiy zanjir
+        # PF 0.83, alternativ 1.03 (730 kun, 12 coin).
+        natija = ZanjirBacktest(variant, nom, alternativ=True).yur(
+            dataset, symbols, argumentlar.max_steps
+        )
         natijalar.append(natija)
         olchovlar.append(olchov_qur(natija))
 
