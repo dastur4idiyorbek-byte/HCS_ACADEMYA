@@ -6151,3 +6151,54 @@ bilan chiqardi.
 tashimaydi: har katakda blok nomi yozilgan va ramka uslubi ham farq
 qiladi (uzilganda to'la, o'lchanmaganda uzuq chiziq) — rang
 ko'rmaydigan odam ham o'qiy oladi.
+
+---
+
+## 98. BOSH SAHIFA TEPASI — YOPISHGAN LOGOTIP VA "BIZ HAQIMIZDA" (2026-09-10)
+
+Loyiha egasining talabi: chapda logotip, o'ngda loyiha haqidagi
+tugmalar, va sahifa surilganda ikkalasi ham **o'z o'rnida qoladi** —
+oqim ularning **ostidan** o'tib ketadi.
+
+### Nega `sticky`, `fixed` emas
+
+`fixed` element sahifa oqimidan butunlay chiqib ketadi va uning
+balandligini qo'lda hisoblab, pastdagi kontentga bo'shliq berish
+kerak bo'lardi. Balandlik esa telefonda va desktopda har xil — bir
+joyda bo'shliq ortiqcha, ikkinchisida kontent panel ostida qolib
+ketardi. `sticky` avval oddiy element kabi joylashadi, keyin
+yopishadi.
+
+### Ikkita yopishgan qator ustma-ust tushdi
+
+Mobil ko'rinishda `Yon` allaqachon logotipli yopishgan qator
+chizardi. Yangi qator qo'shilgach, telefon ekranining uchdan birini
+**ikkita bir xil logotip** egallab oldi (ekran surati bilan
+tekshirildi).
+
+Yechim: `Yon` ning mobil qatori bosh sahifada **chizilmaydi** —
+u yerda sahifaning o'z qatori bor. `Yon` allaqachon klient
+komponenti va yo'lni biladi, shuning uchun bu bir qator shart.
+
+### Matn tugma ichida emas, panelda
+
+Uch xatboshi matnni tepa qatorga sig'dirib bo'lmaydi. Tugma
+bosilganda ular panel bo'lib ochiladi va panel oqimni **surmaydi**
+(`absolute`) — aks holda tugma bosilganda butun sahifa sakrab
+ketardi.
+
+Telefonda uchta tugma yonma-yon sig'maydi va sarlavhani siqib
+qo'yardi — o'sha yerda ular bitta tugmaga yig'iladi.
+
+### Ikki xil shisha yuza
+
+| sinf | qayerda | nega |
+|---|---|---|
+| `.oyna-yuza` | yopishgan qator | oqim ostidan o'tayotgani KO'RINSIN — "kirib ketdi" hissi shundan |
+| `.oyna-panel` | ochilgan panel | O'QISH birinchi o'rinda: ostidagi matn ko'rinib tursa, ustidagini o'qish qiyin |
+
+### Diniy asos tugmaga solinmadi
+
+U tasdiq kutayotgan joy va **ko'rinib** turishi kerak. Tugma ortiga
+yashirilsa, "TASDIQLASH KUTILMOQDA" yorlig'ini hech kim ko'rmasdi.
+Shuning uchun u ijtimoiy tarmoqlar bilan birga oqim oxirida qoldi.

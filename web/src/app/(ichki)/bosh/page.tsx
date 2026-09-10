@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+import { BoshTepasi } from "@/components/BoshTepasi";
 import { Tarmoqlar } from "@/components/Tarmoqlar";
 import { Vidjet, type VidjetMalumoti } from "@/components/Vidjetlar";
 import { VidjetSozlash } from "@/components/VidjetSozlash";
@@ -43,12 +42,12 @@ const SAHIFA = 20;
  * "tugaydigan" sahifa. Endi u Telegram kanali kabi oqim — eng yangi
  * post tepada.
  *
- * LOGOTIP ENG TEPADA — loyiha egasining talabi: sahifa bizning
- * belgimiz bilan boshlanadi.
+ * LOGOTIP YOPISHIB TURADI — loyiha egasining talabi: chapda
+ * logotip, o'ngda loyiha haqidagi tugmalar, va sahifa surilganda
+ * ikkalasi ham o'z o'rnida qoladi. Oqim ularning OSTIDAN o'tadi.
  *
- * TANISHTIRUV MATNI esa oqimdan CHIQARILMADI, lekin pastga ko'chdi:
- * tavsif, diniy asos va ijtimoiy tarmoqlar oqim oxirida turadi
- * (loyiha egasining tanlovi).
+ * TANISHTIRUV MATNI o'sha tugmalar ichida (`BoshTepasi`). Diniy asos
+ * va ijtimoiy tarmoqlar esa oqim oxirida ko'rinib turadi.
  *
  * Ular BAZAGA tushmaydi va admin panelda ko'rinmaydi. Sabab: diniy
  * iqtibosning aniq lafzi bilimdon kishi tasdiqlaguncha placeholder
@@ -157,38 +156,47 @@ export default async function Bosh({
     // Matn oqimi TOR qoladi: umumiy kenglik boshqaruv paneli uchun
     // kengaytirildi, uzun matn qatori esa o'qishni qiyinlashtiradi.
     <div className="mx-auto max-w-3xl space-y-5">
-      {/* ---- LOGOTIP — eng tepada ----
-          Loyiha egasining talabi: sahifa bizning belgimiz bilan
-          boshlanadi. Ilgari u oqimning oxirida turardi va qayta
-          kirgan odam uni umuman ko'rmasdi.
+      {/* ---- LOGOTIP + "BIZ HAQIMIZDA" — YOPISHIB TURADI ----
+          Loyiha egasining talabi: logotip chapda, o'ngda loyiha
+          haqidagi tugmalar, va sahifa surilganda ikkalasi ham
+          o'rnida qoladi — oqim ularning OSTIDAN o'tib ketadi.
 
-          Tanishtiruv MATNI esa pastda qoldi: har safar kirgan odamga
-          "biz kimmiz" ni qayta o'qitish shart emas, lekin belgi —
-          sahifa kimniki ekanini bir qarashda aytadi. */}
-      <header className="flex flex-col items-center pt-2 pb-4 text-center">
-        <Image
-          src="/logo.jpg"
-          alt="HCS — Halol Crypto Savdo"
-          width={96}
-          height={96}
-          className="rounded-kartochka"
-          priority
-        />
-        <h1 className="text-sarlavha mt-4 text-2xl font-bold tracking-wide sm:text-3xl">
-          HALOL CRYPTO SAVDO
-        </h1>
-        <p className="text-matn-past mt-1 text-sm">{t("bosh.shior")}</p>
-      </header>
+          Tanishtiruv MATNI shu tugmalar ichiga ko'chdi. Ilgari u
+          sahifaning eng pastida uchta kartochka bo'lib turardi va
+          faqat oxirigacha surgan odam ko'rardi. Endi u doim qo'l
+          ostida, lekin joy ham egallamaydi. */}
+      <BoshTepasi
+        nom="HALOL CRYPTO SAVDO"
+        shior={t("bosh.shior")}
+        yorliq={{ haqida: t("bosh.haqida"), yopish: t("umumiy.yopish") }}
+        bandlar={[
+          {
+            kod: "tavsif",
+            nom: t("bosh.tavsif_sarlavha"),
+            matn: t("bosh.tavsif"),
+            belgi: "malumot",
+          },
+          {
+            kod: "kimga",
+            nom: t("bosh.kimga_sarlavha"),
+            matn: t("bosh.kimga"),
+            belgi: "kabinet",
+          },
+          {
+            kod: "halol",
+            nom: t("bosh.nega_halol_sarlavha"),
+            matn: t("bosh.nega_halol"),
+            belgi: "diniy",
+          },
+        ]}
+      />
 
-      {/* ---- 1-QATLAM: SIZ va BUGUN ---- */}
-      {/* NEGA TANISHTIRUV EMAS. Ilgari sahifa logotipdan keyin
-          to'rtta tanishtiruv kartochkasi bilan davom etardi. Birinchi tashrifda
-          bu to'g'ri, ellikinchisida esa to'siq: har safar kirgan odam
-          ular ustidan o'tib, keyin yangilikka yetardi.
-
-          Endi tepada BUGUNGI HOLAT turadi, tanishtiruv esa oqimning
-          oxiriga ko'chdi — u yerda ham ko'rinadi, chunki yangi odamda
-          oqim bo'sh bo'ladi. */}
+      {/* ---- 1-QATLAM: SIZ va BUGUN ----
+          Yopishgan qatordan keyin darrov BUGUNGI HOLAT keladi.
+          Tanishtiruv kartochkalari bu yerdan olib tashlandi: birinchi
+          tashrifda ular to'g'ri, ellikinchisida esa to'siq edi —
+          har safar kirgan odam ular ustidan o'tib, keyin yangilikka
+          yetardi. Endi ular tepadagi tugmalar ortida. */}
       <div className="mb-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sarlavha text-lg font-bold">
@@ -278,33 +286,14 @@ export default async function Bosh({
         )}
       </div>
 
-      {/* ---- 3-QATLAM: loyiha haqida ----
-          Oqimning OXIRIDA. Yangi odamda oqim bo'sh bo'ladi va u
-          baribir shu yerga darrov yetadi; qayta kirgan odam esa
-          har safar ular ustidan o'tishga majbur emas. */}
+      {/* ---- Oqim oxiri: diniy asos va tarmoqlar ----
+          Tanishtiruv MATNI tepadagi tugmalarga ko'chdi, lekin bu
+          ikkisi shu yerda qoldi.
+
+          Diniy asos ATAYLAB tugmaga solinmadi: u tasdiq kutayotgan
+          joy va KO'RINIB turishi kerak — tugma ortiga yashirilsa,
+          "tasdiqlash kutilmoqda" yorlig'ini hech kim ko'rmasdi. */}
       <div className="border-ramka-yumshoq space-y-5 border-t pt-8">
-        {/* Oqimning eng tepasidagi kartochka — "oyna" yuzasi shu yerda.
-          Quyidagi postlar oddiy qoladi: bir ekranda o'nlab shisha yuza
-          effektni ham, telefon tezligini ham yo'qotadi. */}
-        <Card variant="oyna">
-          <CardTitle>{t("bosh.tavsif_sarlavha")}</CardTitle>
-          <p className="mt-2 text-sm leading-relaxed">{t("bosh.tavsif")}</p>
-        </Card>
-
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Card>
-            <CardTitle>{t("bosh.kimga_sarlavha")}</CardTitle>
-            <p className="mt-2 text-sm leading-relaxed">{t("bosh.kimga")}</p>
-          </Card>
-
-          <Card>
-            <CardTitle>{t("bosh.nega_halol_sarlavha")}</CardTitle>
-            <p className="mt-2 text-sm leading-relaxed">
-              {t("bosh.nega_halol")}
-            </p>
-          </Card>
-        </div>
-
         {/* Diniy asos — matn ATAYLAB yozilmagan.
           Iqtibosning aniq lafzi bilimdon kishi tasdiqlagandan keyin
           kiritiladi. Bu joy dizayn jihatdan tayyor: matn almashtirilsa

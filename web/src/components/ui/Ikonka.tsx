@@ -68,6 +68,12 @@ const CHIZMALAR = {
   ),
 
   // ---- Bosh sahifa ichidagi ----
+  malumot: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5.5M12 7.75v.25" />
+    </>
+  ),
   maqolalar: (
     <>
       <path d="M6 3.5h8L18.5 8v12.5A1 1 0 0 1 17.5 21h-11a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1z" />

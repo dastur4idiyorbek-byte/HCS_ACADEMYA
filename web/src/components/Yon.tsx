@@ -32,6 +32,7 @@ export function Yon({
   tilTanlov: React.ReactNode;
 }) {
   const yol = usePathname();
+  const boshSahifa = yol === "/bosh";
 
   const royxat = (
     <nav className="flex flex-col gap-1">
@@ -85,9 +86,16 @@ export function Yon({
   return (
     <>
       {/* Mobil sarlavha — faqat logotip, navigatsiya pastki navda. */}
-      <header className="border-ramka-yumshoq bg-fon sticky top-0 z-30 flex items-center border-b px-4 py-3 lg:hidden">
-        <Logo size={32} />
-      </header>
+      {/* Mobil sarlavha — FAQAT logotip.
+          Bosh sahifada CHIQMAYDI: u yerda o'zining logotipli
+          yopishgan qatori bor (`BoshTepasi`) va ikkalasi ustma-ust
+          tushib, telefon ekranining uchdan birini ikkita bir xil
+          logotip egallab olardi. */}
+      {!boshSahifa && (
+        <header className="border-ramka-yumshoq bg-fon sticky top-0 z-30 flex h-14 items-center border-b px-4 lg:hidden">
+          <Logo size={32} />
+        </header>
+      )}
 
       {/* Desktop yon panel */}
       <aside className="border-ramka-yumshoq hidden w-64 shrink-0 border-r p-5 lg:sticky lg:top-0 lg:block lg:h-dvh lg:overflow-y-auto">

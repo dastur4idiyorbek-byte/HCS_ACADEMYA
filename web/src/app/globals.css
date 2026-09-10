@@ -142,6 +142,19 @@ body {
 /* "Oyna" yuzasi — `components/ui/Card.tsx` dagi `oyna` varianti.
    Nima uchun Tailwind sinfi emas, CSS: `@supports` bloki kerak va u
    utilitalar bilan yozilganda o'qib bo'lmas holga keladi. */
+/* O'QILADIGAN oyna — ochilgan panel uchun.
+ *
+ * `.oyna-yuza` dan farqi: fon deyarli to'liq quyuq. Sabab —
+ * ostidagi matn "ko'rinib turgani" chiroyli, lekin ustiga YOZILGAN
+ * matnni o'qishga xalaqit beradi. Yopishgan qatorda oqim ostidan
+ * o'tayotgani ko'rinishi kerak, ochilgan panelda esa o'qish
+ * birinchi o'rinda. */
+.oyna-panel {
+  background: color-mix(in srgb, var(--rang-panel) 96%, transparent);
+  backdrop-filter: blur(18px) saturate(1.1);
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+}
+
 .oyna-yuza {
   background: var(--rang-oyna);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
