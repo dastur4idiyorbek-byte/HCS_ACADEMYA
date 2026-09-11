@@ -12,7 +12,15 @@ from __future__ import annotations
 
 import math
 
-from reportlab.graphics.shapes import Drawing, Line, Polygon, Rect, String
+from reportlab.graphics.shapes import (
+    Drawing,
+    Group,
+    Line,
+    Polygon,
+    PolyLine,
+    Rect,
+    String,
+)
 from reportlab.lib import colors
 from reportlab.lib.units import mm
 
@@ -32,6 +40,11 @@ from scripts.kitob.uslub import (
 )
 
 ENI = 160 * mm
+
+#: Ustunli diagramma ranglari — modul darajasida, chunki ularni
+#: funksiya argumentida chaqirish har chaqiruvda yangi obyekt yasardi.
+USTUN_MUSBAT = colors.HexColor("#12a15f")
+USTUN_MANFIY = colors.HexColor("#d8453a")
 
 
 def yangi(eni: float = ENI, boyi: float = 55 * mm) -> Drawing:
@@ -142,6 +155,130 @@ def taroziya(d: Drawing, x: float, y: float, chap: str, ong: str, *, boyi: float
 
 __all__ = [
     "APELSIN", "CHIZIQ", "KOK", "KOK_TOQ", "MATN", "MATN_PAST",
-    "SARIQ", "SHRIFT", "TURKUAZ", "YUMSHOQ_FON", "Drawing", "Line", "colors", "mm",
-    "matn", "oq", "quti", "taroziya", "yangi", "zanjir_boglami",
+    "SARIQ", "SHRIFT", "TURKUAZ", "YUMSHOQ_FON",
+    "Drawing", "Group", "Line", "Rect", "colors", "mm",
+    "chiziqli", "matn", "oq", "quti", "shkala", "taroziya", "ustunli",
+    "yangi", "zanjir_boglami",
 ]
+
+
+# --------------------------------------------------------------------------- #
+#  Oddiy diagrammalar — fundamental bo'lim uchun
+# --------------------------------------------------------------------------- #
+
+
+def _oq_qatorlar(d: Drawing, x0: float, y0: float, eni: float, boyi: float) -> None:
+    """Diagramma maydonining ramkasi va nol chizig'i emas — faqat ramka."""
+    d.add(Rect(x0, y0, eni, boyi, fillColor=None, strokeColor=CHIZIQ, strokeWidth=0.6))
+
+
+def chiziqli(  # noqa: PLR0913
+    d: Drawing,
+    x0: float,
+    y0: float,
+    eni: float,
+    boyi: float,
+    qiymatlar: list[float],
+    *,
+    rang=KOK,  # noqa: ANN001
+    yorliq: str = "",
+) -> None:
+    """Oddiy chiziqli diagramma (masalan DXY yoki narx yo'nalishi)."""
+    _oq_qatorlar(d, x0, y0, eni, boyi)
+    past, baland = min(qiymatlar), max(qiymatlar)
+    oraliq = max(baland - past, 1e-9)
+    n = len(qiymatlar)
+    nuqtalar = []
+    for i, q in enumerate(qiymatlar):
+        x = x0 + eni * (i / max(n - 1, 1))
+        y = y0 + boyi * 0.12 + (boyi * 0.76) * ((q - past) / oraliq)
+        nuqtalar += [x, y]
+    d.add(PolyLine(nuqtalar, strokeColor=rang, strokeWidth=1.5))
+    if yorliq:
+        matn(d, x0 + eni / 2, y0 + boyi + 3, yorliq, olcham=7.5, qalin=True, rang=rang)
+
+
+def ustunli(  # noqa: PLR0913
+    d: Drawing,
+    x0: float,
+    y0: float,
+    eni: float,
+    boyi: float,
+    qiymatlar: list[float],
+    *,
+    yorliqlar: list[str] | None = None,
+    musbat=USTUN_MUSBAT,  # noqa: ANN001
+    manfiy=USTUN_MANFIY,  # noqa: ANN001
+    sarlavha: str = "",
+) -> None:
+    """Nol chizig'i atrofidagi ustunlar (Netflow, Funding Rate).
+
+    NOL CHIZIG'I MUHIM: bu diagrammalarda ishora (musbat/manfiy)
+    kattalikdan ko'ra ko'proq narsa aytadi.
+    """
+    _oq_qatorlar(d, x0, y0, eni, boyi)
+    eng = max(abs(q) for q in qiymatlar) or 1.0
+    nol_y = y0 + boyi / 2
+    d.add(Line(x0, nol_y, x0 + eni, nol_y, strokeColor=MATN_PAST, strokeWidth=0.8))
+    matn(d, x0 - 3, nol_y - 2, "0", olcham=6.5, rang=MATN_PAST, markaz=False)
+    qadam = eni / len(qiymatlar)
+    for i, q in enumerate(qiymatlar):
+        h = (boyi / 2 - 4) * (q / eng)
+        x = x0 + qadam * i + qadam * 0.25
+        d.add(
+            Rect(
+                x, nol_y if h >= 0 else nol_y + h,
+                qadam * 0.5, abs(h),
+                fillColor=musbat if q >= 0 else manfiy,
+                strokeColor=None,
+            )
+        )
+        if yorliqlar:
+            matn(d, x + qadam * 0.25, y0 - 6, yorliqlar[i], olcham=6.5, rang=MATN_PAST)
+    if sarlavha:
+        matn(d, x0 + eni / 2, y0 + boyi + 3, sarlavha, olcham=7.5, qalin=True)
+
+
+def shkala(  # noqa: PLR0913
+    d: Drawing,
+    x0: float,
+    y0: float,
+    eni: float,
+    qiymat: float,
+    *,
+    chap_yorliq: str,
+    ong_yorliq: str,
+    sarlavha: str = "",
+) -> None:
+    """0-100 oralig'idagi shkala va undagi belgi (Fear & Greed).
+
+    RANG O'TISHI YO'Q, uchta bo'lak bor: chizmada rang o'tishi
+    chiroyli, lekin "men qayerdaman" degan savolga javob bermaydi.
+    """
+    boyi = 5 * mm
+    bolaklar = [
+        (0, 25, colors.HexColor("#d8453a")),
+        (25, 45, colors.HexColor("#f0b02a")),
+        (45, 55, colors.HexColor("#c9d3de")),
+        (55, 75, colors.HexColor("#7cc47f")),
+        (75, 100, colors.HexColor("#12a15f")),
+    ]
+    for bosh, oxir, rang in bolaklar:
+        d.add(
+            Rect(
+                x0 + eni * bosh / 100, y0,
+                eni * (oxir - bosh) / 100, boyi,
+                fillColor=rang, strokeColor=None,
+            )
+        )
+    x = x0 + eni * qiymat / 100
+    d.add(Polygon([x, y0 + boyi + 1, x - 2.6, y0 + boyi + 6, x + 2.6, y0 + boyi + 6],
+                  fillColor=MATN, strokeColor=MATN))
+    matn(d, x, y0 + boyi + 8, f"{qiymat:.0f}", olcham=7.5, qalin=True)
+    matn(d, x0, y0 - 7, chap_yorliq, olcham=7, rang=MATN_PAST, markaz=False)
+    s = String(x0 + eni, y0 - 7, ong_yorliq, fontSize=7, fillColor=MATN_PAST)
+    s.fontName = SHRIFT
+    s.textAnchor = "end"
+    d.add(s)
+    if sarlavha:
+        matn(d, x0 + eni / 2, y0 + boyi + 14, sarlavha, olcham=7.5, qalin=True)

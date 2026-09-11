@@ -581,5 +581,24 @@
     "oco_izoh": "Ulush foizlari O'ZI moslashadi: TP1 ga 50% yozsangiz, qolgan 50% keyingi nishonlarga bo'linadi. Yig'indi doim 100% bo'lib qoladi.",
     "menyu": "Kalkulyator",
     "hisob": "Hisob-kitob"
+  },
+  "kitob": {
+    "sarlavha": "Kitob — Noldan kripto savdogariga",
+    "izoh": "HCS Academy o'quv qo'llanmasi. 70 sahifa, 24 bob, har bobda chizma va o'z-o'zini tekshirish savollari.",
+    "yuklash": "PDF ni yuklab olish",
+    "hajm": "PDF · 70 sahifa",
+    "tarkib": "Kitob tarkibi",
+    "boblar": "bob",
+    "nima_uchun": "Bu kitob nima beradi",
+    "kimga": "Kimga mo'ljallangan",
+    "kimga_matn": "Kripto haqida hech narsa bilmaydigan odamdan boshlanadi. Har bob avvalgisiga tayanadi — tartib bilan o'qish kerak.",
+    "ogohlantirish": "Bu kitob TA'LIM uchun. Unda moliyaviy maslahat yo'q va birorta coin tavsiya qilinmaydi.",
+    "asoslar": "Asoslar — kripto, blokcheyn, birja, hamyon",
+    "fundamental": "Fundamental tahlil — narxni nima harakatlantiradi",
+    "texnik": "Klassik texnik tahlil — sham, struktura, Fibonacci",
+    "smc": "Smart Money Concepts — BOS/CHOCH, Order Block, FVG",
+    "ict": "ICT konsepsiyalari — sessiyalar va vaqt",
+    "risk": "Risk menejment — Stop, R:R, pozitsiya hajmi",
+    "menyu": "Kitob"
   }
 }

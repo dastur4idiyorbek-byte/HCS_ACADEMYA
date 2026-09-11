@@ -185,3 +185,18 @@ def uslublar() -> dict[str, ParagraphStyle]:
             "mundarija_bob", **asos, fontSize=9.5, leading=14, leftIndent=10,
         ),
     }
+
+
+def qamrab_olinmagan(matn: str) -> set[str]:
+    """Shrift QAMRAMAYDIGAN belgilar.
+
+    NEGA KERAK. DejaVu keng qamrovli, lekin emoji YO'Q. Emoji
+    ishlatilsa, PDF da u qora/bo'sh kvadrat ("tofu") bo'lib chiqadi
+    va buni faqat PDF ni ochib ko'rgandagina sezasiz.
+
+    Aynan shunday bo'ldi: "📊 REAL GRAFIK MISOLI" yozuvidagi emoji
+    kitobda kvadrat bo'lib turdi. Endi buni test ushlaydi.
+    """
+    shriftlarni_qayd_et()
+    xarita = pdfmetrics.getFont(SHRIFT).face.charToGlyph
+    return {b for b in matn if ord(b) not in xarita and b not in "\n\r\t"}

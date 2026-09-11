@@ -33,6 +33,7 @@ from reportlab.graphics.shapes import (
 )
 from reportlab.lib import colors
 from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
 
 from scripts.kitob.uslub import (
     APELSIN,
@@ -97,13 +98,19 @@ class Kanvas:
         eng_baland: float,
         *,
         bosh_joy_ong: float = 0.0,
+        tepa_joy: float = 0.0,
     ) -> None:
         self.eni = eni
         self.boyi = boyi
         self._x0 = CHEKKA_CHAP
         self._x1 = eni - CHEKKA_ONG - bosh_joy_ong
         self._y0 = CHEKKA_PAST
-        self._y1 = boyi - CHEKKA_TEPA
+        # `tepa_joy` — eng baland sham USTIDA qoldiriladigan bo'sh joy.
+        # Nuqta yorliqlari (`nuqta`) shamdan yuqoriroqqa yoziladi va
+        # ular chizmadan chiqib ketmasligi kerak. Chizma balandligini
+        # oshirish yordam bermaydi: narx oralig'i baribir butun
+        # balandlikka cho'ziladi.
+        self._y1 = boyi - CHEKKA_TEPA - tepa_joy
         self._n = max(sham_soni, 1)
         # Narx oralig'iga 8% "havo" qo'shiladi: aks holda eng baland
         # soya chizmaning tepasiga yopishib qoladi.
@@ -132,7 +139,7 @@ class Kanvas:
         return self._x1
 
 
-def _yozuv(
+def _yozuv(  # noqa: PLR0913
     matn: str,
     x: float,
     y: float,
@@ -150,6 +157,39 @@ def _yozuv(
     elif ong:
         s.textAnchor = "end"
     return s
+
+
+def _fon(d: Drawing, s: String) -> None:
+    """Yozuv ostiga OQ TAGLIK qo'yadi.
+
+    NEGA KERAK. Chizmadagi yorliq shamning ustiga tushib qolishi
+    mumkin va u o'qilmay qoladi — aynan shunday bo'ldi: "bo'yin
+    chizig'i" yozuvi birinchi shamning ustida turib qoldi.
+
+    Yorliqni ko'chirish yechim emas: sham joyi har chizmada boshqa.
+    Oq taglik esa har holatda ishlaydi.
+    """
+    shriftlarni_qayd_et()
+    eni = pdfmetrics.stringWidth(s.text, s.fontName, s.fontSize)
+    boyi = s.fontSize
+    x = s.x
+    if s.textAnchor == "middle":
+        x -= eni / 2
+    elif s.textAnchor == "end":
+        x -= eni
+    d.add(
+        Rect(
+            x - 1.2, s.y - boyi * 0.26, eni + 2.4, boyi * 1.08,
+            fillColor=colors.Color(1, 1, 1, alpha=0.82),
+            strokeColor=None,
+        )
+    )
+
+
+def _fonli(d: Drawing, s: String) -> None:
+    """Taglik + yozuv — tartib muhim: taglik oldin chiziladi."""
+    _fon(d, s)
+    d.add(s)
 
 
 def _sham_guruhi(k: Kanvas, ketma: list[Sham], *, xira: set[int] | None = None) -> Group:
@@ -188,6 +228,7 @@ def sham_chizma(
     eni: float = ENI,
     boyi: float = BOYI,
     bosh_joy_ong: float = 0.0,
+    tepa_joy: float = 0.0,
     xira: set[int] | None = None,
 ) -> tuple[Drawing, Kanvas]:
     """Bo'sh sham grafigi + uning kanvasi.
@@ -200,7 +241,10 @@ def sham_chizma(
     d = Drawing(eni, boyi)
     eng_past = min(s.l for s in ketma)
     eng_baland = max(s.h for s in ketma)
-    k = Kanvas(eni, boyi, len(ketma), eng_past, eng_baland, bosh_joy_ong=bosh_joy_ong)
+    k = Kanvas(
+        eni, boyi, len(ketma), eng_past, eng_baland,
+        bosh_joy_ong=bosh_joy_ong, tepa_joy=tepa_joy,
+    )
     d.add(_sham_guruhi(k, ketma, xira=xira))
     return d, k
 
@@ -231,9 +275,9 @@ def gorizontal(
         )
     )
     if yorliq_chapda:
-        d.add(_yozuv(yorliq, k.chap + 2, y + 2.5, rang=rang, qalin=True))
+        _fonli(d, _yozuv(yorliq, k.chap + 2, y + 2.5, rang=rang, qalin=True))
     else:
-        d.add(_yozuv(yorliq, k.ong - 2, y + 2.5, rang=rang, qalin=True, ong=True))
+        _fonli(d, _yozuv(yorliq, k.ong - 2, y + 2.5, rang=rang, qalin=True, ong=True))
 
 
 def zona(
@@ -278,7 +322,9 @@ def nuqta(
     """Swing nuqtasi kabi belgilangan joy."""
     x, y = k.x(indeks), k.y(narx)
     d.add(Circle(x, y, 1.9, fillColor=rang, strokeColor=colors.white, strokeWidth=0.6))
-    d.add(_yozuv(yorliq, x, y + (5 if tepada else -9), rang=rang, qalin=True, markaz=True))
+    _fonli(
+        d, _yozuv(yorliq, x, y + (5 if tepada else -9), rang=rang, qalin=True, markaz=True)
+    )
 
 
 def strelka(
@@ -313,7 +359,26 @@ def strelka(
 def izoh_matni(  # noqa: ANN001, PLR0913
     d: Drawing, x: float, y: float, matn: str, *, rang=MATN_PAST, markaz: bool = False
 ) -> None:
-    d.add(_yozuv(matn, x, y, rang=rang, markaz=markaz))
+    _fonli(d, _yozuv(matn, x, y, rang=rang, markaz=markaz))
+
+
+def izoh_tepada(d: Drawing, x: float, matn: str, *, rang=MATN_PAST, qator: int = 0) -> None:  # noqa: ANN001
+    """Chizmaning TEPASIGA yozadi — narx koordinatasidan mustaqil.
+
+    NEGA KERAK. Ilgari izohlar narx bilan qo'yilardi ("y = 111"),
+    lekin chizmaning narx oralig'i ma'lumotdan hisoblanadi. Shu
+    sababli izoh ba'zan ramkadan chiqib, yuqoridagi xatboshi ustiga
+    tushib qolardi. Bu yerda esa joy CHIZMA o'lchamidan olinadi.
+    """
+    # Bazaviy chiziq shrift balandligicha pastroqda: yozuvning YUQORI
+    # qismi bazaviy chiziqdan tepada turadi va u ramkadan chiqib
+    # ketardi.
+    _fonli(d, _yozuv(matn, x, d.height - 11 - qator * 7.5, rang=rang, markaz=True))
+
+
+def izoh_pastda(d: Drawing, x: float, matn: str, *, rang=MATN_PAST, qator: int = 0) -> None:  # noqa: ANN001
+    """Chizmaning PASTIGA yozadi."""
+    _fonli(d, _yozuv(matn, x, 3 + qator * 7.5, rang=rang, markaz=True))
 
 
 def chiziq(  # noqa: ANN001
@@ -349,5 +414,6 @@ __all__ = [
     "APELSIN", "BOYI", "ENI", "KOK", "KOK_TOQ", "MATN", "MATN_PAST",
     "SARIQ", "SHAM_OSDI", "SHAM_TUSHDI", "SHRIFT", "TURKUAZ",
     "Kanvas", "Sham", "chiziq", "gorizontal", "izoh_matni", "nuqta",
+    "izoh_pastda", "izoh_tepada",
     "ramka", "sham_chizma", "shamlar", "strelka", "zona",
 ]

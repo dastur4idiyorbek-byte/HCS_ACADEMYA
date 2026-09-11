@@ -82,6 +82,15 @@ export const MENYU: MenyuBandi[] = [
     belgi: "maqolalar",
     talab: null,
   },
+  // KITOB — akademiyaning asosiy materiali, shuning uchun video va
+  // kursdan OLDIN turadi: o'quvchi qayerdan boshlashni bilsin.
+  {
+    kod: "kitob",
+    yol: "/kitob",
+    kalit: "kitob.menyu",
+    belgi: "kurs",
+    talab: "lite",
+  },
   {
     kod: "kurs",
     yol: "/kurs",
@@ -163,7 +172,7 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "akademiya",
     kalit: "pastki.akademiya",
-    sahifalar: ["akademiya", "video", "bilimlar", "kurs"],
+    sahifalar: ["akademiya", "kitob", "video", "bilimlar", "kurs"],
   },
   {
     kod: "produkt",

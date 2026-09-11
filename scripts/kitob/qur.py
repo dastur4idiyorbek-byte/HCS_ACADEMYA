@@ -15,12 +15,18 @@ import argparse
 from pathlib import Path
 
 from scripts.kitob.bolim1 import bolim1
+from scripts.kitob.bolim2 import bolim2
+from scripts.kitob.bolim3 import bolim3
+from scripts.kitob.bolim4 import bolim4
+from scripts.kitob.bolim5 import bolim5
+from scripts.kitob.bolim6 import bolim6
 from scripts.kitob.kirish import kirish
 from scripts.kitob.qolip import Kitob, mundarija, muqova
 from scripts.kitob.uslub import ILDIZ, uslublar
+from scripts.kitob.yakun import yakun
 
 #: Tayyor bo'limlar — 7-promptning 3-qismi bo'yicha birma-bir qo'shiladi.
-BOLIMLAR = (bolim1,)
+BOLIMLAR = (bolim1, bolim2, bolim3, bolim4, bolim5, bolim6)
 
 STANDART_CHIQISH = ILDIZ / "docs" / "kitob" / "HCS_Academy_Noldan_kripto_savdogariga.pdf"
 
@@ -36,6 +42,7 @@ def qur(chiqish: Path) -> tuple[int, Path]:
     hikoya += kirish(u)
     for bolim in BOLIMLAR:
         hikoya += bolim(u)
+    hikoya += yakun(u)
 
     hujjat = Kitob(str(chiqish))
     hujjat.multiBuild(hikoya)

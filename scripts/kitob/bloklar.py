@@ -76,7 +76,7 @@ def real_misol(u: dict, tavsif: str) -> KeepTogether:
     ichki = [
         Paragraph(
             f'<font name="{SHRIFT_QALIN}" size="9" color="#f47f16">'
-            "📊 REAL GRAFIK MISOLI — ADMIN TO'LDIRADI</font>",
+            "▣ REAL GRAFIK MISOLI — ADMIN TO'LDIRADI</font>",
             u["izoh"],
         ),
         Spacer(1, 2 * mm),
