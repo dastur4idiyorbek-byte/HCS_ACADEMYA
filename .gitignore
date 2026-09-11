@@ -37,3 +37,7 @@ reports/
 
 # Backtest natijasi (BACKTEST.bat yozadi)
 natija.txt
+
+# Kitob PDF si — KODDAN qayta quriladi (`python -m scripts.kitob.qur`).
+# Binar fayl har qurishda o'zgaradi va git tarixini shishiradi.
+docs/kitob/*.pdf
