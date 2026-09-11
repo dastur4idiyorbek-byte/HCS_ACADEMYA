@@ -12,6 +12,7 @@ yugurishda yig'adi va faqat IKKINCHISIDA to'g'ri chop etadi
 from __future__ import annotations
 
 import argparse
+import shutil
 from pathlib import Path
 
 from scripts.kitob.bolim1 import bolim1
@@ -28,7 +29,18 @@ from scripts.kitob.yakun import yakun
 #: Tayyor bo'limlar — 7-promptning 3-qismi bo'yicha birma-bir qo'shiladi.
 BOLIMLAR = (bolim1, bolim2, bolim3, bolim4, bolim5, bolim6)
 
-STANDART_CHIQISH = ILDIZ / "docs" / "kitob" / "HCS_Academy_Noldan_kripto_savdogariga.pdf"
+FAYL_NOMI = "HCS_Academy_Noldan_kripto_savdogariga.pdf"
+STANDART_CHIQISH = ILDIZ / "docs" / "kitob" / FAYL_NOMI
+
+#: Sayt PDF ni SHU yerdan beradi (`web/src/app/api/kitob/route.ts`).
+#:
+#: NEGA NUSXA OLINADI. `docs/kitob/*.pdf` — `.gitignore` da: har
+#: qurishda o'zgaradigan binar fayl git tarixini shishiradi. Lekin
+#: Railway da reportlab yo'q, shuning uchun saytdagi nusxa git ga
+#: KIRITILADI. Ilgari nusxa QO'LDA ko'chirilardi va bir marta
+#: eskirib qoldi: docs dagi yangi, saytdagi eski edi — hech kim
+#: sezmadi. Endi bitta buyruq ikkalasini ham yangilaydi.
+VEB_NUSXA = ILDIZ / "web" / "kitob" / FAYL_NOMI
 
 
 def qur(chiqish: Path) -> tuple[int, Path]:
@@ -55,9 +67,18 @@ def qur(chiqish: Path) -> tuple[int, Path]:
 def main() -> None:
     p = argparse.ArgumentParser(description="HCS Academy kitobini quradi")
     p.add_argument("--chiqish", default=str(STANDART_CHIQISH))
+    p.add_argument(
+        "--veb-nusxasiz",
+        action="store_true",
+        help="saytdagi nusxa (web/kitob/) yangilanmasin",
+    )
     args = p.parse_args()
     sahifalar, yol = qur(Path(args.chiqish))
     print(f"Tayyor: {yol}  ({sahifalar} sahifa)")
+    if not args.veb_nusxasiz and yol.resolve() != VEB_NUSXA.resolve():
+        VEB_NUSXA.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(yol, VEB_NUSXA)
+        print(f"Sayt nusxasi: {VEB_NUSXA}")
 
 
 if __name__ == "__main__":

@@ -599,6 +599,15 @@
     "smc": "Smart Money Concepts — BOS/CHOCH, Order Block, FVG",
     "ict": "ICT konsepsiyalari — sessiyalar va vaqt",
     "risk": "Risk menejment — Stop, R:R, pozitsiya hajmi",
-    "menyu": "Kitob"
+    "menyu": "Kitob",
+    "kirish": "Kirish — bu kitob haqida",
+    "yakun": "Keyingi qadamlar",
+    "oqish": "Saytda o'qish",
+    "mundarijaga": "Mundarijaga qaytish",
+    "xulosa": "Xulosa",
+    "savollar": "O'zingizni tekshiring",
+    "real_misol": "REAL GRAFIK MISOLI — ADMIN TO'LDIRADI",
+    "tayyor_emas": "Bu bo'lim hali tayyor emas.",
+    "tarkib_izoh": "Bo'limni bosing — u saytda to'liq ochiladi. Yuklab olish shart emas."
   }
 }

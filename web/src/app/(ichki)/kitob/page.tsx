@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardHint, CardTitle } from "@/components/ui/Card";
 import { Ikonka } from "@/components/ui/Ikonka";
@@ -66,19 +68,31 @@ export default async function Kitob() {
             <Ikonka nom="akademiya" />
             {t("kitob.tarkib")}
           </CardTitle>
-          <ol className="mt-3 space-y-2.5">
+          <CardHint className="mt-1 mb-3">{t("kitob.tarkib_izoh")}</CardHint>
+          {/* HAR BO'LIM — HAVOLA. Ilgari bu oddiy ro'yxat edi va
+              odam bosib ko'rib, hech narsa ochilmagach chalkashardi.
+              Kitobni o'qish uchun PDF yuklash SHART EMAS. */}
+          <ul className="space-y-1.5">
             {KITOB_BOLIMLARI.map((b, i) => (
-              <li key={b.kalit} className="flex items-start gap-3 text-sm">
-                <span className="text-ramka raqam w-5 shrink-0 font-bold">
-                  {i + 1}
-                </span>
-                <span className="flex-1">{t(`kitob.${b.kalit}`)}</span>
-                <Badge tone="neytral">
-                  {b.boblar} {t("kitob.boblar")}
-                </Badge>
+              <li key={b.kalit}>
+                <Link
+                  href={`/kitob/${b.kalit}`}
+                  className="border-ramka-yumshoq hover:border-ramka hover:bg-panel-yorqin rounded-tugma flex items-center gap-3 border px-3 py-2.5 text-sm transition-colors"
+                >
+                  <span className="text-ramka raqam w-5 shrink-0 text-center font-bold">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1">{t(`kitob.${b.kalit}`)}</span>
+                  {b.boblar !== "—" && (
+                    <Badge tone="neytral">
+                      {b.boblar} {t("kitob.boblar")}
+                    </Badge>
+                  )}
+                  <Ikonka nom="ochish" className="text-matn-past h-4 w-4" />
+                </Link>
               </li>
             ))}
-          </ol>
+          </ul>
         </Card>
 
         <Card>

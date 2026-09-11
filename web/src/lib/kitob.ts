@@ -12,12 +12,34 @@ export const KITOB_FAYLI = "HCS_Academy_Noldan_kripto_savdogariga.pdf";
  * darvoza. O'zgartirish kerak bo'lsa — FAQAT shu yerda. */
 export const KITOB_TARIFI: Tarif = "lite";
 
-/** Kitob tarkibi — sahifada ko'rsatiladigan bo'limlar. */
+/** Kitob tarkibi — sahifada ko'rsatiladigan bo'limlar.
+ *
+ * KALITLAR `scripts/kitob/eksport.py` dagi ro'yxat bilan BIR XIL
+ * bo'lishi shart: sayt bo'limni shu kalit bo'yicha topadi. Test
+ * ikkalasini solishtirib turadi. */
 export const KITOB_BOLIMLARI = [
+  { kalit: "kirish", boblar: "—" },
   { kalit: "asoslar", boblar: "1–7" },
   { kalit: "fundamental", boblar: "8–10" },
   { kalit: "texnik", boblar: "11–16" },
   { kalit: "smc", boblar: "17–18" },
   { kalit: "ict", boblar: "19–20" },
   { kalit: "risk", boblar: "21–23" },
+  { kalit: "yakun", boblar: "24" },
 ] as const;
+
+/** Bo'limning oldingi va keyingi qo'shnisi — sahifa oxiridagi
+ *  «keyingi bo'lim» havolasi uchun. */
+export function bolimYonidagi(kalit: string): {
+  oldingi: string | null;
+  keyingi: string | null;
+} {
+  const i = KITOB_BOLIMLARI.findIndex((b) => b.kalit === kalit);
+  return {
+    oldingi: i > 0 ? KITOB_BOLIMLARI[i - 1].kalit : null,
+    keyingi:
+      i >= 0 && i < KITOB_BOLIMLARI.length - 1
+        ? KITOB_BOLIMLARI[i + 1].kalit
+        : null,
+  };
+}

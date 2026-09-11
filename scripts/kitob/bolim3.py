@@ -58,7 +58,10 @@ def _sxema_sham_anatomiyasi() -> sxema.Drawing:
                    rang=sxema.MATN, markaz=False)
         sxema.oq(d, x - 11 * mm, ochilish_y + 1, x - 6 * mm, ochilish_y + 1,
                  rang=sxema.MATN_PAST)
-        sxema.matn(d, x + 7 * mm, yopilish_y - 1, "CLOSE — yopilish", olcham=7,
+        # 12 mm — strelka DUMIdan (x + 11 mm) keyin boshlanadi. Ilgari
+        # 7 mm edi va strelka chizig'i "CLOSE" harflari ustidan o'tib,
+        # so'zni chizib tashlagandek ko'rinardi.
+        sxema.matn(d, x + 12 * mm, yopilish_y - 1, "CLOSE — yopilish", olcham=7,
                    rang=sxema.MATN, markaz=False)
         sxema.oq(d, x + 11 * mm, yopilish_y + 1, x + 6 * mm, yopilish_y + 1,
                  rang=sxema.MATN_PAST)

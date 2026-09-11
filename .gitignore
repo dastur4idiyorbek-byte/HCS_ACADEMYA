@@ -41,7 +41,9 @@ natija.txt
 # Kitob PDF si — KODDAN qayta quriladi (`python -m scripts.kitob.qur`).
 # Binar fayl har qurishda o'zgaradi va git tarixini shishiradi.
 #
-# ISTISNO: `web/kitob/` dagi nusxa SAQLANADI. Sabab — sayt uni
+# ISTISNO: `web/kitob/` dagi nusxa SAQLANADI (PDF ham, saytda
+# o'qish uchun `mazmun.json` ham). Sabab — sayt ularni
 # foydalanuvchiga beradi, lekin Railway deploy paytida reportlab
-# o'rnatilmagan va PDF ni o'sha yerda qurib bo'lmaydi.
+# o'rnatilmagan va u yerda qurib bo'lmaydi. Ikkala nusxani ham
+# `python -m scripts.kitob.qur` va `... .eksport` yangilaydi.
 docs/kitob/*.pdf
