@@ -4,6 +4,7 @@ import {
   kotirovka,
   obunaKunlari,
   savdoQoidalari,
+  sozlama,
 } from "./config.ts";
 import { asosiyAktiv } from "./kalkulyator.ts";
 import { postMediaTuri } from "./media.ts";
@@ -2248,5 +2249,75 @@ export function kuzatuvBozori(symbol: string): KuzatuvBozori | null {
     ozgarish24s: son(q.ozgarish_24s),
     ozgarish7k: son(q.ozgarish_7k),
     yangilangan: q.yangilangan ? String(q.yangilangan) : null,
+  };
+}
+
+// --------------------------------------------------------------------------- //
+//  Kunlik qidiruv chegarasi (7-qism)
+// --------------------------------------------------------------------------- //
+
+export type QidiruvHolati = {
+  ishlatildi: number;
+  chegara: number;
+  qoldi: number;
+  mumkin: boolean;
+};
+
+/** Tarifga mos kunlik chegara.
+ *
+ * Noma'lum tarif — OBUNASIZ chegara. Uni "cheksiz" deb o'qish
+ * teshik ochardi. Raqamlar `config/default.yaml` dan keladi, kodda
+ * qattiq yozilmagan (`core/config/schema.py: KuzatuvConfig`). */
+export function qidiruvChegarasi(tarif: Tarif | null): number {
+  if (tarif === "premium") return sozlama(["kuzatuv", "qidiruv_premium"], 30);
+  if (tarif === "pro") return sozlama(["kuzatuv", "qidiruv_pro"], 10);
+  if (tarif === "lite") return sozlama(["kuzatuv", "qidiruv_lite"], 3);
+  return sozlama(["kuzatuv", "qidiruv_obunasiz"], 1);
+}
+
+function bugunUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Foydalanuvchining bugungi holati — hech narsa o'zgartirmaydi. */
+export function qidiruvHolati(userId: number, tarif: Tarif | null): QidiruvHolati {
+  const chegara = qidiruvChegarasi(tarif);
+  const q = db()
+    .prepare(`select soni from kunlik_qidiruv where user_id = ? and sana = ?`)
+    .get(userId, bugunUtc()) as Qator | undefined;
+  const ishlatildi = Number(q?.soni ?? 0);
+  return {
+    ishlatildi,
+    chegara,
+    qoldi: Math.max(0, chegara - ishlatildi),
+    mumkin: ishlatildi < chegara,
+  };
+}
+
+/** Bitta qidiruvni hisobga oladi.
+ *
+ * Chegara tugagan bo'lsa hisob OSHIRILMAYDI: aks holda
+ * foydalanuvchi rad javobini olgan sari "qarzi" ko'payardi va
+ * ertaga ham chegarada qolardi.
+ *
+ * Qaytadi: qidiruv ruxsat etildimi. */
+export function qidiruvIshlat(userId: number, tarif: Tarif | null): QidiruvHolati {
+  const holat = qidiruvHolati(userId, tarif);
+  if (!holat.mumkin) return holat;
+
+  db()
+    .prepare(
+      `insert into kunlik_qidiruv (user_id, sana, soni)
+            values (?, ?, 1)
+       on conflict(user_id, sana) do update set soni = soni + 1`,
+    )
+    .run(userId, bugunUtc());
+
+  const ishlatildi = holat.ishlatildi + 1;
+  return {
+    ishlatildi,
+    chegara: holat.chegara,
+    qoldi: Math.max(0, holat.chegara - ishlatildi),
+    mumkin: true,
   };
 }

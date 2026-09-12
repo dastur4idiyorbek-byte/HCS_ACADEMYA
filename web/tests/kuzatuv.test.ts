@@ -190,3 +190,69 @@ test("har bir segment kaliti tarjimada bor", () => {
     assert.equal(typeof joriy, "string", `tarjima yo'q: ${kalit}`);
   }
 });
+
+// --------------------------------------------------------------------------- //
+//  Qidiruv sahifasi (7-qism)
+// --------------------------------------------------------------------------- //
+
+test("qidiruv sahifasi FAQAT Top 20 ni ko'rsatadi", () => {
+  // "+10 kuzatuvda" — admin uchun. Foydalanuvchiga u chiqmasligi
+  // kerak, aks holda hali tayyor bo'lmagan coin "tavsiya" bo'lib
+  // ko'rinardi.
+  const matn = oqi("web/src/app/(ichki)/qidiruv/page.tsx");
+  assert.ok(matn.includes('royxat === "top"'), "Top 20 filtri yo'q");
+});
+
+test("qidiruv sahifasi admin tafsilotini ko'rsatmaydi", () => {
+  const matn = oqi("web/src/app/(ichki)/qidiruv/page.tsx");
+  for (const taqiq of [
+    "JonliStakan",
+    "xaridBosimi",
+    "yiriklar",
+    "segmentlar",
+    "bloklar",
+  ]) {
+    assert.ok(!matn.includes(taqiq), `foydalanuvchiga "${taqiq}" chiqmasligi kerak`);
+  }
+});
+
+test("qidiruv sahifasida ham savdo darajasi yo'q", () => {
+  const matn = oqi("web/src/app/(ichki)/qidiruv/page.tsx");
+  for (const taqiq of ["kalkulyatorMatnlari", "@/lib/kalkulyator", "signalLevels"]) {
+    assert.ok(!matn.includes(taqiq), `taqiqlangan "${taqiq}" ishlatilgan`);
+  }
+});
+
+test("chegara raqamlari YAML dan o'qiladi, kodda qattiq yozilmagan", () => {
+  // Ikki nusxa bo'lsa, bir kuni YAML o'zgartiriladi-yu saytda
+  // eskisi qolib ketardi.
+  const matn = oqi("web/src/lib/queries.ts");
+  assert.ok(matn.includes('sozlama(["kuzatuv", "qidiruv_premium"]'));
+  assert.ok(matn.includes('sozlama(["kuzatuv", "qidiruv_obunasiz"]'));
+
+  const yaml = oqi("config/default.yaml");
+  for (const kalit of [
+    "qidiruv_obunasiz",
+    "qidiruv_lite",
+    "qidiruv_pro",
+    "qidiruv_premium",
+  ]) {
+    assert.ok(yaml.includes(kalit), `YAML da ${kalit} yo'q`);
+  }
+});
+
+test("qidiruv menyuda HAMMAGA ochiq", () => {
+  const band = MENYU.find((b) => b.kod === "qidiruv");
+  assert.ok(band, "menyuda qidiruv bandi yo'q");
+  assert.equal(band.talab, null);
+  assert.notEqual(band.adminUchun, true);
+});
+
+test("timeframe qiymatlari YAML va Python da bir xil", () => {
+  const yaml = oqi("config/default.yaml");
+  const python = oqi("core/analysis/observation_mode.py");
+  for (const tf of ["4h", "1h", "15m"]) {
+    assert.ok(yaml.includes(`"${tf}"`), `YAML da ${tf} yo'q`);
+    assert.ok(python.includes(`"${tf}"`), `Pythonda ${tf} yo'q`);
+  }
+});

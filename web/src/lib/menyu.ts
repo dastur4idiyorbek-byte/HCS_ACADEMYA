@@ -132,6 +132,18 @@ export const MENYU: MenyuBandi[] = [
     belgi: "kabinet",
     talab: null,
   },
+  // COIN QIDIRISH — HAMMAGA ochiq, lekin kunlik chegara bilan.
+  //
+  // Bu — kuzatuv panelining foydalanuvchi uchun ochilgan, TOR
+  // qismi: faqat Top 20 va faqat asosiy raqamlar. Stakan, xarid
+  // bosimi va blok tafsiloti admin uchun qoladi.
+  {
+    kod: "qidiruv",
+    yol: "/qidiruv",
+    kalit: "kuzatuv.qidiruv.menyu",
+    belgi: "qidiruv",
+    talab: null,
+  },
   // KUZATUV PANELI — faqat adminlarga (9-prompt).
   //
   // `adminUchun: true` yon panelda ham, pastki navigatsiyada ham
@@ -190,7 +202,7 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "produkt",
     kalit: "pastki.produkt",
-    sahifalar: ["signallar", "kalkulyator", "statistika"],
+    sahifalar: ["signallar", "qidiruv", "kalkulyator", "statistika"],
   },
   {
     kod: "kabinet",

@@ -1730,3 +1730,50 @@ hozirgi signal qoidalarida UMUMAN yo'q.
 zanjir saralamasligining UCHINCHI mustaqil tasdig'i.
 
 Tafsilot: `BACKTEST_NATIJA_2026-09-10_model.md`.
+
+---
+
+## Kuzatuv paneli sozlamalari (2026-09-12, 9-prompt)
+
+Kuzatuv paneli SIGNAL BERMAYDI va savdo qarori qabul qilmaydi.
+Shu sababli quyidagi raqamlar **pulga ta'sir qilmaydi** — ular
+faqat ekrandagi ko'rinishni boshqaradi. Lekin ular baribir shu
+yerga yozildi: qoida "har bir sozlama daftarda bo'lsin" deydi,
+va istisno ochish — qoidani buzishning eng oson yo'li.
+
+### 🔴 O'lchanmagan, lekin QAROR QABUL QILMAYDI
+
+| sozlama | qiymat | nima uchun shunday |
+|---|---|---|
+| `skan_soat` | 4 | Signal sikli bilan bir xil oraliq. 1 soat ham mumkin edi, lekin panel 4 soatlik grafikni o'qiydi — undan tez-tez yangilash yangi ma'lumot bermaydi |
+| `tf_struktura` | `4h` | Loyiha egasining tanlovi (2026-09-12). Signal moduli 1 kunlikni o'qiydi; savdogar ko'zi uchun 4 soatlik tabiiyroq |
+| `tf_zona` | `1h` | Zona, Liquidity Sweep va RSI shu grafikdan |
+| `tf_pastki` | `15m` | Pastki TF tasdig'i — signal moduli bilan bir xil |
+| `YANGI_OYNA` | 10 sham | "Burilish qancha vaqt yangi hisoblanadi". Taxmin: undan keyin coin allaqachon Uptrend bo'lishi kerak |
+
+### 🔴 Kunlik qidiruv chegarasi — BIZNES qarori, o'lchov emas
+
+| sozlama | kuniga |
+|---|---|
+| `qidiruv_obunasiz` | 1 |
+| `qidiruv_lite` | 3 |
+| `qidiruv_pro` | 10 |
+| `qidiruv_premium` | 30 |
+
+Bu raqamlar backtestdan chiqmaydi va chiqa olmaydi ham: ular
+"foydalanuvchi qancha ma'lumot olsin" degan savolga javob, "qaysi
+qoida foyda beradi" degan savolga emas. Admin panelda
+o'zgartiriladi.
+
+### Nima o'lchanishi KERAK bo'lardi (agar panel qaror qabul qilsa)
+
+Agar kelajakda kuzatuv paneli asosida savdo qilinadigan bo'lsa,
+avval quyidagilar o'lchanishi SHART:
+
+  - Diqqat darajasi (0–4) haqiqatan natijani ajratadimi
+  - `YANGI_OYNA` qiymati burilishning yashashiga qanday ta'sir
+    qiladi
+  - 4h/1h/15m to'plami 1d/1d/15m dan yaxshiroqmi
+
+Hozircha ularning birortasi ham o'lchanmagan va panel ATAYLAB
+qaror qabul qilmaydi.

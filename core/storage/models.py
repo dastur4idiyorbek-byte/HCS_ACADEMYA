@@ -935,3 +935,30 @@ class KuzatuvBozor(Base, TimestampMixin):
     ozgarish_7k: Mapped[float | None] = mapped_column(Float)
 
     yangilangan: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
+
+
+class KunlikQidiruv(Base, TimestampMixin):
+    """Foydalanuvchining bir kunlik coin qidiruvlari soni.
+
+    NIMA UCHUN JADVAL, HISOBLAGICH EMAS. Sayt bir necha jarayonda
+    ishlashi mumkin va xotiradagi hisoblagich har birida alohida
+    bo'lardi — chegara amalda ishlamasdi.
+
+    NIMA UCHUN SANA USTUNI BOR, "har kuni 00:00 da tozalash"
+    VAZIFASI EMAS. Tozalovchi vazifa yiqilsa yoki bot o'chirilgan
+    bo'lsa, chegara MANGU qolib ketardi. Sana bilan esa hech narsa
+    yugurishi shart emas: yangi kun — yangi qator.
+    """
+
+    __tablename__ = "kunlik_qidiruv"
+    __table_args__ = (UniqueConstraint("user_id", "sana", name="uq_kunlik_qidiruv"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: `YYYY-MM-DD` (UTC). Sana bo'yicha qidirish uchun matn qulay.
+    sana: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
+    soni: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )

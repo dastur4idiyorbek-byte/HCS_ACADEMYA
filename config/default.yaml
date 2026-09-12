@@ -196,3 +196,26 @@ logging:
 backtest:
   fee_pct: 0.1        # Binance spot taker, bir tomonlama
   slippage_pct: 0.05  # o'lchanmagan — ehtiyotkor qiymat olindi
+
+# Kuzatuv paneli — 80 coin, SIGNAL BERMAYDI (9-prompt).
+#
+# NIMA UCHUN YAML DA. Kunlik qidiruv chegarasini SAYT ham o'qiydi.
+# Agar u o'z nusxasini saqlasa, bir kuni raqam shu yerda
+# o'zgartiriladi-yu, saytda eskisi qolib ketardi — foydalanuvchi
+# uchun chegara ikki xil bo'lardi.
+kuzatuv:
+  # Skan necha soatda bir marta o'zi yuradi. Admin istalgan paytda
+  # bitta qo'shimcha skanni qo'lda ishga tushira oladi.
+  skan_soat: 4
+
+  # Qaysi blok qaysi grafikdan o'qiydi.
+  tf_struktura: "4h"
+  tf_zona: "1h"
+  tf_pastki: "15m"
+
+  # Kunlik coin qidiruvi chegarasi — obunaga qarab.
+  # 🔴 O'LCHANMAGAN, boshlang'ich qiymat.
+  qidiruv_obunasiz: 1
+  qidiruv_lite: 3
+  qidiruv_pro: 10
+  qidiruv_premium: 30
