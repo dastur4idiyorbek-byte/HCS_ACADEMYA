@@ -1,0 +1,331 @@
+"""REJIM B — KUZATUV. To'rt blok hisoblanadi, ZANJIR UZILMAYDI.
+
+--------------------------------------------------------------------
+IKKI REJIM, BITTA HISOBLASH
+--------------------------------------------------------------------
+
+    Rejim A (signal)   `chain/block_chain_engine.py`
+        blok "yo'q" desa -> ZANJIR UZILADI -> keyingi bloklar
+        umuman hisoblanmaydi
+
+    Rejim B (kuzatuv)   SHU FAYL
+        blok "yo'q" desa -> HECH NARSA UZILMAYDI -> to'rt blok ham,
+        har doim, to'liq hisoblanadi
+
+Ikkalasi AYNAN bir xil blok funksiyalarini chaqiradi
+(`fundamental_blok`, `struktura_blok`, `zona_blok`,
+`tasdiqlash_blok`). Bu fayl ularning ichiga kirmaydi va ularni
+o'zgartirmaydi — faqat boshqacha TARTIBDA chaqiradi. Shuning
+uchun "panel boshqa narsa ko'rsatyapti" degan holat bo'lishi
+mumkin emas: ikkalasi bir xil hisobni ko'radi, faqat Rejim A
+yarim yo'lda to'xtaydi.
+
+--------------------------------------------------------------------
+QATTIQ TO'SIQ — REJIM B DA TO'XTATMAYDI
+--------------------------------------------------------------------
+
+Fundamental blokdagi delisting/unlock to'sig'i Rejim A da zanjirni
+uzadi. Bu yerda esa u faqat ⚠️ OGOHLANTIRISH: coin ro'yxatda
+qoladi, lekin admin xavfni ko'radi. Sabab sodda — biz savdo
+qarori qabul qilmayapmiz, ko'rsatayapmiz. "Bu coinda unlock
+yaqin" degan xabar — aynan admin bilishi kerak bo'lgan narsa,
+uni yashirish foyda bermaydi.
+
+--------------------------------------------------------------------
+FILTR BIRINCHI — KEYIN HISOB
+--------------------------------------------------------------------
+
+3-qism filtri (`watch_panel/uptrend_filter.py`) Diqqat darajasini
+hisoblashdan OLDIN qo'llanadi. Downtrend coin uchun qolgan uch
+blok UMUMAN hisoblanmaydi — bu resursni tejash, chunki u coin
+baribir hech qaysi ro'yxatga kirmaydi.
+
+Diqqqat: bu Rejim A dagi "zanjir uzildi" bilan bir narsa EMAS.
+U yerda blok natijasi zanjirni uzadi; bu yerda esa coin umuman
+nomzod emasligi aniqlangani uchun hisob boshlanmaydi.
+
+--------------------------------------------------------------------
+DIQQAT DARAJASI — TO'RT ICHKI TEKSHIRUV, TO'RT BLOK EMAS
+--------------------------------------------------------------------
+
+Prompt to'rt segmentli indikator so'radi. Segmentlar BLOKLARga
+bog'lansa, amalda ikkitasi qotib qolardi:
+
+    Fundamental — manba ulanmagan, DOIM bo'sh
+    Struktura   — filtrdan o'tganlar uchun DOIM to'la
+
+ya'ni 20 coin bir-biridan atigi ikki segment bilan farq qilardi.
+Shuning uchun segmentlar — HAQIQATAN o'zgaradigan to'rt ichki
+tekshiruv (loyiha egasining qarori, 2026-09-12):
+
+    1. Zona konfluensiyasi  (kamida O'RTA daraja: Fib+OB)
+    2. Volume Profile
+    3. Liquidity Sweep
+    4. RSI divergensiyasi
+
+To'rt blokning O'ZI yo'qolmaydi — ular chuqur ko'rinishda alohida
+karta bo'lib qoladi (5.3-qism).
+
+--------------------------------------------------------------------
+TIMEFRAME
+--------------------------------------------------------------------
+
+    Struktura + filtr  — 4 soatlik
+    Zona + sweep/RSI   — 1 soatlik
+    Pastki tasdiq      — 15 daqiqalik
+
+Har bir blok o'z timeframeini natijada QAYTARADI, ekranda aynan
+o'shani yozish uchun. Raqam qo'lda yozilmaydi — aks holda config
+o'zgarganda ekranda eski qiymat qolib ketardi.
+
+QAT'IY CHEGARA: bu faylda Entry, Stop yoki TP hisoblanmaydi.
+`entry_stop_tp` import qilinmaydi.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
+
+from core.analysis.confirmation.confirmation_block import TasdiqKirish, tasdiqlash_blok
+from core.analysis.fundamental.fundamental_block import (
+    FundamentalKirish,
+    delisting_tosig,
+    fundamental_blok,
+    unlock_tosig,
+)
+from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
+from core.analysis.structure.swing_detector import swinglar
+from core.analysis.turlar import Blok, Holat, Tekshiruv
+from core.analysis.zone_quality.order_block import ObTarifi
+from core.analysis.zone_quality.zone_block import ZonaDarajasi, ZonaKirish, ZonaNatija, zona_blok
+from core.domain.models import Candle
+from core.watch_panel.uptrend_filter import Yonalish, YonalishNatija, yonalish_aniqla
+
+#: Nisbiy kuch nechta sham oldin bilan solishtiriladi.
+#: `relative_strength.NISBAT_OYNA` bilan bir xil bo'lishi shart
+#: emas: u yerda HA/YO'Q, bu yerda esa TARTIBLASH uchun raqam.
+NISBAT_OYNA = 20
+
+#: Zona konfluensiyasi segmenti ✅ bo'lishi uchun eng kam daraja.
+#: O'RTA = Fib + OB ustma-ust tushgan.
+YETARLI_DARAJA = (ZonaDarajasi.ORTA, ZonaDarajasi.KUCHLI)
+
+
+@dataclass(frozen=True, slots=True)
+class Timeframelar:
+    """Qaysi blok qaysi grafikdan o'qiganini ekranga chiqarish uchun."""
+
+    struktura: str = "4h"
+    zona: str = "1h"
+    pastki: str = "15m"
+
+
+@dataclass(frozen=True, slots=True)
+class KuzatuvKirish:
+    """Bitta coin uchun barcha xom ma'lumot."""
+
+    symbol: str
+    #: Struktura va filtr uchun (4h)
+    struktura_shamlar: list[Candle] = field(default_factory=list)
+    #: Zona, sweep va RSI uchun (1h)
+    zona_shamlar: list[Candle] = field(default_factory=list)
+    #: Pastki TF tasdig'i uchun (15m)
+    pastki_shamlar: list[Candle] = field(default_factory=list)
+    #: BTC, struktura timeframeida — nisbiy kuch uchun
+    btc_shamlar: list[Candle] = field(default_factory=list)
+    fundamental: FundamentalKirish = field(default_factory=FundamentalKirish)
+    yosh_kun: int | None = None
+    etalon: bool = False
+    shubhali: set[datetime] = field(default_factory=set)
+    ob_tarifi: ObTarifi = ObTarifi.LAST_OPPOSITE
+    timeframelar: Timeframelar = field(default_factory=Timeframelar)
+    unlock_yaqin_kun: int = 7
+    unlock_katta_pct: float = 5.0
+
+
+@dataclass(frozen=True, slots=True)
+class Segment:
+    """Diqqat indikatorining bitta segmenti."""
+
+    nom: str
+    holat: Holat
+    izoh: str
+    #: Qaysi grafikdan o'qildi — ekranda ko'rsatiladi
+    timeframe: str
+
+    @property
+    def yoqilgan(self) -> bool:
+        return self.holat is Holat.HA
+
+
+@dataclass(frozen=True, slots=True)
+class KuzatuvNatija:
+    """Bitta coinning kuzatuv holati.
+
+    `bloklar` bo'sh bo'lsa — coin filtrdan o'tmagan va hisob
+    umuman boshlanmagan. Bu "hammasi yo'q chiqdi" degani EMAS.
+    """
+
+    symbol: str
+    yonalish: YonalishNatija
+    bloklar: tuple[Blok, ...] = ()
+    zona_natija: ZonaNatija | None = None
+    segmentlar: tuple[Segment, ...] = ()
+    #: Delisting yoki unlock xavfi — ro'yxatdan CHIQARMAYDI
+    ogohlantirish: str | None = None
+    #: coin/BTC nisbatining o'zgarishi — teng ball chiqqanda tartib uchun
+    nisbiy_kuch: float | None = None
+    timeframelar: Timeframelar = field(default_factory=Timeframelar)
+
+    @property
+    def otdi(self) -> bool:
+        """Coin ro'yxatga kira oladimi (3-qism filtri)."""
+        return self.yonalish.otadi
+
+    @property
+    def diqqat(self) -> int:
+        """Nechta segment ✅ — 0 dan 4 gacha."""
+        return sum(1 for s in self.segmentlar if s.yoqilgan)
+
+    @property
+    def zona_darajasi(self) -> ZonaDarajasi:
+        return self.zona_natija.daraja if self.zona_natija else ZonaDarajasi.YOQ
+
+
+def _tekshiruv(blok: Blok | None, nom: str) -> Tekshiruv | None:
+    if blok is None:
+        return None
+    for t in blok.tekshiruvlar:
+        if t.nom == nom:
+            return t
+    return None
+
+
+def _segment(
+    nom: str, tekshiruv: Tekshiruv | None, timeframe: str, *, sabab: str = ""
+) -> Segment:
+    if tekshiruv is None:
+        return Segment(nom, Holat.MALUMOT_YOQ, sabab or "hisoblanmadi", timeframe)
+    return Segment(nom, tekshiruv.holat, tekshiruv.izoh, timeframe)
+
+
+def _nisbiy_kuch_qiymati(coin: list[Candle], btc: list[Candle]) -> float | None:
+    """coin/BTC nisbati `NISBAT_OYNA` sham ichida necha marta o'zgardi.
+
+    FAQAT TARTIBLASH UCHUN. Bu raqam hech qanday qarorga kirmaydi —
+    teng Diqqat darajasi chiqqanda qaysi coin yuqoriroq turishini
+    hal qiladi, xolos (4-qism). 1.0 dan katta — coin BTC dan
+    tezroq o'sgan.
+    """
+    if len(coin) <= NISBAT_OYNA or len(btc) <= NISBAT_OYNA:
+        return None
+    if btc[-1].close <= 0 or btc[-1 - NISBAT_OYNA].close <= 0:
+        return None
+    hozir = coin[-1].close / btc[-1].close
+    avval = coin[-1 - NISBAT_OYNA].close / btc[-1 - NISBAT_OYNA].close
+    if avval <= 0:
+        return None
+    return hozir / avval
+
+
+def _ogohlantirish(kirish: KuzatuvKirish) -> str | None:
+    """Delisting/unlock xavfi — ko'rsatiladi, LEKIN to'smaydi.
+
+    Rejim A da bu ikkisi zanjirni uzadi. Kuzatuv rejimida esa
+    coin ro'yxatda qoladi: biz savdo qilmayapmiz, ko'rsatayapmiz,
+    va aynan shu xabar admin bilishi kerak bo'lgan narsa.
+    """
+    return delisting_tosig(kirish.fundamental.delisting) or unlock_tosig(
+        kirish.fundamental.unlock,
+        yaqin_kun=kirish.unlock_yaqin_kun,
+        katta_pct=kirish.unlock_katta_pct,
+    )
+
+
+def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
+    """Bitta coinni Rejim B da baholaydi.
+
+    Zanjir UZILMAYDI: filtrdan o'tgan coin uchun to'rt blok ham
+    to'liq hisoblanadi, blokning biri "yo'q" desa ham.
+    """
+    tf = kirish.timeframelar
+    struktura_nuqtalar = swinglar(kirish.struktura_shamlar, shubhali=kirish.shubhali)
+    yonalish = yonalish_aniqla(kirish.struktura_shamlar, struktura_nuqtalar)
+
+    if not yonalish.otadi:
+        # 3-qism: nomzod emas — qolgan uch blok hisoblanmaydi.
+        return KuzatuvNatija(kirish.symbol, yonalish, timeframelar=tf)
+
+    b_fund = fundamental_blok(
+        kirish.fundamental,
+        unlock_yaqin_kun=kirish.unlock_yaqin_kun,
+        unlock_katta_pct=kirish.unlock_katta_pct,
+    )
+    b_struktura = struktura_blok(
+        StrukturaKirish(
+            shamlar=kirish.struktura_shamlar,
+            btc_shamlar=kirish.btc_shamlar,
+            yosh_kun=kirish.yosh_kun,
+            etalon=kirish.etalon,
+            shubhali=kirish.shubhali,
+        )
+    )
+
+    zona_nuqtalar = swinglar(kirish.zona_shamlar, shubhali=kirish.shubhali)
+    zona_natija = zona_blok(
+        ZonaKirish(
+            shamlar=kirish.zona_shamlar,
+            nuqtalar=zona_nuqtalar,
+            ob_tarifi=kirish.ob_tarifi,
+        )
+    )
+
+    b_tasdiq = tasdiqlash_blok(
+        TasdiqKirish(
+            shamlar=kirish.zona_shamlar,
+            nuqtalar=zona_nuqtalar,
+            pastki_shamlar=kirish.pastki_shamlar,
+            zona=zona_natija.zona,
+            # Rejim A da bu ikkisi VAQT bo'yicha solishtiriladi
+            # (zanjir boshidagi va hozirgi fundamental). Kuzatuvda
+            # esa tarix saqlanmaydi, shuning uchun ikkalasi bir xil
+            # — tekshiruv "mos" deb o'qiydi va bu to'g'ri: vaqt
+            # o'tmagan, o'zgarish ham bo'lmagan.
+            eski_fundamental=b_fund,
+            yangi_fundamental=b_fund,
+        )
+    )
+
+    segmentlar = (
+        Segment(
+            "zona_konfluensiya",
+            Holat.HA if zona_natija.daraja in YETARLI_DARAJA else Holat.YOQ,
+            f"{zona_natija.daraja.value}: {', '.join(zona_natija.qatlamlar) or 'qatlam yo‘q'}",
+            tf.zona,
+        ),
+        _segment("volume_profile", _tekshiruv(zona_natija.blok, "volume_profile"), tf.zona),
+        _segment("liquidity_sweep", _tekshiruv(b_tasdiq, "liquidity_sweep"), tf.zona),
+        _segment("rsi_divergensiya", _tekshiruv(b_tasdiq, "rsi_divergensiya"), tf.zona),
+    )
+
+    return KuzatuvNatija(
+        symbol=kirish.symbol,
+        yonalish=yonalish,
+        bloklar=(b_fund, b_struktura, zona_natija.blok, b_tasdiq),
+        zona_natija=zona_natija,
+        segmentlar=segmentlar,
+        ogohlantirish=_ogohlantirish(kirish),
+        nisbiy_kuch=_nisbiy_kuch_qiymati(kirish.struktura_shamlar, kirish.btc_shamlar),
+        timeframelar=tf,
+    )
+
+
+__all__ = [
+    "KuzatuvKirish",
+    "KuzatuvNatija",
+    "Segment",
+    "Timeframelar",
+    "Yonalish",
+    "kuzatuv_yur",
+]
