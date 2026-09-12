@@ -11,12 +11,12 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from core.analysis.structure.swing_detector import swinglar
-from core.domain.models import Candle
-from core.watch_panel.uptrend_filter import (
+from core.analysis.structure.uptrend_filter import (
     YANGI_OYNA,
     Yonalish,
     yonalish_aniqla,
 )
+from core.domain.models import Candle
 
 BOSH = datetime(2026, 1, 1, tzinfo=UTC)
 

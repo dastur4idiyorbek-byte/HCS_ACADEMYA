@@ -21,6 +21,9 @@ ILDIZ = Path(__file__).resolve().parents[2]
 KUZATUV_FAYLLARI = (
     *sorted((ILDIZ / "core" / "watch_panel").glob("*.py")),
     ILDIZ / "core" / "analysis" / "observation_mode.py",
+    # Filtr `analysis` ichida turadi (arxitektura qavati), lekin
+    # kuzatuv modulining qismi — chegara unga ham tegishli.
+    ILDIZ / "core" / "analysis" / "structure" / "uptrend_filter.py",
 )
 
 #: Savdo darajasini hisoblaydigan hamma narsa.

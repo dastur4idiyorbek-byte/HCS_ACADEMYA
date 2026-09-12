@@ -96,11 +96,11 @@ from core.analysis.fundamental.fundamental_block import (
 )
 from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
 from core.analysis.structure.swing_detector import swinglar
+from core.analysis.structure.uptrend_filter import Yonalish, YonalishNatija, yonalish_aniqla
 from core.analysis.turlar import Blok, Holat, Tekshiruv
 from core.analysis.zone_quality.order_block import ObTarifi
 from core.analysis.zone_quality.zone_block import ZonaDarajasi, ZonaKirish, ZonaNatija, zona_blok
 from core.domain.models import Candle
-from core.watch_panel.uptrend_filter import Yonalish, YonalishNatija, yonalish_aniqla
 
 #: Nisbiy kuch nechta sham oldin bilan solishtiriladi.
 #: `relative_strength.NISBAT_OYNA` bilan bir xil bo'lishi shart

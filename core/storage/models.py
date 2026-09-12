@@ -767,3 +767,117 @@ class ZanjirHolati(Base, TimestampMixin):
     )
 
     tekshirilgan: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
+
+
+class KuzatuvHolati(Base, TimestampMixin):
+    """Kuzatuv panelidagi bitta coinning ENG OXIRGI holati.
+
+    `zanjir_holatlari` dan ALOHIDA jadval, garchi ular o'xshash
+    ko'rinsa ham. Sabab: ikki modul ikki xil savolga javob beradi
+    ("signal chiqdimi?" va "diqqatga molikmi?") va ular bir-biriga
+    bog'lanmasligi kerak. Bitta jadvalda birlashtirilsa, biri
+    o'zgarganda ikkinchisi jimgina buzilardi.
+
+    NIMA UCHUN TARIX EMAS. `symbol` takrorlanmas — har skanda o'sha
+    qator yangilanadi. Panel "hozir nima bo'lyapti" degan savolga
+    javob beradi; tarix kerak bo'lsa, alohida qaror bilan
+    qo'shiladi, taxmin bilan emas.
+
+    QAT'IY CHEGARA: bu jadvalda Entry, Stop yoki TP ustuni YO'Q va
+    bo'lmaydi ham (9-prompt, 6-qism). `tests/core/test_kuzatuv_chegara.py`
+    buni tekshiradi.
+
+    OQIM BIR TOMONLAMA: skaner -> jadval -> ekran. Saytdan bu yerga
+    hech narsa yozilmaydi.
+    """
+
+    __tablename__ = "kuzatuv_holatlari"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+
+    #: `uptrend`, `yangi_burilish`, `downtrend`, `aniq_emas`
+    yonalish: Mapped[str] = mapped_column(String(32), nullable=False)
+    yonalish_izoh: Mapped[str] = mapped_column(
+        Text, default="", server_default="", nullable=False
+    )
+
+    #: Filtrdan o'tdimi — o'tmagan coin hech qaysi ro'yxatga kirmaydi
+    otdi: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
+    #: Nechta segment ✅ (0..4)
+    diqqat: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    #: Segmentlar JSON: nom, holat, izoh, timeframe
+    segmentlar_json: Mapped[str] = mapped_column(
+        Text, default="[]", server_default="[]", nullable=False
+    )
+    #: To'rt blok JSON: nom, kuch, maxraj, o'tdimi, o'lchanmadimi, to'siq, tekshiruvlar
+    bloklar_json: Mapped[str] = mapped_column(
+        Text, default="[]", server_default="[]", nullable=False
+    )
+
+    #: `yoq` | `zaif` | `orta` | `kuchli`
+    zona_darajasi: Mapped[str] = mapped_column(
+        String(16), default="yoq", server_default="yoq", nullable=False
+    )
+    #: Zona narx oralig'i — KO'RSATISH uchun, Entry EMAS
+    zona_past: Mapped[float | None] = mapped_column(Float)
+    zona_yuqori: Mapped[float | None] = mapped_column(Float)
+
+    #: Delisting/unlock xavfi — coinni chetlatmaydi, faqat ogohlantiradi
+    ogohlantirish: Mapped[str | None] = mapped_column(Text)
+    #: coin/BTC nisbatining o'zgarishi — teng ball chiqqanda tartib uchun
+    nisbiy_kuch: Mapped[float | None] = mapped_column(Float)
+
+    #: `top` | `kuzatuvda` | `royxatdan_tashqari`
+    royxat: Mapped[str] = mapped_column(
+        String(24), default="royxatdan_tashqari",
+        server_default="royxatdan_tashqari", nullable=False,
+    )
+    #: Ro'yxatdagi o'rni (1 dan boshlanadi); ro'yxatda bo'lmasa `None`
+    orin: Mapped[int | None] = mapped_column(Integer)
+
+    tekshirilgan: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
+
+
+class KuzatuvSkani(Base, TimestampMixin):
+    """Butun skanning holati — BITTA qator (id=1).
+
+    NIMA UCHUN JADVAL, ODDIY O'ZGARUVCHI EMAS. Skanni sayt
+    boshlaydi, bot esa bajaradi — ular ikki alohida jarayon va
+    xotira orqali gaplasha olmaydi. Baza — ular ko'radigan yagona
+    umumiy joy (`signals` jadvali bilan bir xil usul).
+
+    "TO'XTATISH" TUGMASI YO'Q. Loyiha egasining qarori: skan har
+    4 soatda o'zi yuradi, admin esa istalgan paytda BITTA skanni
+    qo'lda ishga tushira oladi. U tugagach o'zi to'xtaydi —
+    to'xtatadigan narsa yo'q.
+    """
+
+    __tablename__ = "kuzatuv_skani"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: Admin qo'lda so'raganmi — bot buni ko'rib skanni boshlaydi
+    sorov: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
+    #: `bosh` | `yurmoqda` | `tugadi` | `xato`
+    holat: Mapped[str] = mapped_column(
+        String(16), default="bosh", server_default="bosh", nullable=False
+    )
+    #: Oxirgi skanda nechta coin tekshirildi
+    tekshirildi: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    #: Nechtasi filtrdan o'tdi
+    otdi: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    izoh: Mapped[str] = mapped_column(
+        Text, default="", server_default="", nullable=False
+    )
+    boshlandi: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    tugadi: Mapped[datetime | None] = mapped_column(UtcDateTime)

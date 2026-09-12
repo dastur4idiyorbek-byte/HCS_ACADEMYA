@@ -19,9 +19,9 @@ from core.analysis.observation_mode import (
     Timeframelar,
     kuzatuv_yur,
 )
+from core.analysis.structure.uptrend_filter import Yonalish
 from core.analysis.turlar import Holat
 from core.domain.models import Candle
-from core.watch_panel.uptrend_filter import Yonalish
 
 BOSH = datetime(2026, 1, 1, tzinfo=UTC)
 

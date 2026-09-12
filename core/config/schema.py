@@ -701,6 +701,40 @@ class ZanjirConfig:
 
 
 @dataclass(frozen=True, slots=True)
+class KuzatuvConfig:
+    """Kuzatuv paneli — 80 coin, SIGNAL BERMAYDI (9-prompt).
+
+    Signal moduli (`zanjir`) bilan ALOHIDA sozlama. Ular bir xil
+    coin ro'yxatini o'qiydi, lekin timeframe va oraliqlari
+    mustaqil: biri o'zgarganda ikkinchisi jimgina o'zgarmasin.
+    """
+
+    #: Skan necha soatda bir marta o'zi yuradi.
+    #:
+    #: Admin istalgan paytda BITTA skanni qo'lda ishga tushira
+    #: oladi (`kuzatuv_skani.sorov`). "To'xtatish" tugmasi yo'q:
+    #: skan tugagach o'zi to'xtaydi (loyiha egasining qarori,
+    #: 2026-09-12).
+    skan_soat: int = 4
+
+    #: Struktura va Uptrend filtri qaysi grafikdan o'qiladi
+    tf_struktura: str = "4h"
+    #: Zona, Liquidity Sweep va RSI qaysi grafikdan
+    tf_zona: str = "1h"
+    #: Pastki TF tasdig'i qaysi grafikdan
+    tf_pastki: str = "15m"
+
+    #: Kunlik coin qidiruv chegarasi — obunaga qarab.
+    #:
+    #: 🔴 O'LCHANMAGAN, boshlang'ich qiymat. Admin panelda
+    #: o'zgartiriladi; kodda qattiq yozilmagan.
+    qidiruv_obunasiz: int = 1
+    qidiruv_lite: int = 3
+    qidiruv_pro: int = 10
+    qidiruv_premium: int = 30
+
+
+@dataclass(frozen=True, slots=True)
 class AppConfig:
     """Butun tizimning yagona konfiguratsiya obyekti."""
 
@@ -710,6 +744,7 @@ class AppConfig:
     halal_screening: HalalScreeningConfig = field(default_factory=HalalScreeningConfig)
     risk_engine: RiskEngineConfig = field(default_factory=RiskEngineConfig)
     zanjir: ZanjirConfig = field(default_factory=ZanjirConfig)
+    kuzatuv: KuzatuvConfig = field(default_factory=KuzatuvConfig)
     portfolio: PortfolioConfig = field(default_factory=PortfolioConfig)
     position_sizing: PositionSizingConfig = field(default_factory=PositionSizingConfig)
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)

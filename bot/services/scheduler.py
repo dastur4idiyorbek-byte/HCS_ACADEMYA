@@ -46,6 +46,8 @@ from core.storage.repositories import (
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
+from core.watch_panel.coin_scanner import KuzatuvSkaneri
+from core.watch_panel.repository import KuzatuvRepository
 
 logger = get_logger(__name__)
 
@@ -116,6 +118,11 @@ class Scheduler:
         self._kuzatuvchi = (
             SignalKuzatuvchi(config, candles, database) if candles is not None else None
         )
+        # KUZATUV PANELI — signal modulidan MUSTAQIL (9-prompt).
+        # U signal yozmaydi, faqat 80 coinning holatini yangilaydi.
+        self._skaner = (
+            KuzatuvSkaneri(config, candles, database) if candles is not None else None
+        )
         self._video_dir = video_dir()
         self._tasks: list[asyncio.Task] = []
 
@@ -179,6 +186,29 @@ class Scheduler:
                 self._signallarni_kuzat,
                 timedelta(minutes=1),
             ))
+            # KUZATUV PANELI SKANI — 80 coin, signal bermaydi.
+            #
+            # Kechikish 6 daqiqa: zanjir sikli (3 daqiqa) bilan bir
+            # paytda yugursa, ikkalasi birjaga bir zumda yuzlab
+            # so'rov yuborardi. Ular bir xil coinlarni o'qiydi,
+            # lekin turli timeframeda — kesh yordam bermaydi.
+            vazifalar.append((
+                "kuzatuv-skan",
+                timedelta(hours=self._config.kuzatuv.skan_soat),
+                self._kuzatuv_skani,
+                timedelta(minutes=6),
+            ))
+            # ADMIN SO'ROVI — "hozir yangila" tugmasi.
+            #
+            # Sayt bazaga bayroq qo'yadi, bu vazifa uni ko'radi.
+            # Daqiqada bir marta: admin tugmani bosgach javobni
+            # uzoq kutmasin.
+            vazifalar.append((
+                "kuzatuv-sorov",
+                timedelta(minutes=1),
+                self._kuzatuv_sorovi,
+                timedelta(seconds=30),
+            ))
         else:
             logger.warning(
                 "Zanjir sikli O'CHIQ: sham provayderi berilmagan. "
@@ -192,6 +222,40 @@ class Scheduler:
             self._tasks.append(vazifa)
 
         logger.info("Fon vazifalari ishga tushdi: %d ta", len(self._tasks))
+
+    async def _kuzatuv_skani(self) -> None:
+        """80 coinni skanlaydi. SIGNAL YOZMAYDI.
+
+        Xato bo'lsa u bazaga yoziladi va admin panelda ko'rinadi —
+        aks holda panel eski ma'lumot bilan turaverar va hech kim
+        sababini bilmasdi.
+        """
+        if self._skaner is None:
+            return
+        async with self._db.session() as session:
+            await KuzatuvRepository(session).boshlandi()
+        try:
+            natija = await self._skaner.yur()
+        except Exception as xato:  # noqa: BLE001 — holat ekranda ko'rinsin
+            logger.exception("Kuzatuv skani yiqildi")
+            async with self._db.session() as session:
+                await KuzatuvRepository(session).xato(str(xato))
+            return
+        async with self._db.session() as session:
+            await KuzatuvRepository(session).tugadi(
+                tekshirildi=natija.tekshirildi,
+                otdi=natija.royxatlar.jami_korinadi if natija.royxatlar else 0,
+            )
+
+    async def _kuzatuv_sorovi(self) -> None:
+        """Admin "hozir yangila" bosdimi — bosgan bo'lsa skan yuradi."""
+        if self._skaner is None:
+            return
+        async with self._db.session() as session:
+            sorov = await KuzatuvRepository(session).sorov_bormi()
+        if sorov:
+            logger.info("Kuzatuv skani ADMIN so'rovi bilan boshlanmoqda")
+            await self._kuzatuv_skani()
 
     async def stop(self) -> None:
         for vazifa in self._tasks:

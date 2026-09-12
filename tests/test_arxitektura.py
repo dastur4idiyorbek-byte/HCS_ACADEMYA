@@ -142,6 +142,15 @@ QAVATLAR = {
     # bo'lsa tahlil "qanday kirish"ni bilishi kerak bo'lardi.
     "position": 4,
     "services": 5,
+    # Kuzatuv paneli — tahlil natijasini yig'ib, bazaga yozadi va
+    # ekranga uzatadi. `services` bilan bir qavatda: ikkalasi ham
+    # pastdagi qatlamlarni BOSHQARADI, lekin bir-birini bilmaydi.
+    #
+    # Filtr (`uptrend_filter`) ataylab BU YERDA EMAS, `analysis`
+    # ichida: u sof tahlil (swing -> yo'nalish) va uni panelga
+    # qo'yish `analysis` ni panelga bog'lab, g'ishtni teskari
+    # yotqizardi.
+    "watch_panel": 5,
     "backtest": 6,
 }
 
