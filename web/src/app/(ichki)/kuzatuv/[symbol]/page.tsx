@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { JonliStakan } from "@/components/kuzatuv/JonliStakan";
 import { Segmentlar } from "@/components/kuzatuv/Segmentlar";
 import { Card } from "@/components/ui/Card";
 import { Ikonka } from "@/components/ui/Ikonka";
@@ -8,7 +9,7 @@ import { Sarlavha } from "@/components/ui/Sarlavha";
 import { cn } from "@/lib/cn";
 import { tarjimon } from "@/lib/i18n";
 import { BLOK_KALITI, SEGMENT_KALITI, blokRangi, type KuzatuvBlok } from "@/lib/kuzatuv";
-import { kuzatuvCoin } from "@/lib/queries";
+import { kuzatuvBozori, kuzatuvCoin } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,11 @@ export default async function CoinSahifasi({
 
   const coin = kuzatuvCoin(symbol);
   if (!coin) notFound();
+
+  // Jonli ma'lumot FAQAT Top 20 uchun yig'iladi (6-qism).
+  // Coin "+10" da yoki ro'yxatdan tashqarida bo'lsa — `null`,
+  // va sahifa buni ochiq aytadi.
+  const bozor = coin.royxat === "top" ? kuzatuvBozori(coin.symbol) : null;
 
   return (
     <>
@@ -118,11 +124,70 @@ export default async function CoinSahifasi({
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="mb-5 grid gap-3 sm:grid-cols-2">
         {coin.bloklar.map((b) => (
           <BlokKartasi key={b.nom} blok={b} t={t} />
         ))}
       </div>
+
+      <h2 className="text-sarlavha mb-2 text-sm font-semibold">
+        {t("kuzatuv.bozor")}
+      </h2>
+
+      {coin.royxat === "top" ? (
+        <>
+          {bozor ? (
+            <Card className="mb-3">
+              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <Raqam
+                  nom={t("kuzatuv.xarid_bosimi")}
+                  qiymat={
+                    bozor.xaridBosimi === null ? null : `${bozor.xaridBosimi}%`
+                  }
+                />
+                <Raqam
+                  nom={t("kuzatuv.yirik_savdo")}
+                  qiymat={String(bozor.yirikSavdo)}
+                />
+                <Raqam nom={t("kuzatuv.market_cap")} qiymat={pul(bozor.marketCap)} />
+                <Raqam nom={t("kuzatuv.hajm_24s")} qiymat={pul(bozor.hajm24s)} />
+              </div>
+              <div className="border-ramka-yumshoq mt-3 grid grid-cols-3 gap-3 border-t pt-3 text-sm">
+                <Raqam nom={t("kuzatuv.soat_1")} qiymat={foiz(bozor.ozgarish1s)} />
+                <Raqam nom={t("kuzatuv.soat_24")} qiymat={foiz(bozor.ozgarish24s)} />
+                <Raqam nom={t("kuzatuv.kun_7")} qiymat={foiz(bozor.ozgarish7k)} />
+              </div>
+              {bozor.xaridBosimi !== null ? (
+                <div className="bg-past/25 mt-3 h-2 overflow-hidden rounded-full">
+                  <div
+                    className="bg-yaxshi h-full"
+                    style={{ width: `${bozor.xaridBosimi}%` }}
+                  />
+                </div>
+              ) : null}
+            </Card>
+          ) : null}
+
+          <JonliStakan
+            symbol={coin.symbol}
+            matnlar={{
+              stakan: t("kuzatuv.stakan"),
+              lenta: t("kuzatuv.lenta"),
+              xarid: t("kuzatuv.xarid"),
+              sotish: t("kuzatuv.sotish"),
+              ulanmoqda: t("kuzatuv.ulanmoqda"),
+              uzildi: t("kuzatuv.uzildi"),
+              narx: t("kuzatuv.narx"),
+              miqdor: t("kuzatuv.miqdor"),
+            }}
+          />
+          <p className="text-matn-past mt-2 text-xs">{t("kuzatuv.jonli_izoh")}</p>
+        </>
+      ) : (
+        <Card>
+          <p className="text-matn-past text-sm">{t("kuzatuv.jonli_yoq")}</p>
+        </Card>
+      )}
 
       <p className="text-matn-past mt-6 text-xs">{t("kuzatuv.tavsiya_emas")}</p>
     </>
@@ -193,4 +258,35 @@ function BlokKartasi({
       )}
     </div>
   );
+}
+
+
+/** Bitta raqam — nomi ustida, kichik. */
+function Raqam({ nom, qiymat }: { nom: string; qiymat: string | null }) {
+  return (
+    <div>
+      <p className="text-matn-past text-[11px]">{nom}</p>
+      <p className="tabular-nums">{qiymat ?? "—"}</p>
+    </div>
+  );
+}
+
+/** $1.2B ko'rinishida. `null` — "ma'lumot yo'q", nol EMAS. */
+function pul(x: number | null): string | null {
+  if (x === null || !Number.isFinite(x)) return null;
+  const birliklar: [number, string][] = [
+    [1e12, "T"],
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "K"],
+  ];
+  for (const [chegara, belgi] of birliklar) {
+    if (Math.abs(x) >= chegara) return `$${(x / chegara).toFixed(2)}${belgi}`;
+  }
+  return `$${x.toFixed(2)}`;
+}
+
+function foiz(x: number | null): string | null {
+  if (x === null || !Number.isFinite(x)) return null;
+  return `${x > 0 ? "+" : ""}${x.toFixed(2)}%`;
 }

@@ -145,3 +145,32 @@ export function blokRangi(b: KuzatuvBlok): "yaxshi" | "past" | "sokin" {
   if (b.olchanmadi) return "sokin";
   return b.otdi ? "yaxshi" : "past";
 }
+
+/** Top 20 uchun jonli bozor yig'masi (`kuzatuv_bozor` jadvali).
+ *
+ * MUHIM: bu yerda stakan va savdo lentasi YO'Q. Ular brauzerga
+ * to'g'ridan-to'g'ri birjadan keladi (`JonliStakan.tsx`). Bu yerda
+ * faqat VAQT ICHIDA to'planadigan narsa: 15 daqiqalik xarid bosimi
+ * va yirik savdolar — ularni brauzer bera olmaydi. */
+export type YirikSavdo = {
+  vaqt: string;
+  narx: number;
+  summa: number;
+  xarid: boolean;
+};
+
+export type KuzatuvBozori = {
+  symbol: string;
+  narx: number | null;
+  /** 0..100. `null` — oynada savdo bo'lmagan (0% EMAS) */
+  xaridBosimi: number | null;
+  hajmUsd: number | null;
+  yirikSavdo: number;
+  yiriklar: YirikSavdo[];
+  marketCap: number | null;
+  hajm24s: number | null;
+  ozgarish1s: number | null;
+  ozgarish24s: number | null;
+  ozgarish7k: number | null;
+  yangilangan: string | null;
+};

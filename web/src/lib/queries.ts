@@ -9,10 +9,12 @@ import { asosiyAktiv } from "./kalkulyator.ts";
 import { postMediaTuri } from "./media.ts";
 import type {
   KuzatuvBlok,
+  KuzatuvBozori,
   KuzatuvCoin,
   RoyxatTuri,
   Segment,
   SkanHolati,
+  YirikSavdo,
 } from "./kuzatuv.ts";
 import type { Blok as ZanjirBlok, CoinZanjiri } from "./zanjir.ts";
 
@@ -2220,4 +2222,31 @@ export function kuzatuvSkaniSora(): void {
        on conflict(id) do update set sorov = 1`,
     )
     .run();
+}
+
+/** Bitta coinning jonli bozor yig'masi. FAQAT Top 20 uchun bor. */
+export function kuzatuvBozori(symbol: string): KuzatuvBozori | null {
+  const q = db()
+    .prepare(
+      `select symbol, narx, xarid_bosimi, hajm_usd, yirik_savdo, yiriklar_json,
+              market_cap, hajm_24s, ozgarish_1s, ozgarish_24s, ozgarish_7k,
+              yangilangan
+         from kuzatuv_bozor where upper(symbol) = upper(?)`,
+    )
+    .get(symbol) as Qator | undefined;
+  if (!q) return null;
+  return {
+    symbol: String(q.symbol ?? ""),
+    narx: son(q.narx),
+    xaridBosimi: son(q.xarid_bosimi),
+    hajmUsd: son(q.hajm_usd),
+    yirikSavdo: Number(q.yirik_savdo ?? 0),
+    yiriklar: jsonRoyxat<YirikSavdo>(q.yiriklar_json),
+    marketCap: son(q.market_cap),
+    hajm24s: son(q.hajm_24s),
+    ozgarish1s: son(q.ozgarish_1s),
+    ozgarish24s: son(q.ozgarish_24s),
+    ozgarish7k: son(q.ozgarish_7k),
+    yangilangan: q.yangilangan ? String(q.yangilangan) : null,
+  };
 }

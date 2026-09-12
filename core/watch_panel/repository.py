@@ -16,7 +16,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.analysis.observation_mode import KuzatuvNatija
-from core.storage.models import KuzatuvHolati, KuzatuvSkani
+from core.storage.models import KuzatuvBozor, KuzatuvHolati, KuzatuvSkani
+from core.watch_panel.cmc_snapshot import BozorSurati
+from core.watch_panel.live_market_data import BozorYigmasi
 from core.watch_panel.top20_selector import Royxatlar
 
 #: Skan qaysi bosqichda.
@@ -164,3 +166,52 @@ class KuzatuvRepository:
         qator.holat = XATO
         qator.izoh = izoh[:500]
         qator.tugadi = datetime.now(UTC)
+
+    async def bozorni_yoz(
+        self,
+        yigma: BozorYigmasi,
+        surat: BozorSurati | None,
+    ) -> None:
+        """Jonli yig'ma va CoinGecko suratini birga yozadi.
+
+        Surat `None` bo'lsa — CoinGecko javob bermagan. O'sha
+        ustunlar TEGILMAYDI (eski qiymat qoladi), nolga tushmaydi:
+        "kapitalizatsiya nol" degan yolg'on ma'no bermasin.
+        """
+        stmt = select(KuzatuvBozor).where(KuzatuvBozor.symbol == yigma.symbol)
+        qator = (await self._session.execute(stmt)).scalar_one_or_none()
+        if qator is None:
+            qator = KuzatuvBozor(symbol=yigma.symbol)
+            self._session.add(qator)
+
+        if yigma.narx is not None:
+            qator.narx = yigma.narx
+        qator.xarid_bosimi = yigma.xarid_bosimi
+        qator.hajm_usd = yigma.hajm_usd
+        qator.yirik_savdo = yigma.yirik_savdo
+        qator.yiriklar_json = yigma.yiriklar_json()
+
+        if surat is not None:
+            qator.market_cap = surat.market_cap
+            qator.hajm_24s = surat.hajm_24s
+            qator.ozgarish_1s = surat.ozgarish_1s
+            qator.ozgarish_24s = surat.ozgarish_24s
+            qator.ozgarish_7k = surat.ozgarish_7k
+            if yigma.narx is None and surat.narx is not None:
+                qator.narx = surat.narx
+
+        qator.yangilangan = datetime.now(UTC)
+
+    async def bozordan_tashqarilarni_ochir(self, qoladigan: list[str]) -> None:
+        """Top 20 dan chiqqan coinlarning jonli qatorini o'chiradi.
+
+        NEGA O'CHIRILADI (holatdan farqli o'laroq). Jonli ma'lumot
+        "hozir" haqida: coin Top 20 dan chiqqach unga oqim ulanmaydi
+        va qator MUZLAB qoladi. Uni ekranda ko'rsatish — 40 daqiqa
+        oldingi xarid bosimini "hozirgi" deb aytish bo'lardi.
+        """
+        saqlash = {s.upper() for s in qoladigan}
+        qatorlar = (await self._session.execute(select(KuzatuvBozor))).scalars().all()
+        for qator in qatorlar:
+            if qator.symbol.upper() not in saqlash:
+                await self._session.delete(qator)

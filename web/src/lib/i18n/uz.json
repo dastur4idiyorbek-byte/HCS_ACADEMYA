@@ -680,6 +680,27 @@
       "chegara": "Bugungi qidiruvlar tugadi.",
       "qoldi": "Bugun yana {son} marta qidirishingiz mumkin.",
       "obuna_kopaytiradi": "Obuna kunlik qidiruv sonini oshiradi."
-    }
+    },
+    "bozor": "Bozor ma'lumoti",
+    "stakan": "Stakan (buyurtmalar)",
+    "lenta": "So'nggi savdolar",
+    "xarid": "Xarid",
+    "sotish": "Sotish",
+    "ulanmoqda": "Ulanmoqda…",
+    "uzildi": "Ulanish uzildi",
+    "narx": "Narx",
+    "miqdor": "Miqdor",
+    "xarid_bosimi": "Xarid bosimi",
+    "yirik_savdo": "Yirik savdolar",
+    "yirik_izoh": "So'nggi 15 daqiqada $50 000 dan katta savdolar",
+    "hajm_oyna": "15 daqiqalik hajm",
+    "market_cap": "Kapitalizatsiya",
+    "hajm_24s": "24 soatlik hajm",
+    "ozgarish": "Narx o'zgarishi",
+    "soat_1": "1 soat",
+    "soat_24": "24 soat",
+    "kun_7": "7 kun",
+    "jonli_yoq": "Jonli ma'lumot faqat Top 20 uchun yig'iladi.",
+    "jonli_izoh": "Stakan va savdo lentasi brauzeringizga to'g'ridan-to'g'ri birjadan keladi. Xarid bosimi va yirik savdolar esa serverda, 15 daqiqalik oyna ustida hisoblanadi."
   }
 }

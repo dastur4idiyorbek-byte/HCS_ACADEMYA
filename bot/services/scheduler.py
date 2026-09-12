@@ -46,7 +46,9 @@ from core.storage.repositories import (
     UserRepository,
 )
 from core.utils.logging_setup import get_logger
+from core.watch_panel.cmc_snapshot import CoinGeckoSurati
 from core.watch_panel.coin_scanner import KuzatuvSkaneri
+from core.watch_panel.live_market_data import BozorYigichi
 from core.watch_panel.repository import KuzatuvRepository
 
 logger = get_logger(__name__)
@@ -123,6 +125,16 @@ class Scheduler:
         self._skaner = (
             KuzatuvSkaneri(config, candles, database) if candles is not None else None
         )
+        # JONLI OQIM — FAQAT Top 20 uchun. Stakan va savdo lentasi
+        # bu yerda YIG'ILMAYDI: ularni brauzer o'zi oladi. Bu yerda
+        # faqat vaqt ichida to'planadigan narsa — xarid bosimi va
+        # yirik savdolar (9-prompt, 6-qism).
+        self._yigich = BozorYigichi(
+            config.market_data, config.halal_screening.quote_asset
+        )
+        self._surat = CoinGeckoSurati(config.market_data)
+        #: Jonli yozuvlar sanog'i — CoinGecko har 20-yozuvda so'raladi.
+        self._jonli_hisob = 0
         self._video_dir = video_dir()
         self._tasks: list[asyncio.Task] = []
 
@@ -209,6 +221,21 @@ class Scheduler:
                 self._kuzatuv_sorovi,
                 timedelta(seconds=30),
             ))
+            # JONLI YIG'MANI BAZAGA YOZISH.
+            #
+            # 30 soniya: xarid bosimi 15 daqiqalik oyna ustida
+            # hisoblanadi, ya'ni u sekundiga sezilarli o'zgarmaydi.
+            # Tez-tez yozish bazaga bekorga urish bo'lardi.
+            vazifalar.append((
+                "kuzatuv-jonli",
+                timedelta(seconds=30),
+                self._jonli_yigma,
+                timedelta(minutes=7),
+            ))
+            # Oqimning o'zi — vazifa emas, uzluksiz ishlaydigan jarayon.
+            self._tasks.append(
+                asyncio.create_task(self._yigich.yur(), name="kuzatuv-oqim")
+            )
         else:
             logger.warning(
                 "Zanjir sikli O'CHIQ: sham provayderi berilmagan. "
@@ -247,6 +274,36 @@ class Scheduler:
                 otdi=natija.royxatlar.jami_korinadi if natija.royxatlar else 0,
             )
 
+        # JONLI OQIM RO'YXATI — skandan KEYIN yangilanadi. Top 20
+        # o'zgargan bo'lsa, chiqqan coinlar uzilib, yangilari
+        # ulanadi.
+        top = [n.symbol for n in (natija.royxatlar.top if natija.royxatlar else ())]
+        self._yigich.kuzat(top)
+        async with self._db.session() as session:
+            await KuzatuvRepository(session).bozordan_tashqarilarni_ochir(top)
+
+    async def _jonli_yigma(self) -> None:
+        """Top 20 ning jonli yig'masini bazaga yozadi.
+
+        CoinGecko so'rovi HAR SAFAR yuborilmaydi — u sekin
+        o'zgaradigan ma'lumot (kapitalizatsiya) beradi va bepul
+        chegarasi bor. Har 20-yozuvda, ya'ni taxminan 10 daqiqada
+        bir marta so'raladi.
+        """
+        yigmalar = self._yigich.barchasi()
+        if not yigmalar:
+            return
+
+        self._jonli_hisob += 1
+        suratlar: dict[str, object] = {}
+        if self._jonli_hisob % 20 == 1:
+            suratlar = dict(await self._surat.ol([y.symbol for y in yigmalar]))
+
+        async with self._db.session() as session:
+            repo = KuzatuvRepository(session)
+            for yigma in yigmalar:
+                await repo.bozorni_yoz(yigma, suratlar.get(yigma.symbol))  # type: ignore[arg-type]
+
     async def _kuzatuv_sorovi(self) -> None:
         """Admin "hozir yangila" bosdimi — bosgan bo'lsa skan yuradi."""
         if self._skaner is None:
@@ -258,10 +315,14 @@ class Scheduler:
             await self._kuzatuv_skani()
 
     async def stop(self) -> None:
+        # Oqim va HTTP sessiyasi ALOHIDA yopiladi: `cancel()` ularni
+        # yopmaydi va bot to'xtaganda ochiq soket qolib ketardi.
+        self._yigich.yopil()
         for vazifa in self._tasks:
             vazifa.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
+        await self._surat.yop()
 
     # ------------------------------------------------------------------ #
 

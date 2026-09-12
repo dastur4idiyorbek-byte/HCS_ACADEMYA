@@ -881,3 +881,57 @@ class KuzatuvSkani(Base, TimestampMixin):
     )
     boshlandi: Mapped[datetime | None] = mapped_column(UtcDateTime)
     tugadi: Mapped[datetime | None] = mapped_column(UtcDateTime)
+
+
+class KuzatuvBozor(Base, TimestampMixin):
+    """Top 20 coin uchun JONLI bozor yig'masi.
+
+    NIMA UCHUN FAQAT YIG'MA. Stakan (order book) va savdo lentasi
+    bu yerda SAQLANMAYDI — ular sekundiga o'nlab marta o'zgaradi va
+    ularni bazaga yozish ma'nosiz. Brauzer ularni o'zi, to'g'ridan-
+    to'g'ri birjadan oladi (loyiha egasining qarori, 2026-09-12).
+
+    Bu yerda esa faqat VAQT ICHIDA TO'PLANADIGAN narsa turadi:
+
+        xarid_bosimi  — so'nggi 15 daqiqadagi xaridlar ulushi
+        yirik_savdo   — o'sha oynadagi $50 000+ savdolar soni
+
+    Bularni brauzer BERA OLMAYDI: admin sahifani endi ochgan va
+    o'tgan 15 daqiqani ko'rmagan. Shuning uchun ularni bot
+    uzluksiz yig'adi.
+
+    FAQAT TOP 20 UCHUN. "+10 kuzatuvda" va qolganlar uchun oqim
+    ochilmaydi — resurs tejaladi. Coin Top 20 ga ko'tarilsa,
+    keyingi skandan keyin ulanadi.
+
+    QAT'IY CHEGARA: bu jadvalda Entry, Stop yoki TP ustuni yo'q.
+    """
+
+    __tablename__ = "kuzatuv_bozor"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+
+    #: So'nggi savdo narxi
+    narx: Mapped[float | None] = mapped_column(Float)
+    #: Xaridlar ulushi, 0..100 (so'nggi 15 daqiqa)
+    xarid_bosimi: Mapped[float | None] = mapped_column(Float)
+    #: Oynadagi jami savdo hajmi, USD
+    hajm_usd: Mapped[float | None] = mapped_column(Float)
+    #: $50 000+ savdolar soni
+    yirik_savdo: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    #: Eng yirik savdolar JSON: vaqt, narx, summa, yo'nalish
+    yiriklar_json: Mapped[str] = mapped_column(
+        Text, default="[]", server_default="[]", nullable=False
+    )
+
+    #: CoinGecko dan — kapitalizatsiya va sutkalik hajm
+    market_cap: Mapped[float | None] = mapped_column(Float)
+    hajm_24s: Mapped[float | None] = mapped_column(Float)
+    ozgarish_1s: Mapped[float | None] = mapped_column(Float)
+    ozgarish_24s: Mapped[float | None] = mapped_column(Float)
+    ozgarish_7k: Mapped[float | None] = mapped_column(Float)
+
+    yangilangan: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
