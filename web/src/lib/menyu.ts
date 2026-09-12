@@ -132,6 +132,19 @@ export const MENYU: MenyuBandi[] = [
     belgi: "kabinet",
     talab: null,
   },
+  // KUZATUV PANELI — faqat adminlarga (9-prompt).
+  //
+  // `adminUchun: true` yon panelda ham, pastki navigatsiyada ham
+  // uni foydalanuvchidan yashiradi. Sahifaning O'ZI ham qayta
+  // tekshiradi: menyu ko'rsatmagani "kira olmaydi" degani emas.
+  {
+    kod: "kuzatuv",
+    yol: "/kuzatuv",
+    kalit: "kuzatuv.menyu",
+    belgi: "korish",
+    talab: null,
+    adminUchun: true,
+  },
   {
     kod: "admin",
     yol: "/admin",
@@ -182,7 +195,7 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "kabinet",
     kalit: "pastki.kabinet",
-    sahifalar: ["profil", "portfel", "admin"],
+    sahifalar: ["profil", "portfel", "kuzatuv", "admin"],
   },
 ];
 

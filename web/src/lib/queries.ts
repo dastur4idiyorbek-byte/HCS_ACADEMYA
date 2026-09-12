@@ -7,6 +7,13 @@ import {
 } from "./config.ts";
 import { asosiyAktiv } from "./kalkulyator.ts";
 import { postMediaTuri } from "./media.ts";
+import type {
+  KuzatuvBlok,
+  KuzatuvCoin,
+  RoyxatTuri,
+  Segment,
+  SkanHolati,
+} from "./kuzatuv.ts";
 import type { Blok as ZanjirBlok, CoinZanjiri } from "./zanjir.ts";
 
 /** Botning bazasidan o'qish/yozish.
@@ -2107,4 +2114,110 @@ function xulosaHisobla(coinlar: JonliCoin[]): JonliXulosa | null {
         : null,
     engYuqoriBall: ballar.length > 0 ? Math.max(...ballar) : null,
   };
+}
+
+// --------------------------------------------------------------------------- //
+//  Kuzatuv paneli (9-prompt) — FAQAT O'QIYDI
+// --------------------------------------------------------------------------- //
+
+/** Kuzatuv panelidagi coinlar — ro'yxat va o'rin bo'yicha tartibda.
+ *
+ * BIR TOMONLAMA OQIM: skaner -> jadval -> ekran. Sayt bu jadvalga
+ * hech narsa yozmaydi va bu yerdan chiqqan raqam hech qanday
+ * modulga qaytmaydi.
+ *
+ * `royxat` berilmasa — hammasi qaytadi (foydalanuvchi qidiruvi
+ * uchun kerak). */
+export function kuzatuvCoinlari(royxat?: RoyxatTuri): KuzatuvCoin[] {
+  const shart = royxat ? "where royxat = ?" : "";
+  const stmt = db().prepare(
+    `select symbol, yonalish, yonalish_izoh, otdi, diqqat, segmentlar_json,
+            bloklar_json, zona_darajasi, zona_past, zona_yuqori, ogohlantirish,
+            nisbiy_kuch, royxat, orin, tekshirilgan
+       from kuzatuv_holatlari ${shart}
+      order by case when orin is null then 1 else 0 end, orin, symbol`,
+  );
+  const qatorlar = (royxat ? stmt.all(royxat) : stmt.all()) as Qator[];
+  return qatorlar.map(kuzatuvQatori);
+}
+
+/** Bitta coin — foydalanuvchi qidiruvi va chuqur ko'rinish uchun. */
+export function kuzatuvCoin(symbol: string): KuzatuvCoin | null {
+  const q = db()
+    .prepare(
+      `select symbol, yonalish, yonalish_izoh, otdi, diqqat, segmentlar_json,
+              bloklar_json, zona_darajasi, zona_past, zona_yuqori, ogohlantirish,
+              nisbiy_kuch, royxat, orin, tekshirilgan
+         from kuzatuv_holatlari where upper(symbol) = upper(?)`,
+    )
+    .get(symbol) as Qator | undefined;
+  return q ? kuzatuvQatori(q) : null;
+}
+
+function kuzatuvQatori(q: Qator): KuzatuvCoin {
+  return {
+    symbol: String(q.symbol ?? ""),
+    yonalish: (q.yonalish as KuzatuvCoin["yonalish"]) ?? "aniq_emas",
+    yonalishIzoh: String(q.yonalish_izoh ?? ""),
+    otdi: Boolean(q.otdi),
+    diqqat: Number(q.diqqat ?? 0),
+    segmentlar: jsonRoyxat<Segment>(q.segmentlar_json),
+    bloklar: jsonRoyxat<KuzatuvBlok>(q.bloklar_json),
+    zonaDarajasi: (q.zona_darajasi as KuzatuvCoin["zonaDarajasi"]) ?? "yoq",
+    zonaPast: son(q.zona_past),
+    zonaYuqori: son(q.zona_yuqori),
+    ogohlantirish: (q.ogohlantirish as string) ?? null,
+    nisbiyKuch: son(q.nisbiy_kuch),
+    royxat: (q.royxat as RoyxatTuri) ?? "royxatdan_tashqari",
+    orin: son(q.orin),
+    tekshirilgan: q.tekshirilgan ? String(q.tekshirilgan) : null,
+  };
+}
+
+/** Buzuq JSON BUTUN SAHIFANI yiqitmasin — o'sha coin bo'sh ro'yxat
+ *  bilan ko'rinadi, qolganlari ishlaydi. */
+function jsonRoyxat<T>(xom: unknown): T[] {
+  try {
+    const natija = JSON.parse(String(xom ?? "[]")) as unknown;
+    return Array.isArray(natija) ? (natija as T[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Skanning hozirgi holati — admin panelda ko'rinadi. */
+export function kuzatuvSkani(): SkanHolati {
+  const q = db()
+    .prepare(
+      `select sorov, holat, tekshirildi, otdi, izoh, boshlandi, tugadi
+         from kuzatuv_skani where id = 1`,
+    )
+    .get() as Qator | undefined;
+  return {
+    holat: (q?.holat as SkanHolati["holat"]) ?? "bosh",
+    sorov: Boolean(q?.sorov),
+    tekshirildi: Number(q?.tekshirildi ?? 0),
+    otdi: Number(q?.otdi ?? 0),
+    izoh: String(q?.izoh ?? ""),
+    boshlandi: q?.boshlandi ? String(q.boshlandi) : null,
+    tugadi: q?.tugadi ? String(q.tugadi) : null,
+  };
+}
+
+/** Admin "hozir yangila" bosdi — botga BUYRUQ qoldiriladi.
+ *
+ * Bu yagona joy, saytdan kuzatuv jadvallariga yoziladigan. U
+ * NATIJAGA emas, BUYRUQQA tegishli: sayt hisob qilmaydi, faqat
+ * "yangila" deb aytadi. Skanni bot bajaradi.
+ *
+ * Qator yo'q bo'lsa yaratiladi — bot hali bir marta ham
+ * yugurmagan bo'lishi mumkin. */
+export function kuzatuvSkaniSora(): void {
+  db()
+    .prepare(
+      `insert into kuzatuv_skani (id, sorov, holat)
+            values (1, 1, 'bosh')
+       on conflict(id) do update set sorov = 1`,
+    )
+    .run();
 }

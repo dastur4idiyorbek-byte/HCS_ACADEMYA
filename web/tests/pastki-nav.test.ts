@@ -62,5 +62,6 @@ test("tabSahifalari admin bo'lmaganga 'admin' bandini qaytarmaydi", () => {
   );
 
   const admin = tabSahifalari(kabinet, true).map((s) => s.kod);
-  assert.deepEqual(admin, ["profil", "portfel", "admin"]);
+  // "kuzatuv" — kuzatuv paneli (9-prompt), faqat adminlarga.
+  assert.deepEqual(admin, ["profil", "portfel", "kuzatuv", "admin"]);
 });

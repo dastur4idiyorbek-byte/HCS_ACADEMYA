@@ -609,5 +609,77 @@
     "real_misol": "REAL GRAFIK MISOLI — ADMIN TO'LDIRADI",
     "tayyor_emas": "Bu bo'lim hali tayyor emas.",
     "tarkib_izoh": "Bo'limni bosing — u saytda to'liq ochiladi. Yuklab olish shart emas."
+  },
+  "kuzatuv": {
+    "menyu": "Kuzatuv paneli",
+    "sarlavha": "Kuzatuv paneli",
+    "tavsif": "80 halol coin doimiy kuzatiladi. Bu bo'lim FAQAT KO'RSATADI — kirish, stop va nishon narxlari hisoblanmaydi va berilmaydi. Qarorni o'zingiz qabul qilasiz.",
+    "top": "Xarid uchun tayyor",
+    "top_izoh": "Struktura yuqoriga qarab turgan va eng ko'p belgi to'plagan coinlar.",
+    "kuzatuvda": "Diqqatga molik — kuzatuvda",
+    "kuzatuvda_izoh": "Shakl bor, lekin belgilar hali to'liq emas.",
+    "bosh": "Hozircha xarid nomzodi yo'q.",
+    "bosh_izoh": "Bu — normal holat: bozor tushayotganda ro'yxat bo'sh bo'lishi kerak. Ro'yxat sun'iy to'ldirilmaydi.",
+    "skan_yoq": "Skan hali yurmagan. \"Hozir yangila\" tugmasini bosing.",
+    "yangila": "Hozir yangila",
+    "yangila_sorandi": "So'rov qabul qilindi — skan bir daqiqa ichida boshlanadi.",
+    "yangila_izoh": "Skan har 4 soatda o'zi yuradi. Bu tugma bitta qo'shimcha skanni hozir ishga tushiradi; u tugagach o'zi to'xtaydi.",
+    "holat": {
+      "bosh": "Hali yugurmagan",
+      "yurmoqda": "Skan yurmoqda…",
+      "tugadi": "Tayyor",
+      "xato": "Skanda xato"
+    },
+    "tekshirildi": "Tekshirildi",
+    "royxatda": "Ro'yxatda",
+    "oxirgi": "Oxirgi skan",
+    "diqqat": "Diqqat darajasi",
+    "yonalish": {
+      "uptrend": "Yuqoriga",
+      "yangi_burilish": "Yangi burilish",
+      "downtrend": "Pastga",
+      "aniq_emas": "Aniq emas"
+    },
+    "zona": {
+      "discount": "Arzon zonada",
+      "ortada": "O'rtada",
+      "premium": "Qimmat zonada",
+      "nomalum": "Zona aniqlanmagan"
+    },
+    "daraja": {
+      "yoq": "Zona yo'q",
+      "zaif": "Zaif",
+      "orta": "O'rta",
+      "kuchli": "Kuchli"
+    },
+    "segment": {
+      "zona": "Zona konfluensiyasi",
+      "hajm": "Hajm zichligi",
+      "sweep": "Likvidlik supurilishi",
+      "rsi": "RSI divergensiyasi"
+    },
+    "blok": {
+      "fundamental": "Fundamental",
+      "struktura": "Struktura",
+      "zona": "Zona sifati",
+      "tasdiqlash": "Tasdiqlash"
+    },
+    "blok_olchanmadi": "Bu blokka ma'lumot manbai ulanmagan — u hech kimni to'smaydi.",
+    "ogohlantirish": "Diqqat",
+    "chuqur": "Batafsil",
+    "qaytish": "Panelga qaytish",
+    "grafik": "Qaysi grafikdan",
+    "tavsiya_emas": "Bu sahifa ma'lumot beradi, tavsiya bermaydi. Kirish, stop va nishon narxlarini o'zingiz belgilaysiz.",
+    "qidiruv": {
+      "menyu": "Coin qidirish",
+      "sarlavha": "Coin qidirish",
+      "tavsif": "Kuzatuvdagi coin haqida asosiy ma'lumot.",
+      "maydon": "Coin nomi (masalan BTC)",
+      "tugma": "Qidirish",
+      "topilmadi": "Bu coin hozircha kuzatuv ro'yxatiga kirmagan — ma'lumot mavjud emas.",
+      "chegara": "Bugungi qidiruvlar tugadi.",
+      "qoldi": "Bugun yana {son} marta qidirishingiz mumkin.",
+      "obuna_kopaytiradi": "Obuna kunlik qidiruv sonini oshiradi."
+    }
   }
 }
