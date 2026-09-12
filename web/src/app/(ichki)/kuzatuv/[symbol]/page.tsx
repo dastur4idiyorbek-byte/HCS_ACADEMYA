@@ -10,6 +10,7 @@ import { Sarlavha } from "@/components/ui/Sarlavha";
 import { cn } from "@/lib/cn";
 import { tarjimon } from "@/lib/i18n";
 import { BLOK_KALITI, SEGMENT_KALITI, blokRangi, type KuzatuvBlok } from "@/lib/kuzatuv";
+import type { IkonkaNomi } from "@/components/ui/Ikonka";
 import { kuzatuvBozori, kuzatuvCoin } from "@/lib/queries";
 import { kirim } from "@/lib/session";
 
@@ -57,6 +58,10 @@ export default async function CoinSahifasi({
   // Coin "+10" da yoki ro'yxatdan tashqarida bo'lsa — `null`,
   // va sahifa buni ochiq aytadi.
   const bozor = coin.royxat === "top" ? kuzatuvBozori(coin.symbol) : null;
+
+  // Zona qaysi grafikdan — segmentdan OLINADI, qo'lda yozilmaydi.
+  const timeframeZona =
+    coin.segmentlar.find((s) => s.nom === "zona_konfluensiya")?.timeframe ?? "";
 
   return (
     <>
@@ -176,6 +181,27 @@ export default async function CoinSahifasi({
         ))}
       </div>
 
+      {/* ANIQ NARX DARAJALARI — 5.3-qism uch marta so'raydi.
+          Blok tekshiruvlarining izohida bu raqamlar yo'q: ular
+          faqat "bor/yo'q" deydi. Shuning uchun alohida bo'lim. */}
+      {coin.zonaPast !== null || coin.bosNarx !== null || coin.sweepNarx !== null ? (
+        <Card className="mb-4">
+          <p className="text-matn-past mb-2 flex items-center gap-1.5 text-xs">
+            <Ikonka nom="narx" className="h-3.5 w-3.5" />
+            {t("kuzatuv.darajalar")}
+          </p>
+          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <Raqam
+              nom={`${t("kuzatuv.support")} · ${coin.zonaPast !== null ? timeframeZona : ""}`}
+              qiymat={daraja(coin.zonaPast)}
+            />
+            <Raqam nom={t("kuzatuv.resistance")} qiymat={daraja(coin.zonaYuqori)} />
+            <Raqam nom={t("kuzatuv.bos_daraja")} qiymat={daraja(coin.bosNarx)} />
+            <Raqam nom={t("kuzatuv.sweep_daraja")} qiymat={daraja(coin.sweepNarx)} />
+          </div>
+        </Card>
+      ) : null}
+
       <div className="mb-5 grid gap-3 sm:grid-cols-2">
         {coin.bloklar.map((b) => (
           <BlokKartasi key={b.nom} blok={b} t={t} />
@@ -234,7 +260,11 @@ export default async function CoinSahifasi({
               uzildi: t("kuzatuv.uzildi"),
               narx: t("kuzatuv.narx"),
               miqdor: t("kuzatuv.miqdor"),
+              jonliNarx: t("kuzatuv.jonli_narx"),
+              yiriklarRoyxat: t("kuzatuv.yiriklar_royxat"),
+              yirikYoq: t("kuzatuv.yirik_yoq"),
             }}
+            yiriklar={bozor?.yiriklar ?? []}
           />
           <p className="text-matn-past mt-2 text-xs">{t("kuzatuv.jonli_izoh")}</p>
         </>
@@ -269,7 +299,14 @@ function BlokKartasi({
       )}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <Ikonka
+            nom={BLOK_IKONKASI[blok.nom] ?? "malumot"}
+            className={cn(
+              "h-4 w-4",
+              rang === "yaxshi" ? "text-yaxshi" : "text-matn-past",
+            )}
+          />
           {BLOK_KALITI[blok.nom] ? t(BLOK_KALITI[blok.nom]) : blok.nom}
         </p>
         <span
@@ -341,3 +378,21 @@ function Raqam({ nom, qiymat }: { nom: string; qiymat: string | null }) {
   );
 }
 
+
+
+/** Blok -> HCS ikonka tizimidagi nom (5.3-qism: "IKONKA bilan").
+ *
+ * Emoji EMAS: u har platformada boshqacha chiziladi va loyihaning
+ * palitrasiga bo'ysunmaydi (`ui/Ikonka.tsx` dagi qoida). */
+const BLOK_IKONKASI: Record<string, IkonkaNomi> = {
+  Fundamental: "malumot",
+  Struktura: "trend",
+  "Zona Sifati": "kirish_zonasi",
+  Tasdiqlash: "tasdiq",
+};
+
+/** Narx darajasi — kichik coinlar uchun ko'proq raqam kerak. */
+function daraja(x: number | null): string | null {
+  if (x === null || !Number.isFinite(x)) return null;
+  return x >= 1 ? `$${x.toFixed(2)}` : `$${x.toPrecision(4)}`;
+}

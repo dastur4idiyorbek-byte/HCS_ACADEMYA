@@ -32,6 +32,7 @@ const LENTA_UZUNLIGI = 20;
 export function JonliStakan({
   symbol,
   matnlar,
+  yiriklar = [],
 }: {
   symbol: string;
   matnlar: {
@@ -43,7 +44,13 @@ export function JonliStakan({
     uzildi: string;
     narx: string;
     miqdor: string;
+    jonliNarx: string;
+    yiriklarRoyxat: string;
+    yirikYoq: string;
   };
+  /** Server yig'gan yirik operatsiyalar (15 daqiqalik oyna).
+   *  Brauzer ularni bera olmaydi — u sahifani endi ochgan. */
+  yiriklar?: { vaqt: string; narx: number; summa: number; xarid: boolean }[];
 }) {
   const [xaridlar, setXaridlar] = useState<Daraja[]>([]);
   const [sotishlar, setSotishlar] = useState<Daraja[]>([]);
@@ -120,8 +127,28 @@ export function JonliStakan({
     1,
   );
 
+  // JONLI NARX — savdo lentasining eng so'nggisi (6-qism:
+  // "joriy narx (jonli yangilanadi)"). Bazadagi narx skan
+  // paytidagi, ya'ni soatlab eskirgan bo'lishi mumkin.
+  const jonliNarx = lenta[0]?.narx ?? null;
+  const jonliYonalish = lenta[0]?.xarid ?? null;
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-3">
+      {jonliNarx !== null ? (
+        <div className="rounded-kartochka border-ramka-yumshoq bg-panel flex items-baseline justify-between border p-3">
+          <span className="text-matn-past text-xs">{matnlar.jonliNarx}</span>
+          <span
+            className={`text-lg font-semibold tabular-nums ${
+              jonliYonalish ? "text-yaxshi" : "text-past"
+            }`}
+          >
+            {jonliNarx.toPrecision(6)}
+          </span>
+        </div>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2">
       <div className="rounded-kartochka border-ramka-yumshoq bg-panel border p-3">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-semibold">{matnlar.stakan}</p>
@@ -156,6 +183,39 @@ export function JonliStakan({
             <p className="text-matn-past text-xs">—</p>
           ) : null}
         </div>
+      </div>
+      </div>
+
+      {/* KATTA OPERATSIYALAR — server yig'adi (6-qism).
+          Brauzer bermaydi: admin sahifani endi ochgan va o'tgan
+          15 daqiqani ko'rmagan. */}
+      <div className="rounded-kartochka border-ramka-yumshoq bg-panel border p-3">
+        <p className="mb-2 text-sm font-semibold">{matnlar.yiriklarRoyxat}</p>
+        {yiriklar.length === 0 ? (
+          <p className="text-matn-past text-xs">{matnlar.yirikYoq}</p>
+        ) : (
+          <div className="space-y-1 font-mono text-[11px] tabular-nums">
+            {yiriklar.map((y, i) => (
+              <div key={`${y.vaqt}-${i}`} className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className={`h-2 w-2 shrink-0 rounded-[2px] ${
+                    y.xarid ? "bg-yaxshi" : "bg-past"
+                  }`}
+                />
+                <span className="text-matn-past w-14 shrink-0">
+                  {y.vaqt.slice(11, 19)}
+                </span>
+                <span className={y.xarid ? "text-yaxshi" : "text-past"}>
+                  {y.narx.toPrecision(6)}
+                </span>
+                <span className="text-matn ml-auto font-semibold">
+                  ${Math.round(y.summa).toLocaleString("en-US")}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

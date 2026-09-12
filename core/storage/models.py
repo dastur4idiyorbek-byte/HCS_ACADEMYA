@@ -841,6 +841,11 @@ class KuzatuvHolati(Base, TimestampMixin):
     #: Zona narx oralig'i — KO'RSATISH uchun, Entry EMAS
     zona_past: Mapped[float | None] = mapped_column(Float)
     zona_yuqori: Mapped[float | None] = mapped_column(Float)
+    #: ANIQ NARX DARAJALARI (5.3-qism): BOS qaysi darajada
+    #: tasdiqlangan, sweep qaysi darajani sinagan. Ikkalasi ham
+    #: KO'RSATISH uchun — kirish narxi EMAS.
+    bos_narx: Mapped[float | None] = mapped_column(Float)
+    sweep_narx: Mapped[float | None] = mapped_column(Float)
 
     #: Delisting/unlock xavfi — coinni chetlatmaydi, faqat ogohlantiradi
     ogohlantirish: Mapped[str | None] = mapped_column(Text)

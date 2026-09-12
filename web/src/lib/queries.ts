@@ -2137,7 +2137,7 @@ export function kuzatuvCoinlari(royxat?: RoyxatTuri): KuzatuvCoin[] {
     `select symbol, yonalish, yonalish_izoh, bosqich, bosqich_izoh,
             bosqich_ulush, impuls_past, impuls_yuqori, narx,
             otdi, diqqat, segmentlar_json,
-            bloklar_json, zona_darajasi, zona_past, zona_yuqori, ogohlantirish,
+            bloklar_json, zona_darajasi, zona_past, zona_yuqori, bos_narx, sweep_narx, ogohlantirish,
             nisbiy_kuch, royxat, orin, tekshirilgan
        from kuzatuv_holatlari ${shart}
       order by case when orin is null then 1 else 0 end, orin, symbol`,
@@ -2153,7 +2153,7 @@ export function kuzatuvCoin(symbol: string): KuzatuvCoin | null {
       `select symbol, yonalish, yonalish_izoh, bosqich, bosqich_izoh,
               bosqich_ulush, impuls_past, impuls_yuqori, narx,
               otdi, diqqat, segmentlar_json,
-              bloklar_json, zona_darajasi, zona_past, zona_yuqori, ogohlantirish,
+              bloklar_json, zona_darajasi, zona_past, zona_yuqori, bos_narx, sweep_narx, ogohlantirish,
               nisbiy_kuch, royxat, orin, tekshirilgan
          from kuzatuv_holatlari where upper(symbol) = upper(?)`,
     )
@@ -2179,6 +2179,8 @@ function kuzatuvQatori(q: Qator): KuzatuvCoin {
     zonaDarajasi: (q.zona_darajasi as KuzatuvCoin["zonaDarajasi"]) ?? "yoq",
     zonaPast: son(q.zona_past),
     zonaYuqori: son(q.zona_yuqori),
+    bosNarx: son(q.bos_narx),
+    sweepNarx: son(q.sweep_narx),
     ogohlantirish: (q.ogohlantirish as string) ?? null,
     nisbiyKuch: son(q.nisbiy_kuch),
     royxat: (q.royxat as RoyxatTuri) ?? "royxatdan_tashqari",

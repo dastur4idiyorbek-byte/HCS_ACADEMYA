@@ -435,3 +435,74 @@ test("zona markazi berilsa natija DOIM 'ortada' — eski xatoning isboti", () =>
   assert.equal(zonaJoyi(110, 100, 200), "discount");
   assert.equal(zonaJoyi(190, 100, 200), "premium");
 });
+
+// --------------------------------------------------------------------------- //
+//  PROMPTDAN QOLIB KETGAN TALABLAR (5.3 va 6-qism)
+// --------------------------------------------------------------------------- //
+
+test("5.3: ANIQ NARX darajalari ko'rsatiladi", () => {
+  // Prompt uch marta "ANIQ NARX" so'raydi. Blok tekshiruvlarining
+  // izohida bu raqamlar YO'Q — ular faqat "bor/yo'q" deydi.
+  const sahifa = oqi("web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx");
+  for (const kalit of [
+    "kuzatuv.support",
+    "kuzatuv.resistance",
+    "kuzatuv.bos_daraja",
+    "kuzatuv.sweep_daraja",
+  ]) {
+    assert.ok(sahifa.includes(kalit), `narx darajasi ko'rsatilmagan: ${kalit}`);
+  }
+});
+
+test("5.3: BOS va sweep darajalari Pythonda hisoblanadi", () => {
+  const python = oqi("core/analysis/observation_mode.py");
+  assert.ok(python.includes("bos_choch_topish"), "BOS darajasi olinmagan");
+  assert.ok(python.includes("sweep_narx"), "sweep darajasi olinmagan");
+});
+
+test("5.3: har blok kartasida IKONKA bor", () => {
+  const sahifa = oqi("web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx");
+  assert.ok(sahifa.includes("BLOK_IKONKASI"), "blok ikonkalari yo'q");
+  // To'rt blokning HAMMASIGA ikonka berilgan
+  for (const nom of ["Fundamental", "Struktura", "Zona Sifati", "Tasdiqlash"]) {
+    assert.ok(
+      new RegExp(`BLOK_IKONKASI[\\s\\S]*?["']?${nom}["']?:`).test(sahifa),
+      `${nom} uchun ikonka yo'q`,
+    );
+  }
+});
+
+test("6-qism: KATTA OPERATSIYALAR ro'yxati chiziladi", () => {
+  // Ilgari faqat SONI ko'rsatilardi, ro'yxatning o'zi yo'q edi.
+  const stakan = oqi("web/src/components/kuzatuv/JonliStakan.tsx");
+  assert.ok(stakan.includes("yiriklar"), "yirik operatsiyalar ro'yxati yo'q");
+  assert.ok(stakan.includes("yiriklarRoyxat"));
+
+  const sahifa = oqi("web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx");
+  assert.ok(sahifa.includes("yiriklar={bozor?.yiriklar"), "ro'yxat uzatilmagan");
+});
+
+test("6-qism: JONLI narx oqimdan olinadi, bazadan emas", () => {
+  // Bazadagi narx skan paytidagi — soatlab eskirgan bo'lishi mumkin.
+  const stakan = oqi("web/src/components/kuzatuv/JonliStakan.tsx");
+  assert.ok(stakan.includes("const jonliNarx = lenta[0]?.narx"));
+  assert.ok(stakan.includes("jonliNarx"));
+});
+
+test("6-qism: CoinGecko jadvali IKONKALI", () => {
+  const kesim = oqi("web/src/components/kuzatuv/BozorKesimi.tsx");
+  assert.ok(kesim.includes("belgi?: IkonkaNomi"), "ikonka maydoni yo'q");
+  // Asosiy uch qatorda ikonka bor
+  for (const belgi of ['belgi="pul"', 'belgi="hajm"', 'belgi="onchain"']) {
+    assert.ok(kesim.includes(belgi), `ikonka berilmagan: ${belgi}`);
+  }
+});
+
+test("zona timeframe'i QO'LDA yozilmagan", () => {
+  // Config o'zgarsa, ekrandagi yozuv ham o'zgarishi kerak.
+  const sahifa = oqi("web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx");
+  assert.ok(
+    sahifa.includes('coin.segmentlar.find((s) => s.nom === "zona_konfluensiya")'),
+    "timeframe segmentdan olinmagan",
+  );
+});

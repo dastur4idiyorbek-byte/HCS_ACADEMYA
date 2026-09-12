@@ -105,6 +105,8 @@ class KuzatuvRepository:
         qator.zona_darajasi = natija.zona_darajasi.value
         qator.zona_past = zona.past if zona else None
         qator.zona_yuqori = zona.yuqori if zona else None
+        qator.bos_narx = natija.bos_narx
+        qator.sweep_narx = natija.sweep_narx
         qator.ogohlantirish = natija.ogohlantirish
         qator.nisbiy_kuch = natija.nisbiy_kuch
         qator.royxat = royxat

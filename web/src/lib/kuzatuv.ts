@@ -76,6 +76,10 @@ export type KuzatuvCoin = {
   zonaDarajasi: ZonaDarajasi;
   zonaPast: number | null;
   zonaYuqori: number | null;
+  /** ANIQ NARX (5.3-qism): BOS qaysi darajada tasdiqlangan */
+  bosNarx: number | null;
+  /** Liquidity Sweep qaysi darajani sinagan */
+  sweepNarx: number | null;
   /** Delisting/unlock xavfi — coinni ro'yxatdan CHIQARMAYDI */
   ogohlantirish: string | null;
   nisbiyKuch: number | null;

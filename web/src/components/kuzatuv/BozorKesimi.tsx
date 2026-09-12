@@ -1,3 +1,4 @@
+import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import {
@@ -71,22 +72,29 @@ export function BozorKesimi({
       ) : null}
 
       <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-        <Qator nom={t("kuzatuv.market_cap")} qiymat={pul(bozor.marketCap)} />
-        <Qator nom={t("kuzatuv.hajm_24s")} qiymat={pul(bozor.hajm24s)} />
         <Qator
+          belgi="pul"
+          nom={t("kuzatuv.market_cap")}
+          qiymat={pul(bozor.marketCap)}
+        />
+        <Qator belgi="hajm" nom={t("kuzatuv.hajm_24s")} qiymat={pul(bozor.hajm24s)} />
+        <Qator
+          belgi="onchain"
           nom={t("kuzatuv.likvidlik")}
           qiymat={likv === null ? null : `${likv}%`}
           izoh={t("kuzatuv.likvidlik_izoh")}
         />
         {toliq ? (
           <>
-            <Qator nom={t("kuzatuv.fdv")} qiymat={pul(bozor.fdv)} />
+            <Qator belgi="narx" nom={t("kuzatuv.fdv")} qiymat={pul(bozor.fdv)} />
             <Qator
+              belgi="coinlar"
               nom={t("kuzatuv.muomalada")}
               qiymat={ulush === null ? miqdor(bozor.muomalada) : `${ulush}%`}
               izoh={t("kuzatuv.muomalada_izoh")}
             />
             <Qator
+              belgi="tepaga"
               nom={t("kuzatuv.ath")}
               qiymat={
                 bozor.athFarq === null
@@ -105,11 +113,14 @@ function Qator({
   nom,
   qiymat,
   izoh,
+  belgi,
   ranglash = false,
 }: {
   nom: string;
   qiymat: string | null;
   izoh?: string;
+  /** 6-qism: "ikonkali jadval". Emoji EMAS — HCS to'plamidan. */
+  belgi?: IkonkaNomi;
   /** Musbat — yashil, manfiy — qizil */
   ranglash?: boolean;
 }) {
@@ -117,7 +128,11 @@ function Qator({
   const musbat = ranglash && qiymat !== null && qiymat.startsWith("+");
   return (
     <div>
-      <p className="text-matn-past text-[11px]" title={izoh}>
+      <p
+        className="text-matn-past flex items-center gap-1 text-[11px]"
+        title={izoh}
+      >
+        {belgi ? <Ikonka nom={belgi} className="h-3 w-3 shrink-0" /> : null}
         {nom}
       </p>
       <p

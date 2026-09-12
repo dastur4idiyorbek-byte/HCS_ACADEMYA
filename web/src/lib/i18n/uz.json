@@ -721,6 +721,14 @@
     },
     "impuls": "Oxirgi impuls",
     "impuls_orin": "Narx impulsning qayerida",
-    "bosqich_izoh_umumiy": "Ro'yxatga faqat harakatini TUGATMAGAN coinlar kiradi. Narx oxirgi ko'tarilishning qaytish zonasidan yuqorida bo'lsa, coin chetlanadi."
+    "bosqich_izoh_umumiy": "Ro'yxatga faqat harakatini TUGATMAGAN coinlar kiradi. Narx oxirgi ko'tarilishning qaytish zonasidan yuqorida bo'lsa, coin chetlanadi.",
+    "darajalar": "Aniq narx darajalari",
+    "support": "Qo'llab-quvvatlash",
+    "resistance": "Qarshilik",
+    "bos_daraja": "BOS tasdiqlangan daraja",
+    "sweep_daraja": "Sweep sinagan daraja",
+    "yiriklar_royxat": "So'nggi yirik operatsiyalar",
+    "jonli_narx": "Jonli narx",
+    "yirik_yoq": "So'nggi 15 daqiqada yirik operatsiya bo'lmadi."
   }
 }

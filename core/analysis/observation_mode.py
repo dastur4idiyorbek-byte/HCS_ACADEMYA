@@ -145,8 +145,9 @@ from core.analysis.fundamental.fundamental_block import (
     fundamental_blok,
     unlock_tosig,
 )
+from core.analysis.structure.bos_choch import bos_choch_topish
 from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
-from core.analysis.structure.swing_detector import swinglar
+from core.analysis.structure.swing_detector import SwingTuri, oxirgi, swinglar
 from core.analysis.structure.uptrend_filter import (
     Bosqich,
     BosqichNatija,
@@ -242,6 +243,19 @@ class KuzatuvNatija:
     nisbiy_kuch: float | None = None
     #: Qaysi blok qaysi alternativ bilan qutqarildi: {blok nomi: usul}
     alternativlar: tuple[tuple[str, str], ...] = ()
+
+    #: ANIQ NARX DARAJALARI (5.3-qism talabi).
+    #:
+    #: Prompt uch marta "ANIQ NARX" so'raydi: BOS qaysi darajada
+    #: tasdiqlangan, zona qayerda, sweep qaysi darajada bo'lgan.
+    #: Blok tekshiruvlarining izohida bu raqamlar YO'Q — ular
+    #: faqat "bor/yo'q" deydi. Shuning uchun ular shu yerda,
+    #: bloklarga TEGMASDAN qayta hisoblanadi.
+    bos_narx: float | None = None
+    #: Sweep tekshiradigan daraja — oxirgi swing PAST.
+    #: `liquidity_sweep.sweep_bormi` AYNAN shu nuqtani sinaydi,
+    #: shuning uchun ikkalasi bir xil darajani ko'rsatadi.
+    sweep_narx: float | None = None
     timeframelar: Timeframelar = field(default_factory=Timeframelar)
 
     @property
@@ -412,11 +426,16 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
         _segment("rsi_divergensiya", _tekshiruv(b_tasdiq, "rsi_divergensiya"), tf.zona),
     )
 
+    holat = bos_choch_topish(kirish.struktura_shamlar, struktura_nuqtalar)
+    sweep_swing = oxirgi(zona_nuqtalar, SwingTuri.PAST)
+
     return KuzatuvNatija(
         symbol=kirish.symbol,
         yonalish=yonalish,
         bosqich=bosqich,
         narx=narx,
+        bos_narx=holat.bos_narx if holat.bos_tasdiqlangan else None,
+        sweep_narx=sweep_swing.narx if sweep_swing is not None else None,
         bloklar=(b_fund, b_struktura, zona_natija.blok, b_tasdiq),
         alternativlar=tuple(qutqarilganlar),
         zona_natija=zona_natija,

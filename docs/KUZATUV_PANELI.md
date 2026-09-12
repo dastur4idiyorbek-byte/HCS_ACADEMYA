@@ -182,6 +182,19 @@ Faqat **Top 20** uchun. "+10" va qolganlarga oqim ulanmaydi.
 Coin Top 20 dan chiqsa, jonli qatori o'chiriladi: unga oqim
 ulanmaydi va qator muzlab qolardi.
 
+Chuqur ko'rinishda ko'rsatiladi:
+
+- **Jonli narx** — savdo oqimidan, bazadan emas. Bazadagi narx
+  skan paytidagi, ya'ni soatlab eskirgan bo'lishi mumkin
+- **Stakan** — 10 daraja, gorizontal bar bilan
+- **Savdo lentasi** — so'nggi 20 savdo
+- **Xarid bosimi** — vizual shkala
+- **Katta operatsiyalar ro'yxati** — so'nggi 15 daqiqada
+  $50 000+ bo'lgan savdolar, vaqti va summasi bilan
+
+CoinGecko jadvali **ikonkali** (prompt talabi) va likvidlik
+ko'rsatkichi ham unda.
+
 **Eng oson adashiladigan joy** — Binance `m` bayrog'i. U "xaridor
 MAKER edimi" deydi, ya'ni `true` bo'lsa tashabbuskor **sotuvchi**.
 Uni to'g'ridan-to'g'ri "xarid" deb o'qish bosimni teskari
@@ -189,6 +202,29 @@ ko'rsatardi.
 
 Xarid bosimi **summa** bo'yicha o'lchanadi, savdolar soni bo'yicha
 emas: bitta $9 000 lik xarid o'nta $1 000 lik sotishdan og'irroq.
+
+---
+
+## Chuqur ko'rinishda nima bor (5.3-qism)
+
+Prompt uch marta **ANIQ NARX** so'raydi va bu talab birinchi
+yozuvda bajarilmagan edi. Blok tekshiruvlarining izohi faqat
+"bor / yo'q" deydi — ular ball hisoblash uchun yozilgan,
+ko'rsatish uchun emas.
+
+Endi alohida bo'lim bor:
+
+| daraja | qayerdan |
+|---|---|
+| Qo'llab-quvvatlash / Qarshilik | zona oralig'i |
+| BOS tasdiqlangan daraja | `bos_choch_topish` |
+| Sweep sinagan daraja | oxirgi swing past — `sweep_bormi` aynan shuni sinaydi |
+
+Har blok kartasida **ikonka** bor (prompt: "IKONKA bilan"), va
+alternativ bilan qutqarilgan blok qaysi usul ishlaganini yozadi.
+
+Timeframe **qo'lda yozilmagan** — u segmentdan olinadi, ya'ni
+config o'zgarsa ekrandagi yozuv ham o'zgaradi.
 
 ---
 
