@@ -802,6 +802,21 @@ class KuzatuvHolati(Base, TimestampMixin):
         Text, default="", server_default="", nullable=False
     )
 
+    #: IKKINCHI DARVOZA: narx harakatning qayerida.
+    #: `korreksiya` | `chuqur` | `yurgan` | `nomalum`
+    bosqich: Mapped[str] = mapped_column(
+        String(16), default="nomalum", server_default="nomalum", nullable=False
+    )
+    bosqich_izoh: Mapped[str] = mapped_column(
+        Text, default="", server_default="", nullable=False
+    )
+    #: Narx impuls oralig'ining necha foizida (0 — tub, 100 — cho'qqi)
+    bosqich_ulush: Mapped[float | None] = mapped_column(Float)
+    impuls_past: Mapped[float | None] = mapped_column(Float)
+    impuls_yuqori: Mapped[float | None] = mapped_column(Float)
+    #: Oxirgi yopilish narxi — zona joyini EKRANDA to'g'ri hisoblash uchun
+    narx: Mapped[float | None] = mapped_column(Float)
+
     #: Filtrdan o'tdimi — o'tmagan coin hech qaysi ro'yxatga kirmaydi
     otdi: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("0"), nullable=False

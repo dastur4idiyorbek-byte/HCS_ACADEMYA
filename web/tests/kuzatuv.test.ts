@@ -377,3 +377,61 @@ test("FDV va ta'minot FAQAT adminga ko'rinadi", () => {
     "qidiruv sahifasida to'liq ko'rinish ochilgan",
   );
 });
+
+// --------------------------------------------------------------------------- //
+//  IKKINCHI DARVOZA — "allaqachon yurgan" coin ro'yxatga kirmaydi
+// --------------------------------------------------------------------------- //
+
+test("bosqich darvozasi Pythonda bor", () => {
+  // Loyiha egasi ekranda ko'rgan xato: HH/HL to'g'ri, lekin coin
+  // allaqachon yurib bo'lgan. Yo'nalish bu holatni ushlay olmaydi.
+  const python = oqi("core/analysis/observation_mode.py");
+  assert.ok(python.includes("bosqich_aniqla"), "bosqich darvozasi chaqirilmagan");
+  assert.ok(
+    python.includes("self.yonalish.otadi and self.bosqich.nomzod"),
+    "ikkala darvoza birga tekshirilmagan",
+  );
+});
+
+test("bosqich qiymatlari ikki tomonda bir xil", () => {
+  const python = oqi("core/analysis/structure/uptrend_filter.py");
+  for (const qiymat of ["korreksiya", "chuqur", "yurgan", "nomalum"]) {
+    assert.ok(python.includes(`"${qiymat}"`), `bosqich "${qiymat}" Pythonda yo'q`);
+  }
+});
+
+test("YURGAN — yagona nomzod BO'LMAGAN bosqich", () => {
+  // Impuls topilmasligi ("nomalum") coinni chetlatmaydi: bilmaslik
+  // salbiy javob emas.
+  const python = oqi("core/analysis/structure/uptrend_filter.py");
+  assert.ok(python.includes("return self is not Bosqich.YURGAN"));
+});
+
+test("zona joyi JORIY narx bilan hisoblanadi, zona markazi bilan emas", () => {
+  // Birinchi yozuvda bu yerga zona markazi berilgan edi va ustun
+  // HAR DOIM "o'rtada" ko'rsatardi — markazning nisbati doim 0.5.
+  const qator = oqi("web/src/components/kuzatuv/CoinQatori.tsx");
+  assert.ok(
+    qator.includes("zonaJoyi(coin.narx, coin.impulsPast, coin.impulsYuqori)"),
+    "zona joyi hali ham noto'g'ri hisoblanmoqda",
+  );
+  assert.ok(
+    !qator.includes("zonaYuqori) / 2"),
+    "zona markazi hali ham ishlatilmoqda",
+  );
+});
+
+test("zona markazi berilsa natija DOIM 'ortada' — eski xatoning isboti", () => {
+  // Bu test xatoning O'ZINI hujjatlashtiradi: markaz nisbati doim
+  // 0.5, ya'ni javob ma'lumotdan MUSTAQIL edi.
+  for (const [past, yuqori] of [
+    [100, 200],
+    [1, 1000],
+    [0.5, 0.9],
+  ] as const) {
+    assert.equal(zonaJoyi((past + yuqori) / 2, past, yuqori), "ortada");
+  }
+  // Haqiqiy narx bilan esa javob o'zgaradi
+  assert.equal(zonaJoyi(110, 100, 200), "discount");
+  assert.equal(zonaJoyi(190, 100, 200), "premium");
+});

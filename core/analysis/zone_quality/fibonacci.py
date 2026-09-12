@@ -51,7 +51,7 @@ def fib_zona(nuqtalar: list[Swing]) -> Zona | None:
     Tartib muhim: yuqori pastdan keyin kelishi kerak, aks holda bu
     ko'tarilish impulsi emas, tushish.
     """
-    past = _oxirgi_past_va_yuqori(nuqtalar)
+    past = oxirgi_impuls(nuqtalar)
     if past is None:
         return None
     boshi, oxiri = past
@@ -67,8 +67,14 @@ def fib_zona(nuqtalar: list[Swing]) -> Zona | None:
     )
 
 
-def _oxirgi_past_va_yuqori(nuqtalar: list[Swing]) -> tuple[Swing, Swing] | None:
-    """Oxirgi swing yuqori va undan OLDINGI swing pastni topadi."""
+def oxirgi_impuls(nuqtalar: list[Swing]) -> tuple[Swing, Swing] | None:
+    """Oxirgi ko'tarilish impulsi: (boshlanish pasti, tugash yuqorisi).
+
+    OCHIQ — kuzatuv paneli ham chaqiradi. U "narx shu impulsning
+    qayerida?" degan savolga javob berish uchun kerak: impuls
+    tepasida turgan coin allaqachon YURGAN, pastida turgani esa
+    hali yurmagan.
+    """
     yuqori = None
     for s in reversed(nuqtalar):
         if s.turi is SwingTuri.YUQORI:

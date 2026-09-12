@@ -711,6 +711,16 @@
     "muomalada": "Muomalada",
     "muomalada_izoh": "Tokenlarning qancha qismi allaqachon chiqarilgan. Past bo'lsa, kelajakda yangi tokenlar narxga bosim beradi.",
     "ath": "Tarixiy eng yuqori",
-    "sutka_oraliq": "Sutkalik oraliq"
+    "sutka_oraliq": "Sutkalik oraliq",
+    "bosqich": "Harakat bosqichi",
+    "bosqich_holat": {
+      "korreksiya": "Qaytish zonasida",
+      "chuqur": "Chuqur qaytgan",
+      "yurgan": "Allaqachon yurgan",
+      "nomalum": "Impuls aniqlanmagan"
+    },
+    "impuls": "Oxirgi impuls",
+    "impuls_orin": "Narx impulsning qayerida",
+    "bosqich_izoh_umumiy": "Ro'yxatga faqat harakatini TUGATMAGAN coinlar kiradi. Narx oxirgi ko'tarilishning qaytish zonasidan yuqorida bo'lsa, coin chetlanadi."
   }
 }

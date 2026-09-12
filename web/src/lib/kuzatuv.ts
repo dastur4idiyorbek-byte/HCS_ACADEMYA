@@ -52,10 +52,23 @@ export type KuzatuvBlok = {
   tekshiruvlar: BlokTekshiruvi[];
 };
 
+/** Narx harakatning qayerida — Python `Bosqich` bilan bir xil.
+ *
+ * `yurgan` — coin allaqachon yurib bo'lgan: ro'yxatga KIRMAYDI.
+ * Bizga yurish potensiali bor, lekin hali yurmagan coin kerak. */
+export type Bosqich = "korreksiya" | "chuqur" | "yurgan" | "nomalum";
+
 export type KuzatuvCoin = {
   symbol: string;
   yonalish: Yonalish;
   yonalishIzoh: string;
+  bosqich: Bosqich;
+  bosqichIzoh: string;
+  /** Narx impuls oralig'ining necha foizida (0 — tub, 100 — cho'qqi) */
+  bosqichUlush: number | null;
+  impulsPast: number | null;
+  impulsYuqori: number | null;
+  narx: number | null;
   otdi: boolean;
   diqqat: number;
   segmentlar: Segment[];
@@ -116,6 +129,11 @@ export const BLOK_KALITI: Record<string, string> = {
  * tavsiyasi bermaydi. */
 export type ZonaJoyi = "discount" | "ortada" | "premium" | "nomalum";
 
+/** DIQQAT: `narx` — JORIY narx bo'lishi shart.
+ *
+ * Birinchi yozuvda bu yerga zona MARKAZI berilgan edi va natija
+ * har doim "o'rtada" chiqardi — ustun umuman ma'nosiz edi. Joriy
+ * narx endi bazada saqlanadi (`kuzatuv_holatlari.narx`). */
 export function zonaJoyi(
   narx: number | null,
   past: number | null,

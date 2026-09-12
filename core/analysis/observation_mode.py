@@ -67,6 +67,24 @@ To'rt blokning O'ZI yo'qolmaydi — ular chuqur ko'rinishda alohida
 karta bo'lib qoladi (5.3-qism).
 
 --------------------------------------------------------------------
+IKKI DARVOZA: YO'NALISH VA BOSQICH
+--------------------------------------------------------------------
+
+Coin nomzod bo'lishi uchun IKKALASI ham kerak:
+
+    YO'NALISH — struktura yuqoriga qaraydimi (HH/HL yoki burilish)
+    BOSQICH   — narx harakatning QAYERIDA
+
+Ikkinchisi 2026-09-12 da qo'shildi. Sabab: HH/HL ketma-ketligi
+coin ALLAQACHON YURGANDA ham to'g'ri bo'ladi — aslida u eng
+kuchli aynan shunda ko'rinadi. Birinchi yozuvda faqat yo'nalish
+tekshirilgan va Top 20 ga harakatini tugatgan coinlar chiqqan.
+
+Endi narx oxirgi impulsning qaytish zonasidan YUQORIDA bo'lsa,
+coin ro'yxatga kirmaydi: bizga yurish potensiali bor, lekin hali
+yurmagan coin kerak.
+
+--------------------------------------------------------------------
 ALTERNATIV YO'LLAR — TO'LIQ SAQLANADI
 --------------------------------------------------------------------
 
@@ -129,7 +147,14 @@ from core.analysis.fundamental.fundamental_block import (
 )
 from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
 from core.analysis.structure.swing_detector import swinglar
-from core.analysis.structure.uptrend_filter import Yonalish, YonalishNatija, yonalish_aniqla
+from core.analysis.structure.uptrend_filter import (
+    Bosqich,
+    BosqichNatija,
+    Yonalish,
+    YonalishNatija,
+    bosqich_aniqla,
+    yonalish_aniqla,
+)
 from core.analysis.turlar import Blok, Holat, Tekshiruv
 from core.analysis.zone_quality.order_block import ObTarifi
 from core.analysis.zone_quality.zone_block import ZonaDarajasi, ZonaKirish, ZonaNatija, zona_blok
@@ -202,6 +227,12 @@ class KuzatuvNatija:
 
     symbol: str
     yonalish: YonalishNatija
+    #: Narx harakatning qayerida — ikkinchi darvoza
+    bosqich: BosqichNatija = field(
+        default_factory=lambda: BosqichNatija(Bosqich.NOMALUM)
+    )
+    #: Oxirgi yopilish narxi — ekranda va bosqich hisobida
+    narx: float | None = None
     bloklar: tuple[Blok, ...] = ()
     zona_natija: ZonaNatija | None = None
     segmentlar: tuple[Segment, ...] = ()
@@ -215,8 +246,12 @@ class KuzatuvNatija:
 
     @property
     def otdi(self) -> bool:
-        """Coin ro'yxatga kira oladimi (3-qism filtri)."""
-        return self.yonalish.otadi
+        """Coin ro'yxatga kira oladimi.
+
+        IKKALASI HAM shart: struktura yuqoriga qarasin VA narx
+        harakatni tugatmagan bo'lsin.
+        """
+        return self.yonalish.otadi and self.bosqich.nomzod
 
     @property
     def diqqat(self) -> int:
@@ -287,10 +322,16 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
     tf = kirish.timeframelar
     struktura_nuqtalar = swinglar(kirish.struktura_shamlar, shubhali=kirish.shubhali)
     yonalish = yonalish_aniqla(kirish.struktura_shamlar, struktura_nuqtalar)
+    bosqich = bosqich_aniqla(kirish.struktura_shamlar, struktura_nuqtalar)
+    narx = kirish.struktura_shamlar[-1].close if kirish.struktura_shamlar else None
 
-    if not yonalish.otadi:
-        # 3-qism: nomzod emas — qolgan uch blok hisoblanmaydi.
-        return KuzatuvNatija(kirish.symbol, yonalish, timeframelar=tf)
+    if not (yonalish.otadi and bosqich.nomzod):
+        # Nomzod emas — qolgan uch blok hisoblanmaydi (resurs tejash).
+        # Sabab NATIJADA qoladi: ekranda "nega ro'yxatda yo'q"
+        # degan savolga javob bo'lsin.
+        return KuzatuvNatija(
+            kirish.symbol, yonalish, bosqich=bosqich, narx=narx, timeframelar=tf
+        )
 
     b_fund = fundamental_blok(
         kirish.fundamental,
@@ -374,6 +415,8 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
     return KuzatuvNatija(
         symbol=kirish.symbol,
         yonalish=yonalish,
+        bosqich=bosqich,
+        narx=narx,
         bloklar=(b_fund, b_struktura, zona_natija.blok, b_tasdiq),
         alternativlar=tuple(qutqarilganlar),
         zona_natija=zona_natija,

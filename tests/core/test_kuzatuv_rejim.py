@@ -19,7 +19,7 @@ from core.analysis.observation_mode import (
     Timeframelar,
     kuzatuv_yur,
 )
-from core.analysis.structure.uptrend_filter import Yonalish
+from core.analysis.structure.uptrend_filter import Bosqich, Yonalish
 from core.analysis.turlar import Holat
 from core.domain.models import Candle
 
@@ -60,8 +60,39 @@ def _tub(i: int, low: float) -> list[Candle]:
     ]
 
 
+def _qaytish(i: int, close: float) -> list[Candle]:
+    """Cho'qqidan keyingi qaytish shamlari.
+
+    Oxirgi IKKI sham hech qachon fraktal bo'lmaydi (`swinglar`
+    oynasi chekkalarni qoldiradi), shuning uchun bular yangi swing
+    yasamaydi — faqat narxni pastga suradi.
+    """
+    return [
+        sham(i, close + 6, close + 1, close=close + 4),
+        sham(i + 1, close + 4, close - 2, close=close),
+    ]
+
+
 def kotarilish() -> list[Candle]:
-    """HH/HL — filtrdan o'tadigan shakl."""
+    """HH/HL VA narx qaytish zonasida — nomzod shakl.
+
+    Impuls 120 -> 180 (uzunlik 60). Fib zonasi 142.9..157.1.
+    Oxirgi yopilish 150 — zona ICHIDA, ya'ni coin hali yurmagan.
+    """
+    return (
+        _tub(0, 100)
+        + _cho_qqi(5, 150)
+        + _tub(10, 120)
+        + _cho_qqi(15, 180)
+        + _qaytish(20, 150.0)
+    )
+
+
+def kotarilish_yurgan() -> list[Candle]:
+    """HH/HL, LEKIN narx cho'qqiga yaqin — ALLAQACHON YURGAN.
+
+    Aynan shu shakl birinchi yozuvda Top 20 ga chiqardi.
+    """
     return _tub(0, 100) + _cho_qqi(5, 150) + _tub(10, 120) + _cho_qqi(15, 180)
 
 
@@ -223,6 +254,9 @@ def uzun_kotarilish() -> list[Candle]:
         + _cho_qqi(15, 180)
         + _tub(20, 150)
         + _cho_qqi(25, 220)
+        # Cho'qqidan qaytish — aks holda coin "yurgan" deb
+        # chetlanadi va nisbiy kuch umuman hisoblanmaydi.
+        + _qaytish(30, 190.0)
     )
 
 
@@ -248,8 +282,9 @@ def test_btc_dan_sekin_osgan_coinda_birdan_kichik() -> None:
 
 
 def test_tarix_yetmasa_nisbiy_kuch_none() -> None:
-    natija = kuzatuv_yur(kirish())
-    # 20 shamlik oyna uchun 20 ta sham yetmaydi (kotarilish 20 ta).
+    """Oyna (20 sham) to'lmasa — hisoblanmaydi, nol EMAS."""
+    qisqa = kotarilish()[:15]
+    natija = kuzatuv_yur(kirish(struktura_shamlar=qisqa, btc_shamlar=qisqa))
     assert natija.nisbiy_kuch is None
 
 
@@ -361,3 +396,69 @@ def test_hamma_alternativ_sinsa_blok_otmaydi() -> None:
     )
     assert golib is None
     assert not qutqarilgan.otdi
+
+
+# --------------------------------------------------------------------------- #
+#  BOSQICH — "allaqachon yurgan" coin ro'yxatga kirmaydi
+# --------------------------------------------------------------------------- #
+
+
+def test_allaqachon_yurgan_coin_nomzod_EMAS() -> None:
+    """Loyiha egasi ekranda ko'rgan xato — aynan shu.
+
+    Struktura ko'tarilish (HH/HL), lekin narx cho'qqiga yaqin:
+    harakat allaqachon bo'lgan. Birinchi yozuvda bunday coin Top
+    20 ning tepasiga chiqardi.
+    """
+    natija = kuzatuv_yur(kirish(struktura_shamlar=kotarilish_yurgan()))
+    assert natija.yonalish.yonalish is Yonalish.UPTREND, "struktura o'zi to'g'ri"
+    assert natija.bosqich.bosqich is Bosqich.YURGAN
+    assert not natija.otdi, "yurib bo'lgan coin ro'yxatga kirmasligi kerak"
+    assert natija.bloklar == (), "nomzod emas — hisob boshlanmaydi"
+
+
+def test_qaytish_zonasidagi_coin_nomzod() -> None:
+    natija = kuzatuv_yur(kirish())
+    assert natija.bosqich.bosqich in (Bosqich.KORREKSIYA, Bosqich.CHUQUR)
+    assert natija.otdi
+    assert len(natija.bloklar) == 4
+
+
+def test_bosqich_ulushi_yoziladi() -> None:
+    """Admin "narx impulsning qayerida" deb ko'rishi kerak."""
+    natija = kuzatuv_yur(kirish())
+    assert natija.bosqich.ulush is not None
+    assert 0 <= natija.bosqich.ulush <= 100
+    assert natija.bosqich.impuls_past is not None
+    assert natija.bosqich.impuls_yuqori is not None
+    assert natija.bosqich.impuls_yuqori > natija.bosqich.impuls_past
+
+
+def test_narx_natijada_boladi() -> None:
+    natija = kuzatuv_yur(kirish())
+    assert natija.narx is not None
+    assert natija.narx > 0
+
+
+def test_impuls_topilmasa_YURGAN_deb_belgilanmaydi() -> None:
+    """Ma'lumot yo'qligi "yurib bo'lgan" degani EMAS.
+
+    `turlar.py` dagi MALUMOT_YOQ tamoyili: bilmaslik salbiy javob
+    emas. Aks holda tarixi qisqa coin jimgina chetlanardi.
+    """
+    assert Bosqich.NOMALUM.nomzod
+    assert Bosqich.KORREKSIYA.nomzod
+    assert Bosqich.CHUQUR.nomzod
+    assert not Bosqich.YURGAN.nomzod
+
+
+def test_ikki_darvoza_ham_kerak() -> None:
+    """Downtrend + korreksiya ham, uptrend + yurgan ham O'TMAYDI."""
+    tushgan = kuzatuv_yur(kirish(struktura_shamlar=tushish()))
+    assert not tushgan.otdi
+
+    yurgan = kuzatuv_yur(kirish(struktura_shamlar=kotarilish_yurgan()))
+    assert not yurgan.otdi
+
+    nomzod = kuzatuv_yur(kirish())
+    assert nomzod.otdi

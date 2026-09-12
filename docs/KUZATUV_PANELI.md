@@ -54,6 +54,42 @@ o'zgartirardi, shuning uchun aniqlash yangi modul ichida yozildi
 
 ---
 
+## Ikkinchi darvoza: coin hali yurmagan bo'lsin
+
+Yo'nalish darvozasi yetarli EMAS. `HH/HL ketma-ketligi` coin
+**allaqachon yurganda ham** to'g'ri bo'ladi — aslida u eng kuchli
+aynan shunda ko'rinadi.
+
+> **Bu xato jonli panelda ko'rindi.** Loyiha egasi Top 20 ni ochdi
+> va u yerda harakatini tugatgan coinlarni ko'rdi. To'g'ri savol
+> shu edi: bizga yurish potensiali bor, lekin **hali yurmagan**
+> coin kerak.
+
+Endi narxning o'rni ham tekshiriladi. O'lchov — loyihaning **o'z**
+Fibonacci zonasi (`fib_zona`), yangi raqam o'ylab topilmadi:
+
+| narx qayerda | bosqich | ro'yxatga kiradimi |
+|---|---|---|
+| zona **tepasida** | `yurgan` | ❌ harakat bo'lib bo'lgan |
+| zona **ichida** (38.2–61.8%) | `korreksiya` | ✅ klassik qaytish |
+| zona **pastida** | `chuqur` | ✅ chuqurroq qaytgan |
+| impuls topilmadi | `nomalum` | ✅ bilmaslik jazo emas |
+
+Coin nomzod bo'lishi uchun **ikkala darvoza** ham ochiq bo'lishi
+kerak: struktura yuqoriga qarasin **va** harakat tugamagan bo'lsin.
+
+Chuqur ko'rinishda narx impulsning qayerida ekani shkala bilan
+chiziladi — qaytish zonasi alohida rangda.
+
+### Shu bilan birga topilgan ikkinchi xato
+
+Ro'yxatdagi "arzon/qimmat" ustuni zona **markazini** narx deb
+olardi. Markazning nisbati esa doim 0.5 — ya'ni ustun **har doim
+"o'rtada"** deb turardi va hech narsa aytmasdi. Joriy narx endi
+bazada saqlanadi va ustun haqiqiy javob beradi.
+
+---
+
 ## Alternativ yo'llar — to'liq saqlanadi
 
 Blok **zaif** (1/N) chiqsa, zaxira usullar ketma-ket sinaladi.

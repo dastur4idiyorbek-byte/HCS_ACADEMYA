@@ -1777,3 +1777,17 @@ avval quyidagilar o'lchanishi SHART:
 
 Hozircha ularning birortasi ham o'lchanmagan va panel ATAYLAB
 qaror qabul qilmaydi.
+
+
+### Bosqich darvozasi (2026-09-12, jonli paneldan keyin)
+
+Coin "allaqachon yurganmi" degan savol `fib_zona` chegaralari
+bilan hal qilinadi: `FIB_YUQORI` (0.382) va `FIB_PAST` (0.618).
+
+🔴 Bu chegaralar signal moduli uchun ham O'LCHANMAGAN va shu
+yerda qayta ishlatildi. Yangi raqam O'YLAB TOPILMADI — ataylab:
+ikkita o'lchanmagan raqam o'rniga bittasi qolsin.
+
+Agar kelajakda panel asosida savdo qilinadigan bo'lsa, o'lchanishi
+kerak: qaytish zonasida topilgan coin zona tepasidagidan
+haqiqatan yaxshiroq natija beradimi.

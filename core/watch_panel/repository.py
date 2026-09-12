@@ -92,6 +92,12 @@ class KuzatuvRepository:
 
         qator.yonalish = natija.yonalish.yonalish.value
         qator.yonalish_izoh = natija.yonalish.izoh
+        qator.bosqich = natija.bosqich.bosqich.value
+        qator.bosqich_izoh = natija.bosqich.izoh
+        qator.bosqich_ulush = natija.bosqich.ulush
+        qator.impuls_past = natija.bosqich.impuls_past
+        qator.impuls_yuqori = natija.bosqich.impuls_yuqori
+        qator.narx = natija.narx
         qator.otdi = natija.otdi
         qator.diqqat = natija.diqqat
         qator.segmentlar_json = _segmentlar_json(natija)

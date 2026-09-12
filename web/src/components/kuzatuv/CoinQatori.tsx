@@ -30,13 +30,15 @@ export function CoinQatori({
   t: Tarjimon;
   kichik?: boolean;
 }) {
-  const joy = zonaJoyi(
-    coin.zonaPast !== null && coin.zonaYuqori !== null
-      ? (coin.zonaPast + coin.zonaYuqori) / 2
-      : null,
-    coin.zonaPast,
-    coin.zonaYuqori,
-  );
+  // IMPULS oralig'i bo'yicha — zona emas.
+  //
+  // Birinchi yozuvda bu yerga zona MARKAZI berilgan edi va ustun
+  // har doim "o'rtada" ko'rsatardi: markazning nisbati doim 0.5.
+  // Ya'ni ustun umuman hech narsa aytmasdi.
+  //
+  // Endi JORIY narx impulsning qayerida ekani o'lchanadi — aynan
+  // shu "coin yurib bo'ldimi" degan savolga javob beradi.
+  const joy = zonaJoyi(coin.narx, coin.impulsPast, coin.impulsYuqori);
   const zonaRang =
     joy === "discount"
       ? "text-yaxshi"
