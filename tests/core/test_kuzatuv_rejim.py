@@ -264,3 +264,100 @@ def test_natijada_entry_stop_tp_maydoni_yoq() -> None:
     maydonlar = set(natija.__slots__)
     taqiqlangan = {"entry", "stop", "tp", "tp1", "tp2", "darajalar", "levels"}
     assert not (maydonlar & taqiqlangan)
+
+
+# --------------------------------------------------------------------------- #
+#  ALTERNATIV YO'LLAR — prompt 1-qismi: "TO'LIQ SAQLANADI"
+# --------------------------------------------------------------------------- #
+
+
+def test_alternativ_generatorlar_chaqiriladi() -> None:
+    """Uch blok uchun ham alternativ ro'yxati SO'RALADI.
+
+    Bu test chaqiruvni KUZATADI, natijani emas. Sabab: alternativ
+    g'alaba qozonishi ma'lumotga bog'liq, lekin ular SINALISHI —
+    har doim shart. Birinchi yozuvda alternativlar umuman
+    chaqirilmagan edi va bu test o'shani ushlagan bo'lardi.
+    """
+    from core.analysis import observation_mode as om
+
+    chaqirilgan: list[str] = []
+
+    def kuzat(nom: str, asl):  # noqa: ANN001, ANN202
+        def orab(*a, **kw):  # noqa: ANN002, ANN003, ANN202
+            chaqirilgan.append(nom)
+            return asl(*a, **kw)
+
+        return orab
+
+    asl2, asl3, asl4 = om.alternativlar_2, om.alternativlar_3, om.alternativlar_4
+    om.alternativlar_2 = kuzat("blok2", asl2)  # type: ignore[assignment]
+    om.alternativlar_3 = kuzat("blok3", asl3)  # type: ignore[assignment]
+    om.alternativlar_4 = kuzat("blok4", asl4)  # type: ignore[assignment]
+    try:
+        kuzatuv_yur(kirish())
+    finally:
+        om.alternativlar_2, om.alternativlar_3, om.alternativlar_4 = asl2, asl3, asl4
+
+    assert chaqirilgan == ["blok2", "blok3", "blok4"], (
+        "alternativ yo'llar sinalmadi — prompt 1-qismi buzilgan"
+    )
+
+
+def test_golib_alternativ_blokka_tekshiruv_bolib_qoshiladi() -> None:
+    """5.3-qism: "qaysi usul ishlagani ko'rsatiladi".
+
+    G'olib alternativ blokka `alternativ:<nom>` degan ijobiy
+    tekshiruv bo'lib tushadi va shu yo'l bilan ekranga chiqadi.
+    """
+    natija = kuzatuv_yur(kirish())
+    if not natija.alternativlar:
+        # Bu ma'lumotda hech bir blok ZAIF chiqmagan — normal holat.
+        return
+
+    blok_nomi, usul = natija.alternativlar[0]
+    blok = next(b for b in natija.bloklar if b.nom == blok_nomi)
+    nomlar = [t.nom for t in blok.tekshiruvlar]
+    assert f"alternativ:{usul}" in nomlar
+
+
+def test_qutqarilganlar_royxati_natijada_boladi() -> None:
+    """Qaysi blok qaysi usul bilan qutqarilgani yozib boriladi."""
+    natija = kuzatuv_yur(kirish())
+    for blok_nomi, usul in natija.alternativlar:
+        assert blok_nomi in {b.nom for b in natija.bloklar}
+        assert usul, "usul nomi bo'sh"
+
+
+def test_zaif_blok_alternativ_bilan_qutqariladi() -> None:
+    """ZAIF blok (1/N) alternativ g'alaba qozonsa 2/N ga chiqadi."""
+    from core.analysis.alternatives.alternative_chain import qutqar
+    from core.analysis.alternatives.natija import AlternativNatija
+    from core.analysis.turlar import blok as blok_yasa
+    from core.analysis.turlar import ha, yoq
+
+    zaif = blok_yasa("Struktura", [ha("a", ""), yoq("b", ""), yoq("c", "")])
+    assert zaif.kuch == 1
+
+    qutqarilgan, golib = qutqar(
+        zaif, [AlternativNatija("trend_flag", True, "ishladi")]
+    )
+    assert golib is not None
+    assert golib.nom == "trend_flag"
+    assert qutqarilgan.kuch == 2
+    assert qutqarilgan.otdi
+
+
+def test_hamma_alternativ_sinsa_blok_otmaydi() -> None:
+    """Rejim B da bu ZANJIRNI UZMAYDI — blok shunchaki o'tmagan."""
+    from core.analysis.alternatives.alternative_chain import qutqar
+    from core.analysis.alternatives.natija import AlternativNatija
+    from core.analysis.turlar import blok as blok_yasa
+    from core.analysis.turlar import ha, yoq
+
+    zaif = blok_yasa("Struktura", [ha("a", ""), yoq("b", ""), yoq("c", "")])
+    qutqarilgan, golib = qutqar(
+        zaif, [AlternativNatija("trend_flag", False, "ishlamadi")]
+    )
+    assert golib is None
+    assert not qutqarilgan.otdi

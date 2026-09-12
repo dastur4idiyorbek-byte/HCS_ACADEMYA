@@ -127,7 +127,7 @@ def zanjir_yur_alternativ(kirish: ZanjirKirish) -> ZanjirNatija:
         ),
         kirish.ochirilgan,
     )
-    b2, _ = qutqar(b2, _alternativlar_2(kirish.shamlar, nuqtalar), kirish.ochirilgan)
+    b2, _ = qutqar(b2, alternativlar_2(kirish.shamlar, nuqtalar), kirish.ochirilgan)
     bloklar.append(b2)
     if not b2.otdi:
         return ZanjirNatija(Zanjir(tuple(bloklar), uzildi_blokda=b2.nom))
@@ -141,12 +141,12 @@ def zanjir_yur_alternativ(kirish: ZanjirKirish) -> ZanjirNatija:
         )
     )
     b3 = blok_sozla(zona_natija.blok, kirish.ochirilgan)
-    b3, alt_zona = qutqar(b3, _alternativlar_3(nuqtalar), kirish.ochirilgan)
+    b3, alt_zona = qutqar(b3, alternativlar_3(nuqtalar), kirish.ochirilgan)
     bloklar.append(b3)
     if not b3.otdi:
         return ZanjirNatija(
             Zanjir(tuple(bloklar), uzildi_blokda=b3.nom),
-            zona_natija=_zona_bilan(zona_natija, alt_zona),
+            zona_natija=zona_bilan(zona_natija, alt_zona),
         )
 
     zona = alt_zona.zona if alt_zona is not None else zona_natija.zona
@@ -165,17 +165,17 @@ def zanjir_yur_alternativ(kirish: ZanjirKirish) -> ZanjirNatija:
         ),
         kirish.ochirilgan,
     )
-    b4, _ = qutqar(b4, _alternativlar_4(kirish.shamlar, nuqtalar), kirish.ochirilgan)
+    b4, _ = qutqar(b4, alternativlar_4(kirish.shamlar, nuqtalar), kirish.ochirilgan)
     bloklar.append(b4)
     if not b4.otdi:
         return ZanjirNatija(
             Zanjir(tuple(bloklar), uzildi_blokda=b4.nom),
-            zona_natija=_zona_bilan(zona_natija, alt_zona),
+            zona_natija=zona_bilan(zona_natija, alt_zona),
         )
 
     return ZanjirNatija(
         Zanjir(tuple(bloklar)),
-        zona_natija=_zona_bilan(zona_natija, alt_zona),
+        zona_natija=zona_bilan(zona_natija, alt_zona),
     )
 
 
@@ -185,7 +185,7 @@ def _alternativ_qosh(blok: Blok, alt: AlternativNatija) -> Blok:
     return Blok(blok.nom, yangi, blok.qattiq_tosiq, blok.ziddiyatli, blok.eng_kam_kuch)
 
 
-def _zona_bilan(asl: ZonaNatija | None, alt_zona: AlternativNatija | None) -> ZonaNatija | None:
+def zona_bilan(asl: ZonaNatija | None, alt_zona: AlternativNatija | None) -> ZonaNatija | None:
     """Alternativ zona g'alaba qozonsa, asosiy zona O'RNINI oladi."""
     if asl is None or alt_zona is None or alt_zona.zona is None:
         return asl
@@ -197,15 +197,21 @@ def _zona_bilan(asl: ZonaNatija | None, alt_zona: AlternativNatija | None) -> Zo
     )
 
 
-def _alternativlar_2(shamlar: list[Candle], nuqtalar: list[Swing]) -> list[AlternativNatija]:
-    """Blok 2: 2A trend+flag, 2B qo'sh tub."""
+def alternativlar_2(shamlar: list[Candle], nuqtalar: list[Swing]) -> list[AlternativNatija]:
+    """Blok 2: 2A trend+flag, 2B qo'sh tub.
+
+    OCHIQ — kuzatuv moduli (Rejim B) ham chaqiradi. U zanjir
+    mantig'isiz ishlaydi, lekin alternativ usullar AYNAN shu
+    yerdan olinishi kerak: ikki nusxa bo'lsa, ular vaqt o'tib
+    ajralib ketardi.
+    """
     return [
         _flag_alt(shamlar, nuqtalar),
         _qosh_tub_alt(nuqtalar),
     ]
 
 
-def _alternativlar_3(nuqtalar: list[Swing]) -> list[AlternativNatija]:
+def alternativlar_3(nuqtalar: list[Swing]) -> list[AlternativNatija]:
     """Blok 3: 3A qo'sh tub (zona), 3B oldingi swing (zona)."""
     return [
         _qosh_tub_zona_alt(nuqtalar),
@@ -213,7 +219,7 @@ def _alternativlar_3(nuqtalar: list[Swing]) -> list[AlternativNatija]:
     ]
 
 
-def _alternativlar_4(shamlar: list[Candle], nuqtalar: list[Swing]) -> list[AlternativNatija]:
+def alternativlar_4(shamlar: list[Candle], nuqtalar: list[Swing]) -> list[AlternativNatija]:
     """Blok 4: 4A hajm, 4B tezlik, 4C retest."""
     hajm = hajm_sakrashi(shamlar)
     tezlik = tez_harakat(shamlar)

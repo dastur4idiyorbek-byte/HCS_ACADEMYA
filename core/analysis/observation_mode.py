@@ -67,6 +67,31 @@ To'rt blokning O'ZI yo'qolmaydi — ular chuqur ko'rinishda alohida
 karta bo'lib qoladi (5.3-qism).
 
 --------------------------------------------------------------------
+ALTERNATIV YO'LLAR — TO'LIQ SAQLANADI
+--------------------------------------------------------------------
+
+Blok ZAIF (1/N) chiqsa, zaxira usullar ketma-ket sinaladi va
+biri ishlasa blok qutqariladi (prompt, 1-qism: "Bu jarayon —
+TO'LIQ SAQLANADI"):
+
+    Blok 2: trend_flag, qosh_tub
+    Blok 3: qosh_tub (zona beradi), oldingi_swing (zona beradi)
+    Blok 4: hajm_sakrashi, tez_harakat, qayta_sinov
+
+Ular `alternatives/alternative_chain.py` dan AYNAN o'sha holda
+chaqiriladi — ko'chirilmaydi. `qutqar()` funksiyasi zanjir
+mantig'idan MUSTAQIL: u faqat blokni ko'radi va alternativlarni
+sinaydi, hech narsani uzmaydi. Shuning uchun uni Rejim B da
+ishlatish mumkin.
+
+G'olib alternativ blokka `alternativ:<nom>` degan ijobiy tekshiruv
+bo'lib qo'shiladi va ekranda ko'rinadi (5.3-qism talabi: "qaysi
+usul ishlagani ko'rsatiladi").
+
+Blok 3 da g'olib alternativ ZONA beradi va u asosiy zona O'RNIGA
+ishlatiladi — keyingi blok ham, ekran ham o'shani ko'radi.
+
+--------------------------------------------------------------------
 TIMEFRAME
 --------------------------------------------------------------------
 
@@ -87,6 +112,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from core.analysis.alternatives.alternative_chain import (
+    alternativlar_2,
+    alternativlar_3,
+    alternativlar_4,
+    qutqar,
+    zona_bilan,
+)
+from core.analysis.alternatives.natija import AlternativNatija
 from core.analysis.confirmation.confirmation_block import TasdiqKirish, tasdiqlash_blok
 from core.analysis.fundamental.fundamental_block import (
     FundamentalKirish,
@@ -176,6 +209,8 @@ class KuzatuvNatija:
     ogohlantirish: str | None = None
     #: coin/BTC nisbatining o'zgarishi — teng ball chiqqanda tartib uchun
     nisbiy_kuch: float | None = None
+    #: Qaysi blok qaysi alternativ bilan qutqarildi: {blok nomi: usul}
+    alternativlar: tuple[tuple[str, str], ...] = ()
     timeframelar: Timeframelar = field(default_factory=Timeframelar)
 
     @property
@@ -262,39 +297,66 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
         unlock_yaqin_kun=kirish.unlock_yaqin_kun,
         unlock_katta_pct=kirish.unlock_katta_pct,
     )
-    b_struktura = struktura_blok(
-        StrukturaKirish(
-            shamlar=kirish.struktura_shamlar,
-            btc_shamlar=kirish.btc_shamlar,
-            yosh_kun=kirish.yosh_kun,
-            etalon=kirish.etalon,
-            shubhali=kirish.shubhali,
-        )
+    qutqarilganlar: list[tuple[str, str]] = []
+
+    def _qutqar(
+        blok: Blok, alternativlar: list[AlternativNatija]
+    ) -> tuple[Blok, AlternativNatija | None]:
+        """Blokni alternativ bilan qutqaradi va g'olibni qayd etadi."""
+        yangi_blok, golib = qutqar(blok, alternativlar)
+        if golib is not None:
+            qutqarilganlar.append((blok.nom, golib.nom))
+        return yangi_blok, golib
+
+    b_struktura, _ = _qutqar(
+        struktura_blok(
+            StrukturaKirish(
+                shamlar=kirish.struktura_shamlar,
+                btc_shamlar=kirish.btc_shamlar,
+                yosh_kun=kirish.yosh_kun,
+                etalon=kirish.etalon,
+                shubhali=kirish.shubhali,
+            )
+        ),
+        alternativlar_2(kirish.struktura_shamlar, struktura_nuqtalar),
     )
 
     zona_nuqtalar = swinglar(kirish.zona_shamlar, shubhali=kirish.shubhali)
-    zona_natija = zona_blok(
+    zona_xom = zona_blok(
         ZonaKirish(
             shamlar=kirish.zona_shamlar,
             nuqtalar=zona_nuqtalar,
             ob_tarifi=kirish.ob_tarifi,
         )
     )
+    b_zona, alt_zona = _qutqar(zona_xom.blok, alternativlar_3(zona_nuqtalar))
+    # Alternativ zona g'alaba qozonsa, u asosiy zona O'RNINI oladi —
+    # keyingi blok ham, ekran ham o'shani ko'radi.
+    zona_natija = ZonaNatija(
+        blok=b_zona,
+        zona=zona_xom.zona,
+        daraja=zona_xom.daraja,
+        qatlamlar=zona_xom.qatlamlar,
+    )
+    zona_natija = zona_bilan(zona_natija, alt_zona) or zona_natija
 
-    b_tasdiq = tasdiqlash_blok(
-        TasdiqKirish(
-            shamlar=kirish.zona_shamlar,
-            nuqtalar=zona_nuqtalar,
-            pastki_shamlar=kirish.pastki_shamlar,
-            zona=zona_natija.zona,
-            # Rejim A da bu ikkisi VAQT bo'yicha solishtiriladi
-            # (zanjir boshidagi va hozirgi fundamental). Kuzatuvda
-            # esa tarix saqlanmaydi, shuning uchun ikkalasi bir xil
-            # — tekshiruv "mos" deb o'qiydi va bu to'g'ri: vaqt
-            # o'tmagan, o'zgarish ham bo'lmagan.
-            eski_fundamental=b_fund,
-            yangi_fundamental=b_fund,
-        )
+    b_tasdiq, _ = _qutqar(
+        tasdiqlash_blok(
+            TasdiqKirish(
+                shamlar=kirish.zona_shamlar,
+                nuqtalar=zona_nuqtalar,
+                pastki_shamlar=kirish.pastki_shamlar,
+                zona=zona_natija.zona,
+                # Rejim A da bu ikkisi VAQT bo'yicha solishtiriladi
+                # (zanjir boshidagi va hozirgi fundamental). Kuzatuvda
+                # esa tarix saqlanmaydi, shuning uchun ikkalasi bir xil
+                # — tekshiruv "mos" deb o'qiydi va bu to'g'ri: vaqt
+                # o'tmagan, o'zgarish ham bo'lmagan.
+                eski_fundamental=b_fund,
+                yangi_fundamental=b_fund,
+            )
+        ),
+        alternativlar_4(kirish.zona_shamlar, zona_nuqtalar),
     )
 
     segmentlar = (
@@ -313,6 +375,7 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
         symbol=kirish.symbol,
         yonalish=yonalish,
         bloklar=(b_fund, b_struktura, zona_natija.blok, b_tasdiq),
+        alternativlar=tuple(qutqarilganlar),
         zona_natija=zona_natija,
         segmentlar=segmentlar,
         ogohlantirish=_ogohlantirish(kirish),

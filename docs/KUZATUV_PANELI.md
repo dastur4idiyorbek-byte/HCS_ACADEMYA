@@ -54,6 +54,36 @@ o'zgartirardi, shuning uchun aniqlash yangi modul ichida yozildi
 
 ---
 
+## Alternativ yo'llar — to'liq saqlanadi
+
+Blok **zaif** (1/N) chiqsa, zaxira usullar ketma-ket sinaladi.
+Biri ishlasa — blok qutqariladi va 2/N ga chiqadi.
+
+| blok | zaxira usullar |
+|---|---|
+| Struktura | `trend_flag`, `qosh_tub` |
+| Zona sifati | `qosh_tub` (zona beradi), `oldingi_swing` (zona beradi) |
+| Tasdiqlash | `hajm_sakrashi`, `tez_harakat`, `qayta_sinov` |
+
+G'olib usul blokka `alternativ:<nom>` degan ijobiy tekshiruv
+bo'lib qo'shiladi va **ekranda ko'rinadi** — admin qaysi usul
+ishlaganini biladi.
+
+Zona blokida g'olib alternativ **o'z zonasini** beradi va u asosiy
+zona o'rnini oladi: keyingi blok ham, ekran ham o'shani ko'radi.
+
+Usullar `alternatives/alternative_chain.py` dan aynan o'sha holda
+chaqiriladi — ko'chirilmagan.
+
+> **Bu qism birinchi yozuvda tushib qolgan edi.** Alternativ
+> usullar zanjir uzish mantig'i bilan bitta faylda turadi; o'sha
+> fayldan qochganda ular ham yo'qolgan. Loyiha egasi buni
+> so'raganda tuzatildi, va endi `test_alternativ_generatorlar_chaqiriladi`
+> ularning chaqirilishini qulflab turadi — test ataylab buzib
+> sinaldi.
+
+---
+
 ## Diqqat darajasi — to'rt ichki tekshiruv
 
 Segmentlar **bloklarga emas**, ichki tekshiruvlarga bog'langan:

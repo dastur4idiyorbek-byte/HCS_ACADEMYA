@@ -256,3 +256,38 @@ test("timeframe qiymatlari YAML va Python da bir xil", () => {
     assert.ok(python.includes(`"${tf}"`), `Pythonda ${tf} yo'q`);
   }
 });
+
+// --------------------------------------------------------------------------- //
+//  Alternativ yo'llar (1-qism: "TO'LIQ SAQLANADI")
+// --------------------------------------------------------------------------- //
+
+test("Rejim B alternativ yo'llarni chaqiradi", () => {
+  // Bu — birinchi yozuvda TUSHIB QOLGAN qism. Alternativ usullar
+  // `alternative_chain.py` ichida, zanjir mantig'i bilan bir
+  // faylda turadi; o'sha fayldan qochganda ular ham yo'qolgan edi.
+  const python = oqi("core/analysis/observation_mode.py");
+  for (const nom of ["alternativlar_2", "alternativlar_3", "alternativlar_4", "qutqar"]) {
+    assert.ok(python.includes(nom), `alternativ yo'l chaqirilmagan: ${nom}`);
+  }
+});
+
+test("alternativ mantig'i KO'CHIRILMAGAN, import qilingan", () => {
+  // Ikki nusxa bo'lsa, ular vaqt o'tib ajralib ketardi.
+  const python = oqi("core/analysis/observation_mode.py");
+  assert.ok(
+    python.includes("from core.analysis.alternatives.alternative_chain import"),
+    "alternativ mantig'i o'z joyidan import qilinmagan",
+  );
+});
+
+test("g'olib alternativ ekranda ko'rinadi", () => {
+  // 5.3-qism: "qaysi usul ishlagani ko'rsatiladi".
+  const sahifa = oqi("web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx");
+  assert.ok(sahifa.includes('startsWith("alternativ:")'));
+  assert.ok(sahifa.includes('t("kuzatuv.alternativ")'));
+
+  const uz = JSON.parse(oqi("web/src/lib/i18n/uz.json")) as {
+    kuzatuv: Record<string, unknown>;
+  };
+  assert.equal(typeof uz.kuzatuv.alternativ, "string");
+});

@@ -701,6 +701,7 @@
     "soat_24": "24 soat",
     "kun_7": "7 kun",
     "jonli_yoq": "Jonli ma'lumot faqat Top 20 uchun yig'iladi.",
-    "jonli_izoh": "Stakan va savdo lentasi brauzeringizga to'g'ridan-to'g'ri birjadan keladi. Xarid bosimi va yirik savdolar esa serverda, 15 daqiqalik oyna ustida hisoblanadi."
+    "jonli_izoh": "Stakan va savdo lentasi brauzeringizga to'g'ridan-to'g'ri birjadan keladi. Xarid bosimi va yirik savdolar esa serverda, 15 daqiqalik oyna ustida hisoblanadi.",
+    "alternativ": "Alternativ yo'l bilan qutqarildi"
   }
 }

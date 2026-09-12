@@ -232,7 +232,13 @@ function BlokKartasi({
         <p className="text-matn-past text-xs">{t("kuzatuv.blok_olchanmadi")}</p>
       ) : (
         <ul className="space-y-1">
-          {blok.tekshiruvlar.map((tek, i) => (
+          {blok.tekshiruvlar.map((tek, i) => {
+            // ALTERNATIV BILAN QUTQARILGAN blok alohida ko'rinadi
+            // (5.3-qism: "qaysi usul ishlagani ko'rsatiladi").
+            // Pythonda u `alternativ:<nom>` degan tekshiruv bo'lib
+            // qo'shiladi.
+            const alt = tek.nom.startsWith("alternativ:");
+            return (
             <li key={`${tek.nom}-${i}`} className="flex items-start gap-2 text-xs">
               {/* Belgi — SEGMENT INDIKATORI bilan bir xil shakl.
                   Ilgari bu yerda matnli tasdiq va rad belgilari
@@ -251,9 +257,18 @@ function BlokKartasi({
                       : "border-ramka-yumshoq opacity-40",
                 )}
               />
-              <span className="text-matn-past min-w-0 flex-1">{tek.izoh || tek.nom}</span>
+              <span
+                className={cn(
+                  "min-w-0 flex-1",
+                  alt ? "text-sarlavha" : "text-matn-past",
+                )}
+              >
+                {alt ? `${t("kuzatuv.alternativ")}: ` : ""}
+                {tek.izoh || tek.nom}
+              </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>
