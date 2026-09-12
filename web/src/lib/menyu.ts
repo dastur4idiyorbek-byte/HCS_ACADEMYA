@@ -202,12 +202,29 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   {
     kod: "produkt",
     kalit: "pastki.produkt",
-    sahifalar: ["signallar", "qidiruv", "kalkulyator", "statistika"],
+    sahifalar: ["signallar", "kalkulyator", "statistika"],
+  },
+  // MODUL 3.0.0 — o'z tabi, pastki qatorning asosiy tugmalaridan biri.
+  //
+  // BITTA TAB, IKKI MANZIL. `tabSahifalari` `adminUchun` bandni
+  // admin bo'lmaganga qaytarmaydi, va tab HAR DOIM ro'yxatdagi
+  // BIRINCHI sahifaga olib boradi. Shuning uchun tartib muhim:
+  //
+  //     admin         -> "kuzatuv" qoladi  -> panel ochiladi
+  //     foydalanuvchi -> "kuzatuv" tushadi -> qidiruv ochiladi
+  //
+  // Ya'ni rolga qarab ajratish uchun ALOHIDA shart yozilmadi —
+  // mavjud qoidaning o'zi yetarli. Ikkinchi shart yozilsa, u
+  // `korinadiganBandlar` bilan ajralib ketishi mumkin edi.
+  {
+    kod: "modul",
+    kalit: "pastki.modul",
+    sahifalar: ["kuzatuv", "qidiruv"],
   },
   {
     kod: "kabinet",
     kalit: "pastki.kabinet",
-    sahifalar: ["profil", "portfel", "kuzatuv", "admin"],
+    sahifalar: ["profil", "portfel", "admin"],
   },
 ];
 

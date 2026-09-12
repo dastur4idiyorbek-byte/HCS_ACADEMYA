@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Ikonka, type IkonkaNomi } from "@/components/ui/Ikonka";
 import { cn } from "@/lib/cn";
 
-/** Pastki navigatsiya — 5 bo'lim (mobil ilova uslubi).
+/** Pastki navigatsiya — mobil ilova uslubidagi asosiy tugmalar.
  *
  * Faqat mobil qurilmalarda ko'rinadi (`lg:hidden`): desktopda yon
  * panel butun menyuni ko'rsatadi. Ikonkalar HCS to'plamidan
@@ -33,6 +33,7 @@ const TAB_IKONKASI: Record<string, IkonkaNomi> = {
   bozor: "bozor_holati",
   akademiya: "akademiya",
   produkt: "produkt",
+  modul: "korish",
   kabinet: "kabinet",
 };
 
@@ -57,6 +58,10 @@ export function PastkiNav({
   qulfMatn: string;
 }) {
   const yol = usePathname();
+  // Sahifasi qolmagan tab UMUMAN chizilmaydi — panjarada ham joy
+  // egallamaydi.
+  const korinadigan = tablar.filter((t) => t.sahifalar.length > 0);
+  if (korinadigan.length === 0) return null;
 
   return (
     <nav
@@ -66,9 +71,16 @@ export function PastkiNav({
       className="border-ramka-yumshoq bg-fon lg:hidden fixed inset-x-0 bottom-0 z-10 border-t"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="grid grid-cols-5">
-        {tablar.map((tab) => {
-          if (tab.sahifalar.length === 0) return null;
+      {/* USTUN SONI RO'YXATDAN OLINADI, qo'lda yozilmaydi.
+          Ilgari ustun soni Tailwind sinfida QATTIQ yozilgan edi va
+          tab soni o'zgarganda panjara ajralib ketardi. Bundan tashqari
+          bo'sh tab (hamma sahifasi adminga xos) panjarada JOY
+          egallab turardi: 5 ustun, 4 tugma va bitta teshik. */}
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: `repeat(${korinadigan.length}, minmax(0, 1fr))` }}
+      >
+        {korinadigan.map((tab) => {
           const faol = tab.sahifalar.some(
             (s) => yol === s.yol || yol.startsWith(`${s.yol}/`),
           );

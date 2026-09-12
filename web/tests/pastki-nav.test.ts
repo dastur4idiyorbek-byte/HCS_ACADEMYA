@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
 
 import { MENYU, PASTKI_TABLAR, tabSahifalari } from "../src/lib/menyu.ts";
@@ -62,6 +64,41 @@ test("tabSahifalari admin bo'lmaganga 'admin' bandini qaytarmaydi", () => {
   );
 
   const admin = tabSahifalari(kabinet, true).map((s) => s.kod);
-  // "kuzatuv" — kuzatuv paneli (9-prompt), faqat adminlarga.
-  assert.deepEqual(admin, ["profil", "portfel", "kuzatuv", "admin"]);
+  assert.deepEqual(admin, ["profil", "portfel", "admin"]);
+});
+
+
+test("Modul 3.0.0 tabi rolga qarab BOSHQA sahifaga olib boradi", () => {
+  // Bitta tugma, ikki manzil. Alohida shart yozilmagan: tab har
+  // doim ro'yxatdagi BIRINCHI ko'rinadigan sahifaga olib boradi,
+  // va `kuzatuv` admin bo'lmaganga qaytarilmaydi.
+  const modul = PASTKI_TABLAR.find((t) => t.kod === "modul");
+  assert.ok(modul, "modul tabi topilmadi");
+
+  const admin = tabSahifalari(modul, true).map((s) => s.kod);
+  assert.deepEqual(admin, ["kuzatuv", "qidiruv"]);
+  assert.equal(admin[0], "kuzatuv", "admin panelga tushishi kerak");
+
+  const oddiy = tabSahifalari(modul, false).map((s) => s.kod);
+  assert.deepEqual(oddiy, ["qidiruv"]);
+  assert.equal(oddiy[0], "qidiruv", "foydalanuvchi qidiruvga tushishi kerak");
+});
+
+test("Modul tabi oddiy foydalanuvchiga ham KO'RINADI", () => {
+  // Tab bo'sh qolsa pastki navda umuman chizilmaydi — ya'ni
+  // foydalanuvchida kamida bitta ochiq sahifa bo'lishi SHART.
+  const modul = PASTKI_TABLAR.find((t) => t.kod === "modul");
+  assert.ok(modul);
+  assert.ok(tabSahifalari(modul, false).length > 0);
+});
+
+test("pastki nav panjarasi ustun sonini QO'LDA yozmaydi", () => {
+  // Ilgari `grid-cols-5` qattiq yozilgan edi: tab soni o'zgarganda
+  // panjara ajralib ketardi.
+  const matn = readFileSync(
+    path.join(import.meta.dirname, "..", "src", "components", "PastkiNav.tsx"),
+    "utf8",
+  );
+  assert.ok(!matn.includes("grid-cols-5"), "ustun soni qo'lda yozilgan");
+  assert.ok(matn.includes("gridTemplateColumns"));
 });

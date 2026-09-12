@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BozorKesimi, pul } from "@/components/kuzatuv/BozorKesimi";
 import { JonliStakan } from "@/components/kuzatuv/JonliStakan";
 import { Segmentlar } from "@/components/kuzatuv/Segmentlar";
 import { Card } from "@/components/ui/Card";
@@ -137,35 +138,38 @@ export default async function CoinSahifasi({
       {coin.royxat === "top" ? (
         <>
           {bozor ? (
-            <Card className="mb-3">
-              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                <Raqam
-                  nom={t("kuzatuv.xarid_bosimi")}
-                  qiymat={
-                    bozor.xaridBosimi === null ? null : `${bozor.xaridBosimi}%`
-                  }
-                />
-                <Raqam
-                  nom={t("kuzatuv.yirik_savdo")}
-                  qiymat={String(bozor.yirikSavdo)}
-                />
-                <Raqam nom={t("kuzatuv.market_cap")} qiymat={pul(bozor.marketCap)} />
-                <Raqam nom={t("kuzatuv.hajm_24s")} qiymat={pul(bozor.hajm24s)} />
-              </div>
-              <div className="border-ramka-yumshoq mt-3 grid grid-cols-3 gap-3 border-t pt-3 text-sm">
-                <Raqam nom={t("kuzatuv.soat_1")} qiymat={foiz(bozor.ozgarish1s)} />
-                <Raqam nom={t("kuzatuv.soat_24")} qiymat={foiz(bozor.ozgarish24s)} />
-                <Raqam nom={t("kuzatuv.kun_7")} qiymat={foiz(bozor.ozgarish7k)} />
-              </div>
-              {bozor.xaridBosimi !== null ? (
-                <div className="bg-past/25 mt-3 h-2 overflow-hidden rounded-full">
-                  <div
-                    className="bg-yaxshi h-full"
-                    style={{ width: `${bozor.xaridBosimi}%` }}
+            <>
+              {/* CoinGecko kesimi — admin uchun TO'LIQ */}
+              <BozorKesimi bozor={bozor} t={t} toliq />
+
+              {/* Bizning o'z yig'mamiz — 15 daqiqalik oyna */}
+              <Card className="mb-3">
+                <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                  <Raqam
+                    nom={t("kuzatuv.xarid_bosimi")}
+                    qiymat={
+                      bozor.xaridBosimi === null ? null : `${bozor.xaridBosimi}%`
+                    }
+                  />
+                  <Raqam
+                    nom={t("kuzatuv.yirik_savdo")}
+                    qiymat={String(bozor.yirikSavdo)}
+                  />
+                  <Raqam
+                    nom={t("kuzatuv.hajm_oyna")}
+                    qiymat={pul(bozor.hajmUsd)}
                   />
                 </div>
-              ) : null}
-            </Card>
+                {bozor.xaridBosimi !== null ? (
+                  <div className="bg-past/25 mt-3 h-2 overflow-hidden rounded-full">
+                    <div
+                      className="bg-yaxshi h-full"
+                      style={{ width: `${bozor.xaridBosimi}%` }}
+                    />
+                  </div>
+                ) : null}
+              </Card>
+            </>
           ) : null}
 
           <JonliStakan
@@ -286,22 +290,3 @@ function Raqam({ nom, qiymat }: { nom: string; qiymat: string | null }) {
   );
 }
 
-/** $1.2B ko'rinishida. `null` — "ma'lumot yo'q", nol EMAS. */
-function pul(x: number | null): string | null {
-  if (x === null || !Number.isFinite(x)) return null;
-  const birliklar: [number, string][] = [
-    [1e12, "T"],
-    [1e9, "B"],
-    [1e6, "M"],
-    [1e3, "K"],
-  ];
-  for (const [chegara, belgi] of birliklar) {
-    if (Math.abs(x) >= chegara) return `$${(x / chegara).toFixed(2)}${belgi}`;
-  }
-  return `$${x.toFixed(2)}`;
-}
-
-function foiz(x: number | null): string | null {
-  if (x === null || !Number.isFinite(x)) return null;
-  return `${x > 0 ? "+" : ""}${x.toFixed(2)}%`;
-}

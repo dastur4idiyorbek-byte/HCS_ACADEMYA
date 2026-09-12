@@ -1,3 +1,4 @@
+import { BozorKesimi } from "@/components/kuzatuv/BozorKesimi";
 import { Card } from "@/components/ui/Card";
 import { Ikonka } from "@/components/ui/Ikonka";
 import { Sarlavha } from "@/components/ui/Sarlavha";
@@ -109,55 +110,18 @@ export default async function QidiruvSahifasi({
             </span>
           </div>
 
-          {bozor ? (
-            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <Qator nom={t("kuzatuv.narx")} qiymat={narxMatn(bozor.narx)} />
-              <Qator nom={t("kuzatuv.market_cap")} qiymat={pul(bozor.marketCap)} />
-              <Qator nom={t("kuzatuv.hajm_24s")} qiymat={pul(bozor.hajm24s)} />
-              <Qator nom={t("kuzatuv.soat_1")} qiymat={foiz(bozor.ozgarish1s)} />
-              <Qator nom={t("kuzatuv.soat_24")} qiymat={foiz(bozor.ozgarish24s)} />
-              <Qator nom={t("kuzatuv.kun_7")} qiymat={foiz(bozor.ozgarish7k)} />
-            </div>
-          ) : (
-            <p className="text-matn-past text-sm">{t("umumiy.yoq")}</p>
-          )}
-
-          <p className="text-matn-past mt-4 text-xs">{t("kuzatuv.tavsiya_emas")}</p>
+          {/* CHEGARA: `toliq` BERILMAYDI — FDV, ta'minot va tarixiy
+              chekkalar faqat adminda qoladi (7-qism). */}
         </Card>
+      ) : null}
+
+      {coin && bozor ? (
+        <>
+          <BozorKesimi bozor={bozor} t={t} />
+          <p className="text-matn-past mt-2 text-xs">{t("kuzatuv.tavsiya_emas")}</p>
+        </>
       ) : null}
     </>
   );
 }
 
-function Qator({ nom, qiymat }: { nom: string; qiymat: string | null }) {
-  return (
-    <div>
-      <p className="text-matn-past text-[11px]">{nom}</p>
-      <p className="tabular-nums">{qiymat ?? "—"}</p>
-    </div>
-  );
-}
-
-function narxMatn(x: number | null): string | null {
-  if (x === null || !Number.isFinite(x)) return null;
-  return `$${x.toPrecision(6)}`;
-}
-
-function pul(x: number | null): string | null {
-  if (x === null || !Number.isFinite(x)) return null;
-  const birliklar: [number, string][] = [
-    [1e12, "T"],
-    [1e9, "B"],
-    [1e6, "M"],
-    [1e3, "K"],
-  ];
-  for (const [chegara, belgi] of birliklar) {
-    if (Math.abs(x) >= chegara) return `$${(x / chegara).toFixed(2)}${belgi}`;
-  }
-  return `$${x.toFixed(2)}`;
-}
-
-function foiz(x: number | null): string | null {
-  if (x === null || !Number.isFinite(x)) return null;
-  return `${x > 0 ? "+" : ""}${x.toFixed(2)}%`;
-}

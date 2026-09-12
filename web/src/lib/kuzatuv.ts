@@ -172,5 +172,67 @@ export type KuzatuvBozori = {
   ozgarish1s: number | null;
   ozgarish24s: number | null;
   ozgarish7k: number | null;
+
+  /** Kapitalizatsiya bo'yicha o'rin (#1 — BTC) */
+  orinCg: number | null;
+  /** To'liq suyultirilgan baho — hamma token chiqarilsa */
+  fdv: number | null;
+  muomalada: number | null;
+  jamiToken: number | null;
+  engKopToken: number | null;
+  /** Tarixiy eng yuqori/past va ulardan farq (%) */
+  ath: number | null;
+  athFarq: number | null;
+  atl: number | null;
+  atlFarq: number | null;
+  yuqori24s: number | null;
+  past24s: number | null;
+
   yangilangan: string | null;
 };
+
+/** LIKVIDLIK KO'RSATKICHI — sutkalik hajm / kapitalizatsiya (%).
+ *
+ * Prompt aynan shuni so'raydi. Ma'nosi: coinning qancha qismi bir
+ * kunda qo'ldan qo'lga o'tadi. Yuqori bo'lsa — chiqish oson; past
+ * bo'lsa — katta buyurtma narxni surib yuboradi.
+ *
+ * ALOHIDA USTUN EMAS, hisoblanadi: uchinchi nusxa saqlash ularning
+ * ajralib ketishining eng oson yo'li bo'lardi. */
+export function likvidlik(b: {
+  hajm24s: number | null;
+  marketCap: number | null;
+}): number | null {
+  if (b.hajm24s === null || !b.marketCap) return null;
+  return Math.round((100 * b.hajm24s) / b.marketCap * 100) / 100;
+}
+
+/** Muomaladagi tokenlar ulushi (%) — qanchasi hali qulflangan.
+ *
+ * Past bo'lsa: kelajakda ko'p token chiqadi va bu narxga bosim
+ * beradi. Cheksiz emissiyali coinlar uchun `jamiToken` ga
+ * nisbatan hisoblanadi. */
+export function muomalaUlushi(b: {
+  muomalada: number | null;
+  engKopToken: number | null;
+  jamiToken: number | null;
+}): number | null {
+  const maxraj = b.engKopToken || b.jamiToken;
+  if (b.muomalada === null || !maxraj) return null;
+  return Math.round((100 * b.muomalada) / maxraj * 10) / 10;
+}
+
+/** Narx sutkalik oraliqning qayerida — 0..100.
+ *
+ * Vizual shkalada ishlatiladi: narx kun eng pastiga yaqinmi yoki
+ * eng yuqorisiga. */
+export function sutkalikOrin(
+  narx: number | null,
+  past: number | null,
+  yuqori: number | null,
+): number | null {
+  if (narx === null || past === null || yuqori === null) return null;
+  if (!(yuqori > past)) return null;
+  const ulush = ((narx - past) / (yuqori - past)) * 100;
+  return Math.min(100, Math.max(0, Math.round(ulush)));
+}

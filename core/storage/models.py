@@ -934,6 +934,23 @@ class KuzatuvBozor(Base, TimestampMixin):
     ozgarish_24s: Mapped[float | None] = mapped_column(Float)
     ozgarish_7k: Mapped[float | None] = mapped_column(Float)
 
+    #: Kapitalizatsiya bo'yicha o'rin (#1 — BTC)
+    orin_cg: Mapped[int | None] = mapped_column(Integer)
+    #: To'liq suyultirilgan baho — hamma token chiqarilsa
+    fdv: Mapped[float | None] = mapped_column(Float)
+    #: Token ta'minoti
+    muomalada: Mapped[float | None] = mapped_column(Float)
+    jami_token: Mapped[float | None] = mapped_column(Float)
+    eng_kop_token: Mapped[float | None] = mapped_column(Float)
+    #: Tarixiy chekkalar va ulardan farq (%)
+    ath: Mapped[float | None] = mapped_column(Float)
+    ath_farq: Mapped[float | None] = mapped_column(Float)
+    atl: Mapped[float | None] = mapped_column(Float)
+    atl_farq: Mapped[float | None] = mapped_column(Float)
+    #: Sutkalik oraliq
+    yuqori_24s: Mapped[float | None] = mapped_column(Float)
+    past_24s: Mapped[float | None] = mapped_column(Float)
+
     yangilangan: Mapped[datetime] = mapped_column(UtcDateTime, index=True, nullable=False)
 
 

@@ -197,6 +197,17 @@ class KuzatuvRepository:
             qator.ozgarish_1s = surat.ozgarish_1s
             qator.ozgarish_24s = surat.ozgarish_24s
             qator.ozgarish_7k = surat.ozgarish_7k
+            qator.orin_cg = surat.orin
+            qator.fdv = surat.fdv
+            qator.muomalada = surat.muomalada
+            qator.jami_token = surat.jami_token
+            qator.eng_kop_token = surat.eng_kop_token
+            qator.ath = surat.ath
+            qator.ath_farq = surat.ath_farq
+            qator.atl = surat.atl
+            qator.atl_farq = surat.atl_farq
+            qator.yuqori_24s = surat.yuqori_24s
+            qator.past_24s = surat.past_24s
             if yigma.narx is None and surat.narx is not None:
                 qator.narx = surat.narx
 

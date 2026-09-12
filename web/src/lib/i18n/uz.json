@@ -102,7 +102,8 @@
     "bozor": "Bozor",
     "akademiya": "Akademiya",
     "produkt": "Produkt",
-    "kabinet": "Kabinet"
+    "kabinet": "Kabinet",
+    "modul": "Modul 3.0.0"
   },
   "kirish": {
     "sarlavha": "Telegram orqali kiring",
@@ -702,6 +703,14 @@
     "kun_7": "7 kun",
     "jonli_yoq": "Jonli ma'lumot faqat Top 20 uchun yig'iladi.",
     "jonli_izoh": "Stakan va savdo lentasi brauzeringizga to'g'ridan-to'g'ri birjadan keladi. Xarid bosimi va yirik savdolar esa serverda, 15 daqiqalik oyna ustida hisoblanadi.",
-    "alternativ": "Alternativ yo'l bilan qutqarildi"
+    "alternativ": "Alternativ yo'l bilan qutqarildi",
+    "orin": "O'rin",
+    "likvidlik": "Likvidlik",
+    "likvidlik_izoh": "Sutkalik hajmning kapitalizatsiyaga nisbati. Yuqori bo'lsa chiqish oson, past bo'lsa katta buyurtma narxni suradi.",
+    "fdv": "To'liq baho (FDV)",
+    "muomalada": "Muomalada",
+    "muomalada_izoh": "Tokenlarning qancha qismi allaqachon chiqarilgan. Past bo'lsa, kelajakda yangi tokenlar narxga bosim beradi.",
+    "ath": "Tarixiy eng yuqori",
+    "sutka_oraliq": "Sutkalik oraliq"
   }
 }

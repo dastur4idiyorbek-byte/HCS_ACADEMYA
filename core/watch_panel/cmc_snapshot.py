@@ -38,7 +38,13 @@ SOROV_KUTISH = 15.0
 
 @dataclass(frozen=True, slots=True)
 class BozorSurati:
-    """Bitta coinning bozor ko'rsatkichlari."""
+    """Bitta coinning bozor ko'rsatkichlari.
+
+    HAMMASI BITTA SO'ROVDAN. CoinGecko `/coins/markets` quyidagi
+    maydonlarni bir yo'la beradi — qo'shimcha so'rov kerak emas.
+    Ilgari bu yerda atigi beshtasi olinardi va qolgani bekorga
+    tashlab yuborilardi.
+    """
 
     symbol: str
     narx: float | None
@@ -47,6 +53,54 @@ class BozorSurati:
     ozgarish_1s: float | None
     ozgarish_24s: float | None
     ozgarish_7k: float | None
+
+    #: Kapitalizatsiya bo'yicha o'rni (#1 — BTC)
+    orin: int | None = None
+    #: To'liq suyultirilgan baho — hamma token chiqarilsa
+    fdv: float | None = None
+    #: Muomaladagi, jami va eng ko'p token soni
+    muomalada: float | None = None
+    jami_token: float | None = None
+    eng_kop_token: float | None = None
+
+    #: Tarixiy eng yuqori va undan necha foiz pastda
+    ath: float | None = None
+    ath_farq: float | None = None
+    #: Tarixiy eng past va undan necha foiz yuqorida
+    atl: float | None = None
+    atl_farq: float | None = None
+
+    #: Sutkalik oraliq
+    yuqori_24s: float | None = None
+    past_24s: float | None = None
+
+    @property
+    def likvidlik(self) -> float | None:
+        """LIKVIDLIK KO'RSATKICHI — sutkalik hajm / kapitalizatsiya.
+
+        Prompt aynan shuni so'raydi. Ma'nosi: coinning qancha qismi
+        bir kunda qo'ldan qo'lga o'tadi. Yuqori bo'lsa — chiqish
+        oson; past bo'lsa — katta buyurtma narxni surib yuboradi.
+
+        Foizda qaytadi. Manba yo'q bo'lsa `None` — nol EMAS: nol
+        "umuman savdo yo'q" degan boshqa ma'no.
+        """
+        if self.hajm_24s is None or not self.market_cap:
+            return None
+        return round(100.0 * self.hajm_24s / self.market_cap, 2)
+
+    @property
+    def muomala_ulushi(self) -> float | None:
+        """Muomaladagi tokenlar ulushi (%) — qanchasi hali qulflangan.
+
+        Past bo'lsa: kelajakda ko'p token chiqadi va bu narxga
+        bosim beradi. `eng_kop_token` yo'q coinlar (cheksiz emissiya)
+        uchun `jami_token` ga nisbatan hisoblanadi.
+        """
+        maxraj = self.eng_kop_token or self.jami_token
+        if self.muomalada is None or not maxraj:
+            return None
+        return round(100.0 * self.muomalada / maxraj, 1)
 
 
 class CoinGeckoSurati:
@@ -80,6 +134,7 @@ class CoinGeckoSurati:
                 symbol = str(qator.get("symbol", "")).upper()
                 if symbol not in kerak or symbol in natija:
                     continue
+                orin = _son(qator.get("market_cap_rank"))
                 natija[symbol] = BozorSurati(
                     symbol=symbol,
                     narx=_son(qator.get("current_price")),
@@ -88,6 +143,17 @@ class CoinGeckoSurati:
                     ozgarish_1s=_son(qator.get("price_change_percentage_1h_in_currency")),
                     ozgarish_24s=_son(qator.get("price_change_percentage_24h_in_currency")),
                     ozgarish_7k=_son(qator.get("price_change_percentage_7d_in_currency")),
+                    orin=int(orin) if orin is not None else None,
+                    fdv=_son(qator.get("fully_diluted_valuation")),
+                    muomalada=_son(qator.get("circulating_supply")),
+                    jami_token=_son(qator.get("total_supply")),
+                    eng_kop_token=_son(qator.get("max_supply")),
+                    ath=_son(qator.get("ath")),
+                    ath_farq=_son(qator.get("ath_change_percentage")),
+                    atl=_son(qator.get("atl")),
+                    atl_farq=_son(qator.get("atl_change_percentage")),
+                    yuqori_24s=_son(qator.get("high_24h")),
+                    past_24s=_son(qator.get("low_24h")),
                 )
             if len(natija) == len(kerak):
                 break

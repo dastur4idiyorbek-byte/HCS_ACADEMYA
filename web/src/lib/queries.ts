@@ -2231,6 +2231,8 @@ export function kuzatuvBozori(symbol: string): KuzatuvBozori | null {
     .prepare(
       `select symbol, narx, xarid_bosimi, hajm_usd, yirik_savdo, yiriklar_json,
               market_cap, hajm_24s, ozgarish_1s, ozgarish_24s, ozgarish_7k,
+              orin_cg, fdv, muomalada, jami_token, eng_kop_token,
+              ath, ath_farq, atl, atl_farq, yuqori_24s, past_24s,
               yangilangan
          from kuzatuv_bozor where upper(symbol) = upper(?)`,
     )
@@ -2248,6 +2250,17 @@ export function kuzatuvBozori(symbol: string): KuzatuvBozori | null {
     ozgarish1s: son(q.ozgarish_1s),
     ozgarish24s: son(q.ozgarish_24s),
     ozgarish7k: son(q.ozgarish_7k),
+    orinCg: son(q.orin_cg),
+    fdv: son(q.fdv),
+    muomalada: son(q.muomalada),
+    jamiToken: son(q.jami_token),
+    engKopToken: son(q.eng_kop_token),
+    ath: son(q.ath),
+    athFarq: son(q.ath_farq),
+    atl: son(q.atl),
+    atlFarq: son(q.atl_farq),
+    yuqori24s: son(q.yuqori_24s),
+    past24s: son(q.past_24s),
     yangilangan: q.yangilangan ? String(q.yangilangan) : null,
   };
 }

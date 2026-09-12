@@ -8,6 +8,9 @@ import {
   SEGMENT_KALITI,
   SEGMENT_SONI,
   blokRangi,
+  likvidlik,
+  muomalaUlushi,
+  sutkalikOrin,
   yonalishBelgisi,
   zonaJoyi,
   type KuzatuvBlok,
@@ -290,4 +293,87 @@ test("g'olib alternativ ekranda ko'rinadi", () => {
     kuzatuv: Record<string, unknown>;
   };
   assert.equal(typeof uz.kuzatuv.alternativ, "string");
+});
+
+// --------------------------------------------------------------------------- //
+//  Bozor ma'lumoti — TO'LIQ to'plam (loyiha egasi: "ma'lumotlar yuzaki")
+// --------------------------------------------------------------------------- //
+
+test("CoinGecko javobidan asosiy maydonlar OLINADI", () => {
+  // Ular bitta so'rovda keladi. Ilgari beshtasi olinib qolgani
+  // bekorga tashlab yuborilardi.
+  const python = oqi("core/watch_panel/cmc_snapshot.py");
+  for (const maydon of [
+    "market_cap_rank",
+    "fully_diluted_valuation",
+    "circulating_supply",
+    "total_supply",
+    "max_supply",
+    "ath",
+    "ath_change_percentage",
+    "atl",
+    "high_24h",
+    "low_24h",
+  ]) {
+    assert.ok(python.includes(`"${maydon}"`), `CoinGecko maydoni olinmagan: ${maydon}`);
+  }
+});
+
+test("likvidlik ko'rsatkichi ALOHIDA ustun emas, hisoblanadi", () => {
+  // Uchinchi nusxa saqlash — ular ajralib ketishining eng oson yo'li.
+  assert.equal(likvidlik({ hajm24s: 50, marketCap: 1000 }), 5);
+  assert.equal(likvidlik({ hajm24s: null, marketCap: 1000 }), null);
+  // Nolga bo'linish
+  assert.equal(likvidlik({ hajm24s: 50, marketCap: 0 }), null);
+  assert.equal(likvidlik({ hajm24s: 50, marketCap: null }), null);
+});
+
+test("muomala ulushi: max yo'q bo'lsa jami dan hisoblanadi", () => {
+  assert.equal(
+    muomalaUlushi({ muomalada: 50, engKopToken: 100, jamiToken: 200 }),
+    50,
+  );
+  // Cheksiz emissiyali coin — `max_supply` yo'q
+  assert.equal(
+    muomalaUlushi({ muomalada: 50, engKopToken: null, jamiToken: 200 }),
+    25,
+  );
+  assert.equal(
+    muomalaUlushi({ muomalada: null, engKopToken: 100, jamiToken: null }),
+    null,
+  );
+});
+
+test("sutkalik o'rin 0..100 dan chiqmaydi", () => {
+  assert.equal(sutkalikOrin(150, 100, 200), 50);
+  assert.equal(sutkalikOrin(100, 100, 200), 0);
+  assert.equal(sutkalikOrin(200, 100, 200), 100);
+  // Oraliqdan tashqarida — chegaraga qisiladi, manfiy chiqmaydi
+  assert.equal(sutkalikOrin(50, 100, 200), 0);
+  assert.equal(sutkalikOrin(250, 100, 200), 100);
+  // Teskari yoki yassi oraliq
+  assert.equal(sutkalikOrin(150, 200, 100), null);
+  assert.equal(sutkalikOrin(150, 100, 100), null);
+});
+
+test("bozor kartasi BITTA joyda — ikki sahifa o'shani ishlatadi", () => {
+  // Ikki nusxa qilinsa, yangi ko'rsatkich qo'shilganda biri
+  // yangilanib ikkinchisi qolib ketardi.
+  for (const sahifa of [
+    "web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx",
+    "web/src/app/(ichki)/qidiruv/page.tsx",
+  ]) {
+    assert.ok(oqi(sahifa).includes("BozorKesimi"), `${sahifa}: umumiy karta ishlatilmagan`);
+  }
+});
+
+test("FDV va ta'minot FAQAT adminga ko'rinadi", () => {
+  // `toliq` bayrog'i — admin sahifasida bor, qidiruvda YO'Q.
+  const admin = oqi("web/src/app/(ichki)/kuzatuv/[symbol]/page.tsx");
+  const qidiruv = oqi("web/src/app/(ichki)/qidiruv/page.tsx");
+  assert.ok(admin.includes("toliq"), "admin sahifasida to'liq ko'rinish yo'q");
+  assert.ok(
+    !/<BozorKesimi[^>]*toliq/.test(qidiruv),
+    "qidiruv sahifasida to'liq ko'rinish ochilgan",
+  );
 });
