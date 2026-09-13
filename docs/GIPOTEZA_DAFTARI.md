@@ -1791,3 +1791,40 @@ ikkita o'lchanmagan raqam o'rniga bittasi qolsin.
 Agar kelajakda panel asosida savdo qilinadigan bo'lsa, o'lchanishi
 kerak: qaytish zonasida topilgan coin zona tepasidagidan
 haqiqatan yaxshiroq natija beradimi.
+
+
+### Fundamental manbalarning oynalari (2026-09-13)
+
+Kuzatuv paneli fundamental blokni jonli ma'lumotga uladi. Uchta
+yangi raqam paydo bo'ldi va uchalasi ham O'LCHANMAGAN:
+
+| raqam | qiymat | qayerda |
+|---|---|---|
+| `OI_OYNA_KUN` | 7 | `fundamental_manba.py` |
+| sektor rotatsiyasi oynasi | 24 soat | `fundamental_manba.py` |
+| `UZOQ_CHEGARA_KUN` | 180 | `unlock_manba.py` |
+
+🔴 Ularning birortasi ham backtestdan chiqmagan va CHIQA
+OLMAYDI: Binance Open Interest tarixini atigi 30 kunga beradi,
+CoinGecko kategoriya natijalarini tarixsiz beradi, unlock
+kalendarining arxivi esa bepul umuman mavjud emas
+(`docs/FUNDAMENTAL_MALUMOT_MANBALARI.md`).
+
+NEGA BU XAVFSIZ. Panel qaror qabul qilmaydi — u faqat hozirgi
+holatni ko'rsatadi. Ya'ni bu raqamlar hech kimning puliga ta'sir
+qilmaydi; ular faqat admin ekranidagi rangni o'zgartiradi.
+
+Sektor oynasi alohida izoh talab qiladi: `Kayfiyat.sektor_kuchli`
+izohida "so'nggi 7 kun" yozilgan, jonli manba esa faqat SUTKALIK
+o'zgarishni beradi. Farq ataylab qoldirildi va kodda ochiq
+yozildi — 7 kunlik oyna uchun har kategoriya bo'yicha alohida
+tarix so'rovi kerak bo'lardi.
+
+### Nima o'lchanishi KERAK bo'lardi (fundamental uchun)
+
+  - Sektor bozordan kuchli bo'lgani coinning keyingi harakatini
+    haqiqatan bashorat qiladimi
+  - `UZOQ_CHEGARA_KUN` ni 180 dan 90 ga tushirish nimanidir
+    o'zgartiradimi (to'siq baribir 7 kunlik oynada ishlaydi)
+  - Open Interest o'sishi "kuchli trend" mi yoki "haddan ortiq
+    leverage" mi — ikkalasi ham bir xil raqam beradi

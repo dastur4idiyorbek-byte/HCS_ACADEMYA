@@ -25,7 +25,8 @@ import asyncio
 from dataclasses import dataclass, field
 
 from core.analysis.fundamental.capital_flow import PulOqimi
-from core.analysis.fundamental.fundamental_block import FundamentalKirish
+from core.analysis.fundamental.catalyst_watch import Katalizator
+from core.analysis.fundamental.fundamental_block import FundamentalKirish, TokenUnlock
 from core.analysis.fundamental.market_regime import BozorHolati
 from core.analysis.fundamental.sentiment_sector import Kayfiyat
 from core.analysis.observation_mode import (
@@ -39,9 +40,14 @@ from core.domain.models import Candle
 from core.market_data.binance import BinanceCandleProvider, to_binance_symbol
 from core.storage.database import Database
 from core.utils.logging_setup import get_logger
-from core.watch_panel.fundamental_manba import BozorKayfiyati, FundamentalManba
+from core.watch_panel.fundamental_manba import (
+    BozorKayfiyati,
+    FundamentalManba,
+    SektorJadvali,
+)
 from core.watch_panel.repository import KuzatuvRepository
 from core.watch_panel.top20_selector import Royxatlar, royxatlarni_qur
+from core.watch_panel.unlock_manba import UnlockHodisasi, UnlockManba
 
 logger = get_logger(__name__)
 
@@ -86,6 +92,10 @@ class KuzatuvSkaneri:
         # FUNDAMENTAL MANBA — jonli ma'lumot (funding, OI, F&G,
         # stablecoin). Blok endi bo'sh emas.
         self._fundamental = FundamentalManba(config.market_data)
+        # UNLOCK KALENDARI — boshqa manba (DefiLlama), shuning uchun
+        # alohida obyekt. Bu `katalizator` tekshiruvini va uning
+        # qattiq to'sig'ini jonlantiradi.
+        self._unlock = UnlockManba()
 
     @property
     def _timeframelar(self) -> Timeframelar:
@@ -113,12 +123,27 @@ class KuzatuvSkaneri:
         # bo'lardi va javob AYNI bo'lardi.
         kayfiyat = await self._fundamental.bozor_kayfiyati()
         funding = await self._fundamental.funding_jadvali()
+        sektor = await self._fundamental.sektor_jadvali()
+        unlock = await self._unlock.jadval()
         logger.info(
-            "Fundamental: F&G=%s, stablecoin=%s%%, funding jadvali=%d juftlik",
+            "Fundamental: F&G=%s, stablecoin=%s%%, funding=%d juftlik, "
+            "sektor=%d kategoriya (bozor %s%%), unlock=%d coin",
             kayfiyat.fear_greed,
             kayfiyat.stablecoin_ozgarish_pct,
             len(funding),
+            len(sektor.ozgarishlar),
+            sektor.bozor_ozgarish,
+            len(unlock),
         )
+        # XARITANI TUZATISH UCHUN. Kategoriya identifikatori
+        # javobda topilmasa, o'sha coinlar sektor ma'lumotisiz
+        # qoladi. Admin buni logdan ko'radi va
+        # `sektor_xaritasi.py` dagi qatorni to'g'rilaydi.
+        if sektor.nomalum_idlar:
+            logger.warning(
+                "Sektor xaritasi: javobda topilmagan identifikatorlar: %s",
+                ", ".join(sektor.nomalum_idlar),
+            )
 
         yolak = asyncio.Semaphore(BIR_VAQTDA)
 
@@ -126,7 +151,7 @@ class KuzatuvSkaneri:
             async with yolak:
                 try:
                     return await self._coinni_bahola(
-                        symbol, btc, tf, kayfiyat, funding
+                        symbol, btc, tf, kayfiyat, funding, sektor, unlock
                     )
                 except Exception as xato:  # noqa: BLE001 — bitta coin butun skanni yiqitmasin
                     logger.exception("Kuzatuv: %s tekshirilmadi", symbol)
@@ -165,6 +190,8 @@ class KuzatuvSkaneri:
         tf: Timeframelar,
         kayfiyat: BozorKayfiyati,
         funding: dict[str, float],
+        sektor: SektorJadvali,
+        unlock: dict[str, UnlockHodisasi],
     ) -> KuzatuvNatija:
         """Bitta coin. Filtrdan o'tmasa — pastki TF lar so'ralmaydi."""
         struktura = await self._shamlar(symbol, tf.struktura)
@@ -194,7 +221,9 @@ class KuzatuvSkaneri:
                 zona_shamlar=zona_shamlar,
                 pastki_shamlar=pastki_shamlar,
                 btc_shamlar=btc,
-                fundamental=await self._fundamental_kirish(symbol, kayfiyat, funding),
+                fundamental=await self._fundamental_kirish(
+                    symbol, kayfiyat, funding, sektor, unlock
+                ),
                 etalon=symbol == "BTC",
                 timeframelar=tf,
                 unlock_yaqin_kun=self._config.zanjir.bloklar.unlock_yaqin_kun,
@@ -202,16 +231,31 @@ class KuzatuvSkaneri:
             )
         )
 
-    async def _fundamental_kirish(
-        self, symbol: str, kayfiyat: BozorKayfiyati, funding: dict[str, float]
+    async def _fundamental_kirish(  # noqa: PLR0913 — har biri alohida manba
+        self,
+        symbol: str,
+        kayfiyat: BozorKayfiyati,
+        funding: dict[str, float],
+        sektor: SektorJadvali,
+        unlock: dict[str, UnlockHodisasi],
     ) -> FundamentalKirish:
         """Jonli fundamental ma'lumotni blok kutgan shaklga soladi.
 
-        ULANMAGAN MANBALAR `None` BO'LIB QOLADI (netflow, sektor,
+        ULANMAGAN MANBALAR `None` BO'LIB QOLADI (netflow,
         yangiliklar, delisting). Ular tekshiruvda MALUMOT_YOQ
         beradi — "yo'q" EMAS — va maxrajga kirmaydi.
+
+        UNLOCK IKKI JOYGA BERILADI, va bu takror EMAS:
+
+            `voqea`  — ichki tekshiruvning OVOZI (unlock yaqinmi)
+            `unlock` — QATTIQ TO'SIQ, chegaralari sozlamadan
+
+        Ikkinchisi birinchisidan kuchliroq: u coinni butunlay
+        chetlatadi. Sabab bir xil bo'lgani uchun blok ularni
+        ikki marta hisoblamaydi (`fundamental_blok` da `or`).
         """
         juft = to_binance_symbol(symbol, self._config.halal_screening.quote_asset).upper()
+        hodisa = unlock.get(symbol.upper())
         return FundamentalKirish(
             holat=BozorHolati(
                 funding_rate=funding.get(juft),
@@ -220,7 +264,23 @@ class KuzatuvSkaneri:
             oqim=PulOqimi(
                 stablecoin_ozgarish_pct=kayfiyat.stablecoin_ozgarish_pct,
             ),
-            kayf=Kayfiyat(fear_greed=kayfiyat.fear_greed),
+            voqea=Katalizator(
+                unlock_kun=hodisa.kun_qoldi if hodisa else None,
+                unlock_ulush_pct=hodisa.pct if hodisa else None,
+            ),
+            kayf=Kayfiyat(
+                fear_greed=kayfiyat.fear_greed,
+                sektor_kuchli=sektor.kuchli(symbol),
+            ),
+            unlock=(
+                TokenUnlock(
+                    kun_qoldi=hodisa.kun_qoldi,
+                    pct=hodisa.pct,
+                    izoh=hodisa.izoh,
+                )
+                if hodisa
+                else None
+            ),
         )
 
     async def _shamlar(self, symbol: str, timeframe: str) -> list[Candle]:
@@ -228,3 +288,4 @@ class KuzatuvSkaneri:
 
     async def yop(self) -> None:
         await self._fundamental.yop()
+        await self._unlock.yop()

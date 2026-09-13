@@ -96,13 +96,50 @@ orasida.
 | **Funding Rate** | Binance futures `premiumIndex` | yo'q | **bitta so'rov — barcha juftlik** |
 | **Open Interest** | Binance `openInterestHist` | yo'q | coin boshiga, 7 kunlik o'zgarish |
 | **Stablecoin zaxira** | CoinGecko `market_chart` | yo'q | USDT+USDC, 7 kunlik kapitalizatsiya |
+| **Sektor rotatsiyasi** | CoinGecko `coins/categories` + `global` | yo'q | **bitta so'rov — barcha kategoriya** |
+| **Token Unlock** | DefiLlama `emissions` | yo'q | **bitta so'rov — barcha loyiha** |
 
-Natijada 1-blokning to'rt tekshiruvidan **uchtasi** endi ishlaydi:
+Natijada 1-blokning **to'rtala** tekshiruvi ham endi ishlaydi:
 
-    1.1 Bozor holati   funding ✅ + OI ✅ + DXY ❌  ->  3 dan 2 tasi
-    1.2 Pul oqimi      netflow ❌ + stablecoin ✅   ->  2 dan 1 tasi
-    1.3 Katalizator    unlock ⚠️ + delisting ❌     ->  hali 0
-    1.4 Kayfiyat       F&G ✅ + sektor ⚠️ + yangilik ❌ -> 3 dan 1 tasi
+    1.1 Bozor holati   funding ✅ + OI ✅ + DXY ❌      ->  3 dan 2 tasi
+    1.2 Pul oqimi      netflow ❌ + stablecoin ✅       ->  2 dan 1 tasi
+    1.3 Katalizator    unlock ✅ + delisting ❌         ->  2 dan 1 tasi
+    1.4 Kayfiyat       F&G ✅ + sektor ✅ + yangilik ❌ ->  3 dan 2 tasi
+
+## Qattiq to'siq endi HAQIQATAN ishlaydi
+
+`catalyst_watch.py` boshidanoq qattiq to'siq yozgan edi: unlock
+**yaqin** (7 kundan kam) va **katta** (muomaladagi tokenning 5%
+idan ko'p) bo'lsa, coin butunlay chetlashtiriladi.
+
+Lekin kalendar ulanmagani uchun `unlock_kun` **har doim `None`**
+edi va to'siq **hech qachon** ishlamasdi. Ya'ni kodda yozilgan
+himoya amalda yo'q edi. Endi bor.
+
+## Sektor kuchi MUTLAQ emas, NISBIY
+
+"Sektor kuchli" = shu kategoriya **butun bozordan** tez o'sgan.
+Shuning uchun `/global` ham so'raladi: hamma narsa 9% o'sgan
+kunda 2% o'sgan sektor aslida **orqada qolgan**, garchi raqam
+musbat bo'lsa ham. Test buni qulflaydi
+(`test_sektor_MUTLAQ_emas_NISBIY_olchanadi`).
+
+Oyna — **24 soat**, `Kayfiyat.sektor_kuchli` izohidagi "7 kun"
+emas: CoinGecko bepul kategoriya endpointida faqat sutkalik
+o'zgarish bor. Farq kodda ham, `GIPOTEZA_DAFTARI.md` da ham ochiq
+yozildi.
+
+## Sektor xaritasi qo'lda yozilgan
+
+CoinGecko coinning kategoriyasini `/coins/{id}` da beradi — coin
+boshiga bitta so'rov, 80 coin uchun 80 qo'shimcha so'rov. Shuning
+uchun `core/watch_panel/sektor_xaritasi.py` da symbol -> kategoriya
+xaritasi bir marta yozildi.
+
+**Xato identifikator hech narsani buzmaydi**: kategoriya topilmasa
+`sektor_kuchli` `None` bo'ladi (MALUMOT_YOQ, "zaif" emas), va
+skaner topilmagan identifikatorlarni **logga** yozadi — admin
+qaysi qatorni tuzatish kerakligini ko'radi.
 
 ## Nima ulanmadi va nima uchun
 
@@ -111,8 +148,7 @@ Natijada 1-blokning to'rt tekshiruvidan **uchtasi** endi ishlaydi:
 | Exchange Netflow | CryptoQuant / Glassnode — **pullik** |
 | Yangiliklar | CryptoPanic bepul planda deyarli hech narsa bermaydi |
 | Delisting | jonli API yo'q — faqat qo'lda kuzatish |
-| Sektor rotatsiyasi | CoinGecko categories — keyingi qadam |
-| Token Unlock | DefiLlama — symbol moslashtirish kerak |
+| DXY | stooq — hali ulanmagan |
 
 Ulanmaganlari `None` bo'lib qoladi va tekshiruvda **MALUMOT_YOQ**
 beradi — "yo'q" emas. Ular maxrajga kirmaydi, ya'ni blok

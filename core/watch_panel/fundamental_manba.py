@@ -30,12 +30,12 @@ NIMA ULANDI, NIMA YO'Q
     ✅ Funding Rate        Binance futures       kalitsiz, BITTA so'rov
     ✅ Open Interest       Binance futures       kalitsiz, coin boshiga
     ✅ Stablecoin zaxira   CoinGecko             kalitsiz
+    ✅ Sektor rotatsiyasi  CoinGecko categories  kalitsiz, BITTA so'rov
+    ✅ Token Unlock        DefiLlama             `unlock_manba.py`
 
     ❌ Exchange Netflow    CryptoQuant/Glassnode — PULLIK
     ❌ Yangiliklar         CryptoPanic           — bepul planda deyarli yo'q
     ❌ Delisting           tarixiy/jonli API yo'q
-    ⚠️ Sektor rotatsiyasi  CoinGecko categories  — keyingi qadam
-    ⚠️ Token Unlock        DefiLlama             — symbol moslashtirish kerak
 
 Ulanmaganlari `None` bo'lib qoladi va tekshiruvda MALUMOT_YOQ
 beradi — "yo'q" EMAS. Bu `turlar.py` dagi tamoyil: bilmaslik
@@ -56,6 +56,7 @@ from dataclasses import dataclass
 
 from core.config.schema import MarketDataConfig
 from core.utils.logging_setup import get_logger
+from core.watch_panel.sektor_xaritasi import SEKTOR, slug
 
 logger = get_logger(__name__)
 
@@ -78,6 +79,22 @@ OI_MANZIL = "https://fapi.binance.com/futures/data/openInterestHist"
 #: o'tmagan — "quruq porox".
 STABLECOIN_IDLARI = "tether,usd-coin"
 
+#: Sektor rotatsiyasi — kategoriya natijalari va bozor etaloni.
+#:
+#: `/coins/categories` BARCHA kategoriyani bitta javobda beradi,
+#: `/global` esa butun bozorning sutkalik o'zgarishini. Ikkalasi
+#: ham skanda BIR MARTA so'raladi.
+#:
+#: NEGA 24 SOAT, 7 KUN EMAS. `Kayfiyat.sektor_kuchli` izohida "7
+#: kun" yozilgan, lekin CoinGecko bepul kategoriya endpointida
+#: FAQAT sutkalik o'zgarish bor. 7 kunlikni olish uchun har
+#: kategoriya bo'yicha tarix kerak — bu o'nlab so'rov. Panel
+#: "hozir pul qayerga oqyapti" degan savolga javob bergani uchun
+#: sutkalik oyna yetarli; farq shu yerda ochiq yozildi.
+KATEGORIYA_YOLI = "/coins/categories"
+GLOBAL_YOLI = "/global"
+
+
 #: OI o'zgarishi necha kunlik oynada o'lchanadi.
 #:
 #: 🔴 O'LCHANMAGAN. 7 kun — haftalik gorizont, panelning 4 soatlik
@@ -96,6 +113,41 @@ class BozorKayfiyati:
 
     fear_greed: int | None = None
     stablecoin_ozgarish_pct: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SektorJadvali:
+    """Kategoriya natijalari + bozor etaloni.
+
+    "Sektor kuchli" = shu kategoriya butun bozordan tez o'sgan.
+    Mutlaq o'sish emas, NISBIY: hamma narsa 5% o'sgan kunda 3%
+    o'sgan sektor aslida orqada qolgan.
+    """
+
+    ozgarishlar: dict[str, float]
+    bozor_ozgarish: float | None
+
+    def kuchli(self, symbol: str) -> bool | None:
+        """Coin sektori bozordan kuchliroqmi. Bilmasak — `None`."""
+        kategoriya = SEKTOR.get(symbol.upper())
+        if kategoriya is None or self.bozor_ozgarish is None:
+            return None
+        sektor = self.ozgarishlar.get(kategoriya)
+        if sektor is None:
+            return None
+        return sektor > self.bozor_ozgarish
+
+    @property
+    def nomalum_idlar(self) -> tuple[str, ...]:
+        """Xaritada bor, lekin javobda topilmagan kategoriyalar.
+
+        MANBA YIQILGANDA BO'SH QAYTADI. Aks holda so'rov javob
+        bermagan paytda log "hamma identifikator xato" deb
+        yozardi — aslida xarita joyida, tarmoq yo'q edi.
+        """
+        if not self.ozgarishlar:
+            return ()
+        return tuple(sorted({k for k in SEKTOR.values() if k not in self.ozgarishlar}))
 
 
 class FundamentalManba:
@@ -263,3 +315,54 @@ class FundamentalManba:
         if avval <= 0:
             return None
         return round(100.0 * (hozir - avval) / avval, 2)
+
+    # ----------------------------------------------------------------- #
+    #  Sektor rotatsiyasi
+    # ----------------------------------------------------------------- #
+
+    async def sektor_jadvali(self) -> SektorJadvali:
+        """Kategoriya natijalari — skanda BIR MARTA, ikkita so'rov."""
+        return SektorJadvali(
+            ozgarishlar=await self._kategoriyalar(),
+            bozor_ozgarish=await self._bozor_ozgarishi(),
+        )
+
+    async def _kategoriyalar(self) -> dict[str, float]:
+        """Kategoriya -> sutkalik o'zgarish (%).
+
+        Kalit sifatida `id` ham, nomdan yasalgan slug ham
+        yoziladi: CoinGecko ba'zi kategoriyalarni nomi bilan
+        ataydi va xaritadagi qator faqat biriga tushishi mumkin.
+        """
+        malumot = await self._json(
+            f"{self._config.coingecko_base_url}{KATEGORIYA_YOLI}"
+        )
+        if not isinstance(malumot, list):
+            return {}
+
+        jadval: dict[str, float] = {}
+        for qator in malumot:
+            if not isinstance(qator, dict):
+                continue
+            try:
+                ozgarish = float(qator["market_cap_change_24h"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            for maydon in ("id", "name"):
+                qiymat = qator.get(maydon)
+                if isinstance(qiymat, str) and qiymat.strip():
+                    jadval.setdefault(slug(qiymat), ozgarish)
+        return jadval
+
+    async def _bozor_ozgarishi(self) -> float | None:
+        """Butun bozor kapitalizatsiyasining sutkalik o'zgarishi (%)."""
+        malumot = await self._json(f"{self._config.coingecko_base_url}{GLOBAL_YOLI}")
+        if not isinstance(malumot, dict):
+            return None
+        ichki = malumot.get("data")
+        if not isinstance(ichki, dict):
+            return None
+        try:
+            return float(ichki["market_cap_change_percentage_24h_usd"])
+        except (KeyError, TypeError, ValueError):
+            return None

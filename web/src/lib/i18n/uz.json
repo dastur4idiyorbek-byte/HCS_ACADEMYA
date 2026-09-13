@@ -731,6 +731,6 @@
     "jonli_narx": "Jonli narx",
     "yirik_yoq": "So'nggi 15 daqiqada yirik operatsiya bo'lmadi.",
     "manba_yoq": "Bu ko'rsatkichning manbai ulanmagan — u hisobga kirmaydi.",
-    "fundamental_izoh": "Funding Rate, Open Interest, Fear & Greed va stablecoin zaxirasi jonli olinadi. Netflow va yangiliklar manbasi pullik — ular ulanmagan va hisobga kirmaydi."
+    "fundamental_izoh": "Funding Rate, Open Interest, Fear & Greed, stablecoin zaxirasi, sektor rotatsiyasi va Token Unlock kalendari jonli olinadi. Netflow va yangiliklar manbasi pullik, delisting uchun API yo'q — ular ulanmagan va hisobga kirmaydi."
   }
 }

@@ -343,9 +343,24 @@ Ulangan manbalar (hammasi **kalitsiz va bepul**):
 | Funding Rate | Binance futures — **bitta so'rov, barcha juftlik** |
 | Open Interest (7 kun) | Binance futures |
 | Stablecoin zaxirasi (7 kun) | CoinGecko |
+| Sektor rotatsiyasi (24 soat) | CoinGecko — **bitta so'rov, barcha kategoriya** |
+| Token Unlock kalendari | DefiLlama — **bitta so'rov, barcha loyiha** |
+
+Shu bilan blokning **to'rtala** ichki tekshiruvi ham jonli
+ma'lumot oladi — ilgari `katalizator` butunlay bo'sh edi.
+
+Token Unlock ayniqsa muhim: u yagona **qattiq to'siq**. Unlock
+yaqin (7 kundan kam) va katta (muomaladagi tokenning 5% idan
+ko'p) bo'lsa, coin butunlay chetlashtiriladi. Kod buni
+boshidanoq yozgan edi, lekin kalendar ulanmagani uchun to'siq
+**hech qachon ishlamagan**. Endi ishlaydi.
+
+Sektor kuchi **nisbiy** o'lchanadi — butun bozorga nisbatan.
+Hamma narsa 9% o'sgan kunda 2% o'sgan sektor orqada qolgan,
+garchi raqam musbat bo'lsa ham.
 
 Ulanmaganlar — Netflow (pullik), yangiliklar (bepul planda yo'q),
-delisting (API yo'q). Ular `MALUMOT_YOQ` bo'lib qoladi va
+delisting (API yo'q), DXY. Ular `MALUMOT_YOQ` bo'lib qoladi va
 **maxrajga kirmaydi**: blok ma'lumot yo'qligi uchun jazolanmaydi.
 
 Ekranda fundamental kartasi ostida qaysi manba jonli, qaysi biri

@@ -559,16 +559,40 @@ test("fundamental manbalar skanerga ulangan", () => {
   assert.ok(skaner.includes("_fundamental_kirish"), "blok kirishi to'ldirilmagan");
 });
 
-test("to'rt manba ham o'qiladi", () => {
+test("olti manba ham o'qiladi", () => {
   const manba = oqi("core/watch_panel/fundamental_manba.py");
   for (const [nom, belgi] of [
     ["Fear & Greed", "alternative.me"],
     ["Funding Rate", "premiumIndex"],
     ["Open Interest", "openInterestHist"],
     ["Stablecoin", "market_chart"],
+    ["Sektor rotatsiyasi", "coins/categories"],
+    ["Bozor etaloni", "market_cap_change_percentage_24h_usd"],
   ] as const) {
     assert.ok(manba.includes(belgi), `${nom} manbasi yo'q`);
   }
+
+  // Token Unlock alohida faylda — boshqa provayder (DefiLlama)
+  const unlock = oqi("core/watch_panel/unlock_manba.py");
+  assert.ok(unlock.includes("api.llama.fi"), "unlock manbasi yo'q");
+});
+
+test("sektor kuchi BOZORGA NISBATAN o'lchanadi", () => {
+  // Hamma narsa 9% o'sgan kunda 2% o'sgan sektor orqada qolgan.
+  // Mutlaq musbat songa qarash — noto'g'ri xulosa.
+  const manba = oqi("core/watch_panel/fundamental_manba.py");
+  assert.ok(
+    manba.includes("sektor > self.bozor_ozgarish"),
+    "sektor bozor etaloni bilan solishtirilmayapti",
+  );
+});
+
+test("unlock qattiq to'sig'i endi jonli ma'lumot oladi", () => {
+  // `catalyst_watch.py` to'siqni boshidanoq yozgan edi, lekin
+  // kalendar ulanmagani uchun u HECH QACHON ishlamagan.
+  const skaner = oqi("core/watch_panel/coin_scanner.py");
+  assert.ok(skaner.includes("TokenUnlock("), "to'siq ulanmagan");
+  assert.ok(skaner.includes("Katalizator("), "ichki tekshiruv ulanmagan");
 });
 
 test("stablecoin NARX emas, KAPITALIZATSIYA o'zgarishini oladi", () => {
@@ -594,4 +618,12 @@ test("ulanmagan manbalar ochiq aytiladi", () => {
     kuzatuv: Record<string, string>;
   };
   assert.ok(uz.kuzatuv.fundamental_izoh.includes("pullik"));
+
+  // Yangi ulangan ikkitasi ham ekranda aytilsin
+  for (const nom of ["sektor", "Token Unlock"]) {
+    assert.ok(
+      uz.kuzatuv.fundamental_izoh.includes(nom),
+      `jonli manba ekranda yozilmagan: ${nom}`,
+    );
+  }
 });
