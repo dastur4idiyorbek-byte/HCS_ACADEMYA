@@ -52,22 +52,10 @@ export type KuzatuvBlok = {
   tekshiruvlar: BlokTekshiruvi[];
 };
 
-/** Narx harakatning qayerida — Python `Bosqich` bilan bir xil.
- *
- * `yurgan` — coin allaqachon yurib bo'lgan: ro'yxatga KIRMAYDI.
- * Bizga yurish potensiali bor, lekin hali yurmagan coin kerak. */
-export type Bosqich = "korreksiya" | "chuqur" | "yurgan" | "nomalum";
-
 export type KuzatuvCoin = {
   symbol: string;
   yonalish: Yonalish;
   yonalishIzoh: string;
-  bosqich: Bosqich;
-  bosqichIzoh: string;
-  /** Narx impuls oralig'ining necha foizida (0 — tub, 100 — cho'qqi) */
-  bosqichUlush: number | null;
-  impulsPast: number | null;
-  impulsYuqori: number | null;
   narx: number | null;
   otdi: boolean;
   diqqat: number;

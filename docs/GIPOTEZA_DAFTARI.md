@@ -1779,18 +1779,28 @@ Hozircha ularning birortasi ham o'lchanmagan va panel ATAYLAB
 qaror qabul qilmaydi.
 
 
-### Bosqich darvozasi (2026-09-12, jonli paneldan keyin)
+### Bosqich darvozasi — QO'YILDI va OLIB TASHLANDI
 
-Coin "allaqachon yurganmi" degan savol `fib_zona` chegaralari
-bilan hal qilinadi: `FIB_YUQORI` (0.382) va `FIB_PAST` (0.618).
+**12-sentyabr.** Coin "allaqachon yurganmi" degan savolga
+`fib_zona` chegaralari bilan javob berildi (`FIB_YUQORI` 0.382,
+`FIB_PAST` 0.618). Narx zona tepasida bo'lsa — ro'yxatdan
+chiqarilardi.
 
-🔴 Bu chegaralar signal moduli uchun ham O'LCHANMAGAN va shu
-yerda qayta ishlatildi. Yangi raqam O'YLAB TOPILMADI — ataylab:
-ikkita o'lchanmagan raqam o'rniga bittasi qolsin.
+**13-sentyabr — RAD ETILDI.** Loyiha egasi natijani o'lchadi:
+darvoza qo'yilishidan OLDINGI ro'yxatdagi 20 coindan **17 tasi**
+haqiqatan yuqoriga yurgan.
 
-Agar kelajakda panel asosida savdo qilinadigan bo'lsa, o'lchanishi
-kerak: qaytish zonasida topilgan coin zona tepasidagidan
-haqiqatan yaxshiroq natija beradimi.
+Ya'ni darvozaning asosidagi gipoteza — "narx qaytish zonasining
+tepasida bo'lsa harakat tugagan" — NOTO'G'RI chiqdi. Kuchli
+trendda narx cho'qqi yonida uzoq turadi va davom etadi.
+
+Bu — daftardagi eng qimmat yozuv, chunki u O'LCHOVGA asoslangan
+rad etish: gipoteza jonli natija bilan tekshirildi va yiqildi.
+Qaror kodda ikkita test bilan qulflandi.
+
+SABOQ: panel natijasini EKRANGA qarab baholash — o'lchov emas.
+"Menga yurib bo'lgandek ko'rindi" degan taassurot bu yerda
+ishlaydigan filtrni buzishiga sal qoldi.
 
 
 ### Fundamental manbalarning oynalari (2026-09-13)

@@ -67,22 +67,31 @@ To'rt blokning O'ZI yo'qolmaydi — ular chuqur ko'rinishda alohida
 karta bo'lib qoladi (5.3-qism).
 
 --------------------------------------------------------------------
-IKKI DARVOZA: YO'NALISH VA BOSQICH
+DARVOZA BITTA: YO'NALISH
 --------------------------------------------------------------------
 
-Coin nomzod bo'lishi uchun IKKALASI ham kerak:
+Coin nomzod bo'lishi uchun strukturasi yuqoriga qarashi kerak —
+HH/HL ketma-ketligi yoki yangi burilish. Boshqa shart YO'Q.
 
-    YO'NALISH — struktura yuqoriga qaraydimi (HH/HL yoki burilish)
-    BOSQICH   — narx harakatning QAYERIDA
+BU YERDA BIR MARTA IKKINCHI DARVOZA BO'LGAN va u OLIB TASHLANDI
+(2026-09-13). Qisqa tarixi shunday:
 
-Ikkinchisi 2026-09-12 da qo'shildi. Sabab: HH/HL ketma-ketligi
-coin ALLAQACHON YURGANDA ham to'g'ri bo'ladi — aslida u eng
-kuchli aynan shunda ko'rinadi. Birinchi yozuvda faqat yo'nalish
-tekshirilgan va Top 20 ga harakatini tugatgan coinlar chiqqan.
+    12-sentyabr  — panelda "bu coinlar allaqachon yurib bo'lgan"
+                   degan taassurot paydo bo'ldi va narxning
+                   Fibonacci zonasidagi o'rniga qarab ikkinchi
+                   darvoza qo'shildi
+    13-sentyabr  — loyiha egasi natijani tekshirdi: o'sha 20
+                   coindan 17 tasi haqiqatan yuqoriga yurgan edi.
+                   Ya'ni panel TO'G'RI ishlagan, taassurot esa
+                   xato bo'lgan
 
-Endi narx oxirgi impulsning qaytish zonasidan YUQORIDA bo'lsa,
-coin ro'yxatga kirmaydi: bizga yurish potensiali bor, lekin hali
-yurmagan coin kerak.
+Shuning uchun ikkinchi darvoza butunlay olib tashlandi. Bu —
+yo'qotish emas, TIKLASH: filtr o'z ishini qilayotgan edi va unga
+qo'shilgan shart yaxshi nomzodlarni ro'yxatdan chiqarib tashlagan.
+
+SAQLANADIGAN SABOQ: panelning natijasini EKRANGA QARAB emas,
+NATIJAGA QARAB baholash kerak. "Menga yurib bo'lgandek ko'rindi"
+— bu o'lchov emas, taassurot.
 
 --------------------------------------------------------------------
 ALTERNATIV YO'LLAR — TO'LIQ SAQLANADI
@@ -149,11 +158,8 @@ from core.analysis.structure.bos_choch import bos_choch_topish
 from core.analysis.structure.structure_block import StrukturaKirish, struktura_blok
 from core.analysis.structure.swing_detector import SwingTuri, oxirgi, swinglar
 from core.analysis.structure.uptrend_filter import (
-    Bosqich,
-    BosqichNatija,
     Yonalish,
     YonalishNatija,
-    bosqich_aniqla,
     yonalish_aniqla,
 )
 from core.analysis.turlar import Blok, Holat, Tekshiruv
@@ -228,11 +234,7 @@ class KuzatuvNatija:
 
     symbol: str
     yonalish: YonalishNatija
-    #: Narx harakatning qayerida — ikkinchi darvoza
-    bosqich: BosqichNatija = field(
-        default_factory=lambda: BosqichNatija(Bosqich.NOMALUM)
-    )
-    #: Oxirgi yopilish narxi — ekranda va bosqich hisobida
+    #: Oxirgi yopilish narxi — ekranda ko'rsatiladi
     narx: float | None = None
     bloklar: tuple[Blok, ...] = ()
     zona_natija: ZonaNatija | None = None
@@ -266,27 +268,6 @@ class KuzatuvNatija:
         kirmaydi.
         """
         return self.yonalish.otadi
-
-    @property
-    def xaridga_tayyor(self) -> bool:
-        """Coin TOP ro'yxatiga kira oladimi.
-
-        IKKINCHI darvoza: narx harakatni tugatmagan bo'lsin.
-
-        NIMA UCHUN ALOHIDA (2026-09-12, loyiha egasining ikkinchi
-        kuzatuvi). Avval bu shart `otdi` ichida edi va yurib bo'lgan
-        coin HECH QAYERDA ko'rinmasdi — natijada 80 tadan atigi
-        4 tasi qoldi va promptning "20 + 10" tuzilmasi buzildi.
-
-        Endi bosqich ro'yxatni TANLAYDI, chetlatmaydi:
-
-            hali yurmagan -> 🟢 "Xarid uchun tayyor"  (Top 20)
-            yurib bo'lgan -> 🟡 "hali tayyor emas"    (+10)
-
-        Ikkinchi ro'yxatning yorlig'i aynan shuni anglatadi: coin
-        yomon emas, shunchaki HOZIR kech. Qaytsa — Top ga ko'tariladi.
-        """
-        return self.yonalish.otadi and self.bosqich.nomzod
 
     @property
     def diqqat(self) -> int:
@@ -357,19 +338,12 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
     tf = kirish.timeframelar
     struktura_nuqtalar = swinglar(kirish.struktura_shamlar, shubhali=kirish.shubhali)
     yonalish = yonalish_aniqla(kirish.struktura_shamlar, struktura_nuqtalar)
-    bosqich = bosqich_aniqla(kirish.struktura_shamlar, struktura_nuqtalar)
     narx = kirish.struktura_shamlar[-1].close if kirish.struktura_shamlar else None
 
     if not yonalish.otadi:
         # Struktura tushayotgan — hech qaysi ro'yxatga kirmaydi,
         # qolgan uch blok hisoblanmaydi (resurs tejash).
-        #
-        # BOSQICH BU YERDA TEKSHIRILMAYDI. Yurib bo'lgan coin ham
-        # "+10 kuzatuvda" ro'yxatiga tushadi, ya'ni uning
-        # segmentlari ekranda kerak.
-        return KuzatuvNatija(
-            kirish.symbol, yonalish, bosqich=bosqich, narx=narx, timeframelar=tf
-        )
+        return KuzatuvNatija(kirish.symbol, yonalish, narx=narx, timeframelar=tf)
 
     b_fund = fundamental_blok(
         kirish.fundamental,
@@ -456,7 +430,6 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
     return KuzatuvNatija(
         symbol=kirish.symbol,
         yonalish=yonalish,
-        bosqich=bosqich,
         narx=narx,
         bos_narx=holat.bos_narx if holat.bos_tasdiqlangan else None,
         sweep_narx=sweep_swing.narx if sweep_swing is not None else None,

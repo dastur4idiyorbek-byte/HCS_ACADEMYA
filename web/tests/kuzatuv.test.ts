@@ -379,32 +379,37 @@ test("FDV va ta'minot FAQAT adminga ko'rinadi", () => {
 });
 
 // --------------------------------------------------------------------------- //
-//  IKKINCHI DARVOZA — "allaqachon yurgan" coin ro'yxatga kirmaydi
+//  BOSQICH DARVOZASI OLIB TASHLANDI (2026-09-13)
 // --------------------------------------------------------------------------- //
+//
+// 12-sentyabrda panelga ikkinchi darvoza qo'shilgan edi: narx
+// Fibonacci qaytish zonasi tepasida bo'lsa, coin "allaqachon
+// yurgan" deb ro'yxatdan chiqarilardi.
+//
+// 13-sentyabrda loyiha egasi natijani o'lchadi: darvoza
+// qo'yilishidan OLDINGI ro'yxatdagi 20 coindan 17 tasi haqiqatan
+// yuqoriga yurgan. Panel to'g'ri ishlagan, darvoza esa uni buzgan.
 
-test("bosqich darvozasi Pythonda bor", () => {
-  // Loyiha egasi ekranda ko'rgan xato: HH/HL to'g'ri, lekin coin
-  // allaqachon yurib bo'lgan. Yo'nalish bu holatni ushlay olmaydi.
-  const python = oqi("core/analysis/observation_mode.py");
-  assert.ok(python.includes("bosqich_aniqla"), "bosqich darvozasi chaqirilmagan");
-  assert.ok(
-    python.includes("self.yonalish.otadi and self.bosqich.nomzod"),
-    "ikkala darvoza birga tekshirilmagan",
-  );
-});
-
-test("bosqich qiymatlari ikki tomonda bir xil", () => {
-  const python = oqi("core/analysis/structure/uptrend_filter.py");
-  for (const qiymat of ["korreksiya", "chuqur", "yurgan", "nomalum"]) {
-    assert.ok(python.includes(`"${qiymat}"`), `bosqich "${qiymat}" Pythonda yo'q`);
+test("bosqich darvozasi qaytib kelmagan", () => {
+  // Bu test darvozani QAYTA QO'SHIB BO'LMASLIGI uchun.
+  for (const yol of [
+    "core/analysis/observation_mode.py",
+    "core/analysis/structure/uptrend_filter.py",
+    "core/watch_panel/top20_selector.py",
+  ]) {
+    const python = oqi(yol);
+    assert.ok(!python.includes("bosqich_aniqla"), `${yol}: darvoza qaytgan`);
+    assert.ok(!python.includes("xaridga_tayyor"), `${yol}: darvoza qaytgan`);
   }
 });
 
-test("YURGAN — yagona nomzod BO'LMAGAN bosqich", () => {
-  // Impuls topilmasligi ("nomalum") coinni chetlatmaydi: bilmaslik
-  // salbiy javob emas.
-  const python = oqi("core/analysis/structure/uptrend_filter.py");
-  assert.ok(python.includes("return self is not Bosqich.YURGAN"));
+test("ro'yxat faqat YO'NALISH bo'yicha filtrlanadi", () => {
+  const python = oqi("core/watch_panel/top20_selector.py");
+  assert.ok(python.includes("n.otdi"), "yo'nalish filtri yo'q");
+  assert.ok(
+    python.includes("otganlar[TOP_HAJM"),
+    "ikkinchi ro'yxat birinchisining davomi bo'lsin",
+  );
 });
 
 test("zona joyi JORIY narx bilan hisoblanadi, zona markazi bilan emas", () => {
@@ -412,7 +417,7 @@ test("zona joyi JORIY narx bilan hisoblanadi, zona markazi bilan emas", () => {
   // HAR DOIM "o'rtada" ko'rsatardi — markazning nisbati doim 0.5.
   const qator = oqi("web/src/components/kuzatuv/CoinQatori.tsx");
   assert.ok(
-    qator.includes("zonaJoyi(coin.narx, coin.impulsPast, coin.impulsYuqori)"),
+    qator.includes("zonaJoyi(coin.narx, coin.zonaPast, coin.zonaYuqori)"),
     "zona joyi hali ham noto'g'ri hisoblanmoqda",
   );
   assert.ok(
@@ -505,47 +510,6 @@ test("zona timeframe'i QO'LDA yozilmagan", () => {
     sahifa.includes('coin.segmentlar.find((s) => s.nom === "zona_konfluensiya")'),
     "timeframe segmentdan olinmagan",
   );
-});
-
-// --------------------------------------------------------------------------- //
-//  IKKI RO'YXAT — IKKI MA'NO (20 + 10 tuzilmasi)
-// --------------------------------------------------------------------------- //
-
-test("ro'yxatlar TARTIB bo'yicha emas, MA'NO bo'yicha bo'linadi", () => {
-  // Avval "birinchi 20 / keyingi 10" edi va yurib bo'lgan coin
-  // umuman ro'yxatga kirmasdi -> 80 tadan 4 tasi qolgan.
-  const python = oqi("core/watch_panel/top20_selector.py");
-  assert.ok(python.includes("n.xaridga_tayyor"), "bosqich bo'yicha bo'linmagan");
-  assert.ok(
-    !python.includes("otganlar[TOP_HAJM"),
-    "hali ham tartib bo'yicha kesilmoqda",
-  );
-});
-
-test("yurib bo'lgan coin KUZATUVDAN chiqmaydi", () => {
-  // Uni butunlay chetlatish "20 + 10" tuzilmasini buzgandi.
-  const python = oqi("core/analysis/observation_mode.py");
-  assert.ok(
-    python.includes("if not yonalish.otadi:"),
-    "bosqich hali ham hisobni to'xtatmoqda",
-  );
-  assert.ok(python.includes("xaridga_tayyor"), "ikkinchi darvoza yo'q");
-});
-
-test("qator bosqichni ko'rsatadi", () => {
-  // Admin NEGA coin quyi ro'yxatda ekanini bilishi kerak.
-  const qator = oqi("web/src/components/kuzatuv/CoinQatori.tsx");
-  assert.ok(qator.includes('coin.bosqich === "yurgan"'));
-  assert.ok(qator.includes("kuzatuv.bosqich_holat.yurgan"));
-});
-
-test("ikkinchi ro'yxat yorlig'i ma'noga mos", () => {
-  const uz = JSON.parse(oqi("web/src/lib/i18n/uz.json")) as {
-    kuzatuv: Record<string, string>;
-  };
-  // "hali tayyor emas" — yurib bo'lgan coin aynan shunday
-  assert.ok(uz.kuzatuv.kuzatuvda.includes("tayyor emas"));
-  assert.ok(uz.kuzatuv.kuzatuvda_izoh.includes("harakat allaqachon"));
 });
 
 // --------------------------------------------------------------------------- //

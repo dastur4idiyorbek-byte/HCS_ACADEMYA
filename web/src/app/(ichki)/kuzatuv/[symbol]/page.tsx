@@ -100,56 +100,6 @@ export default async function CoinSahifasi({
           </div>
         </div>
 
-        {/* IKKINCHI DARVOZA — narx harakatning qayerida.
-            Struktura to'g'ri bo'lsa ham, harakat allaqachon
-            bo'lgan coin ro'yxatga kirmaydi. */}
-        <div className="border-ramka-yumshoq mt-3 border-t pt-3">
-          <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-matn-past text-xs">{t("kuzatuv.bosqich")}</span>
-            <span
-              className={cn(
-                "text-sm font-medium",
-                coin.bosqich === "yurgan"
-                  ? "text-past"
-                  : coin.bosqich === "korreksiya"
-                    ? "text-yaxshi"
-                    : "text-matn",
-              )}
-            >
-              {t(`kuzatuv.bosqich_holat.${coin.bosqich}`)}
-            </span>
-          </div>
-
-          {coin.bosqichUlush !== null &&
-          coin.impulsPast !== null &&
-          coin.impulsYuqori !== null ? (
-            <>
-              <div className="text-matn-past mb-1 flex justify-between text-[11px] tabular-nums">
-                <span>{coin.impulsPast.toPrecision(5)}</span>
-                <span>{t("kuzatuv.impuls_orin")}: {coin.bosqichUlush}%</span>
-                <span>{coin.impulsYuqori.toPrecision(5)}</span>
-              </div>
-              <div className="bg-panel-yorqin relative h-1.5 overflow-hidden rounded-full">
-                {/* Qaytish zonasi — 38.2%..61.8% */}
-                <div
-                  aria-hidden
-                  className="bg-yaxshi/25 absolute inset-y-0"
-                  style={{ left: "38.2%", right: "38.2%" }}
-                />
-                <div
-                  className={cn(
-                    "absolute top-0 h-full w-1 rounded-full",
-                    coin.bosqich === "yurgan" ? "bg-past" : "bg-sarlavha",
-                  )}
-                  style={{
-                    left: `calc(${Math.min(100, Math.max(0, coin.bosqichUlush))}% - 2px)`,
-                  }}
-                />
-              </div>
-            </>
-          ) : null}
-          <p className="text-matn-past mt-1.5 text-xs">{coin.bosqichIzoh}</p>
-        </div>
       </Card>
 
       <div className="mb-4 space-y-2">

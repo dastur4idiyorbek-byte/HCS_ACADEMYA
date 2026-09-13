@@ -2134,8 +2134,7 @@ function xulosaHisobla(coinlar: JonliCoin[]): JonliXulosa | null {
 export function kuzatuvCoinlari(royxat?: RoyxatTuri): KuzatuvCoin[] {
   const shart = royxat ? "where royxat = ?" : "";
   const stmt = db().prepare(
-    `select symbol, yonalish, yonalish_izoh, bosqich, bosqich_izoh,
-            bosqich_ulush, impuls_past, impuls_yuqori, narx,
+    `select symbol, yonalish, yonalish_izoh, narx,
             otdi, diqqat, segmentlar_json,
             bloklar_json, zona_darajasi, zona_past, zona_yuqori, bos_narx, sweep_narx, ogohlantirish,
             nisbiy_kuch, royxat, orin, tekshirilgan
@@ -2150,8 +2149,7 @@ export function kuzatuvCoinlari(royxat?: RoyxatTuri): KuzatuvCoin[] {
 export function kuzatuvCoin(symbol: string): KuzatuvCoin | null {
   const q = db()
     .prepare(
-      `select symbol, yonalish, yonalish_izoh, bosqich, bosqich_izoh,
-              bosqich_ulush, impuls_past, impuls_yuqori, narx,
+      `select symbol, yonalish, yonalish_izoh, narx,
               otdi, diqqat, segmentlar_json,
               bloklar_json, zona_darajasi, zona_past, zona_yuqori, bos_narx, sweep_narx, ogohlantirish,
               nisbiy_kuch, royxat, orin, tekshirilgan
@@ -2166,11 +2164,6 @@ function kuzatuvQatori(q: Qator): KuzatuvCoin {
     symbol: String(q.symbol ?? ""),
     yonalish: (q.yonalish as KuzatuvCoin["yonalish"]) ?? "aniq_emas",
     yonalishIzoh: String(q.yonalish_izoh ?? ""),
-    bosqich: (q.bosqich as KuzatuvCoin["bosqich"]) ?? "nomalum",
-    bosqichIzoh: String(q.bosqich_izoh ?? ""),
-    bosqichUlush: son(q.bosqich_ulush),
-    impulsPast: son(q.impuls_past),
-    impulsYuqori: son(q.impuls_yuqori),
     narx: son(q.narx),
     otdi: Boolean(q.otdi),
     diqqat: Number(q.diqqat ?? 0),

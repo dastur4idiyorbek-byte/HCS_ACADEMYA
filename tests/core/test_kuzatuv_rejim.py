@@ -19,7 +19,7 @@ from core.analysis.observation_mode import (
     Timeframelar,
     kuzatuv_yur,
 )
-from core.analysis.structure.uptrend_filter import Bosqich, Yonalish
+from core.analysis.structure.uptrend_filter import Yonalish
 from core.analysis.turlar import Holat
 from core.domain.models import Candle
 
@@ -399,44 +399,49 @@ def test_hamma_alternativ_sinsa_blok_otmaydi() -> None:
 
 
 # --------------------------------------------------------------------------- #
-#  BOSQICH — "allaqachon yurgan" coin ro'yxatga kirmaydi
+#  QAYTARILGAN QOIDA: "cho'qqiga yaqin" coin ham ro'yxatda qoladi
 # --------------------------------------------------------------------------- #
+#
+# 12-sentyabrda bu yerga ikkinchi darvoza qo'yilgan edi: narx
+# Fibonacci qaytish zonasining tepasida bo'lsa, coin "allaqachon
+# yurgan" deb Top ro'yxatdan chiqarilardi.
+#
+# 13-sentyabrda loyiha egasi natijani o'lchadi: darvoza
+# qo'yilishidan OLDINGI ro'yxatdagi 20 coindan 17 tasi haqiqatan
+# yuqoriga yurgan. Ya'ni filtr to'g'ri ishlagan, darvoza esa aynan
+# ishlaydigan nomzodlarni chiqarib tashlagan.
+#
+# Shuning uchun darvoza olib tashlandi va quyidagi test uni QAYTA
+# QO'SHIB BO'LMASLIGI uchun yozildi.
 
 
-def test_allaqachon_yurgan_coin_TOP_ga_kirmaydi() -> None:
-    """Loyiha egasi ekranda ko'rgan xato — aynan shu.
+def test_choqqiga_yaqin_coin_HAM_royxatga_kiradi() -> None:
+    """Narxning o'rni ro'yxatdan CHIQARMAYDI — faqat yo'nalish hal qiladi.
 
-    Struktura ko'tarilish (HH/HL), lekin narx cho'qqiga yaqin:
-    harakat allaqachon bo'lgan. Bunday coin Top 20 ga KIRMAYDI.
+    Agar kimdir bosqich darvozasini qaytarsa, shu test yiqiladi.
 
-    LEKIN U KUZATUVDAN CHIQMAYDI. Ikkinchi tuzatish (2026-09-12):
-    uni butunlay chetlatganda 80 tadan atigi 4 tasi qolgan va
-    "20 + 10" tuzilmasi buzilgan edi. Endi u "+10 hali tayyor
-    emas" ro'yxatiga tushadi, ya'ni segmentlari ham kerak.
+    NEGA BU MUHIM: HH/HL ketma-ketligi coin harakatni boshlaganda
+    ham to'g'ri bo'ladi. "Cho'qqiga yaqin" degani "tugadi" degani
+    EMAS — kuchli trendda narx cho'qqi yonida uzoq turadi va
+    yuqoriga davom etadi. O'lchov buni tasdiqladi: 20 dan 17 tasi.
     """
     natija = kuzatuv_yur(kirish(struktura_shamlar=kotarilish_yurgan()))
-    assert natija.yonalish.yonalish is Yonalish.UPTREND, "struktura o'zi to'g'ri"
-    assert natija.bosqich.bosqich is Bosqich.YURGAN
-    assert not natija.xaridga_tayyor, "Top 20 ga kirmasligi kerak"
-    assert natija.otdi, "kuzatuvdan esa chiqmaydi"
-    assert len(natija.bloklar) == 4, "+10 uchun segmentlar kerak"
+    assert natija.yonalish.yonalish is Yonalish.UPTREND
+    assert natija.otdi, "cho'qqiga yaqinlik ro'yxatdan chiqarmasin"
+    assert len(natija.bloklar) == 4, "to'rt blok ham hisoblansin"
 
 
-def test_qaytish_zonasidagi_coin_nomzod() -> None:
+def test_qaytish_zonasidagi_coin_ham_kiradi() -> None:
     natija = kuzatuv_yur(kirish())
-    assert natija.bosqich.bosqich in (Bosqich.KORREKSIYA, Bosqich.CHUQUR)
     assert natija.otdi
     assert len(natija.bloklar) == 4
 
 
-def test_bosqich_ulushi_yoziladi() -> None:
-    """Admin "narx impulsning qayerida" deb ko'rishi kerak."""
+def test_natijada_bosqich_tushunchasi_YOQ() -> None:
+    """Darvoza qoldiqsiz olib tashlangan bo'lsin."""
     natija = kuzatuv_yur(kirish())
-    assert natija.bosqich.ulush is not None
-    assert 0 <= natija.bosqich.ulush <= 100
-    assert natija.bosqich.impuls_past is not None
-    assert natija.bosqich.impuls_yuqori is not None
-    assert natija.bosqich.impuls_yuqori > natija.bosqich.impuls_past
+    assert not hasattr(natija, "bosqich"), "bosqich maydoni qaytib kelgan"
+    assert not hasattr(natija, "xaridga_tayyor"), "ikkinchi darvoza qaytib kelgan"
 
 
 def test_narx_natijada_boladi() -> None:
@@ -445,31 +450,3 @@ def test_narx_natijada_boladi() -> None:
     assert natija.narx > 0
 
 
-def test_impuls_topilmasa_YURGAN_deb_belgilanmaydi() -> None:
-    """Ma'lumot yo'qligi "yurib bo'lgan" degani EMAS.
-
-    `turlar.py` dagi MALUMOT_YOQ tamoyili: bilmaslik salbiy javob
-    emas. Aks holda tarixi qisqa coin jimgina chetlanardi.
-    """
-    assert Bosqich.NOMALUM.nomzod
-    assert Bosqich.KORREKSIYA.nomzod
-    assert Bosqich.CHUQUR.nomzod
-    assert not Bosqich.YURGAN.nomzod
-
-
-def test_ikki_darvoza_ikki_xil_ish_qiladi() -> None:
-    """Yo'nalish — KUZATUVGA kiritadi, bosqich — RO'YXATNI tanlaydi."""
-    # Tushayotgan coin hech qaysi ro'yxatga kirmaydi
-    tushgan = kuzatuv_yur(kirish(struktura_shamlar=tushish()))
-    assert not tushgan.otdi
-    assert not tushgan.xaridga_tayyor
-
-    # Yurib bo'lgan: kuzatuvda bor, Top da yo'q
-    yurgan = kuzatuv_yur(kirish(struktura_shamlar=kotarilish_yurgan()))
-    assert yurgan.otdi
-    assert not yurgan.xaridga_tayyor
-
-    # Qaytish zonasida: ikkalasi ham
-    nomzod = kuzatuv_yur(kirish())
-    assert nomzod.otdi
-    assert nomzod.xaridga_tayyor

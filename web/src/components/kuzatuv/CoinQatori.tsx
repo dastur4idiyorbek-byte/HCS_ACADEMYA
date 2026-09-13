@@ -30,15 +30,13 @@ export function CoinQatori({
   t: Tarjimon;
   kichik?: boolean;
 }) {
-  // IMPULS oralig'i bo'yicha — zona emas.
+  // JORIY narx zonaning qayerida — zona MARKAZI emas.
   //
-  // Birinchi yozuvda bu yerga zona MARKAZI berilgan edi va ustun
+  // Birinchi yozuvda bu yerga zona markazi berilgan edi va ustun
   // har doim "o'rtada" ko'rsatardi: markazning nisbati doim 0.5.
-  // Ya'ni ustun umuman hech narsa aytmasdi.
-  //
-  // Endi JORIY narx impulsning qayerida ekani o'lchanadi — aynan
-  // shu "coin yurib bo'ldimi" degan savolga javob beradi.
-  const joy = zonaJoyi(coin.narx, coin.impulsPast, coin.impulsYuqori);
+  // Ya'ni ustun umuman hech narsa aytmasdi. Joriy narx endi
+  // bazada saqlanadi va ustun haqiqiy javob beradi.
+  const joy = zonaJoyi(coin.narx, coin.zonaPast, coin.zonaYuqori);
   const zonaRang =
     joy === "discount"
       ? "text-yaxshi"
@@ -86,19 +84,14 @@ export function CoinQatori({
         ) : null}
       </span>
 
-      {/* Bosqich — admin NEGA shu ro'yxatda ekanini ko'rsin.
-          Zona rangi bilan bir joyda: ikkalasi ham "narx qayerda"
-          degan savolga javob beradi. */}
       <span
         className={cn(
           "hidden shrink-0 sm:inline",
-          coin.bosqich === "yurgan" ? "text-past" : zonaRang,
+          zonaRang,
           kichik ? "text-[11px]" : "text-xs",
         )}
       >
-        {coin.bosqich === "yurgan"
-          ? t("kuzatuv.bosqich_holat.yurgan")
-          : t(`kuzatuv.zona.${joy}`)}
+        {t(`kuzatuv.zona.${joy}`)}
       </span>
 
       <Segmentlar segmentlar={coin.segmentlar} kichik={kichik} className="shrink-0" />

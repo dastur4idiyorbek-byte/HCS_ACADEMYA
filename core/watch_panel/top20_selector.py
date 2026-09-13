@@ -1,22 +1,21 @@
 """4-QISM — saralash va ikki darajali ro'yxat.
 
-    🟢 TOP 20    — xarid uchun tayyor  (narx hali yurmagan)
-    🟡 +10       — hali tayyor emas    (narx yurib bo'lgan)
+    🟢 TOP 20    — eng yuqori Diqqat darajasiga ega 20 ta
+    🟡 +10       — ulardan keyingi 10 ta, "diqqatga molik"
 
-IKKI RO'YXAT — IKKI MA'NO, oddiy "birinchi 20 / keyingi 10" EMAS.
+RO'YXAT DIQQAT DARAJASI BO'YICHA TARTIBLANADI, boshqa shart yo'q.
 
-Avval ular faqat TARTIB bo'yicha bo'linardi, va "yurib bo'lgan"
-coin umuman ro'yxatga kirmasdi. Natijada 80 tadan atigi 4 tasi
-qoldi (loyiha egasining kuzatuvi, 2026-09-12) — promptning
-"20 + 10" tuzilmasi buzildi.
+BU YERDA BIR MARTA "BOSQICH" DARVOZASI BO'LGAN va u OLIB
+TASHLANDI (2026-09-13). 12-sentyabrda panelda ko'ringan coinlar
+"allaqachon yurib bo'lgan"dek tuyuldi va narxning Fibonacci
+zonasidagi o'rni bo'yicha qo'shimcha shart qo'yildi.
 
-Endi bosqich ro'yxatni TANLAYDI:
+13-sentyabrda loyiha egasi natijani tekshirdi: o'sha 20 coindan
+17 tasi haqiqatan yuqoriga yurgan edi. Ya'ni ro'yxat TO'G'RI
+bo'lgan va qo'shimcha shart uni faqat buzgan.
 
-    hali yurmagan -> Top 20
-    yurib bo'lgan -> +10 "hali tayyor emas"
-
-Ikkinchi yorliq aynan shuni anglatadi: coin yomon emas, shunchaki
-HOZIR kech. Narx qaytsa, keyingi skanda Top ga ko'tariladi.
+Shuning uchun saralash o'zining dastlabki, ISHLAGAN holiga
+qaytarildi.
 
 FILTRDAN O'TMAGANLAR HECH QAYERGA KIRMAYDI. 3-qism qoidasi: coin
 Downtrend bo'lsa, Diqqat darajasi qanchalik yuqori chiqishidan
@@ -95,13 +94,10 @@ def _tartib_kaliti(n: KuzatuvNatija) -> tuple:
 
 def royxatlarni_qur(natijalar: list[KuzatuvNatija]) -> Royxatlar:
     """80 coindan ikki darajali ro'yxat yasaydi."""
-    otganlar = [n for n in natijalar if n.otdi]
-
-    tayyor = sorted((n for n in otganlar if n.xaridga_tayyor), key=_tartib_kaliti)
-    kech = sorted((n for n in otganlar if not n.xaridga_tayyor), key=_tartib_kaliti)
+    otganlar = sorted((n for n in natijalar if n.otdi), key=_tartib_kaliti)
 
     return Royxatlar(
-        top=tuple(tayyor[:TOP_HAJM]),
-        kuzatuvda=tuple(kech[:KUZATUV_HAJM]),
+        top=tuple(otganlar[:TOP_HAJM]),
+        kuzatuvda=tuple(otganlar[TOP_HAJM : TOP_HAJM + KUZATUV_HAJM]),
         otmadi=len(natijalar) - len(otganlar),
     )

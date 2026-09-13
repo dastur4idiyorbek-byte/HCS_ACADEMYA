@@ -54,32 +54,32 @@ o'zgartirardi, shuning uchun aniqlash yangi modul ichida yozildi
 
 ---
 
-## Ikkinchi darvoza: coin hali yurmagan bo'lsin
+## Ikkinchi darvoza BO'LGAN va OLIB TASHLANGAN
 
-Yo'nalish darvozasi yetarli EMAS. `HH/HL ketma-ketligi` coin
-**allaqachon yurganda ham** to'g'ri bo'ladi — aslida u eng kuchli
-aynan shunda ko'rinadi.
+12-sentyabrda panelga ikkinchi darvoza qo'shildi: narx Fibonacci
+qaytish zonasining **tepasida** bo'lsa, coin "allaqachon yurgan"
+deb ro'yxatdan chiqarilardi.
 
-> **Bu xato jonli panelda ko'rindi.** Loyiha egasi Top 20 ni ochdi
-> va u yerda harakatini tugatgan coinlarni ko'rdi. To'g'ri savol
-> shu edi: bizga yurish potensiali bor, lekin **hali yurmagan**
-> coin kerak.
+Sabab: Top 20 ni ochganda coinlar harakatini tugatgandek ko'rindi.
 
-Endi narxning o'rni ham tekshiriladi. O'lchov — loyihaning **o'z**
-Fibonacci zonasi (`fib_zona`), yangi raqam o'ylab topilmadi:
+**13-sentyabrda bu qaror bekor qilindi.** Loyiha egasi natijani
+o'lchadi: darvoza qo'yilishidan **oldingi** ro'yxatdagi 20 coindan
+**17 tasi** haqiqatan yuqoriga yurdi.
 
-| narx qayerda | bosqich | ro'yxatga kiradimi |
-|---|---|---|
-| zona **tepasida** | `yurgan` | ❌ harakat bo'lib bo'lgan |
-| zona **ichida** (38.2–61.8%) | `korreksiya` | ✅ klassik qaytish |
-| zona **pastida** | `chuqur` | ✅ chuqurroq qaytgan |
-| impuls topilmadi | `nomalum` | ✅ bilmaslik jazo emas |
+Ya'ni panel to'g'ri ishlagan. Darvoza esa aynan ishlaydigan
+nomzodlarni chiqarib tashlagan.
 
-Coin nomzod bo'lishi uchun **ikkala darvoza** ham ochiq bo'lishi
-kerak: struktura yuqoriga qarasin **va** harakat tugamagan bo'lsin.
+> **Saboq.** "Menga yurib bo'lgandek ko'rindi" — bu o'lchov emas,
+> **taassurot**. HH/HL ketma-ketligi coin harakatni boshlaganda
+> ham to'g'ri bo'ladi, va kuchli trendda narx cho'qqi yonida uzoq
+> turib, yuqoriga davom etadi. Panelni ekranga qarab emas,
+> **natijaga** qarab baholash kerak.
 
-Chuqur ko'rinishda narx impulsning qayerida ekani shkala bilan
-chiziladi — qaytish zonasi alohida rangda.
+Bugun darvoza butunlay yo'q: ro'yxatga kirish uchun faqat
+**yo'nalish** tekshiriladi. Bu qaror ikkita test bilan qulflangan
+(`test_choqqiga_yaqin_coin_HAM_royxatga_kiradi` va
+`bosqich darvozasi qaytib kelmagan`) — kimdir uni qaytarsa,
+testlar yiqiladi.
 
 ### Shu bilan birga topilgan ikkinchi xato
 
@@ -163,17 +163,11 @@ Ro'yxatlar tartib bo'yicha bo'linmaydi ("birinchi 20, keyingi
 
 | ro'yxat | kim tushadi |
 |---|---|
-| 🟢 **Top 20 — xarid uchun tayyor** | struktura yuqoriga qaragan **va** narx hali yurmagan |
-| 🟡 **+10 — hali tayyor emas** | struktura yuqoriga qaragan, lekin harakat **allaqachon bo'lgan** |
+| 🟢 **Top 20** | Diqqat darajasi eng yuqori 20 ta |
+| 🟡 **+10 diqqatga molik** | ulardan keyingi 10 ta |
 
-Ikkinchi yorliq aynan shuni anglatadi: coin yomon emas, shunchaki
-**hozir kech**. Narx qaytsa, keyingi skanda tepaga ko'tariladi.
-
-> **Bu ham ikki qadamda topildi.** Avval bosqich darvozasi yurib
-> bo'lgan coinni butunlay chetlatardi, va 80 tadan atigi **4 tasi**
-> qolgan — promptning "20 + 10" tuzilmasi buzilgandi. Loyiha
-> egasi buni ekranda ko'rdi. Endi bosqich coinni chetlatmaydi,
-> **ro'yxatini tanlaydi**.
+Ikkinchi ro'yxat — birinchisining **davomi**. Ikkalasi ham bir xil
+tartibda: Diqqat darajasi bo'yicha kamayish.
 
 Teng ball chiqqanda tartib: zona darajasi → nisbiy kuch → alifbo.
 Oxirgisi promptda yo'q, lekin zarur: ansiz teng coinlar har
