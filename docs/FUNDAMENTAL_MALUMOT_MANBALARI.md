@@ -63,3 +63,69 @@ o'tkazish" deb qoldirish mantiqan to'g'ri.
 
 Uchala blok ham bizda ALLAQACHON bor ma'lumot (Binance/Bitget
 shamlari) bilan to'liq o'lchanadi.
+
+
+---
+
+# 2026-09-13 QO'SHIMCHA: kuzatuv paneli uchun manbalar ulandi
+
+## Yuqoridagi xulosa BEKOR QILINMADI
+
+"1-blokni O'LCHAB bo'lmaydi" — bu **hamon to'g'ri**, va u
+**backtest** haqida. Ablatsiya va walk-forward ikki yillik tarix
+talab qiladi; Open Interest (30 kun), sektor, yangiliklarda
+bunday tarix yo'q.
+
+## Lekin kuzatuv paneli boshqa savol so'raydi
+
+Kuzatuv paneli (`9_prompt_yakuniy_kuzatuv_moduli.md`):
+
+- backtest **qilmaydi**
+- savdo qarori **qabul qilmaydi**
+- faqat **hozirgi** holatni ko'rsatadi
+
+Unga tarix umuman kerak emas. Shuning uchun o'sha manbalarni shu
+yerda ishlatish mumkin — chegara "o'lchash" bilan "ko'rsatish"
+orasida.
+
+## Nima ulandi (`core/watch_panel/fundamental_manba.py`)
+
+| manba | qayerdan | kalit kerakmi | qanday olinadi |
+|---|---|---|---|
+| **Fear & Greed** | alternative.me | yo'q | skanda bir marta |
+| **Funding Rate** | Binance futures `premiumIndex` | yo'q | **bitta so'rov — barcha juftlik** |
+| **Open Interest** | Binance `openInterestHist` | yo'q | coin boshiga, 7 kunlik o'zgarish |
+| **Stablecoin zaxira** | CoinGecko `market_chart` | yo'q | USDT+USDC, 7 kunlik kapitalizatsiya |
+
+Natijada 1-blokning to'rt tekshiruvidan **uchtasi** endi ishlaydi:
+
+    1.1 Bozor holati   funding ✅ + OI ✅ + DXY ❌  ->  3 dan 2 tasi
+    1.2 Pul oqimi      netflow ❌ + stablecoin ✅   ->  2 dan 1 tasi
+    1.3 Katalizator    unlock ⚠️ + delisting ❌     ->  hali 0
+    1.4 Kayfiyat       F&G ✅ + sektor ⚠️ + yangilik ❌ -> 3 dan 1 tasi
+
+## Nima ulanmadi va nima uchun
+
+| manba | sabab |
+|---|---|
+| Exchange Netflow | CryptoQuant / Glassnode — **pullik** |
+| Yangiliklar | CryptoPanic bepul planda deyarli hech narsa bermaydi |
+| Delisting | jonli API yo'q — faqat qo'lda kuzatish |
+| Sektor rotatsiyasi | CoinGecko categories — keyingi qadam |
+| Token Unlock | DefiLlama — symbol moslashtirish kerak |
+
+Ulanmaganlari `None` bo'lib qoladi va tekshiruvda **MALUMOT_YOQ**
+beradi — "yo'q" emas. Ular maxrajga kirmaydi, ya'ni blok
+ma'lumot yo'qligi uchun jazolanmaydi.
+
+## O'zim qilgan xato
+
+Birinchi yozuvda stablecoin zaxirasi CoinGecko ning **narx**
+o'zgarishi maydonidan olingan edi. Stablecoinning narxi ta'rifi
+bo'yicha $1 atrofida — ya'ni u qiymat deyarli **har doim ~0%**
+bo'lardi va tekshiruv abadiy "o'zgarish yo'q" deb turaverardi.
+
+Kerak bo'lgan narsa — **kapitalizatsiya** o'zgarishi: u yangi pul
+chiqarilganini bildiradi. `market_chart` tarixni beradi va undan
+aniq 7 kunlik farq hisoblanadi. Test buni qulflaydi: agar kod
+narx maydoniga qaytsa, u yiqiladi.

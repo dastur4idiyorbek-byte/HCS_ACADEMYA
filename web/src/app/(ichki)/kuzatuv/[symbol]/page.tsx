@@ -320,6 +320,11 @@ function BlokKartasi({
       </div>
 
       {blok.tosiq ? <p className="text-ortacha mb-2 text-xs">{blok.tosiq}</p> : null}
+      {blok.nom === "Fundamental" && !blok.olchanmadi ? (
+        <p className="text-matn-past mb-2 text-[11px]">
+          {t("kuzatuv.fundamental_izoh")}
+        </p>
+      ) : null}
       {blok.olchanmadi ? (
         <p className="text-matn-past text-xs">{t("kuzatuv.blok_olchanmadi")}</p>
       ) : (

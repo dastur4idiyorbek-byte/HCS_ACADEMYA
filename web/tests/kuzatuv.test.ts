@@ -547,3 +547,51 @@ test("ikkinchi ro'yxat yorlig'i ma'noga mos", () => {
   assert.ok(uz.kuzatuv.kuzatuvda.includes("tayyor emas"));
   assert.ok(uz.kuzatuv.kuzatuvda_izoh.includes("harakat allaqachon"));
 });
+
+// --------------------------------------------------------------------------- //
+//  FUNDAMENTAL BLOK — endi bo'sh emas
+// --------------------------------------------------------------------------- //
+
+test("fundamental manbalar skanerga ulangan", () => {
+  // Ilgari blok DOIM "o'lchanmadi" holatida turardi.
+  const skaner = oqi("core/watch_panel/coin_scanner.py");
+  assert.ok(skaner.includes("FundamentalManba"), "manba ulanmagan");
+  assert.ok(skaner.includes("_fundamental_kirish"), "blok kirishi to'ldirilmagan");
+});
+
+test("to'rt manba ham o'qiladi", () => {
+  const manba = oqi("core/watch_panel/fundamental_manba.py");
+  for (const [nom, belgi] of [
+    ["Fear & Greed", "alternative.me"],
+    ["Funding Rate", "premiumIndex"],
+    ["Open Interest", "openInterestHist"],
+    ["Stablecoin", "market_chart"],
+  ] as const) {
+    assert.ok(manba.includes(belgi), `${nom} manbasi yo'q`);
+  }
+});
+
+test("stablecoin NARX emas, KAPITALIZATSIYA o'zgarishini oladi", () => {
+  // Stablecoinning narxi ta'rifi bo'yicha $1 atrofida — narx
+  // o'zgarishi doim ~0 va tekshiruv hech narsani o'lchamasdi.
+  const manba = oqi("core/watch_panel/fundamental_manba.py");
+  assert.ok(manba.includes("market_caps"), "kapitalizatsiya o'qilmayapti");
+  assert.ok(
+    !manba.includes("price_change_percentage_7d"),
+    "hali ham narx maydoni ishlatilmoqda",
+  );
+});
+
+test("ulanmagan manbalar ochiq aytiladi", () => {
+  const manba = oqi("core/watch_panel/fundamental_manba.py");
+  // Pullik/mavjud bo'lmagan manbalar hujjatlashtirilgan
+  for (const nom of ["Netflow", "Yangiliklar", "Delisting"]) {
+    assert.ok(manba.includes(nom), `ulanmagan manba yozilmagan: ${nom}`);
+  }
+
+  // Ekranda ham
+  const uz = JSON.parse(oqi("web/src/lib/i18n/uz.json")) as {
+    kuzatuv: Record<string, string>;
+  };
+  assert.ok(uz.kuzatuv.fundamental_izoh.includes("pullik"));
+});

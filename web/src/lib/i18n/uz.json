@@ -729,6 +729,8 @@
     "sweep_daraja": "Sweep sinagan daraja",
     "yiriklar_royxat": "So'nggi yirik operatsiyalar",
     "jonli_narx": "Jonli narx",
-    "yirik_yoq": "So'nggi 15 daqiqada yirik operatsiya bo'lmadi."
+    "yirik_yoq": "So'nggi 15 daqiqada yirik operatsiya bo'lmadi.",
+    "manba_yoq": "Bu ko'rsatkichning manbai ulanmagan — u hisobga kirmaydi.",
+    "fundamental_izoh": "Funding Rate, Open Interest, Fear & Greed va stablecoin zaxirasi jonli olinadi. Netflow va yangiliklar manbasi pullik — ular ulanmagan va hisobga kirmaydi."
   }
 }

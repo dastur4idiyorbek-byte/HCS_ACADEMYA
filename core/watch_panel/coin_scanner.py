@@ -24,6 +24,10 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 
+from core.analysis.fundamental.capital_flow import PulOqimi
+from core.analysis.fundamental.fundamental_block import FundamentalKirish
+from core.analysis.fundamental.market_regime import BozorHolati
+from core.analysis.fundamental.sentiment_sector import Kayfiyat
 from core.analysis.observation_mode import (
     KuzatuvKirish,
     KuzatuvNatija,
@@ -32,9 +36,10 @@ from core.analysis.observation_mode import (
 )
 from core.config.schema import AppConfig
 from core.domain.models import Candle
-from core.market_data.binance import BinanceCandleProvider
+from core.market_data.binance import BinanceCandleProvider, to_binance_symbol
 from core.storage.database import Database
 from core.utils.logging_setup import get_logger
+from core.watch_panel.fundamental_manba import BozorKayfiyati, FundamentalManba
 from core.watch_panel.repository import KuzatuvRepository
 from core.watch_panel.top20_selector import Royxatlar, royxatlarni_qur
 
@@ -78,6 +83,9 @@ class KuzatuvSkaneri:
         self._config = config
         self._provider = provider
         self._db = database
+        # FUNDAMENTAL MANBA — jonli ma'lumot (funding, OI, F&G,
+        # stablecoin). Blok endi bo'sh emas.
+        self._fundamental = FundamentalManba(config.market_data)
 
     @property
     def _timeframelar(self) -> Timeframelar:
@@ -97,12 +105,29 @@ class KuzatuvSkaneri:
         if not btc:
             logger.warning("BTC shamlari olinmadi — nisbiy kuch hisoblanmaydi")
 
+        # FUNDAMENTAL — skanda BIR MARTA olinadi.
+        #
+        # Fear & Greed va stablecoin zaxirasi butun bozorga tegishli;
+        # funding rate esa Binance dan BITTA so'rovda hamma juftlik
+        # uchun keladi. Coin boshiga so'rash 80 barobar ko'p so'rov
+        # bo'lardi va javob AYNI bo'lardi.
+        kayfiyat = await self._fundamental.bozor_kayfiyati()
+        funding = await self._fundamental.funding_jadvali()
+        logger.info(
+            "Fundamental: F&G=%s, stablecoin=%s%%, funding jadvali=%d juftlik",
+            kayfiyat.fear_greed,
+            kayfiyat.stablecoin_ozgarish_pct,
+            len(funding),
+        )
+
         yolak = asyncio.Semaphore(BIR_VAQTDA)
 
         async def bitta(symbol: str) -> KuzatuvNatija | None:
             async with yolak:
                 try:
-                    return await self._coinni_bahola(symbol, btc, tf)
+                    return await self._coinni_bahola(
+                        symbol, btc, tf, kayfiyat, funding
+                    )
                 except Exception as xato:  # noqa: BLE001 — bitta coin butun skanni yiqitmasin
                     logger.exception("Kuzatuv: %s tekshirilmadi", symbol)
                     natija.xatolar[symbol] = str(xato)
@@ -133,8 +158,13 @@ class KuzatuvSkaneri:
         )
         return natija
 
-    async def _coinni_bahola(
-        self, symbol: str, btc: list[Candle], tf: Timeframelar
+    async def _coinni_bahola(  # noqa: PLR0913 — har biri alohida manba
+        self,
+        symbol: str,
+        btc: list[Candle],
+        tf: Timeframelar,
+        kayfiyat: BozorKayfiyati,
+        funding: dict[str, float],
     ) -> KuzatuvNatija:
         """Bitta coin. Filtrdan o'tmasa — pastki TF lar so'ralmaydi."""
         struktura = await self._shamlar(symbol, tf.struktura)
@@ -164,6 +194,7 @@ class KuzatuvSkaneri:
                 zona_shamlar=zona_shamlar,
                 pastki_shamlar=pastki_shamlar,
                 btc_shamlar=btc,
+                fundamental=await self._fundamental_kirish(symbol, kayfiyat, funding),
                 etalon=symbol == "BTC",
                 timeframelar=tf,
                 unlock_yaqin_kun=self._config.zanjir.bloklar.unlock_yaqin_kun,
@@ -171,5 +202,29 @@ class KuzatuvSkaneri:
             )
         )
 
+    async def _fundamental_kirish(
+        self, symbol: str, kayfiyat: BozorKayfiyati, funding: dict[str, float]
+    ) -> FundamentalKirish:
+        """Jonli fundamental ma'lumotni blok kutgan shaklga soladi.
+
+        ULANMAGAN MANBALAR `None` BO'LIB QOLADI (netflow, sektor,
+        yangiliklar, delisting). Ular tekshiruvda MALUMOT_YOQ
+        beradi — "yo'q" EMAS — va maxrajga kirmaydi.
+        """
+        juft = to_binance_symbol(symbol, self._config.halal_screening.quote_asset).upper()
+        return FundamentalKirish(
+            holat=BozorHolati(
+                funding_rate=funding.get(juft),
+                oi_ozgarish_pct=await self._fundamental.oi_ozgarishi(juft),
+            ),
+            oqim=PulOqimi(
+                stablecoin_ozgarish_pct=kayfiyat.stablecoin_ozgarish_pct,
+            ),
+            kayf=Kayfiyat(fear_greed=kayfiyat.fear_greed),
+        )
+
     async def _shamlar(self, symbol: str, timeframe: str) -> list[Candle]:
         return await self._provider.fetch_candles(symbol, timeframe, OYNA)
+
+    async def yop(self) -> None:
+        await self._fundamental.yop()

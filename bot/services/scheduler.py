@@ -323,6 +323,8 @@ class Scheduler:
         await asyncio.gather(*self._tasks, return_exceptions=True)
         self._tasks.clear()
         await self._surat.yop()
+        if self._skaner is not None:
+            await self._skaner.yop()
 
     # ------------------------------------------------------------------ #
 

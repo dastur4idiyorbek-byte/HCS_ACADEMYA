@@ -129,8 +129,8 @@ Segmentlar **bloklarga emas**, ichki tekshiruvlarga bog'langan:
 3. Liquidity Sweep
 4. RSI divergensiyasi
 
-**Nega bloklarga emas.** Fundamental blokka manba ulanmagan — u
-doim bo'sh; Struktura esa filtrdan o'tganlar uchun doim to'la.
+**Nega bloklarga emas.** Struktura filtrdan o'tganlar uchun doim
+to'la, Fundamental esa o'sha paytda umuman bo'sh edi.
 Ya'ni blok segmentlarining ikkitasi qotib qolardi va 20 coin
 bir-biridan atigi ikki segment bilan farq qilardi.
 
@@ -324,3 +324,29 @@ qidiruv chegaralari — hammasi 🔴 o'lchanmagan va
 Ular **pulga ta'sir qilmaydi**, chunki panel qaror qabul qilmaydi.
 Agar kelajakda panel asosida savdo qilinadigan bo'lsa, avval
 ular o'lchanishi **shart**.
+
+
+---
+
+## Fundamental blok — endi jonli
+
+Blok uzoq vaqt bo'sh turdi: `FUNDAMENTAL_MALUMOT_MANBALARI.md`
+"uni o'lchab bo'lmaydi" degan edi. O'sha xulosa **backtest**
+haqida — kuzatuv paneli esa backtest qilmaydi va qaror qabul
+qilmaydi, unga faqat hozirgi holat kerak.
+
+Ulangan manbalar (hammasi **kalitsiz va bepul**):
+
+| ko'rsatkich | manba |
+|---|---|
+| Fear & Greed | alternative.me |
+| Funding Rate | Binance futures — **bitta so'rov, barcha juftlik** |
+| Open Interest (7 kun) | Binance futures |
+| Stablecoin zaxirasi (7 kun) | CoinGecko |
+
+Ulanmaganlar — Netflow (pullik), yangiliklar (bepul planda yo'q),
+delisting (API yo'q). Ular `MALUMOT_YOQ` bo'lib qoladi va
+**maxrajga kirmaydi**: blok ma'lumot yo'qligi uchun jazolanmaydi.
+
+Ekranda fundamental kartasi ostida qaysi manba jonli, qaysi biri
+ulanmagani ochiq yozilgan.
