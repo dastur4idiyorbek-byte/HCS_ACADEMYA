@@ -1,7 +1,22 @@
 """4-QISM — saralash va ikki darajali ro'yxat.
 
-    1-20 o'rin   🟢 TOP 20 — xarid uchun tayyor
-    21-30 o'rin  🟡 Diqqatga molik +10 — kuzatuvda
+    🟢 TOP 20    — xarid uchun tayyor  (narx hali yurmagan)
+    🟡 +10       — hali tayyor emas    (narx yurib bo'lgan)
+
+IKKI RO'YXAT — IKKI MA'NO, oddiy "birinchi 20 / keyingi 10" EMAS.
+
+Avval ular faqat TARTIB bo'yicha bo'linardi, va "yurib bo'lgan"
+coin umuman ro'yxatga kirmasdi. Natijada 80 tadan atigi 4 tasi
+qoldi (loyiha egasining kuzatuvi, 2026-09-12) — promptning
+"20 + 10" tuzilmasi buzildi.
+
+Endi bosqich ro'yxatni TANLAYDI:
+
+    hali yurmagan -> Top 20
+    yurib bo'lgan -> +10 "hali tayyor emas"
+
+Ikkinchi yorliq aynan shuni anglatadi: coin yomon emas, shunchaki
+HOZIR kech. Narx qaytsa, keyingi skanda Top ga ko'tariladi.
 
 FILTRDAN O'TMAGANLAR HECH QAYERGA KIRMAYDI. 3-qism qoidasi: coin
 Downtrend bo'lsa, Diqqat darajasi qanchalik yuqori chiqishidan
@@ -81,8 +96,12 @@ def _tartib_kaliti(n: KuzatuvNatija) -> tuple:
 def royxatlarni_qur(natijalar: list[KuzatuvNatija]) -> Royxatlar:
     """80 coindan ikki darajali ro'yxat yasaydi."""
     otganlar = [n for n in natijalar if n.otdi]
-    otganlar.sort(key=_tartib_kaliti)
 
-    top = tuple(otganlar[:TOP_HAJM])
-    kuzatuvda = tuple(otganlar[TOP_HAJM : TOP_HAJM + KUZATUV_HAJM])
-    return Royxatlar(top=top, kuzatuvda=kuzatuvda, otmadi=len(natijalar) - len(otganlar))
+    tayyor = sorted((n for n in otganlar if n.xaridga_tayyor), key=_tartib_kaliti)
+    kech = sorted((n for n in otganlar if not n.xaridga_tayyor), key=_tartib_kaliti)
+
+    return Royxatlar(
+        top=tuple(tayyor[:TOP_HAJM]),
+        kuzatuvda=tuple(kech[:KUZATUV_HAJM]),
+        otmadi=len(natijalar) - len(otganlar),
+    )

@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from core.analysis.observation_mode import KuzatuvNatija, Segment
-from core.analysis.structure.uptrend_filter import Yonalish, YonalishNatija
+from core.analysis.structure.uptrend_filter import (
+    Bosqich,
+    BosqichNatija,
+    Yonalish,
+    YonalishNatija,
+)
 from core.analysis.turlar import Holat
 from core.analysis.turlar import blok as blok_yasa
 from core.analysis.zone_quality.zone_block import ZonaDarajasi, ZonaNatija
@@ -26,9 +31,11 @@ def natija(
     diqqat: int = 0,
     *,
     otadi: bool = True,
+    yurgan: bool = False,
     daraja: ZonaDarajasi = ZonaDarajasi.YOQ,
     kuch: float | None = None,
 ) -> KuzatuvNatija:
+    """`yurgan=True` — narx harakatni tugatgan: Top ga emas, +10 ga."""
     segmentlar = tuple(
         Segment(f"s{i}", Holat.HA if i < diqqat else Holat.YOQ, "", "1h") for i in range(4)
     )
@@ -36,6 +43,7 @@ def natija(
     return KuzatuvNatija(
         symbol=symbol,
         yonalish=yonalish,
+        bosqich=BosqichNatija(Bosqich.YURGAN if yurgan else Bosqich.KORREKSIYA),
         segmentlar=segmentlar if otadi else (),
         zona_natija=_zona(daraja) if otadi else None,
         nisbiy_kuch=kuch,
@@ -116,13 +124,33 @@ def test_nisbiy_kuch_yoq_bolsa_yiqilmaydi() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_top_20_va_keyingi_10() -> None:
+def test_top_20_hali_yurmaganlardan_toladi() -> None:
     coinlar = [natija(f"C{i:02d}", diqqat=4 - (i % 4)) for i in range(40)]
     royxat = royxatlarni_qur(coinlar)
     assert len(royxat.top) == TOP_HAJM
+    # Hammasi "hali yurmagan" — +10 bo'sh qoladi.
+    assert royxat.kuzatuvda == ()
+
+
+def test_yurib_bolganlar_ON_talikka_tushadi() -> None:
+    """IKKI RO'YXAT — IKKI MA'NO, tartib bo'yicha bo'linish emas."""
+    tayyor = [natija(f"T{i:02d}", 3) for i in range(5)]
+    kech = [natija(f"K{i:02d}", 4, yurgan=True) for i in range(15)]
+    royxat = royxatlarni_qur(tayyor + kech)
+
+    # Top da FAQAT hali yurmaganlar — diqqat darajasi pastroq
+    # bo'lsa ham.
+    assert [n.symbol for n in royxat.top] == [f"T{i:02d}" for i in range(5)]
     assert len(royxat.kuzatuvda) == KUZATUV_HAJM
-    # 30 dan keyingi coinlar HECH QAYERDA ko'rinmaydi.
-    assert royxat.jami_korinadi == TOP_HAJM + KUZATUV_HAJM
+    assert all(n.symbol.startswith("K") for n in royxat.kuzatuvda)
+
+
+def test_yurgan_coin_diqqat_yuqori_bolsa_ham_TOP_ga_kirmaydi() -> None:
+    royxat = royxatlarni_qur(
+        [natija("YURGAN", 4, yurgan=True), natija("SEKIN", 1)]
+    )
+    assert [n.symbol for n in royxat.top] == ["SEKIN"]
+    assert [n.symbol for n in royxat.kuzatuvda] == ["YURGAN"]
 
 
 def test_kam_nomzod_bolsa_suniy_toldirilmaydi() -> None:
@@ -145,9 +173,12 @@ def test_bosh_kirish_yiqilmaydi() -> None:
     assert royxat.otmadi == 0
 
 
-def test_yigirma_birinchi_coin_kuzatuvga_tushadi() -> None:
-    """Chegara aynan 20/21 da — bittaga adashish bo'lmasin."""
+def test_top_hajmi_aynan_20_da_kesiladi() -> None:
+    """Chegara aynan 20 da — bittaga adashish bo'lmasin."""
     coinlar = [natija(f"C{i:02d}", 2) for i in range(25)]
     royxat = royxatlarni_qur(coinlar)
+    assert len(royxat.top) == TOP_HAJM
     assert royxat.top[-1].symbol == "C19"
-    assert royxat.kuzatuvda[0].symbol == "C20"
+    # 21-dan keyingilari TOPga sig'madi va ular "yurgan" EMAS —
+    # shuning uchun +10 ga ham tushmaydi.
+    assert royxat.kuzatuvda == ()

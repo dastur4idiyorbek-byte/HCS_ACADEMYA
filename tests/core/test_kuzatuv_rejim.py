@@ -403,18 +403,23 @@ def test_hamma_alternativ_sinsa_blok_otmaydi() -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_allaqachon_yurgan_coin_nomzod_EMAS() -> None:
+def test_allaqachon_yurgan_coin_TOP_ga_kirmaydi() -> None:
     """Loyiha egasi ekranda ko'rgan xato — aynan shu.
 
     Struktura ko'tarilish (HH/HL), lekin narx cho'qqiga yaqin:
-    harakat allaqachon bo'lgan. Birinchi yozuvda bunday coin Top
-    20 ning tepasiga chiqardi.
+    harakat allaqachon bo'lgan. Bunday coin Top 20 ga KIRMAYDI.
+
+    LEKIN U KUZATUVDAN CHIQMAYDI. Ikkinchi tuzatish (2026-09-12):
+    uni butunlay chetlatganda 80 tadan atigi 4 tasi qolgan va
+    "20 + 10" tuzilmasi buzilgan edi. Endi u "+10 hali tayyor
+    emas" ro'yxatiga tushadi, ya'ni segmentlari ham kerak.
     """
     natija = kuzatuv_yur(kirish(struktura_shamlar=kotarilish_yurgan()))
     assert natija.yonalish.yonalish is Yonalish.UPTREND, "struktura o'zi to'g'ri"
     assert natija.bosqich.bosqich is Bosqich.YURGAN
-    assert not natija.otdi, "yurib bo'lgan coin ro'yxatga kirmasligi kerak"
-    assert natija.bloklar == (), "nomzod emas — hisob boshlanmaydi"
+    assert not natija.xaridga_tayyor, "Top 20 ga kirmasligi kerak"
+    assert natija.otdi, "kuzatuvdan esa chiqmaydi"
+    assert len(natija.bloklar) == 4, "+10 uchun segmentlar kerak"
 
 
 def test_qaytish_zonasidagi_coin_nomzod() -> None:
@@ -452,13 +457,19 @@ def test_impuls_topilmasa_YURGAN_deb_belgilanmaydi() -> None:
     assert not Bosqich.YURGAN.nomzod
 
 
-def test_ikki_darvoza_ham_kerak() -> None:
-    """Downtrend + korreksiya ham, uptrend + yurgan ham O'TMAYDI."""
+def test_ikki_darvoza_ikki_xil_ish_qiladi() -> None:
+    """Yo'nalish — KUZATUVGA kiritadi, bosqich — RO'YXATNI tanlaydi."""
+    # Tushayotgan coin hech qaysi ro'yxatga kirmaydi
     tushgan = kuzatuv_yur(kirish(struktura_shamlar=tushish()))
     assert not tushgan.otdi
+    assert not tushgan.xaridga_tayyor
 
+    # Yurib bo'lgan: kuzatuvda bor, Top da yo'q
     yurgan = kuzatuv_yur(kirish(struktura_shamlar=kotarilish_yurgan()))
-    assert not yurgan.otdi
+    assert yurgan.otdi
+    assert not yurgan.xaridga_tayyor
 
+    # Qaytish zonasida: ikkalasi ham
     nomzod = kuzatuv_yur(kirish())
     assert nomzod.otdi
+    assert nomzod.xaridga_tayyor

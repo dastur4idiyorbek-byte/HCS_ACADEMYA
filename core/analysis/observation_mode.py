@@ -260,10 +260,31 @@ class KuzatuvNatija:
 
     @property
     def otdi(self) -> bool:
-        """Coin ro'yxatga kira oladimi.
+        """Coin KUZATUVGA kira oladimi — struktura yuqoriga qaraydimi.
 
-        IKKALASI HAM shart: struktura yuqoriga qarasin VA narx
-        harakatni tugatmagan bo'lsin.
+        Bu BIRINCHI darvoza. Tushayotgan coin hech qaysi ro'yxatga
+        kirmaydi.
+        """
+        return self.yonalish.otadi
+
+    @property
+    def xaridga_tayyor(self) -> bool:
+        """Coin TOP ro'yxatiga kira oladimi.
+
+        IKKINCHI darvoza: narx harakatni tugatmagan bo'lsin.
+
+        NIMA UCHUN ALOHIDA (2026-09-12, loyiha egasining ikkinchi
+        kuzatuvi). Avval bu shart `otdi` ichida edi va yurib bo'lgan
+        coin HECH QAYERDA ko'rinmasdi — natijada 80 tadan atigi
+        4 tasi qoldi va promptning "20 + 10" tuzilmasi buzildi.
+
+        Endi bosqich ro'yxatni TANLAYDI, chetlatmaydi:
+
+            hali yurmagan -> 🟢 "Xarid uchun tayyor"  (Top 20)
+            yurib bo'lgan -> 🟡 "hali tayyor emas"    (+10)
+
+        Ikkinchi ro'yxatning yorlig'i aynan shuni anglatadi: coin
+        yomon emas, shunchaki HOZIR kech. Qaytsa — Top ga ko'tariladi.
         """
         return self.yonalish.otadi and self.bosqich.nomzod
 
@@ -339,10 +360,13 @@ def kuzatuv_yur(kirish: KuzatuvKirish) -> KuzatuvNatija:
     bosqich = bosqich_aniqla(kirish.struktura_shamlar, struktura_nuqtalar)
     narx = kirish.struktura_shamlar[-1].close if kirish.struktura_shamlar else None
 
-    if not (yonalish.otadi and bosqich.nomzod):
-        # Nomzod emas — qolgan uch blok hisoblanmaydi (resurs tejash).
-        # Sabab NATIJADA qoladi: ekranda "nega ro'yxatda yo'q"
-        # degan savolga javob bo'lsin.
+    if not yonalish.otadi:
+        # Struktura tushayotgan — hech qaysi ro'yxatga kirmaydi,
+        # qolgan uch blok hisoblanmaydi (resurs tejash).
+        #
+        # BOSQICH BU YERDA TEKSHIRILMAYDI. Yurib bo'lgan coin ham
+        # "+10 kuzatuvda" ro'yxatiga tushadi, ya'ni uning
+        # segmentlari ekranda kerak.
         return KuzatuvNatija(
             kirish.symbol, yonalish, bosqich=bosqich, narx=narx, timeframelar=tf
         )

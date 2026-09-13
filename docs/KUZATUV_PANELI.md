@@ -156,18 +156,31 @@ qo'lda yozilmaydi. Config o'zgarsa, ekrandagi yozuv ham o'zgaradi.
 
 ---
 
-## Ikki darajali ro'yxat
+## Ikki darajali ro'yxat — ikki MA'NO
 
-- **Top 20** — yuqorida, to'liq o'lchamda
-- **Diqqatga molik +10** — pastroqda, kichikroq va xiraroq
+Ro'yxatlar tartib bo'yicha bo'linmaydi ("birinchi 20, keyingi
+10"). Har birining o'z ma'nosi bor:
+
+| ro'yxat | kim tushadi |
+|---|---|
+| 🟢 **Top 20 — xarid uchun tayyor** | struktura yuqoriga qaragan **va** narx hali yurmagan |
+| 🟡 **+10 — hali tayyor emas** | struktura yuqoriga qaragan, lekin harakat **allaqachon bo'lgan** |
+
+Ikkinchi yorliq aynan shuni anglatadi: coin yomon emas, shunchaki
+**hozir kech**. Narx qaytsa, keyingi skanda tepaga ko'tariladi.
+
+> **Bu ham ikki qadamda topildi.** Avval bosqich darvozasi yurib
+> bo'lgan coinni butunlay chetlatardi, va 80 tadan atigi **4 tasi**
+> qolgan — promptning "20 + 10" tuzilmasi buzilgandi. Loyiha
+> egasi buni ekranda ko'rdi. Endi bosqich coinni chetlatmaydi,
+> **ro'yxatini tanlaydi**.
 
 Teng ball chiqqanda tartib: zona darajasi → nisbiy kuch → alifbo.
 Oxirgisi promptda yo'q, lekin zarur: ansiz teng coinlar har
 yugurishda o'rin almashardi.
 
-**Sun'iy to'ldirish yo'q.** Nomzod 20 tadan kam bo'lsa, ro'yxat
-kamroq ko'rinadi. Bozor tushayotganda xarid nomzodi kam bo'lishi
-**kerak**.
+**Sun'iy to'ldirish yo'q.** Nomzod kam bo'lsa, ro'yxat kamroq
+ko'rinadi — pastroq coinni ko'tarish foydalanuvchini chalg'itardi.
 
 ---
 

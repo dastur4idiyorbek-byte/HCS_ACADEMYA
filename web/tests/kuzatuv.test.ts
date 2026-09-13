@@ -506,3 +506,44 @@ test("zona timeframe'i QO'LDA yozilmagan", () => {
     "timeframe segmentdan olinmagan",
   );
 });
+
+// --------------------------------------------------------------------------- //
+//  IKKI RO'YXAT — IKKI MA'NO (20 + 10 tuzilmasi)
+// --------------------------------------------------------------------------- //
+
+test("ro'yxatlar TARTIB bo'yicha emas, MA'NO bo'yicha bo'linadi", () => {
+  // Avval "birinchi 20 / keyingi 10" edi va yurib bo'lgan coin
+  // umuman ro'yxatga kirmasdi -> 80 tadan 4 tasi qolgan.
+  const python = oqi("core/watch_panel/top20_selector.py");
+  assert.ok(python.includes("n.xaridga_tayyor"), "bosqich bo'yicha bo'linmagan");
+  assert.ok(
+    !python.includes("otganlar[TOP_HAJM"),
+    "hali ham tartib bo'yicha kesilmoqda",
+  );
+});
+
+test("yurib bo'lgan coin KUZATUVDAN chiqmaydi", () => {
+  // Uni butunlay chetlatish "20 + 10" tuzilmasini buzgandi.
+  const python = oqi("core/analysis/observation_mode.py");
+  assert.ok(
+    python.includes("if not yonalish.otadi:"),
+    "bosqich hali ham hisobni to'xtatmoqda",
+  );
+  assert.ok(python.includes("xaridga_tayyor"), "ikkinchi darvoza yo'q");
+});
+
+test("qator bosqichni ko'rsatadi", () => {
+  // Admin NEGA coin quyi ro'yxatda ekanini bilishi kerak.
+  const qator = oqi("web/src/components/kuzatuv/CoinQatori.tsx");
+  assert.ok(qator.includes('coin.bosqich === "yurgan"'));
+  assert.ok(qator.includes("kuzatuv.bosqich_holat.yurgan"));
+});
+
+test("ikkinchi ro'yxat yorlig'i ma'noga mos", () => {
+  const uz = JSON.parse(oqi("web/src/lib/i18n/uz.json")) as {
+    kuzatuv: Record<string, string>;
+  };
+  // "hali tayyor emas" — yurib bo'lgan coin aynan shunday
+  assert.ok(uz.kuzatuv.kuzatuvda.includes("tayyor emas"));
+  assert.ok(uz.kuzatuv.kuzatuvda_izoh.includes("harakat allaqachon"));
+});

@@ -86,14 +86,19 @@ export function CoinQatori({
         ) : null}
       </span>
 
+      {/* Bosqich — admin NEGA shu ro'yxatda ekanini ko'rsin.
+          Zona rangi bilan bir joyda: ikkalasi ham "narx qayerda"
+          degan savolga javob beradi. */}
       <span
         className={cn(
           "hidden shrink-0 sm:inline",
-          zonaRang,
+          coin.bosqich === "yurgan" ? "text-past" : zonaRang,
           kichik ? "text-[11px]" : "text-xs",
         )}
       >
-        {t(`kuzatuv.zona.${joy}`)}
+        {coin.bosqich === "yurgan"
+          ? t("kuzatuv.bosqich_holat.yurgan")
+          : t(`kuzatuv.zona.${joy}`)}
       </span>
 
       <Segmentlar segmentlar={coin.segmentlar} kichik={kichik} className="shrink-0" />
