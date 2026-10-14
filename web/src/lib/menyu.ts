@@ -132,6 +132,15 @@ export const MENYU: MenyuBandi[] = [
     belgi: "kabinet",
     talab: null,
   },
+  // MODUL — tahlil modullarining umumiy sahifasi. Har bir versiya
+  // (3.0.0, 4.0.0, ...) shu yerda alohida bo'lim bo'lib turadi.
+  {
+    kod: "modul",
+    yol: "/modul",
+    kalit: "modul.menyu",
+    belgi: "korish",
+    talab: null,
+  },
   // COIN QIDIRISH — HAMMAGA ochiq, lekin kunlik chegara bilan.
   //
   // Bu — kuzatuv panelining foydalanuvchi uchun ochilgan, TOR
@@ -156,6 +165,17 @@ export const MENYU: MenyuBandi[] = [
     belgi: "korish",
     talab: null,
     adminUchun: true,
+  },
+  // MODUL 4.0.0 — hali tayyor emas. Manzil `/modul/4` EMAS: tab
+  // faolligi `startsWith` bilan topiladi va `/modul/...` ostidagi
+  // sahifa umumiy "Modul" bandini ham faol qilib qo'yardi.
+  {
+    kod: "modul4",
+    yol: "/modul-4",
+    kalit: "modul.v4",
+    belgi: "korish",
+    talab: null,
+    tezKunda: true,
   },
   {
     kod: "admin",
@@ -204,22 +224,21 @@ export const PASTKI_TABLAR: PastkiTab[] = [
     kalit: "pastki.produkt",
     sahifalar: ["signallar", "kalkulyator", "statistika"],
   },
-  // MODUL 3.0.0 — o'z tabi, pastki qatorning asosiy tugmalaridan biri.
+  // MODUL — o'z tabi, pastki qatorning asosiy tugmalaridan biri.
   //
-  // BITTA TAB, IKKI MANZIL. `tabSahifalari` `adminUchun` bandni
-  // admin bo'lmaganga qaytarmaydi, va tab HAR DOIM ro'yxatdagi
-  // BIRINCHI sahifaga olib boradi. Shuning uchun tartib muhim:
+  // Tab umumiy "Modul" sahifasiga olib boradi (birinchi sahifa).
+  // Uning ichida versiyalar bo'lim bo'lib turadi:
   //
-  //     admin         -> "kuzatuv" qoladi  -> panel ochiladi
-  //     foydalanuvchi -> "kuzatuv" tushadi -> qidiruv ochiladi
+  //     Modul 3.0.0 -> admin: kuzatuv paneli, foydalanuvchi: qidiruv
+  //     Modul 4.0.0 -> tez kunda
   //
-  // Ya'ni rolga qarab ajratish uchun ALOHIDA shart yozilmadi —
-  // mavjud qoidaning o'zi yetarli. Ikkinchi shart yozilsa, u
-  // `korinadiganBandlar` bilan ajralib ketishi mumkin edi.
+  // "kuzatuv" admin bo'lmaganga `tabSahifalari` tomonidan
+  // qaytarilmaydi — rolga qarab ajratish uchun alohida shart
+  // yozilmadi, mavjud qoidaning o'zi yetarli.
   {
     kod: "modul",
     kalit: "pastki.modul",
-    sahifalar: ["kuzatuv", "qidiruv"],
+    sahifalar: ["modul", "kuzatuv", "qidiruv", "modul4"],
   },
   {
     kod: "kabinet",

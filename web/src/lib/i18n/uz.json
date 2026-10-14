@@ -103,7 +103,7 @@
     "akademiya": "Akademiya",
     "produkt": "Produkt",
     "kabinet": "Kabinet",
-    "modul": "Modul 3.0.0"
+    "modul": "Modul"
   },
   "kirish": {
     "sarlavha": "Telegram orqali kiring",
@@ -723,5 +723,15 @@
     "yirik_yoq": "So'nggi 15 daqiqada yirik operatsiya bo'lmadi.",
     "manba_yoq": "Bu ko'rsatkichning manbai ulanmagan — u hisobga kirmaydi.",
     "fundamental_izoh": "Funding Rate, Open Interest, Fear & Greed, stablecoin zaxirasi, sektor rotatsiyasi va Token Unlock kalendari jonli olinadi. Netflow va yangiliklar manbasi pullik, delisting uchun API yo'q — ular ulanmagan va hisobga kirmaydi."
+  },
+  "modul": {
+    "menyu": "Modul",
+    "sarlavha": "Modul",
+    "izoh": "HCS tahlil modullari. Har bir versiya — alohida bo'lim.",
+    "v3": "Modul 3.0.0",
+    "v3_izoh": "80 halol coin doimiy kuzatiladi: tayyor coinlar, kuzatuvdagilar va coin qidirish. Bo'lim faqat ko'rsatadi — kirish, stop va nishon narxlari berilmaydi.",
+    "v4": "Modul 4.0.0",
+    "v4_izoh": "Yangi modul tayyorlanmoqda. Tayyor bo'lganda shu yerda ochiladi.",
+    "ochish": "Ochish"
   }
 }

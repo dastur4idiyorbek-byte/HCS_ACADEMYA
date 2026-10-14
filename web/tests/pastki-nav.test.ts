@@ -68,20 +68,28 @@ test("tabSahifalari admin bo'lmaganga 'admin' bandini qaytarmaydi", () => {
 });
 
 
-test("Modul 3.0.0 tabi rolga qarab BOSHQA sahifaga olib boradi", () => {
-  // Bitta tugma, ikki manzil. Alohida shart yozilmagan: tab har
-  // doim ro'yxatdagi BIRINCHI ko'rinadigan sahifaga olib boradi,
-  // va `kuzatuv` admin bo'lmaganga qaytarilmaydi.
+test("Modul tabi umumiy Modul sahifasiga olib boradi", () => {
+  // Tab har doim ro'yxatdagi BIRINCHI ko'rinadigan sahifaga olib
+  // boradi — u "Modul" sahifasi bo'lishi kerak, rol farqi yo'q.
   const modul = PASTKI_TABLAR.find((t) => t.kod === "modul");
   assert.ok(modul, "modul tabi topilmadi");
 
   const admin = tabSahifalari(modul, true).map((s) => s.kod);
-  assert.deepEqual(admin, ["kuzatuv", "qidiruv"]);
-  assert.equal(admin[0], "kuzatuv", "admin panelga tushishi kerak");
+  assert.deepEqual(admin, ["modul", "kuzatuv", "qidiruv", "modul4"]);
 
   const oddiy = tabSahifalari(modul, false).map((s) => s.kod);
-  assert.deepEqual(oddiy, ["qidiruv"]);
-  assert.equal(oddiy[0], "qidiruv", "foydalanuvchi qidiruvga tushishi kerak");
+  assert.deepEqual(oddiy, ["modul", "qidiruv", "modul4"]);
+});
+
+test("Modul sahifasida Modul 3.0.0 rolga qarab BOSHQA sahifaga olib boradi", () => {
+  // Kuzatuv paneli adminga xos: oddiy foydalanuvchi qidiruvga tushadi.
+  const matn = readFileSync(
+    path.join(import.meta.dirname, "..", "src", "app", "(ichki)", "modul", "page.tsx"),
+    "utf8",
+  );
+  assert.ok(matn.includes('admin ? "/kuzatuv" : "/qidiruv"'));
+  assert.ok(matn.includes('t("modul.v3")'));
+  assert.ok(matn.includes('t("modul.v4")'));
 });
 
 test("Modul tabi oddiy foydalanuvchiga ham KO'RINADI", () => {
