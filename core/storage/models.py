@@ -987,3 +987,230 @@ class KunlikQidiruv(Base, TimestampMixin):
     soni: Mapped[int] = mapped_column(
         Integer, default=0, server_default="0", nullable=False
     )
+
+
+# --------------------------------------------------------------------------- #
+#  Modul 4.0.0 — "Portlash xavfi radari" (`docs/MODUL_4_0_0.md`)
+#
+#  Modul 3.0.0 jadvallaridan (`kuzatuv_*`) BUTUNLAY ALOHIDA. Ular ikki
+#  xil savolga javob beradi ("struktura yaxshimi?" va "hozir portlash
+#  xavfi bormi?") va bir-biriga bog'lanmasligi kerak.
+#
+#  QAT'IY CHEGARA: bu jadvallarda Entry, Stop yoki TP ustuni YO'Q va
+#  bo'lmaydi ham — modul signal bermaydi (`tests/core/test_radar_chegara.py`).
+# --------------------------------------------------------------------------- #
+
+
+class RadarSessiya(Base, TimestampMixin):
+    """Radarning bitta yugurishi.
+
+    TARIX SAQLANADI (Modul 3.0.0 dan farqli). Grafik, sessiya jadvali
+    va calibration aynan shu tarixdan o'qiydi: "kecha 3-sessiyada kim
+    nechanchi o'rinda edi" degan savolga javob kerak.
+
+    `kun` va `tartib` — `sham_vaqti` dan chiqadi va ATAYLAB alohida
+    saqlanadi: sayt kun bo'yicha tez qidirsin va vaqt zonasi hisobini
+    takrorlamasin.
+    """
+
+    __tablename__ = "radar_sessiyalar"
+    __table_args__ = (Index("ix_radar_sessiyalar_turi_sham", "turi", "sham_vaqti"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: `kashfiyot` (A) | `tasdiq` (B, rasmiy) | `qolda` (admin, rasmiy emas)
+    turi: Mapped[str] = mapped_column(String(16), nullable=False)
+    #: Sessiya oldidan turgan 4 soatlik sham ochilishi (UTC)
+    sham_vaqti: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
+    #: `YYYY-MM-DD` — `sham_vaqti` ning UTC sanasi (1 kun = 6 rasmiy sessiya)
+    kun: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
+    #: Kun ichidagi o'rni: 1..6
+    tartib: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    boshlandi: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
+    tugadi: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    #: `yurmoqda` | `tugadi` | `xato`
+    holat: Mapped[str] = mapped_column(
+        String(16), default="yurmoqda", server_default="yurmoqda", nullable=False
+    )
+
+    #: Sanoqlar — sahifadagi holat kartasi uchun
+    universum: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    darvozadan: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    elakdan: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    nomzod: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+
+    #: BTC ning 24 soatlik o'zgarishi (%) — 6-tekshiruv etaloni
+    btc_ozgarish: Mapped[float | None] = mapped_column(Float)
+    #: Har manbaning holati: `{"ticker": {"holat": "ok", "kod": 200, "izoh": ""}}`
+    manbalar_json: Mapped[str] = mapped_column(
+        Text, default="{}", server_default="{}", nullable=False
+    )
+    #: Shu sessiya ishlatgan chegaralar — "qaysi raqam bilan hisoblangan"
+    sozlama_json: Mapped[str] = mapped_column(
+        Text, default="{}", server_default="{}", nullable=False
+    )
+    izoh: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
+
+
+class RadarNatija(Base, TimestampMixin):
+    """Sessiyadagi bitta coin.
+
+    UCH TUR:
+      `elak`   — pool: elakdan o'tgan (yoki A nomzodi). To'liq tekshiriladi
+                 va o'rin oladi (yashirilmagan bo'lsa).
+      `namuna` — nazorat guruhi: elakdan o'tmagan, tasodifiy tanlangan.
+                 To'liq tekshiriladi, O'RIN OLMAYDI. Calibration uchun.
+      `chiqdi` — oldingi rasmiy sessiyada o'rin olgan, endi pooldan
+                 tushgan. FAQAT NARX yoziladi — sessiya jadvalidagi
+                 "chiqdi +2%" uchun.
+
+    `kel_*` ustunlari keyin to'ldiriladi (calibration): 24 soat va 7
+    kundan keyin narx qayerga borgani. Ular QAROR uchun emas — faqat
+    chegaralarni dalil bilan to'g'rilash uchun.
+    """
+
+    __tablename__ = "radar_natijalar"
+    __table_args__ = (
+        UniqueConstraint("sessiya_id", "symbol", name="uq_radar_natijalar_sessiya_symbol"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    sessiya_id: Mapped[int] = mapped_column(
+        ForeignKey("radar_sessiyalar.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    #: Binance symbol — `LSKUSDT`
+    symbol: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    #: Asl belgi — `LSK` (`1000PEPE` -> `PEPE`)
+    belgi: Mapped[str] = mapped_column(String(32), nullable=False)
+    #: `elak` | `namuna` | `chiqdi`
+    turi: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    #: O'sha sessiyadagi narx (ticker `lastPrice`). "Kirish narxi" EMAS.
+    narx: Mapped[float | None] = mapped_column(Float)
+    hajm_24s: Mapped[float | None] = mapped_column(Float)
+    hajm_nisbati: Mapped[float | None] = mapped_column(Float)
+    ozgarish_24s: Mapped[float | None] = mapped_column(Float)
+    market_cap: Mapped[float | None] = mapped_column(Float)
+
+    #: 7 tekshiruv: kod, guruh, holat, qiymat, chegara, manba, qoshimcha
+    tekshiruvlar_json: Mapped[str] = mapped_column(
+        Text, default="[]", server_default="[]", nullable=False
+    )
+    tasdiq_soni: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    harakat_soni: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    yoqilgi_soni: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    malumot_yoq_soni: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", nullable=False
+    )
+    nomzod: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
+    #: `tasdiqlangan` | `vaqtinchalik` | `nomzod` | `oddiy`
+    holat: Mapped[str] = mapped_column(
+        String(16), default="oddiy", server_default="oddiy", nullable=False
+    )
+    #: Sessiyadagi o'rni (1 dan). Faqat `elak` va yashirilmagan coinda.
+    orin: Mapped[int | None] = mapped_column(Integer)
+    #: Necha sessiya ketma-ket nomzod — FAQAT MA'LUMOT, tartibga ta'sir qilmaydi
+    ketma_ket: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    yashirin: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
+    yangi_listing: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
+    #: `halol` | `harom` | `shubhali` | `baholanmagan` — sanoqqa KIRMAYDI
+    halol: Mapped[str] = mapped_column(
+        String(16), default="baholanmagan", server_default="baholanmagan", nullable=False
+    )
+
+    #: Calibration — narxga nisbatan foiz (24 soat keyin)
+    kel_24s_oxiri: Mapped[float | None] = mapped_column(Float)
+    kel_24s_max: Mapped[float | None] = mapped_column(Float)
+    kel_24s_min: Mapped[float | None] = mapped_column(Float)
+    kel_24s_vaqt: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    #: Calibration — 7 kun keyin
+    kel_7k_oxiri: Mapped[float | None] = mapped_column(Float)
+    kel_7k_max: Mapped[float | None] = mapped_column(Float)
+    kel_7k_min: Mapped[float | None] = mapped_column(Float)
+    kel_7k_vaqt: Mapped[datetime | None] = mapped_column(UtcDateTime)
+
+
+class RadarHajm(Base, TimestampMixin):
+    """30 kunlik o'rtacha hajm — kunda BIR MARTA hisoblanadi.
+
+    NIMA UCHUN KESH. Ticker faqat bugungi hajmni beradi. O'rtachani
+    har sessiyada olish yuzlab so'rov demak edi; kesh bilan elak
+    bitta so'rovga tushadi.
+    """
+
+    __tablename__ = "radar_hajm"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+    #: Yopilgan kunlik shamlar quote hajmining o'rtachasi (USD)
+    ortacha_30k: Mapped[float | None] = mapped_column(Float)
+    #: O'rtacha nechta kundan olingan (yangi listingda kam)
+    kunlar: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False)
+    yangilangan: Mapped[datetime] = mapped_column(UtcDateTime, nullable=False)
+
+
+class RadarSozlama(Base, TimestampMixin):
+    """Admin saytda o'zgartirgan chegara.
+
+    Standart qiymat `config/default.yaml` (`radar:`) da turadi. Bu
+    yerdagi qator uni BOSADI — keyingi sessiyadan boshlab. Qator
+    o'chirilsa, standartga qaytadi.
+    """
+
+    __tablename__ = "radar_sozlamalar"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    kalit: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    qiymat: Mapped[float] = mapped_column(Float, nullable=False)
+    #: Kim o'zgartirgani (Telegram ID)
+    ozgartirdi: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class RadarYashirin(Base, TimestampMixin):
+    """Admin yashirgan coin.
+
+    Yashirilgan coin O'RIN OLMAYDI, lekin baribir tekshiriladi va
+    calibration'ga yoziladi — aks holda statistika buzilardi.
+    """
+
+    __tablename__ = "radar_yashirin"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    symbol: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+    sabab: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)
+    #: Shu vaqtgacha yashirin. Bo'sh — doimiy.
+    gacha: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    qoshdi: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class RadarHolati(Base, TimestampMixin):
+    """Radar ishchisining holati — BITTA qator (id=1).
+
+    Sayt va bot ikki alohida jarayon: ular faqat baza orqali
+    gaplashadi (`kuzatuv_skani` bilan bir xil usul). Sayt "qo'lda
+    tekshir" bayrog'ini qo'yadi, bot esa yurak urishini yozadi —
+    sahifa ishchi tirikmi yoki yo'qmi shundan biladi.
+    """
+
+    __tablename__ = "radar_holati"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    #: Admin qo'lda tekshiruv so'radi
+    sorov: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("0"), nullable=False
+    )
+    #: Ishchi oxirgi marta qachon tirik edi
+    ishchi_tirik: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    hajm_yangilandi: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    baholash_oxirgi: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    oxirgi_xato: Mapped[str] = mapped_column(Text, default="", server_default="", nullable=False)

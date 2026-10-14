@@ -22,7 +22,7 @@ from typing import Any, TypeVar
 
 import yaml
 
-from core.config.schema import AppConfig
+from core.config.schema import RADAR_BUTUN_KALITLAR, RADAR_ORALIQLARI, AppConfig
 
 T = TypeVar("T")
 
@@ -180,5 +180,41 @@ def validate(config: AppConfig) -> None:
             f"(ruxsat: {', '.join(sorted(ruxsat_etilgan_birjalar))})"
         )
 
+    problems.extend(radar_muammolari(config))
+
     if problems:
         raise ConfigError("Konfiguratsiya xatolari:\n  - " + "\n  - ".join(problems))
+
+
+def radar_muammolari(config: AppConfig) -> list[str]:
+    """Modul 4.0.0 chegaralari ruxsat etilgan oraliqdami.
+
+    Sayt orqali o'zgartirilgan qiymat ham shu oraliqqa qarab
+    tekshiriladi — YAML dagi qiymat undan chetga chiqsa, bot ishga
+    tushmaydi (noto'g'ri sozlama bilan jim ishlagandan ko'ra yaxshi).
+    """
+    radar = config.radar
+    muammolar: list[str] = []
+    for kalit, (past, yuqori) in RADAR_ORALIQLARI.items():
+        qiymat = getattr(radar, kalit)
+        if not past <= qiymat <= yuqori:
+            muammolar.append(f"radar.{kalit} {past:g}..{yuqori:g} oralig'ida bo'lishi kerak")
+        if kalit in RADAR_BUTUN_KALITLAR and float(qiymat) != int(qiymat):
+            muammolar.append(f"radar.{kalit} butun son bo'lishi kerak")
+    if radar.tasdiq_daqiqa >= radar.kashfiyot_daqiqa:
+        muammolar.append("radar.tasdiq_daqiqa kashfiyot_daqiqa dan kichik bo'lishi kerak")
+    if radar.tasdiq_kechikish_daqiqa >= radar.tasdiq_daqiqa:
+        muammolar.append(
+            "radar.tasdiq_kechikish_daqiqa tasdiq_daqiqa dan kichik bo'lishi kerak "
+            "(sessiya sham ochilishidan oldin tugashi shart)"
+        )
+    if radar.kashfiyot_daqiqa - radar.kashfiyot_kechikish_daqiqa <= radar.tasdiq_daqiqa:
+        muammolar.append(
+            "radar.kashfiyot_kechikish_daqiqa juda katta — kechikkan kashfiyot "
+            "tasdiqlash vaqtiga yetib qolmasligi kerak"
+        )
+    if radar.oi_oyna_soat < 1 or radar.oi_oyna_soat > 48:
+        muammolar.append("radar.oi_oyna_soat 1..48 oralig'ida bo'lishi kerak")
+    if radar.parallel_sorov < 1:
+        muammolar.append("radar.parallel_sorov kamida 1 bo'lishi kerak")
+    return muammolar

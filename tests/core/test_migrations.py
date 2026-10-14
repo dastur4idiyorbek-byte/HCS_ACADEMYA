@@ -9,6 +9,7 @@ buzuq. Bu test aynan shu ajralishni ushlaydi.
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 import subprocess
 from pathlib import Path
@@ -211,17 +212,26 @@ def test_bir_dona_bosh_migratsiya() -> None:
     versiyalar = sorted((ILDIZ / "migrations" / "versions").glob("*.py"))
     assert versiyalar, "birorta migratsiya topilmadi"
 
+    # IKKALA YOZILISH ham tanilishi shart: `revision: str = "..."` va
+    # tipsiz `revision = "..."`. Ilgari faqat birinchisi o'qilardi va
+    # `d1a4f76b3e08` (tipsiz) testga umuman ko'rinmasdi — ya'ni test
+    # noto'g'ri sabab bilan yashil turardi va undan keyingi birinchi
+    # migratsiya "ikki head" deb yiqilardi.
+    naqsh = re.compile(r"^(down_revision|revision)\s*(?::[^=]*)?=\s*(.+)$")
+
     barcha_id = set()
     ota_id = set()
     for fayl in versiyalar:
         matn = fayl.read_text(encoding="utf-8")
         for qator in matn.splitlines():
-            if qator.startswith("revision: str ="):
-                barcha_id.add(qator.split("=", 1)[1].strip().strip("\"'"))
-            elif qator.startswith("down_revision: "):
-                qiymat = qator.split("=", 1)[1].strip().strip("\"'")
-                if qiymat != "None":
-                    ota_id.add(qiymat)
+            moslik = naqsh.match(qator)
+            if moslik is None:
+                continue
+            qiymat = moslik.group(2).strip().strip("\"'")
+            if moslik.group(1) == "revision":
+                barcha_id.add(qiymat)
+            elif qiymat != "None":
+                ota_id.add(qiymat)
 
     boshlar = barcha_id - ota_id
     assert len(boshlar) == 1, f"bitta `head` bo'lishi kerak, topildi: {sorted(boshlar)}"

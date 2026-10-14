@@ -734,6 +734,122 @@ class KuzatuvConfig:
     qidiruv_premium: int = 30
 
 
+#: Modul 4.0.0 chegaralarining ruxsat etilgan oralig'i.
+#:
+#: BITTA JOYDA. Admin chegarani saytda o'zgartiradi, bot esa uni
+#: bazadan o'qiydi — ikkalasi ham bir xil oraliqqa qarashi kerak.
+#: Sayt nusxasi (`web/src/lib/radar.ts: SOZLAMA_ORALIQLARI`) shu
+#: lug'at bilan bir xilligini `tests/core/test_radar_sozlama.py`
+#: tekshiradi.
+RADAR_ORALIQLARI: dict[str, tuple[float, float]] = {
+    "min_kapitalizatsiya_usd": (0.0, 1e11),
+    "min_hajm_24s_usd": (0.0, 1e11),
+    "elak_hajm_x": (1.0, 100.0),
+    "yangi_listing_kun": (0.0, 365.0),
+    "hajm_x": (1.0, 100.0),
+    "narx_ozgarish_pct": (1.0, 1000.0),
+    "funding_8s_pct": (0.001, 10.0),
+    "oi_osish_pct": (1.0, 1000.0),
+    "long_short_nisbat": (1.0, 100.0),
+    "btc_farq_pp": (1.0, 1000.0),
+    "aylanma_max_pct": (1.0, 100.0),
+    "unlock_kun": (1.0, 180.0),
+    "unlock_min_pct": (0.01, 100.0),
+    "nomzod_min": (1.0, 7.0),
+    "top_n": (3.0, 30.0),
+    "namuna_soni": (0.0, 50.0),
+    "portlash_24s_pct": (1.0, 1000.0),
+    "portlash_7k_pct": (1.0, 1000.0),
+}
+
+#: Butun son bo'lishi shart bo'lgan kalitlar (kun, sanoq, o'rin).
+RADAR_BUTUN_KALITLAR: frozenset[str] = frozenset(
+    {"yangi_listing_kun", "unlock_kun", "nomzod_min", "top_n", "namuna_soni"}
+)
+
+
+@dataclass(frozen=True, slots=True)
+class RadarConfig:
+    """Modul 4.0.0 — "Portlash xavfi radari" (`docs/MODUL_4_0_0.md`).
+
+    Modul 3.0.0 (`kuzatuv`) dan BUTUNLAY ALOHIDA sozlama. Ular
+    ikki xil savolga javob beradi va biri o'zgarganda ikkinchisi
+    jimgina o'zgarmasligi kerak.
+
+    SIGNAL BERMAYDI: bu yerdagi hech bir raqam Entry, Stop yoki TP
+    emas. Hammasi "kuzatib boring" darajasidagi chegaralar.
+
+    🔴 O'LCHANMAGAN. Chegaralarning hammasi — taklif. Ular calibration
+    natijasiga qarab to'g'rilanadi va admin ularni saytda kodga
+    tegmasdan o'zgartira oladi (`radar_sozlamalar`). Bu yerdagilar —
+    standart qiymat.
+    """
+
+    #: Sikl umuman yuradimi. O'chirilsa bot ishlaydi, radar jim turadi.
+    yoqilgan: bool = True
+    #: Ekranda ko'rsatiladigan vaqt zonasi. Hisob doim UTC da.
+    vaqt_zonasi: str = "Asia/Bishkek"
+    #: Binance Futures REST manzili — kalitsiz, ochiq.
+    futures_base_url: str = "https://fapi.binance.com"
+
+    # --- 0-darvoza ---------------------------------------------------- #
+    #: Kapitalizatsiya pastki chegarasi. ELAKDAN KEYIN qo'llanadi:
+    #: ma'lumot faqat elakdan o'tganlar uchun so'raladi.
+    min_kapitalizatsiya_usd: float = 10_000_000.0
+    #: 24 soatlik hajm pastki chegarasi — bundan kamida ma'lumot ishonchsiz.
+    min_hajm_24s_usd: float = 500_000.0
+
+    # --- 1-bosqich: elak ----------------------------------------------- #
+    #: Hajm 30 kunlik o'rtachadan necha barobar katta bo'lsa elakdan o'tadi.
+    elak_hajm_x: float = 3.0
+    #: Shundan yosh listing elakdan o'rtachasiz o'tadi (tarixi yo'q).
+    yangi_listing_kun: int = 30
+
+    # --- 2-bosqich: 7 tekshiruv ---------------------------------------- #
+    hajm_x: float = 5.0
+    narx_ozgarish_pct: float = 20.0
+    #: 8 soatga keltirilgan funding (foizda, 0.1 = 0.1%).
+    funding_8s_pct: float = 0.1
+    oi_osish_pct: float = 30.0
+    #: OI o'sishi necha soatlik oynada o'lchanadi.
+    oi_oyna_soat: int = 8
+    long_short_nisbat: float = 2.5
+    btc_farq_pp: float = 15.0
+    aylanma_max_pct: float = 60.0
+    unlock_kun: int = 7
+    unlock_min_pct: float = 5.0
+
+    # --- 3-bosqich ---------------------------------------------------- #
+    #: 7 tadan nechta ✅ bo'lsa NOMZOD.
+    nomzod_min: int = 4
+    #: Grafik va jadvaldagi "Top" o'lchami.
+    top_n: int = 10
+
+    # --- Vaqt jadvali ------------------------------------------------- #
+    #: Kashfiyot (A) 4 soatlik sham ochilishidan necha daqiqa oldin.
+    kashfiyot_daqiqa: int = 60
+    #: Tasdiqlash (B) — rasmiy sessiya.
+    tasdiq_daqiqa: int = 15
+    #: Bot kechikib ko'tarilsa, sessiya necha daqiqagacha baribir yuradi.
+    kashfiyot_kechikish_daqiqa: int = 40
+    tasdiq_kechikish_daqiqa: int = 14
+    #: 30 kunlik o'rtacha har kuni shu paytda (UTC) yangilanadi.
+    hajm_yangilash_soat: int = 0
+    hajm_yangilash_daqiqa: int = 5
+
+    # --- Calibration -------------------------------------------------- #
+    #: Nazorat guruhi — elakdan o'tmagan coinlardan har sessiyada nechta.
+    namuna_soni: int = 10
+    #: "Portlash" deb hisoblanadigan eng yuqori o'sish (statistika uchun).
+    portlash_24s_pct: float = 20.0
+    portlash_7k_pct: float = 50.0
+
+    # --- So'rovlar ---------------------------------------------------- #
+    #: Coin boshiga so'rovlar bir vaqtda nechta yuboriladi.
+    parallel_sorov: int = 5
+    sorov_kutish_soniya: float = 15.0
+
+
 @dataclass(frozen=True, slots=True)
 class AppConfig:
     """Butun tizimning yagona konfiguratsiya obyekti."""
@@ -745,6 +861,8 @@ class AppConfig:
     risk_engine: RiskEngineConfig = field(default_factory=RiskEngineConfig)
     zanjir: ZanjirConfig = field(default_factory=ZanjirConfig)
     kuzatuv: KuzatuvConfig = field(default_factory=KuzatuvConfig)
+    #: Modul 4.0.0 — Portlash xavfi radari
+    radar: RadarConfig = field(default_factory=RadarConfig)
     portfolio: PortfolioConfig = field(default_factory=PortfolioConfig)
     position_sizing: PositionSizingConfig = field(default_factory=PositionSizingConfig)
     subscriptions: SubscriptionsConfig = field(default_factory=SubscriptionsConfig)
