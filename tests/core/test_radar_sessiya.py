@@ -50,10 +50,10 @@ def bozor() -> dict[str, Coin]:
         Coin("BTCUSDT", "BTC", 10e9, 9e9, 1.0, narx=60000.0, cg_cap=1e12),
         # 5/7: hajm, narx, funding, oi, btc ✅ | long/short, ta'minot ❌
         Coin("LSKUSDT", "LSK", 82e6, 10e6, 287.0, narx=1.2, funding=-0.0034,
-             oi=(100.0, 120.0, 141.0), ls=1.8, cg_cap=200e6, cg_aylanma=70.6),
+             oi=(100.0, *[110.0] * 7, 141.0), ls=1.8, cg_cap=200e6, cg_aylanma=70.6),
         # 5/7, lekin YASHIRILADI
         Coin("ABCUSDT", "ABC", 4e6, 1e6, 25.0, narx=2.0, funding=0.0002, funding_soat=4,
-             oi=(100.0, 135.0), ls=3.0, cg_aylanma=50.0),
+             oi=(100.0, *[100.0] * 7, 135.0), ls=3.0, cg_aylanma=50.0),
         # elakdan o'tadi, lekin kapitalizatsiya $2 mln -> chetlatiladi
         Coin("TINYUSDT", "TINY", 6e6, 1e6, 40.0, cg_cap=2e6),
         # yangi listing: tarix yo'q, o'rtachasiz o'tadi
@@ -250,14 +250,15 @@ async def test_a_va_b_sessiyalari_zanjiri(config: AppConfig, db: Database) -> No
 
     # --- B (tasdiq): ABC endi nomzod emas, LSK hamon nomzod ---
     coinlar["ABCUSDT"].ls = 1.0
-    coinlar["ABCUSDT"].oi = (100.0, 101.0)
+    coinlar["ABCUSDT"].oi = (100.0, *[100.0] * 7, 101.0)
     async with db.session() as s:
         await s.execute(RadarYashirin.__table__.delete())
     sessiya, _, _ = _sessiya(config, db, coinlar, SHAM - timedelta(minutes=15))
     bx = await sessiya.yur(TASDIQ, SHAM)
     qb = await _qatorlar(db, bx.sessiya_id)
     assert qb["LSKUSDT"].holat == "tasdiqlangan"
-    assert qb["LSKUSDT"].ketma_ket == 2  # A dan davom etyapti
+    # Ketma-ket o'z turi ichida: bu birinchi B -> 🆕 (A zanjirga qo'shilmaydi)
+    assert qb["LSKUSDT"].ketma_ket == 1
     assert qb["ABCUSDT"].holat == "vaqtinchalik"
     assert qb["ABCUSDT"].ketma_ket == 0
     assert qb["ABCUSDT"].orin is not None  # endi yashirin emas
@@ -365,3 +366,34 @@ async def test_cg_narxi_mos_kelmasa_boshqa_loyiha_deb_tashlanadi(
     assert q["LSKUSDT"].market_cap is None
     t = {x["kod"]: x for x in json.loads(q["LSKUSDT"].tekshiruvlar_json)}
     assert t["taminot"]["holat"] == "malumot_yoq"
+
+
+async def test_coingecko_nol_kapitalizatsiyasi_nomalum_hisoblanadi(
+    config: AppConfig, db: Database
+) -> None:
+    """CoinGecko tasdiqlanmagan ta'minotga 0 beradi — bu "bilmayman".
+    Coin $10 mln darvozasidan tushmasin va aylanma "0%" bo'lmasin."""
+    coinlar = bozor()
+    coinlar["LSKUSDT"].cg_cap = 0.0
+    coinlar["LSKUSDT"].cg_aylanma = 0.0
+    await _kesh(db, coinlar)
+    sessiya, _, _ = _sessiya(config, db, coinlar, HOZIR)
+    natija = await sessiya.yur(TASDIQ, SHAM)
+    q = await _qatorlar(db, natija.sessiya_id)
+    assert q["LSKUSDT"].turi == "elak"
+    assert q["LSKUSDT"].market_cap is None
+    t = {x["kod"]: x for x in json.loads(q["LSKUSDT"].tekshiruvlar_json)}
+    assert t["taminot"]["holat"] == "malumot_yoq"
+
+
+async def test_ketma_ket_rasmiy_b_zanjirida_osadi(config: AppConfig, db: Database) -> None:
+    """Uch ketma-ket B sessiyasida nomzod -> 1, 2, 3 (oradagi A ta'sir qilmaydi)."""
+    coinlar = bozor()
+    await _kesh(db, coinlar)
+    qiymatlar = []
+    for i in range(3):
+        sham = SHAM + timedelta(hours=4 * i)
+        sessiya, _, _ = _sessiya(config, db, coinlar, sham - timedelta(minutes=15))
+        natija = await sessiya.yur(TASDIQ, sham)
+        qiymatlar.append((await _qatorlar(db, natija.sessiya_id))["LSKUSDT"].ketma_ket)
+    assert qiymatlar == [1, 2, 3]

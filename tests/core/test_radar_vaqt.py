@@ -92,9 +92,11 @@ def test_naive_vaqt_rad_etiladi() -> None:
         sham_boshi(datetime(2026, 10, 14, 5))
 
 
-def test_ketma_ket_zanjiri_qoshnisi() -> None:
-    assert oldingi_rasmiy_slot(TASDIQ, t(4)) == (KASHFIYOT, t(4))
-    assert oldingi_rasmiy_slot(KASHFIYOT, t(4)) == (TASDIQ, t(0))
+def test_ketma_ket_zanjiri_oz_turi_ichida() -> None:
+    """B oldingi B dan, A oldingi A dan — A rasmiy B zanjirini uzmaydi."""
+    assert oldingi_rasmiy_slot(TASDIQ, t(4)) == (TASDIQ, t(0))
+    assert oldingi_rasmiy_slot(KASHFIYOT, t(4)) == (KASHFIYOT, t(0))
+    assert oldingi_rasmiy_slot(TASDIQ, t(0)) == (TASDIQ, t(20, kun=13))
     with pytest.raises(ValueError):
         oldingi_rasmiy_slot("qolda", t(4))
 

@@ -83,9 +83,20 @@ async def test_vaqti_kelmagan_baholanmaydi(db: Database) -> None:
 
 
 async def test_sham_kelmasa_kutadi_keyin_voz_kechadi(db: Database) -> None:
-    b = SoxtaBinance(None)
+    """Delisting: so'rov o'tdi, lekin sham yo'q (bo'sh ro'yxat)."""
+    b = SoxtaBinance([])
     hozir = BOSHI + timedelta(days=2)
     assert await RadarBaholash(db, b, lambda: hozir).yur() == 0  # type: ignore[arg-type]
     hozir = BOSHI + timedelta(days=4)
     # 24s davri voz kechadi (bo'sh qiymat bilan yopiladi), 7k hali kutadi
     assert await RadarBaholash(db, b, lambda: hozir).yur() == 2  # type: ignore[arg-type]
+
+
+async def test_sorov_yiqilsa_hech_qachon_voz_kechilmaydi(db: Database) -> None:
+    """Tarmoq/429/451 — "sham yo'q" emas. Bir necha kunlik uzilishdan keyin
+    ham yozuv bo'sh yopilmaydi: Binance tiklangach baholanadi."""
+    b = SoxtaBinance(None)
+    hozir = BOSHI + timedelta(days=20)
+    assert await RadarBaholash(db, b, lambda: hozir).yur() == 0  # type: ignore[arg-type]
+    b.javob = [sham(0, 1.5, 0.9, 1.2)]
+    assert await RadarBaholash(db, b, lambda: hozir).yur() == 4  # type: ignore[arg-type]

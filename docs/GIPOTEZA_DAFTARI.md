@@ -1892,6 +1892,9 @@ yangilanmaydi — har sessiya o'zi ishlatgan raqamlarni
 | `namuna_soni` | 10 | Calibration nazorat guruhi o'lchami |
 | `portlash_24s_pct` / `portlash_7k_pct` | 20% / 50% | Faqat statistika ta'rifi — "portlash" deb nimani sanaymiz |
 | `parallel_sorov`, `sorov_kutish_soniya` | 5, 15 s | Binance so'rov chegarasi uchun |
+| `HAJM_MIN_ULUSH` | 80% | `ishchi.py`: 30 kunlik kesh shundan kam coin uchun olinsa "yangilandi" deb belgilanmaydi va 15 daqiqadan keyin qayta urinadi |
+| `HAJM_QAYTA_URINISH` | 15 daqiqa | `ishchi.py`: Binance javob bermasa keshni har daqiqada so'ramaslik uchun |
+| `YURAK_ORALIGI` | 30 s | `ishchi.py`: sayt 3 daqiqadan eski yurakni "javob bermayapti" deydi |
 
 ### Nima o'lchanadi
 

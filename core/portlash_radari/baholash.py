@@ -104,7 +104,12 @@ class RadarBaholash:
     ) -> tuple[float | None, float | None, float | None] | None:
         """Yozish uchun qiymatlar, yoki `None` — hozircha yozilmaydi."""
         shamlar = await self._b.shamlar(b.symbol, davr.interval, b.boshlandi, davr.shamlar)
-        natija = natijani_hisobla(b.narx, shamlar or [], b.boshlandi)
+        if shamlar is None:
+            # So'rov YIQILDI (tarmoq, 429, 451) — bu "sham yo'q" emas.
+            # Keyingi soatda qayta urinadi; aks holda bir necha kunlik
+            # uzilishdan keyin to'plangan yozuvlar butunlay bo'sh qolardi.
+            return None
+        natija = natijani_hisobla(b.narx, shamlar, b.boshlandi)
         if natija is not None:
             return natija
         if hozir - b.boshlandi > davr.voz_kechish:

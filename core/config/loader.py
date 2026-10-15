@@ -180,8 +180,6 @@ def validate(config: AppConfig) -> None:
             f"(ruxsat: {', '.join(sorted(ruxsat_etilgan_birjalar))})"
         )
 
-    problems.extend(radar_muammolari(config))
-
     if problems:
         raise ConfigError("Konfiguratsiya xatolari:\n  - " + "\n  - ".join(problems))
 
@@ -189,9 +187,13 @@ def validate(config: AppConfig) -> None:
 def radar_muammolari(config: AppConfig) -> list[str]:
     """Modul 4.0.0 chegaralari ruxsat etilgan oraliqdami.
 
-    Sayt orqali o'zgartirilgan qiymat ham shu oraliqqa qarab
-    tekshiriladi — YAML dagi qiymat undan chetga chiqsa, bot ishga
-    tushmaydi (noto'g'ri sozlama bilan jim ishlagandan ko'ra yaxshi).
+    ATAYLAB `validate()` ICHIDA EMAS. `load_config()` ni bot ham,
+    `scripts.seed` ham chaqiradi — radar sozlamasidagi bitta xato
+    `start.sh` dagi seed qadamini yiqitib, bot va saytni ham ishga
+    tushirmay qo'yardi. Radar esa faqat sayt uchun va boshqalardan
+    mustaqil bo'lishi kerak. Shuning uchun bu tekshiruvni faqat radar
+    jarayonining o'zi chaqiradi (`core/portlash_radari/__main__.py`):
+    xato bo'lsa radar to'xtaydi, bot va sayt ishlayveradi.
     """
     radar = config.radar
     muammolar: list[str] = []

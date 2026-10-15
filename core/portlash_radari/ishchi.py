@@ -54,6 +54,11 @@ BAHOLASH_ORALIGI = timedelta(hours=1)
 BOSHLANGICH_KUTISH = timedelta(seconds=30)
 #: Hajm keshi yangilanmasa, qayta urinish oralig'i
 HAJM_QAYTA_URINISH = timedelta(minutes=15)
+#: Kesh shundan kam coin uchun olinsa — "yangilandi" deb belgilanmaydi
+HAJM_MIN_ULUSH = 0.8
+#: Yurak urishi oralig'i. Sayt 3 daqiqadan eski yurakni "javob bermayapti"
+#: deb ko'rsatadi.
+YURAK_ORALIGI = timedelta(seconds=30)
 
 
 def jadval_sozlamasi(config: AppConfig) -> JadvalSozlamasi:
@@ -138,15 +143,38 @@ class RadarIshchisi:
             logger.warning("Radar: %d ta yarim qolgan sessiya yopildi", yopildi)
         logger.info("Radar ishchisi ishga tushdi")
 
+        yurak = asyncio.create_task(self.yurak_urishi(), name="radar-yurak")
+        try:
+            while True:
+                try:
+                    await self.qadam()
+                except asyncio.CancelledError:
+                    raise
+                except Exception as xato:  # noqa: BLE001 — sikl yashashda davom etsin
+                    logger.exception("Radar qadami yiqildi")
+                    await self._xato_yoz(str(xato) or type(xato).__name__)
+                await asyncio.sleep(self.uyqu().total_seconds())
+        finally:
+            yurak.cancel()
+            await asyncio.gather(yurak, return_exceptions=True)
+
+    async def yurak_urishi(self) -> None:
+        """Yurak urishi ALOHIDA vazifadan, qadamdan mustaqil.
+
+        Bitta qadam bir necha daqiqa cho'zilishi mumkin (hajm keshi —
+        500+ so'rov, ikki sessiya, calibration). Yurak faqat qadam boshida
+        yozilsa, sayt aynan eng muhim payt — sessiya yurayotganda — ishchini
+        "javob bermayapti" deb ko'rsatardi.
+        """
         while True:
             try:
-                await self.qadam()
+                async with self._db.session() as s:
+                    await RadarRepository(s).tirik(self._soat())
             except asyncio.CancelledError:
                 raise
-            except Exception as xato:  # noqa: BLE001 — sikl yashashda davom etsin
-                logger.exception("Radar qadami yiqildi")
-                await self._xato_yoz(str(xato) or type(xato).__name__)
-            await asyncio.sleep(self.uyqu().total_seconds())
+            except Exception:  # noqa: BLE001 — yurak yozilmasa ham sikl yashasin
+                logger.warning("Radar yurak urishi yozilmadi", exc_info=True)
+            await asyncio.sleep(YURAK_ORALIGI.total_seconds())
 
     # ----------------------------------------------------------------- #
     #  Bitta qadam
@@ -235,11 +263,23 @@ class RadarIshchisi:
         qiymatlar = {
             j.symbol: n for j, n in zip(juftliklar, natijalar, strict=True) if n is not None
         }
+        # Olinganlari har holda yoziladi — qisman kesh bo'sh keshdan yaxshi.
+        # Lekin "yangilandi" belgisi faqat yetarli ulushda qo'yiladi: aks
+        # holda 429/timeout bo'roni paytida kesh bir kun bo'sh qolardi va
+        # elak ishlamasdi. Belgi qo'yilmasa 15 daqiqadan keyin qayta urinadi.
+        yetarli = len(qiymatlar) >= HAJM_MIN_ULUSH * len(juftliklar)
         async with self._db.session() as s:
             repo = RadarRepository(s)
-            await repo.ortachalarni_yoz(qiymatlar, hozir)
-            await repo.hajm_yangilandi(hozir)
-        logger.info("Radar: 30 kunlik hajm yangilandi — %d/%d", len(qiymatlar), len(juftliklar))
+            if qiymatlar:
+                await repo.ortachalarni_yoz(qiymatlar, hozir)
+            if yetarli:
+                await repo.hajm_yangilandi(hozir)
+        if not yetarli:
+            await self._xato_yoz(
+                f"30 kunlik hajm faqat {len(qiymatlar)}/{len(juftliklar)} coin uchun olindi — "
+                "qayta urinadi"
+            )
+        logger.info("Radar: 30 kunlik hajm — %d/%d", len(qiymatlar), len(juftliklar))
         return len(qiymatlar)
 
     async def _xato_yoz(self, matn: str) -> None:

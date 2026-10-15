@@ -99,13 +99,13 @@ yig'maydi (u spot struktura bilan ishlaydi).
 
 | № | Kod | Nomi | Guruh | ✅ sharti | ⚪ qachon |
 |---|---|---|---|---|---|
-| 1 | `hajm` | Hajm anomaliyasi | harakat | hajm / 30k o'rtacha ≥ **5x** | tarix yo'q (yangi listing) |
+| 1 | `hajm` | Hajm anomaliyasi | harakat | hajm / 30k o'rtacha ≥ **5x** | yangi listing (o'rtacha yo'q) |
 | 2 | `narx` | Narx harakati | harakat | \|24s o'zgarish\| ≥ **20%** | ticker yo'q |
 | 3 | `funding` | Funding ekstremali | yoqilg'i | \|funding (8 soatga keltirilgan)\| ≥ **0.1%** | funding yo'q |
-| 4 | `oi` | Open Interest o'sishi | yoqilg'i | **8 soatda** OI (kontrakt soni) ≥ **+30%** | OI tarixi yo'q |
+| 4 | `oi` | Open Interest o'sishi | yoqilg'i | **8 soatda** OI (kontrakt soni) ≥ **+30%** | OI tarixi 8 soatga to'lmagan |
 | 5 | `long_short` | Long/Short og'ishi | yoqilg'i | nisbat ≥ **2.5:1** istalgan tomonga | ma'lumot yo'q |
 | 6 | `btc` | BTC'dan mustaqillik | harakat | \|coin − BTC (24s)\| ≥ **15 punkt** | BTC yoki coin yo'q |
-| 7 | `taminot` | Ta'minot tarkibi | yoqilg'i | aylanma/maksimal < **60%** yoki **7 kunda** ≥ **5%** unlock | ikkalasi ham noma'lum |
+| 7 | `taminot` | Ta'minot tarkibi | yoqilg'i | aylanma/maksimal < **60%** yoki **7 kunda** ≥ **5%** unlock | aylanma noma'lum va shartga tushadigan unlock yo'q |
 
 Izohlar:
 
@@ -117,7 +117,10 @@ Izohlar:
   emas: dollar qiymati narx bilan o'sadi va pozitsiya o'sishini narx
   harakatidan ajratib bo'lmay qoladi.
 - **Ta'minot:** aylanma = aylanmadagi / maksimal (maksimal yo'q bo'lsa
-  — umumiy). "Kamida 90% aylanmada" degan qattiq filtr **yo'q**: LSK da
+  — umumiy). Aylanma noma'lum bo'lsa va katta yaqin unlock topilmasa —
+  ⚪: shart "yoki" bilan bog'langan va uning yarmi noma'lum. Unlock
+  kalendari faqat KELAJAKDAGI hodisalarni beradi — u yerda yo'qligi
+  "unlock yo'q" degani emas. CoinGecko'ning `0` qiymati ham "noma'lum". "Kamida 90% aylanmada" degan qattiq filtr **yo'q**: LSK da
   aylanma ~70.6% edi va qulfdagi qismning bo'shatilishi portlash
   sabablaridan biri bo'lgan.
 - Aniq raqamlar (5x, 20%, 0.1%, 30%, 2.5:1, 15, 60%, 7 kun, 5%) — sinovdan
@@ -154,7 +157,10 @@ Faqat yonida ko'rsatiladi:
   3. Yoqilg'i ✅ soni (ko'pi yuqorida)
   4. Hajm nisbati (kattasi yuqorida; noma'lum — oxirida)
   5. Symbol (alifbo — natija har doim bir xil chiqsin)
-- "Ketma-ket" hisoblagichi tartibga ta'sir qilmaydi.
+- "Ketma-ket" hisoblagichi tartibga ta'sir qilmaydi. U o'z turi ichida
+  sanaladi: B — oldingi B dan, A — oldingi A dan. Admin faqat rasmiy B
+  sessiyalarini ko'radi, shuning uchun B da birinchi marta tasdiqlangan
+  coin 🆕 bo'ladi.
 
 ## 7. Kartochka ko'rinishi
 
@@ -174,6 +180,14 @@ XULOSA: G'ayrioddiy faollik: ... KUZATIB BORING — bu signal emas.
 
 - 🆕 — bu safar yangi chiqdi; 🔁 N — oldingi sessiyadan davom etyapti
   (N-marta ketma-ket). Faqat ma'lumot uchun.
+
+### Saytdagi ko'rinish
+
+- ✅ / ❌ / ⚪, 🆕 va 🔁 belgilari saytda **emoji emas, loyiha ikonkalari
+  va yozuvli belgi** bo'lib chiziladi (`web/tests/ikonka.test.ts` emoji'ni
+  taqiqlaydi: u har platformada boshqacha ko'rinadi). Ekran o'qigich
+  uchun har birining matni bor.
+- Halol reestr holati — rangli belgi, ikonka va matn bilan.
 
 ## 8. Vaqt jadvali — kuniga 12 marta
 
@@ -231,7 +245,14 @@ Binance 4 soatlik shamlari (UTC): 00, 04, 08, 12, 16, 20.
   zonasi (elakdan ham tushgan).
 - Grafikka shu oynada kamida bir marta Top-10 ga kirgan coinlar
   chiziladi. O'tkazib yuborilgan sessiya ustuni bo'sh qoladi.
-- 30 kundan eski kunlar ko'rsatilmaydi.
+- 30 kundan eski kunlar ko'rsatilmaydi. Radar birinchi marta ishga
+  tushgan paytdan oldingi ustunlar ham ko'rsatilmaydi — yangi o'rnatishda
+  ekran "o'tkazib yuborildi" bilan to'lmasin.
+- "Chiqdi" zonasiga coin faqat oldingi ustunda ro'yxatda bo'lgan bo'lsa
+  tushadi. Coin hali paydo bo'lmagan va tushib ketgandan keyingi ustunlar
+  bo'sh qoladi — aks holda har chiziq "chiqdi"dan boshlangandek ko'rinardi.
+- Telefonda grafik va jadval o'z kengligida chiziladi va yon tomonga
+  suriladi; sahifaning o'zi gorizontal surilmaydi.
 
 ### Sessiya jadvali
 
@@ -254,6 +275,8 @@ XYZ  | —               | #3    —         | #1    +11%      |
   hisoblanadi — kunlar narx orqali bog'lanadi, varaq esa yangi.
 - Jadvalga oynada Top-10 ga kirgan coinlar + oynadan oldingi
   sessiyada Top-10 da bo'lganlar kiradi.
+- **1 oy** oynasida grafik butun oyni ko'rsatadi, sessiya jadvali esa
+  faqat tanlangan kunni (180 ustun o'qib bo'lmas edi).
 - Narx nomi: **"o'sha sessiyadagi narx"**. "Kirish narxi" so'zi
   ishlatilmaydi — modul signal bermaydi.
 

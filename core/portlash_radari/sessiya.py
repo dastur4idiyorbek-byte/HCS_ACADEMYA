@@ -222,7 +222,9 @@ class RadarSessiyasi:
             yangi = yangi_listingmi(j.onboard, hozir, tarix, ch)
             t = tickerlar.get(j.symbol)
             _, nisbat = elakdan_otadimi(t.hajm_24s if t else None, ortacha, kunlar, yangi, ch)
-            return _Meta(nisbat, yangi, ortacha, kunlar)
+            # Yangi listing o'rtachasiz o'tadi va nisbati ham "noma'lum":
+            # listing kunlaridagi sakrashga nisbat o'rin tartibini buzardi.
+            return _Meta(None if yangi else nisbat, yangi, ortacha, kunlar)
 
         darvozadan = 0
         pool: list[str] = []
@@ -315,6 +317,7 @@ class RadarSessiyasi:
                 aylanma_pct=ta.aylanma_pct if ta else None,
                 unlock_kun=getattr(u, "kun_qoldi", None),
                 unlock_pct=getattr(u, "pct", None),
+                yangi_listing=m.yangi,
             )
             tekshiruvlar = hammasi(coin, ch)
             sanoq = sana(tekshiruvlar)

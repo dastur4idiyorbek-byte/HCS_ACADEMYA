@@ -77,8 +77,9 @@ test("Modul tabi umumiy Modul sahifasiga olib boradi", () => {
   const admin = tabSahifalari(modul, true).map((s) => s.kod);
   assert.deepEqual(admin, ["modul", "kuzatuv", "qidiruv", "modul4"]);
 
+  // Modul 4.0.0 (radar) — faqat admin uchun (`docs/MODUL_4_0_0.md`).
   const oddiy = tabSahifalari(modul, false).map((s) => s.kod);
-  assert.deepEqual(oddiy, ["modul", "qidiruv", "modul4"]);
+  assert.deepEqual(oddiy, ["modul", "qidiruv"]);
 });
 
 test("Modul sahifasida Modul 3.0.0 rolga qarab BOSHQA sahifaga olib boradi", () => {

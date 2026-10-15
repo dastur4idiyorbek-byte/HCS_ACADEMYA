@@ -21,7 +21,8 @@ def test_lsk_namunasi_5_dan_7() -> None:
     c = coin(
         narx=1.2, ozgarish_24s=287.0, hajm_24s=82e6, ortacha_30k=10e6, tarix_kunlar=30,
         funding_stavka=-0.0034, funding_oraliq_soat=8,
-        oi_qatorlar=(100.0, 110.0, 141.0), long_short=1.8, btc_ozgarish=-0.7,
+        oi_qatorlar=(100.0, 105, 110, 115, 120, 125, 130, 135, 141.0), long_short=1.8,
+        btc_ozgarish=-0.7,
         aylanma_pct=70.6,
     )
     natija = tk.hammasi(c, CH)
@@ -39,6 +40,13 @@ def test_hech_narsa_bilinmasa_hammasi_malumot_yoq() -> None:
     natija = tk.hammasi(coin(), CH)
     assert all(x.holat == MALUMOT_YOQ for x in natija)
     assert tk.sana(natija).tasdiq == 0
+
+
+def test_hajm_binance_boyicha_yangi_listingda_ham_malumot_yoq() -> None:
+    """15 kunlik coin: 14 kunlik "o'rtacha" listing sakrashidan iborat."""
+    c = coin(hajm_24s=2e6, ortacha_30k=10e6, tarix_kunlar=14, yangi_listing=True)
+    assert tk.hajm(c, CH).holat == MALUMOT_YOQ
+    assert tk.hajm_nisbati(c) is None
 
 
 def test_hajm_yangi_listingda_malumot_yoq() -> None:
@@ -70,13 +78,25 @@ def test_funding_oraligi_nol_bolsa_standart() -> None:
     assert tk.funding_8s(0.001, 0) == tk.funding_8s(0.001, 8)
 
 
+def oyna(boshi: float, oxiri: float) -> tuple[float, ...]:
+    """8 soatlik to'liq oyna — 9 nuqta."""
+    return (boshi, *([boshi] * 7), oxiri)
+
+
 def test_oi_faqat_osish_va_kontrakt_sonida() -> None:
-    assert tk.oi(coin(oi_qatorlar=(100.0, 130.0)), CH).holat == HA
-    assert tk.oi(coin(oi_qatorlar=(100.0, 60.0)), CH).holat == YOQ
+    assert tk.oi(coin(oi_qatorlar=oyna(100.0, 130.0)), CH).holat == HA
+    assert tk.oi(coin(oi_qatorlar=oyna(100.0, 60.0)), CH).holat == YOQ
     t = tk.oi(coin(oi_qatorlar=(100.0,)), CH)
     assert t.holat == MALUMOT_YOQ
-    assert tk.oi(coin(oi_qatorlar=(0.0, 50.0)), CH).holat == MALUMOT_YOQ
+    assert tk.oi(coin(oi_qatorlar=oyna(0.0, 50.0)), CH).holat == MALUMOT_YOQ
     assert tk.oi(coin(oi_qatorlar=tuple(range(1, 10))), CH).qoshimcha == {"soat": 8}
+
+
+def test_oi_oynasi_tolmasa_malumot_yoq() -> None:
+    """2 soatlik yangi listing: birinchi soat OI si ~0 — yolg'on "+800%" bo'lmasin."""
+    t = tk.oi(coin(oi_qatorlar=(1000.0, 5000.0, 9000.0)), CH)
+    assert t.holat == MALUMOT_YOQ
+    assert t.qoshimcha == {"soat": 2}
 
 
 def test_long_short_istalgan_tomonga() -> None:

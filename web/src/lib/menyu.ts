@@ -166,16 +166,20 @@ export const MENYU: MenyuBandi[] = [
     talab: null,
     adminUchun: true,
   },
-  // MODUL 4.0.0 — hali tayyor emas. Manzil `/modul/4` EMAS: tab
-  // faolligi `startsWith` bilan topiladi va `/modul/...` ostidagi
-  // sahifa umumiy "Modul" bandini ham faol qilib qo'yardi.
+  // MODUL 4.0.0 — "Portlash xavfi radari", FAQAT ADMIN uchun
+  // (`docs/MODUL_4_0_0.md`, 2-bo'lim). Sahifaning o'zi ham adminlikni
+  // qayta tekshiradi: menyu ko'rsatmagani "kira olmaydi" degani emas.
+  //
+  // Manzil `/modul/4` EMAS: tab faolligi `startsWith` bilan topiladi
+  // va `/modul/...` ostidagi sahifa umumiy "Modul" bandini ham faol
+  // qilib qo'yardi.
   {
     kod: "modul4",
     yol: "/modul-4",
     kalit: "modul.v4",
     belgi: "korish",
     talab: null,
-    tezKunda: true,
+    adminUchun: true,
   },
   {
     kod: "admin",
@@ -230,9 +234,9 @@ export const PASTKI_TABLAR: PastkiTab[] = [
   // Uning ichida versiyalar bo'lim bo'lib turadi:
   //
   //     Modul 3.0.0 -> admin: kuzatuv paneli, foydalanuvchi: qidiruv
-  //     Modul 4.0.0 -> tez kunda
+  //     Modul 4.0.0 -> faqat admin: portlash xavfi radari
   //
-  // "kuzatuv" admin bo'lmaganga `tabSahifalari` tomonidan
+  // "kuzatuv" va "modul4" admin bo'lmaganga `tabSahifalari` tomonidan
   // qaytarilmaydi — rolga qarab ajratish uchun alohida shart
   // yozilmadi, mavjud qoidaning o'zi yetarli.
   {

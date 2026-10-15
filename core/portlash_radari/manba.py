@@ -146,6 +146,12 @@ def _son(x: object) -> float | None:
     return son if son == son else None  # NaN -> None
 
 
+def _musbat(x: object) -> float | None:
+    """Faqat musbat son — nol va manfiy "noma'lum" deb o'qiladi."""
+    son = _son(x)
+    return son if son is not None and son > 0 else None
+
+
 # --------------------------------------------------------------------- #
 #  HTTP asosi
 # --------------------------------------------------------------------- #
@@ -268,6 +274,10 @@ class BinanceFutures(_Http):
             malumot, kod = await self._json(f"{self._base}/fapi/v1/klines", parametr)
         if jurnal is not None:
             jurnal.hisobla("shamlar", kod)
+        if kod == 400:
+            # "Invalid symbol" — coin delisting bo'lgan. Bu tarmoq xatosi
+            # emas: qayta so'rash foyda bermaydi, sham yo'q deb qaytadi.
+            return []
         if kod != 200:
             return None
         return shamlarni_ajrat(malumot)
@@ -525,12 +535,17 @@ def taminotni_ajrat(malumot: object, kerak: set[str]) -> dict[str, Taminot]:
         belgi = str(q.get("symbol", "")).upper()
         if belgi not in kerak:
             continue
+        # CoinGecko ta'minotni tasdiqlamagan coinga (ko'pincha yangi
+        # listing) `market_cap: 0` va `circulating_supply: 0` beradi — bu
+        # "bilmayman", nol EMAS. Nol qolsa, coin $10 mln darvozasidan
+        # yolg'on sabab bilan tushib qolardi va aylanma "0%" bo'lib
+        # 7-tekshiruvni yolg'on ✅ qilardi.
         t = Taminot(
-            market_cap=_son(q.get("market_cap")),
-            narx=_son(q.get("current_price")),
-            muomalada=_son(q.get("circulating_supply")),
-            jami=_son(q.get("total_supply")),
-            maksimal=_son(q.get("max_supply")),
+            market_cap=_musbat(q.get("market_cap")),
+            narx=_musbat(q.get("current_price")),
+            muomalada=_musbat(q.get("circulating_supply")),
+            jami=_musbat(q.get("total_supply")),
+            maksimal=_musbat(q.get("max_supply")),
         )
         avvalgi = natija.get(belgi)
         if avvalgi is None or (t.market_cap or 0) > (avvalgi.market_cap or 0):

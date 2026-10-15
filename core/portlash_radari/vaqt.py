@@ -119,17 +119,20 @@ def keyingisi(hozir: datetime, j: JadvalSozlamasi, turi: str | None = None) -> R
 
 
 def oldingi_rasmiy_slot(turi: str, sham_vaqti: datetime) -> tuple[str, datetime]:
-    """Rasmiy zanjirdagi bevosita oldingi sessiya.
+    """"Ketma-ket" hisoblagichi bog'lanadigan oldingi sessiya — O'Z TURIDAN.
 
-    A(C) dan oldin B(C - 4 soat), B(C) dan oldin A(C). "Ketma-ket"
-    hisoblagichi faqat shu qo'shni bilan bog'lanadi: orada sessiya
-    o'tkazib yuborilgan bo'lsa, zanjir uziladi va hisob 1 dan boshlanadi.
+    B(C) dan oldin B(C - 4 soat), A(C) dan oldin A(C - 4 soat). Ikki
+    zanjir ATAYLAB ajratilgan: admin faqat rasmiy B sessiyalarini ko'radi.
+    A ham zanjirga qo'shilsa, B da birinchi marta tasdiqlangan coin
+    "🔁 2-marta" bo'lib chiqardi va rasmiy bo'lmagan A sessiyasi B
+    hisobini uzib qo'yardi.
+
+    Orada sessiya o'tkazib yuborilgan bo'lsa zanjir uziladi va hisob
+    1 dan boshlanadi.
     """
-    if turi == TASDIQ:
-        return KASHFIYOT, sham_vaqti
-    if turi == KASHFIYOT:
-        return TASDIQ, sham_vaqti - timedelta(hours=SHAM_SOAT)
-    raise ValueError(f"rasmiy sessiya emas: {turi}")
+    if turi not in (TASDIQ, KASHFIYOT):
+        raise ValueError(f"rasmiy sessiya emas: {turi}")
+    return turi, sham_vaqti - timedelta(hours=SHAM_SOAT)
 
 
 def kunlik_yangilash_vaqti(hozir: datetime, soat: int, daqiqa: int) -> datetime:

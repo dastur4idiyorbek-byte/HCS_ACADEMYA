@@ -149,3 +149,27 @@ async def test_coingecko_symbols_ishlamasa_sahifalab_qidiradi() -> None:
     assert natija["LSK"].market_cap == 2e8
     assert jurnal.lugat()["coingecko"]["izoh"] == "sahifalab"
     assert len(cg.chaqiruvlar) == 1 + m.ZAXIRA_SAHIFALAR
+
+
+def test_coingecko_nol_va_manfiy_nomalum() -> None:
+    t = m.taminotni_ajrat(
+        [{"symbol": "new", "market_cap": 0, "current_price": 1.0,
+          "circulating_supply": 0, "total_supply": 1000, "max_supply": 0}],
+        {"NEW"},
+    )["NEW"]
+    assert t.market_cap is None and t.muomalada is None and t.maksimal is None
+    assert t.aylanma_pct is None
+
+
+async def test_shamlar_delisting_bosh_tarmoq_xatosi_none() -> None:
+    class Soxta(m.BinanceFutures):
+        def __init__(self, kod: int | None) -> None:
+            super().__init__("https://fapi.test")
+            self.kod = kod
+
+        async def _json(self, manzil, parametr=None):  # noqa: ANN001, ANN202
+            return None, self.kod
+
+    assert await Soxta(400).shamlar("GONEUSDT", "1h") == []
+    assert await Soxta(429).shamlar("LSKUSDT", "1h") is None
+    assert await Soxta(None).shamlar("LSKUSDT", "1h") is None

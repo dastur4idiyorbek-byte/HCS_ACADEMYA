@@ -75,6 +75,8 @@ class CoinMalumoti:
     aylanma_pct: float | None = None
     unlock_kun: int | None = None
     unlock_pct: float | None = None
+    #: Binance'da yosh coin — 30 kunlik o'rtachasi listing shovqinidan iborat
+    yangi_listing: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,9 +123,15 @@ def _holat(shart: bool) -> str:
 
 
 def hajm_nisbati(coin: CoinMalumoti) -> float | None:
-    """24s hajm / 30 kunlik o'rtacha. Tarix yetarli bo'lmasa — `None`."""
+    """24s hajm / 30 kunlik o'rtacha. Tarix yetarli bo'lmasa — `None`.
+
+    Yangi listingda ham `None`: uning "o'rtachasi" listing kunlaridagi
+    sakrashdan iborat va nisbat hech narsani anglatmaydi
+    (`docs/MODUL_4_0_0.md`, 6-bo'lim: "ularda o'rtacha yo'q").
+    """
     if (
-        coin.hajm_24s is None
+        coin.yangi_listing
+        or coin.hajm_24s is None
         or coin.ortacha_30k is None
         or coin.ortacha_30k <= 0
         or coin.tarix_kunlar < MIN_TARIX_KUN
@@ -188,9 +196,14 @@ def oi_ozgarishi(qatorlar: tuple[float, ...]) -> float | None:
 
 def oi(coin: CoinMalumoti, ch: Chegaralar) -> Tekshiruv:
     """OI KONTRAKT SONIDA. Dollar qiymati narx bilan o'sadi — u
-    pozitsiya o'sishini narx harakatidan ajrata olmasdi."""
-    ozgarish = oi_ozgarishi(coin.oi_qatorlar)
+    pozitsiya o'sishini narx harakatidan ajrata olmasdi.
+
+    OYNA TO'LISHI SHART. 2-3 soatlik coinda birinchi soatning OI si
+    deyarli nol bo'ladi va "+800%" chiqardi — deyarli har yangi listing
+    yolg'on ✅ olardi. Oyna to'lmasa ⚪.
+    """
     soat = max(len(coin.oi_qatorlar) - 1, 0)
+    ozgarish = oi_ozgarishi(coin.oi_qatorlar) if soat >= ch.oi_oyna_soat else None
     if ozgarish is None:
         return Tekshiruv(
             "oi", YOQILGI, MALUMOT_YOQ, None, ch.oi_osish_pct, "binance_oi", {"soat": soat}

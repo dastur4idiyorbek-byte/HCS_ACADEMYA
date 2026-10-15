@@ -11,7 +11,7 @@ bilan BIR XIL qilib eksport qiladi.
 Chiqish kodi:
     0  radar sozlamada o'chirilgan (`radar.yoqilgan: false`) — qayta
        ko'tarish shart emas
-    1  ishga tushirib bo'lmadi (baza, sozlama)
+    1  ishga tushirib bo'lmadi (baza, sozlama) — nazoratchi qayta urinadi
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ import os
 import sys
 
 from core.config import load_config
+from core.config.loader import radar_muammolari
 from core.portlash_radari.ishchi import RadarIshchisi
 from core.storage import Database
 from core.utils.logging_setup import get_logger, setup_logging
@@ -33,6 +34,12 @@ async def ishga_tushir() -> int:
     if not config.radar.yoqilgan:
         logger.warning("Radar o'chiq (radar.yoqilgan = false) — jarayon tugadi")
         return 0
+    muammolar = radar_muammolari(config)
+    if muammolar:
+        logger.error(
+            "Radar sozlamasi xato — radar ishga tushmadi:\n  - %s", "\n  - ".join(muammolar)
+        )
+        return 1
 
     database = Database()
     # Jadvallarni bot yoki `alembic upgrade head` yaratadi. Radar ulardan
@@ -53,7 +60,12 @@ async def ishga_tushir() -> int:
 
 
 def main() -> None:
-    setup_logging(level=os.getenv("LOG_LEVEL", "INFO"), log_dir=os.getenv("LOG_DIR", "logs"))
+    # O'Z PAPKASI. Bot ham `logs/hcs.log` ga yozadi va ikki jarayon bitta
+    # aylanuvchi faylni bo'lisha olmaydi: biri faylni almashtirsa, ikkinchisi
+    # eski faylga yozishda davom etadi va zaxira nusxalarni ikki barobar
+    # tez yeb qo'yadi.
+    log_dir = os.getenv("RADAR_LOG_DIR") or os.path.join(os.getenv("LOG_DIR", "logs"), "radar")
+    setup_logging(level=os.getenv("LOG_LEVEL", "INFO"), log_dir=log_dir)
     try:
         sys.exit(asyncio.run(ishga_tushir()))
     except KeyboardInterrupt:

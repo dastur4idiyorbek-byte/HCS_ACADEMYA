@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/Badge";
 import { Ikonka } from "@/components/ui/Ikonka";
 import { Sarlavha } from "@/components/ui/Sarlavha";
 import { tarjimon } from "@/lib/i18n";
@@ -14,10 +13,13 @@ export const dynamic = "force-dynamic";
  *
  *   - Modul 3.0.0 — mavjud kuzatuv. Admin kuzatuv paneliga,
  *     foydalanuvchi coin qidirishga tushadi (panel adminga xos).
- *   - Modul 4.0.0 — hali tayyor emas, "Tez kunda".
+ *   - Modul 4.0.0 — portlash xavfi radari, FAQAT ADMIN uchun
+ *     (`docs/MODUL_4_0_0.md`). Foydalanuvchiga kartochka umuman
+ *     ko'rinmaydi.
  *
  * Sahifa FAQAT YO'L KO'RSATADI: hech qanday ma'lumot yuklamaydi.
- * Kuzatuv panelining o'zi ham admin huquqini qayta tekshiradi.
+ * Kuzatuv paneli ham, radar sahifasi ham admin huquqini qayta
+ * tekshiradi.
  */
 export default async function Modul() {
   const { til, admin } = await kirim();
@@ -38,12 +40,14 @@ export default async function Modul() {
           izoh={t("modul.v3_izoh")}
           tugma={t("modul.ochish")}
         />
-        <ModulKartochka
-          yol="/modul-4"
-          nom={t("modul.v4")}
-          izoh={t("modul.v4_izoh")}
-          belgi={<Badge tone="ortacha">{t("kontent.tez_kunda")}</Badge>}
-        />
+        {admin ? (
+          <ModulKartochka
+            yol="/modul-4"
+            nom={t("modul.v4")}
+            izoh={t("modul.v4_izoh")}
+            tugma={t("modul.ochish")}
+          />
+        ) : null}
       </div>
     </>
   );

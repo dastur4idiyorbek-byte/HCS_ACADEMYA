@@ -26,6 +26,7 @@ class SoxtaBinance:
     def __init__(self) -> None:
         self.juft = [Juftlik("LSKUSDT", "LSK", "LSK", 1, None)]
         self.ortacha_sorovlari = 0
+        self.ortacha_javobi: tuple[float, int] | None = (1e6, 30)
 
     async def juftliklar(self, jurnal):  # noqa: ANN001, ANN201
         jurnal.yoz("juftliklar", 200 if self.juft else 451)
@@ -33,7 +34,7 @@ class SoxtaBinance:
 
     async def kunlik_ortacha(self, symbol, hozir, kun=30):  # noqa: ANN001, ANN201
         self.ortacha_sorovlari += 1
-        return (1e6, 30)
+        return self.ortacha_javobi
 
     async def shamlar(self, *a, **k):  # noqa: ANN002, ANN003, ANN201
         return []
@@ -182,3 +183,45 @@ def test_o_chiq_radar_ishga_tushmaydi(config: AppConfig) -> None:
     x = RadarIshchisi(o_chiq, Database("sqlite+aiosqlite:///:memory:"))
     x.start()
     assert x._vazifa is None
+
+
+async def test_klines_yiqilsa_hajm_keshi_yangilandi_deb_belgilanmaydi(
+    config: AppConfig, db: Database
+) -> None:
+    """Hamma klines so'rovi yiqilsa (429 bo'roni) kesh bir kun bo'sh qolmasin:
+    belgi qo'yilmaydi, 15 daqiqadan keyin qayta urinadi."""
+    soat = Soat(datetime(2026, 10, 14, 1, 0, tzinfo=UTC))
+    x, _ = ishchi(config, db, soat)
+    x._b.ortacha_javobi = None  # type: ignore[attr-defined]
+    assert "hajm" in await x.qadam()
+    async with db.session() as s:
+        holat = await s.get(RadarHolati, 1)
+    assert holat.hajm_yangilandi is None
+    assert "0/1" in holat.oxirgi_xato
+    soat.t += timedelta(minutes=16)
+    x._b.ortacha_javobi = (1e6, 30)  # type: ignore[attr-defined]
+    assert "hajm" in await x.qadam()
+    async with db.session() as s:
+        assert (await s.get(RadarHolati, 1)).hajm_yangilandi == soat.t
+
+
+async def test_yurak_urishi_qadamdan_mustaqil(config: AppConfig, db: Database) -> None:
+    import asyncio
+
+    import core.portlash_radari.ishchi as ishchi_moduli
+
+    soat = Soat(datetime(2026, 10, 14, 9, 0, tzinfo=UTC))
+    x, _ = ishchi(config, db, soat)
+    eski = ishchi_moduli.YURAK_ORALIGI
+    ishchi_moduli.YURAK_ORALIGI = timedelta(seconds=0.01)
+    try:
+        vazifa = asyncio.create_task(x.yurak_urishi())
+        await asyncio.sleep(0.05)
+        soat.t += timedelta(minutes=5)
+        await asyncio.sleep(0.05)
+        vazifa.cancel()
+        await asyncio.gather(vazifa, return_exceptions=True)
+    finally:
+        ishchi_moduli.YURAK_ORALIGI = eski
+    async with db.session() as s:
+        assert (await s.get(RadarHolati, 1)).ishchi_tirik == soat.t
