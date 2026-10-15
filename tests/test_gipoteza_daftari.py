@@ -35,6 +35,7 @@ DAFTARSIZ = {
     "exchange", "ws_base_url", "rest_base_url", "ranking_source",
     "coinmarketcap_base_url", "coingecko_base_url", "level", "dir",
     "reference_symbol", "timezone", "allocation_method",
+    "futures_base_url", "vaqt_zonasi",
     # ro'yxatlar
     "stablecoin_symbols", "seed_haram_symbols", "seed_mashbooh_symbols",
     "timeframes", "htf_confirmation", "positional_timeframes",
@@ -45,6 +46,7 @@ DAFTARSIZ = {
     "enabled", "exclude_stablecoins", "allow_measured_tp",
     "require_htf_alignment", "require_confirmation",
     "require_structure_alignment", "require_bos", "tp2_from_structure",
+    "yoqilgan",
     # texnik chegaralar — bozor haqida emas
     "max_scan_depth", "refresh_interval_hours", "candles_lookback",
     "min_candles", "max_concurrent_candle_requests",

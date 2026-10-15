@@ -1838,3 +1838,73 @@ tarix so'rovi kerak bo'lardi.
     o'zgartiradimi (to'siq baribir 7 kunlik oynada ishlaydi)
   - Open Interest o'sishi "kuchli trend" mi yoki "haddan ortiq
     leverage" mi — ikkalasi ham bir xil raqam beradi
+
+---
+
+## Modul 4.0.0 — "Portlash xavfi radari" sozlamalari (2026-10-14)
+
+Radar SIGNAL BERMAYDI va savdo qarori qabul qilmaydi
+(`docs/MODUL_4_0_0.md`). U Binance Futures ma'lumotini faqat BOZOR
+HAQIDA MA'LUMOT sifatida o'qiydi — futures, short yoki leverage
+savdosi yo'q va bo'lmaydi. Quyidagi raqamlar faqat admin ekranida
+qaysi coin "kuzatib boring" ro'yxatiga chiqishini boshqaradi.
+
+Hammasi loyiha egasi tasdiqlagan TAKLIF (2026-10-14) va hech biri
+o'lchanmagan. Ular kodda emas: `config/default.yaml` (`radar:`) da
+standart, admin esa saytda (`/modul-4` -> Sozlamalar) kodga
+tegmasdan o'zgartiradi. Shuning uchun daftar har o'zgarishdan keyin
+yangilanmaydi — har sessiya o'zi ishlatgan raqamlarni
+`radar_sessiyalar.sozlama_json` ga yozadi.
+
+### 🔴 O'lchanmagan — chegaralar
+
+| sozlama | qiymat | nima uchun shunday |
+|---|---|---|
+| `min_kapitalizatsiya_usd` | $10 mln | Loyiha egasining taklifi. Elakdan KEYIN qo'llanadi; noma'lum kapitalizatsiya chetlatmaydi |
+| `min_hajm_24s_usd` | $500 ming | Bundan kam hajmda funding va OI ma'lumoti ishonchsiz |
+| `elak_hajm_x` | 3x | Elak: yuzlab coindan ~20-30 tasi qolsin. Calibration'dagi nazorat guruhi elak yaxshi coinni o'tkazib yuboryaptimi — shuni ko'rsatadi |
+| `yangi_listing_kun` | 30 kun | Bundan yosh coin o'rtachasiz elakdan o'tadi (tarixi yo'q) |
+| `hajm_x` | 5x | 1-tekshiruv: hajm anomaliyasi |
+| `narx_ozgarish_pct` | 20% | 2-tekshiruv: \|24s o'zgarish\| |
+| `funding_8s_pct` | 0.1% | 3-tekshiruv. 8 soatga keltirilgan: 4 soatlik oraliqda 0.1% = 8 soatlikda 0.2% |
+| `oi_osish_pct` | 30% | 4-tekshiruv: OI kontrakt sonida (dollar emas) |
+| `oi_oyna_soat` | 8 soat | OI o'sishi shu oynada o'lchanadi |
+| `long_short_nisbat` | 2.5:1 | 5-tekshiruv, istalgan tomonga og'ish |
+| `btc_farq_pp` | 15 punkt | 6-tekshiruv: coin − BTC (24s) |
+| `aylanma_max_pct` | 60% | 7-tekshiruv. Qattiq "≥90% aylanma" filtri ATAYLAB yo'q: LSK da aylanma ~70.6% edi va qulfdagi qismning bo'shatilishi portlash sababi bo'lgan |
+| `unlock_kun` | 7 kun | 7-tekshiruv: yaqin unlock |
+| `unlock_min_pct` | 5% | 7-tekshiruv: katta unlock |
+| `nomzod_min` | 4 / 7 | NOMZOD sharti |
+| `top_n` | 10 | Grafik va jadvaldagi "Top" o'lchami — ko'rinish, qaror emas |
+| `MIN_TARIX_KUN` | 7 kun | `tekshiruvlar.py`: 30 kunlik o'rtacha kamida shuncha kundan olinsin |
+| `NARX_FARQI_MAX` | 25% | `manba.py`: CoinGecko narxi Binance'dan shuncha farq qilsa — boshqa loyiha |
+| `MAX_POOL` | 120 | `sessiya.py`: himoya, sog'lom holatda pool 20-30 ta |
+
+### 🟢 Gipoteza emas — vaqt va texnik qiymatlar
+
+| sozlama | qiymat | nima uchun |
+|---|---|---|
+| `kashfiyot_daqiqa` | 60 | Loyiha egasining qarori: 4 soatlik sham ochilishidan 1 soat oldin |
+| `tasdiq_daqiqa` | 15 | Loyiha egasining qarori: 15 daqiqa oldin (rasmiy sessiya) |
+| `kashfiyot_kechikish_daqiqa` | 40 | Kechikkan A tasdiqlash vaqtiga yetib qolmasin |
+| `tasdiq_kechikish_daqiqa` | 14 | B sham ochilishidan oldin tugasin |
+| `hajm_yangilash_soat` / `hajm_yangilash_daqiqa` | 00:05 UTC | Kunlik sham yopilgandan keyin |
+| `namuna_soni` | 10 | Calibration nazorat guruhi o'lchami |
+| `portlash_24s_pct` / `portlash_7k_pct` | 20% / 50% | Faqat statistika ta'rifi — "portlash" deb nimani sanaymiz |
+| `parallel_sorov`, `sorov_kutish_soniya` | 5, 15 s | Binance so'rov chegarasi uchun |
+| `HAJM_MIN_ULUSH` | 80% | `ishchi.py`: 30 kunlik kesh shundan kam coin uchun olinsa "yangilandi" deb belgilanmaydi va 15 daqiqadan keyin qayta urinadi |
+| `HAJM_QAYTA_URINISH` | 15 daqiqa | `ishchi.py`: Binance javob bermasa keshni har daqiqada so'ramaslik uchun |
+| `YURAK_ORALIGI` | 30 s | `ishchi.py`: sayt 3 daqiqadan eski yurakni "javob bermayapti" deydi |
+
+### Nima o'lchanadi
+
+Calibration (`docs/MODUL_4_0_0.md`, 11-bo'lim) har rasmiy sessiyadan
+keyin 24 soat va 7 kunlik natijani yozadi. Bir necha haftadan keyin:
+
+  - har tekshiruv ✅ bo'lganda portlash ulushi ❌ dagidan
+    haqiqatan yuqorimi;
+  - 4/7 chegarasi to'g'rimi (✅ soni bo'yicha ulush);
+  - nazorat guruhi (elakdan o'tmaganlar) portlashni qanchalik tez-tez
+    beradi — elak yaxshi coinlarni o'tkazib yubormayaptimi.
+
+Chegaralar shu dalil bilan to'g'rilanadi, taxmin bilan emas.

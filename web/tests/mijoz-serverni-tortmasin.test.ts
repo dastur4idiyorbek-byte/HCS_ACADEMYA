@@ -34,6 +34,7 @@ const SERVER_KUTUBXONALARI = new Set([
   "@/lib/queries",
   "@/lib/jonli-server",
   "@/lib/session",
+  "@/lib/radar-baza",
 ]);
 
 function fayllar(dir: string): string[] {

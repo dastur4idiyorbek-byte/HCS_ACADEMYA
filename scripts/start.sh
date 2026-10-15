@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 #
-# Railway'da BITTA xizmat ichida ikkita jarayon ishga tushadi:
+# Railway'da BITTA xizmat ichida uchta jarayon ishga tushadi:
 #   1. bot   — fon jarayoni, port ochmaydi
 #   2. sayt  — Railway bergan `$PORT` da
+#   3. radar — Modul 4.0.0 (`core/portlash_radari`), port ochmaydi.
+#              Botdan ALOHIDA: modul faqat sayt uchun (loyiha egasining
+#              qarori, 2026-10-14), radar yiqilsa bot va sayt ishlayveradi.
 #
 # Nima uchun bitta xizmat: Railway'da doimiy disk FAQAT BITTA xizmatga
 # ulanadi. Baza esa o'sha diskdagi SQLite fayli. Saytni alohida xizmatga
@@ -93,11 +96,40 @@ export PORT
 WEB_PID=$!
 echo "Sayt ishga tushdi: PID=${WEB_PID}, PORT=${PORT}"
 
+# --- Radar (Modul 4.0.0) — o'z nazoratchisi bilan ----------------------
+#
+# Bot va sayt kuzatadigan `wait -n` ga ATAYLAB qo'shilmaydi: radar
+# yiqilishi konteynerni ham, botni ham qayta ko'tarmasligi kerak. U
+# o'z siklida qayta ko'tariladi, kutish har safar ikki barobar oshadi
+# (5 daqiqagacha). Chiqish kodi 0 — radar sozlamada o'chirilgan, qayta
+# ko'tarish shart emas.
+radar_nazoratchisi() {
+  local kutish=5 bola=""
+  # Nazoratchi to'xtatilsa, avval bolasi (python) to'xtatiladi — aks holda
+  # konteyner yopilayotganda radar jarayoni yetim qolardi. `wait` ishlatiladi:
+  # oddiy chaqiruvda qobiq bola tugaguncha signalni ushlamaydi.
+  trap 'kill "$bola" 2>/dev/null; exit 0' TERM INT
+  while true; do
+    python -m core.portlash_radari &
+    bola=$!
+    if wait "$bola"; then
+      echo "Radar o'chiq — qayta ko'tarilmaydi."
+      return 0
+    fi
+    echo "RADAR TO'XTADI. Bot va sayt ishlab turibdi. ${kutish} soniyadan keyin qayta urinamiz."
+    sleep "$kutish"
+    kutish=$((kutish < 300 ? kutish * 2 : 300))
+  done
+}
+radar_nazoratchisi &
+RADAR_PID=$!
+echo "Radar nazoratchisi ishga tushdi: PID=${RADAR_PID}"
+
 #: Bot ketma-ket necha marta qayta ko'tariladi
 BOT_URINISHLAR="${BOT_RESTART_LIMIT:-5}"
 
 to_xtat() {
-  kill "$WEB_PID" "${BOT_PID:-}" 2>/dev/null || true
+  kill "$WEB_PID" "${BOT_PID:-}" "$RADAR_PID" 2>/dev/null || true
 }
 trap to_xtat EXIT INT TERM
 

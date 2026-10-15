@@ -219,3 +219,57 @@ kuzatuv:
   qidiruv_lite: 3
   qidiruv_pro: 10
   qidiruv_premium: 30
+
+# Modul 4.0.0 — "Portlash xavfi radari" (`docs/MODUL_4_0_0.md`).
+#
+# SIGNAL BERMAYDI. Binance Futures'dagi hamma USDT juftligini kuniga
+# 12 marta tekshiradi va "g'ayrioddiy faollik bor, kuzatib boring"
+# deydi. Modul 3.0.0 (`kuzatuv`) dan butunlay alohida.
+#
+# 🔴 O'LCHANMAGAN. Hamma chegara — taklif. Calibration natijasiga
+# qarab to'g'rilanadi. Admin ularni saytda (/modul-4 -> Sozlamalar)
+# kodga tegmasdan o'zgartira oladi — bu yerdagilar STANDART qiymat.
+radar:
+  yoqilgan: true
+  vaqt_zonasi: "Asia/Bishkek"
+  futures_base_url: "https://fapi.binance.com"
+
+  # 0-darvoza. Kapitalizatsiya ELAKDAN KEYIN tekshiriladi.
+  min_kapitalizatsiya_usd: 10000000
+  min_hajm_24s_usd: 500000
+
+  # 1-bosqich — elak: hajm 30 kunlik o'rtachadan 3 barobar katta.
+  elak_hajm_x: 3.0
+  yangi_listing_kun: 30
+
+  # 2-bosqich — 7 tekshiruv chegaralari.
+  hajm_x: 5.0
+  narx_ozgarish_pct: 20.0
+  funding_8s_pct: 0.1        # 8 soatga keltirilgan, foizda
+  oi_osish_pct: 30.0
+  oi_oyna_soat: 8
+  long_short_nisbat: 2.5
+  btc_farq_pp: 15.0
+  aylanma_max_pct: 60.0
+  unlock_kun: 7
+  unlock_min_pct: 5.0
+
+  # 3-bosqich: 7 tadan kamida 4 tasi ✅ -> NOMZOD.
+  nomzod_min: 4
+  top_n: 10
+
+  # Vaqt: kashfiyot shamdan 60 daqiqa, tasdiqlash 15 daqiqa oldin.
+  kashfiyot_daqiqa: 60
+  tasdiq_daqiqa: 15
+  kashfiyot_kechikish_daqiqa: 40
+  tasdiq_kechikish_daqiqa: 14
+  hajm_yangilash_soat: 0
+  hajm_yangilash_daqiqa: 5
+
+  # Calibration: nazorat guruhi va "portlash" ta'rifi.
+  namuna_soni: 10
+  portlash_24s_pct: 20.0
+  portlash_7k_pct: 50.0
+
+  parallel_sorov: 5
+  sorov_kutish_soniya: 15

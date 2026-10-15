@@ -7,3 +7,6 @@ ruff==0.8.4
 # `python -m scripts.qollanma_pdf` uchun. PRODUCTION'ga KIRMAYDI:
 # bot va sayt PDF chiqarmaydi, kutubxona esa Pillow'ni tortadi.
 reportlab==5.0.1
+# `scripts/kitob/qur.py` qurilgan PDF sahifalarini sanaydi —
+# `tests/test_kitob.py` busiz yiqiladi.
+pypdf==5.1.0

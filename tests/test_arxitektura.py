@@ -151,6 +151,11 @@ QAVATLAR = {
     # qo'yish `analysis` ni panelga bog'lab, g'ishtni teskari
     # yotqizardi.
     "watch_panel": 5,
+    # Modul 4.0.0 — Portlash xavfi radari. `watch_panel` bilan bir
+    # qavatda: undan faqat unlock kalendarini O'QIYDI, boshqa hech
+    # narsani bilmaydi. Signal modullariga (4-qavat) umuman qaramaydi
+    # — `tests/core/test_radar_chegara.py`.
+    "portlash_radari": 5,
     "backtest": 6,
 }
 
