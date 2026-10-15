@@ -119,7 +119,12 @@ async def test_admin_tasdiqlagach_obuna_faollashadi(db: Database) -> None:
         assert natija.approved
         assert tolov.status == PaymentStatus.APPROVED.value
         assert natija.subscription.expires_at == HOZIR + timedelta(days=30)
-        assert await xizmat.tier_for(user.id) is SubscriptionTier.PREMIUM
+        # Tarif HOZIR paytiga nisbatan so'raladi. Ilgari `xizmat.tier_for()`
+        # haqiqiy soat bilan so'rardi va test "vaqt bombasi" edi: obuna
+        # HOZIR + 30 kun (2026-09-18) da tugagani uchun shu sanadan keyin
+        # test o'z-o'zidan yiqila boshladi — kod esa to'g'ri edi.
+        tarif = await SubscriptionRepository(session).tier_for(user.id, now=HOZIR)
+        assert tarif is SubscriptionTier.PREMIUM
 
 
 async def test_kunlik_tarif_sinov_deb_belgilanadi(db: Database) -> None:
